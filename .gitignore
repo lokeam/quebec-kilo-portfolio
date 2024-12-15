@@ -1,0 +1,23 @@
+# BE
+bin
+db-data/
+/node_modules
+
+# FE
+web/node_modules
+web/.cache
+web/build
+
+# Env
+.env
+.envrc
+
+# Make
+Makefile
+qkapi
+
+# IDE
+.vscode/
+
+# Logs
+backend.log
