@@ -1,0 +1,25 @@
+# Version Control
+.git
+.gitignore
+
+# Docker
+.docker
+Dockerfile
+docker-compose*.yml
+
+# Environment + Config
+.env*
+*.log
+
+# Docs + evelopment
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+Makefile
+.vscode
+.idea
+
+# Go specific
+tmp/
+vendor/

@@ -1,0 +1,68 @@
+version: '3'
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-postgres_data}  # Allow different db volumes per environment
+  redis_data:
+    name: ${REDIS_VOLUME:-redis_data}      # Allow different cache volumes per environment
+
+services:
+  postgres:
+    image: 'postgres:14.0'
+    ports:
+      - '${POSTGRES_PORT:-7654}:5432'      # Use env var with default
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-qkapi}
+    volumes:
+      - ${POSTGRES_VOLUME:-postgres_data}:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  mailhog:
+    image: 'jcalonso/mailhog:latest'
+    ports:
+      - '${MAILHOG_PORT:-1026}:1026'
+      - '${MAILHOG_UI_PORT:-8029}:8026'
+    restart: always
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  redis:
+    image: 'redis:7.0-alpine'
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-password}
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - ${REDIS_VOLUME:-redis_data}:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # Check if Redis is running
+      interval: 10s # How often to check
+      timeout: 5s # How long to wait for a response
+      retries: 3 # Number of retries before marking service as unhealthy
+      start_period: 5s # Initial grace period for startup

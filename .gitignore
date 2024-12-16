@@ -1,23 +1,48 @@
-# BE
-bin
-db-data/
-/node_modules
+#==========================================
+# Backend
+#==========================================
+backend/bin/
+backend/db-data/
+backend/vendor/
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/qkapi
+backend/*.log
 
-# FE
-web/node_modules
-web/.cache
-web/build
+#==========================================
+# Frontend
+#==========================================
+frontend/node_modules/
+frontend/.cache/
+frontend/build/
+frontend/dist/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
 
-# Env
+#==========================================
+# Environment & Configuration
+#==========================================
 .env
-.envrc
+.env.*
+!.env.example
+!.env.*.example
 
-# Make
-Makefile
-qkapi
-
-# IDE
+#==========================================
+# IDE & Editor
+#==========================================
+.idea/
 .vscode/
+*.swp
+*.swo
+*~
 
-# Logs
-backend.log
+#==========================================
+# System
+#==========================================
+.DS_Store
+Thumbs.db
