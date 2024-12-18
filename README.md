@@ -52,6 +52,12 @@ This mono repo project demonstrating enterprise-level software practices through
 - **React** (18.3.1) - UI framework
 - **Vite** (5.3.1) - Build tool and dev server
 
+## API Documentation
+Q-KO's API is designed and documented using OpenAPI 3.0 specification:
+- [Interactive API Documentation](./docs/api) - OpenAPI/Swagger UI
+- [Architecture Documentation](./docs/architecture.md) - Detailed system design
+- [API Reference](./docs/api/openapi.yaml) - OpenAPI specification
+
 ## Architecture
 See [Architecture Documentation](docs/architecture.md)
 
