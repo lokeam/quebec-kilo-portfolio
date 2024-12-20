@@ -64,13 +64,17 @@ The modular structure above enables Q-KO's scalable architecture.
 .
 backend/
 ├── cmd/                    # Application entrypoints
-│   └── api/                # API server
+│   └── api/                # API server binary
+│       └── main.go         # Entry point
 ├── config/                 # Configuration files
 ├── db/                     # Database related
 │   ├── migrations/         # Database migrations
 │   └── seeds/              # Seed data
+├── server/                 # HTTP server package
+│   ├── server.go           # Server definition
+│   ├── routes.go           # Route configuration
+│   └── tests/              # HTTP endpoint tests
 └── internal/               # Private application code
-    ├── auth/               # Authentication & authorization
     ├── books/              # Books domain module
     ├── core/               # Core business logic
     │   ├── models/         # Domain models
@@ -83,6 +87,7 @@ backend/
         ├── http/           # HTTP utilities
         ├── jwt/            # JWT handling
         ├── logger/         # Logging
+        ├── middleware/     # Application middleware (including auth)
         ├── redis/          # Redis client
         ├── types/          # Common types
         └── validator/      # Input validation
@@ -266,16 +271,16 @@ graph TD
 ### Authentication & Authorization (Auth0)
 
 1. **Identity & Access Management**
-   - Identity management and user authentication
+   - Frontend authentication via Auth0 SPA SDK
+   - Backend validation via Auth0 JWT middleware
    - OAuth 2.0 and OpenID Connect compliance
    - Social login integration
-   - JWT token management
 
 2. **Security Features**
    - MFA support
-   - User session management
-   - Role-based access control
-   - Token refresh handling
+   - Secure session management with refresh tokens (frontend)
+   - Role-based access control (backend)
+   - Token validation and scope checking (backend)
 
 ### Application Security (Internal)
 
