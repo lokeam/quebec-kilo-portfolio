@@ -1,0 +1,23 @@
+openapi: 3.0.0
+info:
+  title: QKO Beta API
+  version: 1.0.0
+  description: |
+    Game management API for QKO Beta.
+    Handles user libraries, game metadata, and service subscriptions.
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /api/v1/health:
+    $ref: './paths/health.yaml'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: './components/securitySchemes/bearer-auth.yaml'
+  responses:
+    Error:
+      $ref: './components/responses/error.yaml'
