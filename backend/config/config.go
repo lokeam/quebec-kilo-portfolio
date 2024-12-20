@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Server ServerConfig
 	Env    string
+	Debug  bool
 }
 
 type ServerConfig struct {
@@ -22,6 +23,12 @@ func Load() (*Config, error) {
 		env = "dev"
 	} else if env != "dev" && env != "test" && env != "prod" {
 		return nil, fmt.Errorf("invalid environment: must be one of dev, test or prod")
+	}
+
+	// Debug mode handling
+	debug := false
+	if debugStr := os.Getenv("APP_DEBUG"); debugStr == "true" {
+		debug = true
 	}
 
 	// Port handling
@@ -55,5 +62,6 @@ func Load() (*Config, error) {
 				Host: host,
 		},
 		Env: env,
+		Debug: debug,
 	}, nil
 }
