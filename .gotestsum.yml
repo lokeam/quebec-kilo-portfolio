@@ -1,0 +1,32 @@
+# Output format options:
+# - dots: minimal output
+# - pkgname: package-based output (recommended)
+# - testname: test-based output
+# - standard-quiet: minimal output, similar to `go test`
+# - standard-verbose: detailed output, similar to `go test -v`
+format: pkgname
+
+# Always show colors in output
+color: always
+
+# Colorize test names for improved readability
+format-test-name: colored
+
+# Don't hide the test summary at the end
+hide-summary: false
+
+# Don't run any commands after tests complete
+post-run-command: ""
+
+# Raw command output for better formatting
+raw-command: true
+
+# Show test output in real time
+watch: false
+
+# Don't limit to specific packages
+packages: []
+
+# Additional options for better readability:
+show-pkg-name-in-test-output: true
+hide-successful-package-output: false
