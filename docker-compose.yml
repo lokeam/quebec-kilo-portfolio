@@ -3,6 +3,9 @@ version: '3'
 networks:
   backend:
     driver: bridge
+    internal: true  # Restrict external access for security
+  web:
+    driver: bridge  # Allow controlled external access where needed
 
 volumes:
   postgres_data:
@@ -14,22 +17,29 @@ services:
   postgres:
     image: 'postgres:14.0'
     ports:
-      - '${POSTGRES_PORT:-7654}:5432'      # Use env var with default
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"  # Restrict to localhost for security
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-qkapi}
     volumes:
-      - ${POSTGRES_VOLUME:-postgres_data}:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - backend
+      - backend  # For internal service communication
+      - web     # For database management tools
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    security_opt:
+      - no-new-privileges:true
 
   mailhog:
     image: 'jcalonso/mailhog:latest'
@@ -57,7 +67,7 @@ services:
       --maxmemory ${REDIS_MAX_MEMORY:-256mb}
       --maxmemory-policy allkeys-lru
     volumes:
-      - ${REDIS_VOLUME:-redis_data}:/data
+      - redis_data:/data
     networks:
       - backend
     healthcheck:
@@ -66,3 +76,9 @@ services:
       timeout: 5s # How long to wait for a response
       retries: 3 # Number of retries before marking service as unhealthy
       start_period: 5s # Initial grace period for startup
+    deploy:
+      resources:
+        limits:
+          memory: ${REDIS_MAX_MEMORY:-256mb}
+    security_opt:
+      - no-new-privileges:true

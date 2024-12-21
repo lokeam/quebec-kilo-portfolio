@@ -8,13 +8,37 @@
 #=======================================================
 
 # Declare all phony targets
-.PHONY: dev test down health health-detail logs logs-postgres logs-redis logs-mailhog troubleshoot-postgres troubleshoot-redis help clean
+.PHONY: dev test down health health-detail logs logs-postgres logs-redis logs-mailhog troubleshoot-postgres troubleshoot-redis help clean init-env prod
+
+# Environment type
+ENVS := development test production
+CURRENT_ENV ?= development
 
 # Colors for output
 BLUE := \033[34m
 GREEN := \033[32m
 RED := \033[31m
 RESET := \033[0m
+
+#==========================================
+# Automates initial setup
+#==========================================
+# Add after your .PHONY declaration
+init-env:
+	@if [ ! -f .env.dev ]; then \
+		cp .env.example .env.dev && \
+		echo "$(GREEN)Created .env.dev from example$(RESET)"; \
+	fi
+	@if [ ! -f .env.test ]; then \
+		cp .env.example .env.test && \
+		echo "$(GREEN)Created .env.test from example$(RESET)"; \
+	fi
+	@echo "$(BLUE)Remember to update passwords in your .env files$(RESET)"
+
+
+#==========================================
+# Checks for docker and environment files
+#==========================================
 
 # Check required tools
 check-docker:
@@ -26,11 +50,15 @@ check-docker:
 # Check environment files
 check-env-files:
 	@if [ ! -f .env.dev ]; then \
-		echo "$(RED)Error: .env.dev not found. Copy .env.example to .env.dev and configure$(RESET)"; \
+		echo "$(RED)Error: .env.dev not found. Run 'make init-env' first$(RESET)"; \
 		exit 1; \
 	fi
 	@if [ ! -f .env.test ]; then \
-		echo "$(RED)Error: .env.test not found. Copy .env.example to .env.test and configure$(RESET)"; \
+		echo "$(RED)Error: .env.test not found. Run 'make init-env' first$(RESET)"; \
+		exit 1; \
+	fi
+	@if [ "$(CURRENT_ENV)" = "production" ] && [ ! -f .env.prod ]; then \
+		echo "$(RED)Error: .env.prod not found$(RESET)"; \
 		exit 1; \
 	fi
 
@@ -39,22 +67,35 @@ check-env-files:
 #==========================================
 
 # Start development environment
-dev: check-docker check-env-files
+dev: CURRENT_ENV=development
+dev: check-docker check-env-files validate-env validate-env-type
 	docker-compose --env-file .env.dev up -d
 	@echo "Waiting for services to be healthy..."
 	@sleep 5
 	@make health
 
 # Start test environment
-test: check-docker check-env-files
+test: CURRENT_ENV=test
+test: check-docker check-env-files validate-env validate-env-type
 	docker-compose --env-file .env.test up -d
 	@echo "Waiting for services to be healthy..."
 	@sleep 5
 	@make health
 
+# Start production environment
+prod: CURRENT_ENV=production
+prod: check-docker check-env-files validate-env validate-env-type
+	@echo "$(RED)You are about to start the PRODUCTION environment$(RESET)"
+	@read -p "Are you sure? [y/N] " -n 1 -r; \
+	if [[ ! $$REPLY =~ ^[Yy]$$ ]]; then \
+		echo "$(BLUE)Aborted$(RESET)"; \
+		exit 1; \
+	fi
+	docker-compose --env-file .env.prod up -d
+
 # Shut down environment and remove volumes
 down:
-	docker-compose down -v
+	docker-compose --env-file .env.dev down -v
 
 #==========================================
 # Cleanup
@@ -63,7 +104,7 @@ down:
 # Remove all containers, volumes, and docker artifacts
 clean:
 	@echo "Cleaning up all resources..."
-	docker-compose down -v
+	docker-compose --env-file .env.dev down -v
 	docker system prune -f
 	@echo "$(GREEN)Cleanup complete$(RESET)"
 
@@ -107,6 +148,25 @@ logs-mailhog:
 # Troubleshooting
 #==========================================
 
+# Validate environment
+validate-env:
+	@if [ "$(CURRENT_ENV)" = "production" ] && [ -z "$(shell grep -E '^POSTGRES_PASSWORD=CHANGE_ME' .env.prod)" ]; then \
+		echo "$(RED)Error: Default production passwords detected. Please change them!$(RESET)"; \
+		exit 1; \
+	fi
+
+# Validate environment type
+validate-env-type:
+	@if ! echo "$(ENVS)" | grep -w "$(CURRENT_ENV)" > /dev/null; then \
+		echo "$(RED)Error: CURRENT_ENV must be one of: $(ENVS)$(RESET)"; \
+		exit 1; \
+	fi
+	@if [ "$(CURRENT_ENV)" != "production" ] && [ -f .env.prod ]; then \
+		echo "$(RED)Error: .env.prod found in non-production environment$(RESET)"; \
+		echo "$(RED)Please remove or rename .env.prod for development/test$(RESET)"; \
+		exit 1; \
+	fi
+
 # Detailed Postgres troubleshooting
 troubleshoot-postgres:
 	@echo "=== Postgres Status ==="
@@ -133,8 +193,10 @@ troubleshoot-redis:
 help:
 	@echo "$(BLUE)Available commands:$(RESET)"
 	@echo "$(BLUE)Environment:$(RESET)"
-	@echo "  make dev              - Start development environment"
+	@echo "  make init-env         - Initialize environment files from templates"
 	@echo "  make test             - Start test environment"
+	@echo "  make dev              - Start development environment"
+	@echo "  make prod             - Start production environment"
 	@echo "  make down             - Shut down environment"
 	@echo "  make clean            - Remove all containers, volumes, and docker artifacts"
 	@echo "\nHealth Checks:"
