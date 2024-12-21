@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
@@ -25,7 +27,7 @@ func NewServer(
 }
 
 // Add http.Handler
-func (s *Server) ServerHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Use router to handle requests
 	s.Routes().ServeHTTP(w, r)
 }
@@ -45,4 +47,23 @@ func (s *Server) writeJSON(
 
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(data)
+}
+
+// Gracefully shut down server
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.logger.Info("Shutting down server", map[string]any{
+		"time": time.Now().Format(time.RFC3339),
+	})
+
+	// Clean up tasts
+	return nil
+}
+
+// Force an immediate shutdown
+func (s *Server) Close() error {
+	s.logger.Info("Forcefully closing server", map[string]any{
+		"time": time.Now().Format(time.RFC3339),
+	})
+
+	return nil
 }
