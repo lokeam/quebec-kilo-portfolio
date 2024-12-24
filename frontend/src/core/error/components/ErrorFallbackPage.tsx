@@ -18,12 +18,33 @@ interface ErrorFallbackPageProps extends FallbackProps {
 
 export const ErrorFallbackPage = ({
   error,
-  resetErrorBoundary,
+  resetErrorBoundary, // Provided by react-error-boundary
   config
 }: ErrorFallbackPageProps) => {
 
+  const handleClick = () => {
+    if (config?.onAction) {
+      // If custom action exists, only call that
+      config.onAction();
+    } else {
+      // Otherwise use the default reset behavior
+      resetErrorBoundary();
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+       // Prevent page scroll on space
+      event.preventDefault();
+      if (config?.onAction) {
+        config.onAction();
+      } else {
+        resetErrorBoundary();
+      }
+    }
+  };
   // Log error for monitoring
-  console.error('[ErrorBoundary]:', error);
+  console.error('[ErrorBoundary] Error:', error);
 
   return (
     <Container maxWidth="sm">
@@ -42,8 +63,9 @@ export const ErrorFallbackPage = ({
           </Typography>
 
           <ErrorButton
-            onClick={config?.onAction || resetErrorBoundary}
-            label={config?.actionLabel}
+            onClick={handleClick}
+            onKeyDown={handleKeyDown}
+            label={config?.actionLabel || 'Try Again'}
           />
         </Box>
       </StyledPaper>

@@ -1,21 +1,37 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import { ErrorFallbackPage } from '@/core/error/components/ErrorFallbackPage';
-import { ErrorBoundaryProps } from '@/core/error/types/error.types';
+import { ErrorBoundaryProps } from '../types/error.types';
+import { ErrorFallbackPage } from '../components/ErrorFallbackPage';
 
-export const ErrorBoundaryProvider = ({ children, config }: ErrorBoundaryProps) => {
-  const handleError = (error: Error) => {
-    // Add error reporting service integration here
-    console.error('[ErrorBoundary] Caught error:', error);
+export const ErrorBoundaryProvider = ({
+  children,
+  config
+}: ErrorBoundaryProps) => {
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+    console.error('[ErrorBoundary]:', error);
+    config?.onError?.(error, errorInfo);
+  };
+
+  const handleAction = () => {
+    // Custom action should trigger reset
+    if (config?.onAction) {
+      config.onAction();
+      config.onReset?.();
+    }
   };
 
   return (
     <ErrorBoundary
-      FallbackComponent={(props) => <ErrorFallbackPage {...props} config={config} />}
+      FallbackComponent={(props) => (
+        <ErrorFallbackPage
+          {...props}
+          config={{
+            ...config,
+            onAction: config?.onAction ? handleAction : undefined
+          }}
+        />
+      )}
       onError={handleError}
-      onReset={() => {
-        // Optional: Clear error state or refresh data
-        window.location.reload();
-      }}
+      onReset={config?.onReset}
     >
       {children}
     </ErrorBoundary>

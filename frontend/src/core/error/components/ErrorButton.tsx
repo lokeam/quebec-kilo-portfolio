@@ -9,15 +9,30 @@ const StyledButton = styled(Button)(({ theme }) => ({
 interface ErrorButtonProps {
   onClick: () => void;
   label?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+  className?: string;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }
 
-export const ErrorButton = ({ onClick, label = 'Try Again' } : ErrorButtonProps) => {
+export const ErrorButton = ({
+  onClick,
+  label = 'Try Again',
+  disabled = false,
+  'aria-label': ariaLabel,
+  className = '',
+  onKeyDown,
+} : ErrorButtonProps) => {
   console.log('ErrorButton');
   return (
     <StyledButton
       variant="contained"
       color="primary"
       onClick={onClick}
+      onKeyDown={onKeyDown}
+      disabled={disabled}
+      className={className}
+      aria-label={ariaLabel}
       size="large"
     >
       {label}
