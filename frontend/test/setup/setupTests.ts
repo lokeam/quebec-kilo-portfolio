@@ -2,6 +2,29 @@ import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
+// Mock window.navigator.onLine
+let onLineValue = true;
+
+Object.defineProperty(window.navigator, 'onLine', {
+  configurable: true,
+  get: () => onLineValue,
+  set: (value) => {
+    onLineValue = value;
+  },
+});
+
+// Create global helper for network status changes
+declare global {
+  interface Window {
+    setNetworkStatus: (status: boolean) => void;
+  }
+}
+
+window.setNetworkStatus = (status: boolean): void => {
+  onLineValue = status;
+  window.dispatchEvent(new Event(status ? 'online' : 'offline'));
+};
+
 // Define type for mocked matchMedia fn
 type MockMatchMedia = {
   (query: string): MediaQueryList;
@@ -43,6 +66,10 @@ beforeEach(() => {
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: matchMediaMock,
-  })
+  });
+
+  // Reset network status before each test
+  onLineValue = true;
+  vi.clearAllMocks();
 })
 
