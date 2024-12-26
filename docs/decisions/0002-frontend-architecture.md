@@ -19,7 +19,7 @@ Implement a React-based architecture with the following key components:
 
 ### 1. Core Technology Stack
 - TypeScript + Vite + React for development
-- MaterialUI (MUI) for component framework
+- ShadCN UI + Tailwind for rapid UI development
 - Zustand for client state management
 - TanStack Query for server state
 - Axios for HTTP requests
@@ -58,7 +58,7 @@ flowchart LR
 ## Rationale
 - TypeScript: Type safety and developer experience
 - Vite: Fast development and build times
-- MUI: Production-ready components and responsive design
+- ShadCN UI + Tailwind: Preferred over MUI for developer experience, performance & bundle size, design consistency, customization & theming
 - Zustand: Minimal boilerplate and efficient state management
 - TanStack Query: Robust data fetching and caching
 

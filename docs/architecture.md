@@ -148,7 +148,7 @@ The frontend architecture emphasizes maintainability, performance, and developer
    - Type-safe API integration with backend contracts
 
 3. **UI Component Strategy**
-   - Material UI for consistent, professional design language
+   - ShadCN UI + Tailwind for rapidly building a consistent, modern UI
    - Emphasis on accessibility and responsive design
    - Performance-optimized component rendering
 
