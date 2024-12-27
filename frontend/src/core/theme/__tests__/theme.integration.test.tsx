@@ -1,55 +1,48 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'vitest';
 import { render, screen, act } from '@testing-library/react'
-import { useTheme } from '@mui/material'
+import { Button } from '@/shared/components/ui/button/Button';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
-import { useThemeStore } from '@/core/theme/stores/useThemeStore'
+import { useThemeStore } from '@/core/theme/stores/useThemeStore';
 import { SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
-import { darkTheme } from '@/core/theme/darkTheme';
-import { createTheme, Button } from '@mui/material'
 
-// Test component that uses MUI theme
+// Test component that displays current theme
 function ThemedButton() {
-  const theme = useTheme()
+  const theme = useThemeStore((state) => state.mode)
   return (
-    <Button
-      data-testid="themed-button"
-      sx={{ bgcolor: theme.palette.primary.main }}
-    >
-      Test Button
+    <Button data-testid="themed-button">
+      Current theme: {theme}
     </Button>
-  )
-}
+  );
+};
 
 describe('Theme System Integration', () => {
   beforeEach(() => {
-    const { actions } = useThemeStore.getState()
-    actions.setTheme('light')
-    actions.disableSystemPreference()
-  })
+    const { actions } = useThemeStore.getState();
+    actions.setTheme('light');
+    actions.disableSystemPreference();
+    localStorage.clear();
+    document.documentElement.className = '';
+  });
 
   it('should apply theme changes throughout the component tree', () => {
     render(
       <ThemeProvider>
         <ThemedButton />
       </ThemeProvider>
-    )
+    );
 
-    const { actions } = useThemeStore.getState()
+    const { actions } = useThemeStore.getState();
 
     act(() => {
-      actions.setTheme('dark')
+      actions.setTheme('dark');
     })
 
-    const button = screen.getByTestId('themed-button')
-    // Verify theme is actually applied to component
-    expect(button).toHaveStyle({
-      backgroundColor: 'rgb(96, 165, 250)' // dark theme primary color
-    })
-  })
+    const button = screen.getByTestId('themed-button');
+    expect(document.documentElement).toHaveClass('dark');
+    expect(button).toHaveTextContent('Current theme: dark');
+  });
 
   it('should sync system preference changes with UI', () => {
-    const theme = createTheme(darkTheme);
-
     // Setup matchMedia mock to return dark mode
     window.matchMedia = vi.fn().mockImplementation(query => ({
       matches: query === SYSTEM_DARK_MODE_QUERY,
@@ -57,17 +50,78 @@ describe('Theme System Integration', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn(),
-    }))
+    }));
 
     render(
-      <ThemeProvider enableSystemPreference>
+      <ThemeProvider>
         <ThemedButton />
       </ThemeProvider>
-    )
+    );
 
-    const button = screen.getByTestId('themed-button')
-    expect(button).toHaveStyle({
-      backgroundColor: theme.palette.primary.main
+    // Enable system preference
+    act(() => {
+      const { actions } = useThemeStore.getState();
+      actions.enableSystemPreference();
+    });
+
+    const button = screen.getByTestId('themed-button');
+    expect(document.documentElement).toHaveClass('dark');
+    expect(button).toHaveTextContent('Current theme: dark');
+  });
+
+  it('should persist theme preference', () => {
+    const { unmount } = render(
+      <ThemeProvider>
+        <ThemedButton />
+      </ThemeProvider>
+    );
+
+    act(() => {
+      const { actions } = useThemeStore.getState();
+      actions.setTheme('dark');
     })
+
+    // Check immediate state
+    expect(document.documentElement).toHaveClass('dark');
+    expect(screen.getByTestId('themed-button')).toHaveTextContent('Current theme: dark');
+
+    // Unmount then remount to verify persistence
+    unmount();
+
+    render(
+      <ThemeProvider>
+        <ThemedButton />
+      </ThemeProvider>
+    );
+
+    // Verify that we're persisting state
+    expect(document.documentElement).toHaveClass('dark')
+    expect(screen.getByTestId('themed-button')).toHaveTextContent('Current theme: dark')
   })
-})
+
+  it('should apply correct CSS variables for each theme', () => {
+    render(
+      <ThemeProvider>
+        <ThemedButton />
+      </ThemeProvider>
+    );
+
+    // Check light theme variables
+    expect(document.documentElement).toHaveStyle({
+      '--background': '0 0% 100%',
+      '--foreground': '222.2 47.4% 11.2%'
+    });
+
+    // Switch to dark theme
+    act(() => {
+      const { actions } = useThemeStore.getState()
+      actions.setTheme('dark')
+    });
+
+    // Check dark theme variables
+    expect(document.documentElement).toHaveStyle({
+      '--background': '222.2 84% 4.9%',
+      '--foreground': '210 40% 98%'
+    });
+  });
+});
