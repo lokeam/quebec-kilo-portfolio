@@ -1,20 +1,11 @@
-import { Box, Typography, Container, Paper } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { FallbackProps } from 'react-error-boundary';
 import { ErrorButton } from '@/core/error/components/ErrorButton';
 import { ErrorConfig } from '@/core/error/types/error.types';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  marginTop: theme.spacing(8),
-}));
+import { cn } from '@/shared/components/ui/utils';
 
 interface ErrorFallbackPageProps extends FallbackProps {
   config?: ErrorConfig;
-}
+};
 
 export const ErrorFallbackPage = ({
   error,
@@ -47,28 +38,34 @@ export const ErrorFallbackPage = ({
   console.error('[ErrorBoundary] Error:', error);
 
   return (
-    <Container maxWidth="sm">
-      <StyledPaper elevation={3}>
-        <Box textAlign="center">
-          <Typography variant="h2" color="error" gutterBottom>
+    <div className="container mx-auto max-w-2xl px-4">
+      <div className={cn(
+        "mt-32 p-8 rounded-lg shadow-lg bg-background",
+        "flex flex-col items-center"
+      )}>
+        <div className="text-center">
+          <h2 className={cn(
+            "text-3xl font-bold mb-4",
+            "text-destructive"
+          )}>
             {config?.severity === 'fatal' ? 'Critical Error' : 'Oops!'}
-          </Typography>
+          </h2>
 
-          <Typography variant="h5" gutterBottom>
+          <h3 className="text-xl font-semibold mb-4">
             {config?.message || 'Something went wrong'}
-          </Typography>
+          </h3>
 
-          <Typography variant="body1" color="textSecondary" paragraph>
+          <p className="text-muted-foreground mb-6">
             {error?.message || 'We apologize for the inconvenience. Please try again.'}
-          </Typography>
+          </p>
 
           <ErrorButton
             onClick={handleClick}
             onKeyDown={handleKeyDown}
             label={config?.actionLabel || 'Try Again'}
           />
-        </Box>
-      </StyledPaper>
-    </Container>
+        </div>
+      </div>
+    </div>
   );
 };

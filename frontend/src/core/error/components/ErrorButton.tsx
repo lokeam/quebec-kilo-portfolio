@@ -1,10 +1,5 @@
-import { Button } from '@mui/material';
-import { styled } from '@mui/material/styles';
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  margin: theme.spacing(1),
-  minWidth: 100,
-}));
+import { Button } from '@/shared/components/ui/button/Button';
+import { cn } from '@/shared/components/ui/utils';
 
 interface ErrorButtonProps {
   onClick: () => void;
@@ -13,7 +8,7 @@ interface ErrorButtonProps {
   'aria-label'?: string;
   className?: string;
   onKeyDown?: (event: React.KeyboardEvent) => void;
-}
+};
 
 export const ErrorButton = ({
   onClick,
@@ -25,18 +20,19 @@ export const ErrorButton = ({
 } : ErrorButtonProps) => {
   console.log('ErrorButton');
   return (
-    <StyledButton
-      variant="contained"
-      color="primary"
+    <Button
+      variant="default"
       onClick={onClick}
       onKeyDown={onKeyDown}
       disabled={disabled}
-      className={className}
       aria-label={ariaLabel}
-      size="large"
+      className={cn(
+        "min-w-[100px] m-4",
+        className
+      )}
     >
       {label}
-    </StyledButton>
+    </Button>
   );
 };
 
