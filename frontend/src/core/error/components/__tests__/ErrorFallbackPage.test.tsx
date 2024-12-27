@@ -110,8 +110,14 @@ describe('ErrorFallbackPage', () => {
     it('maintains proper heading heirarchy', () => {
       render(<ErrorFallbackPage {...defaultProps} /> );
       const headings = screen.getAllByRole('heading');
-      expect(headings[0]).toHaveAttribute('class', expect.stringContaining('h2'));
-      expect(headings[1]).toHaveAttribute('class', expect.stringContaining('h5'));
+
+      // Check h2 heading
+      expect(headings[0].tagName.toLowerCase()).toBe('h2');
+      expect(headings[0]).toHaveClass('text-3xl');
+
+      // Check h3 heading
+      expect(headings[1].tagName.toLowerCase()).toBe('h3');
+      expect(headings[1]).toHaveClass('text-xl');
     })
 
     it('ensures error button is keyboard accessible with Enter key press', () => {

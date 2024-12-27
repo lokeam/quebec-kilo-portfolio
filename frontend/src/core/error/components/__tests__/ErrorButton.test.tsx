@@ -37,10 +37,18 @@ describe('ErrorButton', () => {
     render(<ErrorButton onClick={() => {}} />);
     const button = screen.getByRole('button');
 
-    expect(button).toHaveClass('MuiButton-root');
-    expect(button).toHaveClass('MuiButton-contained');
-    expect(button).toHaveClass('MuiButton-containedPrimary');
-    expect(button).toHaveClass('MuiButton-sizeLarge');
+    // Button classes from shadcn
+    expect(button).toHaveClass('inline-flex');
+    expect(button).toHaveClass('items-center');
+    expect(button).toHaveClass('justify-center');
+
+    // Default variant classes
+    expect(button).toHaveClass('bg-primary');
+    expect(button).toHaveClass('text-primary-foreground');
+
+    // Custom classes
+    expect(button).toHaveClass('min-w-[100px]');
+    expect(button).toHaveClass('m-4');
   });
 
   // Disabled state
