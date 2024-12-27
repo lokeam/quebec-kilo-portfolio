@@ -1,9 +1,5 @@
-import { ReactNode, useEffect, useMemo } from 'react'
-import { ThemeProvider as MUIThemeProvider, createTheme } from '@mui/material'
+import { ReactNode, useEffect } from 'react'
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
-import { lightTheme } from '@/core/theme/lightTheme';
-import { darkTheme } from '@/core/theme/darkTheme';
-import type { Theme } from '@mui/material';
 
 interface ThemeProviderProps {
   children: ReactNode
@@ -18,19 +14,14 @@ export const ThemeProvider = ({
   const mode = useThemeStore((state) => state.mode);
   const actions = useThemeStore((state) => state.actions);
 
-  // Memoize theme creation to prevent unnecessary recalculations
-  const theme: Theme = useMemo(
-    () => createTheme(mode === 'light' ? lightTheme : darkTheme),
-    [mode]
-  );
-
   // Handle system preference initialization
   useEffect(() => {
+    // Apply initial theme
+    actions.applyTheme(mode);
+
     if (enableSystemPreference) {
       const unsubscribe = actions.enableSystemPreference();
 
-      // Cleanup system preference listeners when component unmounts
-      // or when enableSystemPreference changes
       return () => {
         if (typeof unsubscribe === 'function') {
           unsubscribe();
@@ -38,11 +29,9 @@ export const ThemeProvider = ({
         actions.disableSystemPreference();
       }
     }
-  }, [enableSystemPreference, actions]);
+  }, [enableSystemPreference, actions, mode]);
 
   return (
-    <MUIThemeProvider theme={theme}>
-      {children}
-    </MUIThemeProvider>
-  )
+    <>{children}</>
+  );
 }

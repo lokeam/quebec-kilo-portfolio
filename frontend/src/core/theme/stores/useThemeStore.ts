@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { ThemeMode, DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '../constants/themeConstants'
+import { themeConfig } from '@/core/theme/theme.config';
 
 interface ThemeState {
   mode: ThemeMode;
@@ -10,6 +11,7 @@ interface ThemeState {
     setTheme: (mode: ThemeMode) => void;
     enableSystemPreference: () => (() => void) | void; // Return cleanup function OR void
     disableSystemPreference: () => void;
+    applyTheme: (mode: ThemeMode) => void;
   }
 };
 
@@ -42,19 +44,39 @@ export const useThemeStore = create<ThemeState>()(
           set({
             mode: systemPrefersDark ? 'dark' : 'light',
             isSystemPreference: true,
-          })
+          });
+
+          const handler = (event: MediaQueryListEvent) => {
+            if (get().isSystemPreference) {
+              set({ mode: event.matches ? 'dark' : 'light'});
+            }
+          };
 
           // Listen for system theme changes
-          darkModeMediaQuery.addEventListener('change', (e) => {
-            if (get().isSystemPreference) {
-              set({ mode: e.matches ? 'dark' : 'light' })
-            }
-          })
+          darkModeMediaQuery.addEventListener('change', handler);
+
+          // Return cleanup function
+          return () => darkModeMediaQuery.removeEventListener('change', handler);
         },
 
         disableSystemPreference: () => {
           set({ isSystemPreference: false })
         },
+
+        applyTheme: (mode: ThemeMode) => {
+          const root = window.document.documentElement;
+
+          // Remove old theme
+          root.classList.remove('light', 'dark');
+
+          // Add new theme
+          root.classList.add(mode);
+
+          // Apply theme variables
+          Object.entries(themeConfig[mode]).forEach(([key, value]) => {
+            root.style.setProperty(`--${key}`, value)
+          });
+        }
       },
     }),
     {
