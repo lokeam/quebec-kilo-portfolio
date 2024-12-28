@@ -2,8 +2,9 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import HomePage from '@/pages/HomePage/HomePage';
 import { ErrorBoundaryProvider } from '@/core/error/providers/ErrorBoundaryProvider';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
-
-import './App.css'
+import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/AuthenticatedLayout';
+import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute';
+import { SidebarProvider } from './shared/components/ui/sidebar';
 
 function App() {
   return (
@@ -15,14 +16,20 @@ function App() {
       }}
     >
       <ThemeProvider enableSystemPreference>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-          </Routes>
-        </BrowserRouter>
+        <SidebarProvider defaultOpen={true}>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<ProtectedRoute>
+                <AuthenticatedLayout />
+                </ProtectedRoute>}>
+                <Route path="/" element={<HomePage />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </SidebarProvider>
       </ThemeProvider>
     </ErrorBoundaryProvider>
-   )
+   );
 }
 
 export default App;
