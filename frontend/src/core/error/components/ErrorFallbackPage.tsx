@@ -1,6 +1,6 @@
-import { FallbackProps } from 'react-error-boundary';
+import type { FallbackProps } from 'react-error-boundary';
 import { ErrorButton } from '@/core/error/components/ErrorButton';
-import { ErrorConfig } from '@/core/error/types/error.types';
+import type { ErrorConfig } from '@/core/error/types/error.types';
 import { cn } from '@/shared/components/ui/utils';
 
 interface ErrorFallbackPageProps extends FallbackProps {

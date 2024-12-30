@@ -1,5 +1,5 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import { ErrorBoundaryProps } from '../types/error.types';
+import type { ErrorBoundaryProps } from '../types/error.types';
 import { ErrorFallbackPage } from '../components/ErrorFallbackPage';
 
 export const ErrorBoundaryProvider = ({
