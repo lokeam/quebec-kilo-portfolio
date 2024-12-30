@@ -3,11 +3,11 @@ import {
   useState,
   useEffect,
   useContext,
-  ReactNode,
+  type ReactNode,
 } from 'react';
 
 import { NETWORK_STATUS_ERRORS } from '../constants/errorConstants';
-import { NetworkStatusContextType } from '../types/networkStatusType';
+import { type NetworkStatusContextType } from '../types/networkStatusType';
 
 // Context for managing network connectivity state across app. Undefined until Provider is mounted.
 export const NetworkStatusContext = createContext<NetworkStatusContextType | undefined>(undefined);
@@ -26,6 +26,9 @@ export function NetworkStatusProvider({ children}: { children: ReactNode }) {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Initial status check
+    setIsOnline(navigator.onLine);
 
     // Cleanup fn to remove event listeners on unmount
     return  () => {

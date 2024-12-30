@@ -1,4 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { NetworkStatusProvider } from '../providers/NetworkStatusProvider';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 import { vi } from 'vitest';
@@ -27,20 +27,26 @@ describe('Network Status Integration', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     // Simulate real browser offline event
-    await act(async () => {
+    act(() => {
       window.dispatchEvent(new Event('offline'));
     });
 
+    // Wait for the banner to appear
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
     const banner = screen.getByRole('alert');
-    expect(banner).toBeInTheDocument();
     expect(banner).toHaveTextContent('You are offline. Please check your internet connection.');
 
     // Verify banner positioning and layout
     expect(banner).toHaveStyle({
       position: 'fixed',
-      top: '0',
-      left: '0',
-      right: '0',
+      top: '0px',
+      left: '0px',
+      right: '0px',
+      width: '100%',
+      zIndex: '1000',
     });
 
     // Ensure no content shift when banner appears
@@ -48,12 +54,14 @@ describe('Network Status Integration', () => {
     const initialHeight = appContent.clientHeight;
 
     // Simulate real browser online event
-    await act(async () => {
+    act(() => {
       window.dispatchEvent(new Event('online'));
     });
 
-    // Banner should disappear
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    // Wait for banner to disappear
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
 
     // Verify no layout shift occurred
     expect(appContent.clientHeight).toBe(initialHeight);

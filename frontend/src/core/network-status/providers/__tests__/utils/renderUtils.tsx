@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react';
 import { NetworkStatusProvider } from '../../NetworkStatusProvider';
-import { ReactNode } from 'react';
+import { type ReactElement } from 'react';
 
-export const renderWithProvider = (component: ReactNode) => {
+export const renderWithProvider = (component: ReactElement) => {
   return render(
     <NetworkStatusProvider>
       {component}

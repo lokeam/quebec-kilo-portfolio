@@ -35,8 +35,8 @@ describe('useNetworkStatus', () => {
 
     expect(() => {
       renderHook(() => useNetworkStatus());
-    }).toThrow(NETWORK_STATUS_ERRORS.PROVIDER_MISSING);
+    }).toThrowError(new Error(NETWORK_STATUS_ERRORS.PROVIDER_MISSING));
 
-    consoleSpy.mockClear();
+    consoleSpy.mockRestore();
   });
 })
