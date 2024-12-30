@@ -133,7 +133,7 @@ const SidebarMenuCollapsible = ({
 
         {/* Collapsible Content */}
         <CollapsibleContent className='CollapsibleContent'>
-          <SidebarMenuSub>
+          <SidebarMenuSub data-test-id="menu-sub">
             {item.items.map((subItem) => (
               <SidebarMenuSubItem key={subItem.title}>
                 <SidebarMenuSubButton
