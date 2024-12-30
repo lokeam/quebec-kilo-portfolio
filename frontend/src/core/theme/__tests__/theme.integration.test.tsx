@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, act } from '@testing-library/react'
-import { Button } from '@/shared/components/ui/button/Button';
+import { Button } from '@/shared/components/ui/button/button';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
 import { SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
@@ -120,8 +120,8 @@ describe('Theme System Integration', () => {
 
     // Check dark theme variables
     expect(document.documentElement).toHaveStyle({
-      '--background': '222.2 84% 4.9%',
-      '--foreground': '210 40% 98%'
+      '--background': '220 20% 12%',
+      '--foreground': '220 10% 98%'
     });
   });
 });

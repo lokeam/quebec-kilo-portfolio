@@ -22,26 +22,42 @@ export const themeConfig = {
     ring: '222.2 84% 4.9%',
   },
   dark: {
-    // Dark theme values
-    background: '222.2 84% 4.9%',
-    foreground: '210 40% 98%',
-    card: '222.2 84% 4.9%',
-    'card-foreground': '210 40% 98%',
-    popover: '222.2 84% 4.9%',
-    'popover-foreground': '210 40% 98%',
-    primary: '210 40% 98%',
-    'primary-foreground': '222.2 47.4% 11.2%',
-    secondary: '217.2 32.6% 17.5%',
-    'secondary-foreground': '210 40% 98%',
-    muted: '217.2 32.6% 17.5%',
-    'muted-foreground': '215 20.2% 65.1%',
-    accent: '217.2 32.6% 17.5%',
-    'accent-foreground': '210 40% 98%',
-    destructive: '0 62.8% 30.6%',
-    'destructive-foreground': '210 40% 98%',
-    border: '217.2 32.6% 17.5%',
-    input: '217.2 32.6% 17.5%',
-    ring: '212.7 26.8% 83.9%',
+    // Main backgrounds
+    background: '220 20% 12%',    // The deep charcoal background (#161C24)
+    foreground: '220 10% 98%',    // Text color on background
+
+    // Cards and elevated surfaces
+    card: '220 22% 15%',          // Slightly lighter card backgrounds (#1F262E)
+    'card-foreground': '0 0% 100%',
+
+    // Popover/dropdowns
+    popover: '220 22% 15%',       // Matching card background
+    'popover-foreground': '0 0% 100%',
+
+    // Primary actions
+    primary: '210 100% 50%',      // Bright blue (#0072F5) used in charts/buttons
+    'primary-foreground': '0 0% 100%',
+
+    // Secondary elements
+    secondary: '220 25% 20%',     // Slightly lighter than background
+    'secondary-foreground': '220 10% 80%',
+
+    // Muted elements
+    muted: '220 20% 18%',         // Used for sidebar and less prominent UI
+    'muted-foreground': '220 10% 60%',
+
+    // Accent colors
+    accent: '210 100% 50%',       // Same as primary for consistency
+    'accent-foreground': '0 0% 100%',
+
+    // Destructive actions
+    destructive: '0 85% 60%',     // Red for delete/warning (#FF3B3B)
+    'destructive-foreground': '0 0% 100%',
+
+    // Borders and inputs
+    border: '220 20% 22%',        // Subtle borders between elements
+    input: '220 20% 22%',
+    ring: '210 100% 50%',         // Focus rings in primary blue
   },
 } as const;
 

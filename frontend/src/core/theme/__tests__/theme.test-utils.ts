@@ -6,8 +6,8 @@ export const mockThemeConfig = {
     'primary-foreground': '210 40% 98%',
   },
   dark: {
-    background: '222.2 84% 4.9%',
-    foreground: '210 40% 98%',
+    background: '220 20% 12%',
+    foreground: '220 10% 98%',
     primary: '210 40% 98%',
     'primary-foreground': '222.2 47.4% 11.2%',
   },

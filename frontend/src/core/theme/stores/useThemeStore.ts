@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { ThemeMode, DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '../constants/themeConstants'
+import type { ThemeMode } from '../constants/themeConstants'
+import { DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '../constants/themeConstants'
 import { themeConfig } from '@/core/theme/theme.config';
 
 interface ThemeState {
