@@ -1,5 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar/Avatar';
-import { Button } from '@/shared/components/ui/button/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
+import { Button } from '@/shared/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger
-} from '@/shared/components/ui/dropdown-menu/DropdownMenu';
+} from '@/shared/components/ui/dropdown-menu'
 //import { signOut, useSession } from 'next-auth/react';
 export function AvatarDropDownMenu() {
   // TODO: get session from store/auth middleware

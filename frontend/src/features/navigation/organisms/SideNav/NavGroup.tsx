@@ -25,7 +25,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu/DropdownMenu'
+} from '@/shared/components/ui/dropdown-menu';
 import type { NavCollapsible, NavItem, NavLink } from './sideNav.types'
 import type { NavGroup } from './sideNav.types'
 

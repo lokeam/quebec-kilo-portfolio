@@ -7,7 +7,7 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar/Avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu/DropdownMenu'
+} from '@/shared/components/ui/dropdown-menu'
 import {
   SidebarMenu,
   SidebarMenuButton,

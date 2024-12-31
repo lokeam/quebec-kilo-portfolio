@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react';
 
-import { Button } from "@/shared/components/ui/button/button"
+import { Button } from "@/shared/components/ui/button"
 
 export function SearchButton() {
   return (

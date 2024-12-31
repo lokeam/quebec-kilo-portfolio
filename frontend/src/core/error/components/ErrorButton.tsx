@@ -1,4 +1,4 @@
-import { Button } from '@/shared/components/ui/button/button';
+import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/utils';
 
 interface ErrorButtonProps {

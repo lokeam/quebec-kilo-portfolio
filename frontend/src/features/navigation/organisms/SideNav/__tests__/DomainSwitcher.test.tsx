@@ -34,7 +34,7 @@ vi.mock('@/shared/components/ui/sidebar', () => ({
 }));
 
 // Dropdown menu mock with all required components
-vi.mock('@/shared/components/ui/dropdown-menu/DropdownMenu', () => ({
+vi.mock('@/shared/components/ui/DropdownMenu', () => ({
   DropdownMenu: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="dropdown-menu">{children}</div>
   ),

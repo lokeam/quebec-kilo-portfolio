@@ -7,7 +7,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu/DropdownMenu'
+} from '@/shared/components/ui/dropdown-menu';
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -52,6 +52,8 @@ export function DomainSwitcher({
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
+            data-testid="dropdown-content"
+            data-offset="4"
             className='w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg'
             align='start'
             side={isMobile ? 'bottom' : 'right'}

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, act } from '@testing-library/react'
-import { Button } from '@/shared/components/ui/button/button';
+import { Button } from '@/shared/components/ui/button';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
 import { SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
