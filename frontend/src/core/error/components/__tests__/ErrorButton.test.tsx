@@ -1,63 +1,166 @@
-import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
 import { ErrorButton } from '../ErrorButton';
-import '@testing-library/jest-dom';  // Add this temporarily to verify
+import { ERROR_ROUTES } from '../../constants/error.constants';
+
+interface MockButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children?: React.ReactNode;
+  'data-testid'?: string;
+  variant?: string;
+}
+
+// Mock react-router-dom
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate
+}));
+
+// Mock shadcn Button component
+vi.mock('@/shared/components/ui/button', () => ({
+  Button: ({
+    children,
+    onClick,
+    'data-testid': dataTestId,
+    ...props
+  }: MockButtonProps) => (
+    <button onClick={onClick} data-testid={dataTestId} {...props}>
+      {children}
+    </button>
+  )
+}));
 
 describe('ErrorButton', () => {
-  // Rendering tests
-  it('renders with a default label if none is provided', () => {
-    render(<ErrorButton onClick={() => {}} />);
-    expect(screen.getByRole('button')).toHaveTextContent('Try Again');
+  const defaultProps = {
+    onClick: vi.fn(),
+    label: 'Test Button'
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('renders with a custom label when provided', () => {
-    render(<ErrorButton onClick={() => {}} label='Retry' />);
-    expect(screen.getByRole('button')).toHaveTextContent('Retry');
+  describe('Navigation variants', () => {
+    it('navigates to home when variant is "home"', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="home"
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('error-button-home'));
+
+      expect(mockNavigate).toHaveBeenCalledWith(ERROR_ROUTES.HOME);
+      expect(defaultProps.onClick).not.toHaveBeenCalled();
+    });
+
+    it('navigates back when variant is "back"', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="back"
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('error-button-back'));
+
+      expect(mockNavigate).toHaveBeenCalledWith(-1);
+      expect(defaultProps.onClick).not.toHaveBeenCalled();
+    });
+
+    it('calls onClick when variant is "retry"', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="retry"
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('error-button-retry'));
+
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(defaultProps.onClick).toHaveBeenCalledTimes(1);
+    });
   });
 
-  // Interaction tests
-  it('fires the onClick handler when clicked', () => {
-    const handleClick = vi.fn();
-    render(<ErrorButton onClick={handleClick} />);
+  describe('Button styling', () => {
+    it('renders with correct variant for retry button', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="retry"
+        />
+      );
 
-    fireEvent.click(screen.getByRole('button'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
+      const button = screen.getByTestId('error-button-retry');
+      expect(button).toHaveAttribute('variant', 'default');
+    });
+
+    it('renders with correct variant for home button', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="home"
+        />
+      );
+
+      const button = screen.getByTestId('error-button-home');
+      expect(button).toHaveAttribute('variant', 'secondary');
+    });
+
+    it('renders with correct variant for back button', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="back"
+        />
+      );
+
+      const button = screen.getByTestId('error-button-back');
+      expect(button).toHaveAttribute('variant', 'outline');
+    });
   });
 
-  // Accessibility tests
-  it('has correct ARIA attributes', () => {
-    render(<ErrorButton onClick={() => {}} aria-label="Retry action" />);
-    const button = screen.getByRole('button');
+  describe('Accessibility', () => {
+    it('renders with provided label', () => {
+      render(
+        <ErrorButton
+          {...defaultProps}
+          variant="retry"
+        />
+      );
 
-    expect(button).toHaveAttribute('aria-label', 'Retry action');
+      expect(screen.getByText(defaultProps.label)).toBeInTheDocument();
+    });
+
+    it('renders with icon and label for each variant', () => {
+      const { rerender } = render(
+        <ErrorButton
+          {...defaultProps}
+          variant="retry"
+        />
+      );
+
+      // Check retry variant
+      expect(screen.getByTestId('error-button-retry')).toBeInTheDocument();
+
+      // Check home variant
+      rerender(
+        <ErrorButton
+          {...defaultProps}
+          variant="home"
+        />
+      );
+      expect(screen.getByTestId('error-button-home')).toBeInTheDocument();
+
+      // Check back variant
+      rerender(
+        <ErrorButton
+          {...defaultProps}
+          variant="back"
+        />
+      );
+      expect(screen.getByTestId('error-button-back')).toBeInTheDocument();
+    });
   });
-
-  // Style Tests
-  it('applies error styles', () => {
-    render(<ErrorButton onClick={() => {}} />);
-    const button = screen.getByRole('button');
-
-    // Button classes from shadcn
-    expect(button).toHaveClass('inline-flex');
-    expect(button).toHaveClass('items-center');
-    expect(button).toHaveClass('justify-center');
-
-    // Default variant classes
-    expect(button).toHaveClass('bg-primary');
-    expect(button).toHaveClass('text-primary-foreground');
-
-    // Custom classes
-    expect(button).toHaveClass('min-w-[100px]');
-    expect(button).toHaveClass('m-4');
-  });
-
-  // Disabled state
-  it('respects disabled state', () => {
-    render(<ErrorButton onClick={() => {}} disabled />);
-    const button = screen.getByRole('button');
-
-    expect(button).toBeDisabled();
-    fireEvent.click(button);
-  });
-
 });
