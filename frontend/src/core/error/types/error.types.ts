@@ -1,29 +1,17 @@
-import { ErrorInfo } from 'react';
+export type HttpErrorCode = 400 | 401 | 403 | 404 | 500 | 503;
 
-export type ErrorSeverity = 'fatal' | 'error' | 'warning' | 'info' | 'debug';
+export interface ApiError extends Error {
+  statusCode: HttpErrorCode;
+  message: string;
+}
 
-export interface ErrorConfig {
-  message?: string;
-  severity?: ErrorSeverity;
-  actionLabel?: string;
-  onAction?: () => void;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
-  onReset?: () => void;
-};
-
-export interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  config?: ErrorConfig;
-};
-
-export interface ErrorFallbackProps {
+export interface DefaultErrorFallbackProps {
   error: Error;
   resetErrorBoundary: () => void;
 }
 
-export interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ComponentType<ErrorFallbackProps>;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  onReset?: () => void;
+export interface ErrorButtonProps {
+  onClick: () => void;
+  variant: 'retry' | 'home' | 'back';
+  label: string;
 }
