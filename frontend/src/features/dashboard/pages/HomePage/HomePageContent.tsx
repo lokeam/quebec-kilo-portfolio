@@ -3,6 +3,7 @@ import { PageMain } from '@/shared/components/layout/page-main';
 import { PageGrid } from '@/shared/components/layout/page-grid';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
+import { SingleStatisticsCard } from '@/features/dashboard/organisms/SingleStatisticsCard/SingleStatisticsCard';
 
 export function HomePageContent() {
   return (
@@ -16,9 +17,30 @@ export function HomePageContent() {
 
       <PageGrid>
         {/* Statistics Cards Skeletons */}
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[120px] w-full" />
-        ))}
+        <SingleStatisticsCard
+          title="Games"
+          value={50}
+          lastUpdated="six months ago"
+          icon="games"
+        />
+        <SingleStatisticsCard
+          title="Monthly Online Services Costs"
+          value={120}
+          lastUpdated="last month"
+          icon="onlineServices"
+        />
+        <SingleStatisticsCard
+          title="Digital Storage Locations"
+          value={3}
+          lastUpdated="last month"
+          icon="coin"
+        />
+        <SingleStatisticsCard
+          title="Physical Storage Locations"
+          value={5}
+          lastUpdated="three months ago"
+          icon="package"
+        />
 
         {/* Larger Card Skeletons */}
         <Skeleton className="h-[400px] w-full" /> {/* OnlineServices */}
