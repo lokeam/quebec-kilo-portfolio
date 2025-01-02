@@ -17,6 +17,12 @@ export const NetworkStatusContext = createContext<NetworkStatusContextType | und
   Monitors and broadcasts network connectivity status.
   Must be placed high in component tree to provide status to all components.
 */
+interface NetworkInformation extends EventTarget {
+  effectiveType: string;
+  addEventListener: (type: string, listener: EventListener) => void;
+  removeEventListener: (type: string, listener: EventListener) => void;
+}
+
 export function NetworkStatusProvider({ children}: { children: ReactNode }) {
   // Init state w/ current network status
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -59,7 +65,7 @@ export function NetworkStatusProvider({ children}: { children: ReactNode }) {
   useEffect(() => {
     // Monitor connection quality if available
     if ('connection' in navigator) {
-      const connection = (navigator as any).connection;
+      const connection = ((navigator as unknown) as { connection: NetworkInformation }).connection;
       const updateConnectionQuality = () => {
         setConnectionQuality(connection.effectiveType);
       };

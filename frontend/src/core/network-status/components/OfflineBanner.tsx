@@ -1,6 +1,5 @@
 
 import { useNetworkStatus } from '@/core/network-status/hooks/useNetworkStatus';
-import { WifiOff } from 'lucide-react';
 import { IconCloudOff } from '@tabler/icons-react';
 
 
