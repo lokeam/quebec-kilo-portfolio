@@ -4,6 +4,10 @@ import { PageGrid } from '@/shared/components/layout/page-grid';
 import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SingleStatisticsCard } from '@/features/dashboard/organisms/SingleStatisticsCard/SingleStatisticsCard';
+import { OnlineServicesCard } from '@/features/dashboard/organisms/OnlineServicesCard/OnlineServicesCard';
+
+// Mock Data
+import { onlineServicesData } from '@/features/dashboard/organisms/OnlineServicesCard/onlineServicesCard.mockdata';
 
 export function HomePageContent() {
   return (
@@ -16,7 +20,7 @@ export function HomePageContent() {
       </PageHeadline>
 
       <PageGrid>
-        {/* Statistics Cards Skeletons */}
+        {/* Statistics Cards */}
         <SingleStatisticsCard
           title="Games"
           value={50}
@@ -43,7 +47,12 @@ export function HomePageContent() {
         />
 
         {/* Larger Card Skeletons */}
-        <Skeleton className="h-[400px] w-full" /> {/* OnlineServices */}
+        <OnlineServicesCard
+          totalAnnual={onlineServicesData.totalAnnual}
+          renewsThisMonth={onlineServicesData.renewsThisMonth}
+          totalServices={onlineServicesData.totalServices}
+          services={onlineServicesData.services}
+        />
         <Skeleton className="h-[400px] w-full" /> {/* StorageLocations */}
         <Skeleton className="h-[400px] w-full" /> {/* ItemsByPlatform */}
         <Skeleton className="h-[400px] w-full" /> {/* MonthlySpending */}
