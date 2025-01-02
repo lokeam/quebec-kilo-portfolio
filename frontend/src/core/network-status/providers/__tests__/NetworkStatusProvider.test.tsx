@@ -1,4 +1,4 @@
-import { render, act } from '@testing-library/react';
+import { render, act, waitFor } from '@testing-library/react';
 import { NetworkStatusProvider, useNetworkStatus } from '@/core/network-status/providers/NetworkStatusProvider';
 import { vi } from 'vitest';
 import { NETWORK_STATUS_ERRORS } from '@/core/network-status/constants/errorConstants';
@@ -17,11 +17,17 @@ describe('NetworkStatusProvider', () => {
   let rendered: ReturnType<typeof renderWithProvider>;
 
   beforeEach(() => {
+    // Reset navigator.onLine before each test
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      value: true
+    });
     rendered = renderWithProvider(<TestComponent />);
   });
 
   afterEach(() => {
     rendered.unmount();
+    vi.clearAllMocks();
   });
 
   it('handles network status changes correctly', async () => {
@@ -30,25 +36,49 @@ describe('NetworkStatusProvider', () => {
     // Initial state
     expect(getByTestId('test-component')).toHaveTextContent('Network Status: online');
 
-    // Offline
+    // Simulate offline
     await act(async () => {
-      window.setNetworkStatus(false);
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        value: false
+      });
+      window.dispatchEvent(new Event('offline'));
     });
-    expect(getByTestId('test-component')).toHaveTextContent('Network Status: offline');
 
-    // Back online
-    await act(async () => {
-      window.setNetworkStatus(true);
-    });
-    expect(getByTestId('test-component')).toHaveTextContent('Network Status: online');
+    // Wait for the delayed status update
+    await waitFor(() => {
+      expect(getByTestId('test-component')).toHaveTextContent('Network Status: offline');
+    }, { timeout: 1000 }); // Increase timeout to account for the 500ms delay
 
-    // Rapid changes
+    // Simulate back online
     await act(async () => {
-      window.setNetworkStatus(false);
-      window.setNetworkStatus(true);
-      window.setNetworkStatus(false);
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        value: true
+      });
+      window.dispatchEvent(new Event('online'));
     });
-    expect(getByTestId('test-component')).toHaveTextContent('Network Status: offline');
+
+    await waitFor(() => {
+      expect(getByTestId('test-component')).toHaveTextContent('Network Status: online');
+    });
+
+    // Test rapid changes
+    await act(async () => {
+      // Offline
+      Object.defineProperty(navigator, 'onLine', { value: false });
+      window.dispatchEvent(new Event('offline'));
+      // Immediately online
+      Object.defineProperty(navigator, 'onLine', { value: true });
+      window.dispatchEvent(new Event('online'));
+      // Finally offline
+      Object.defineProperty(navigator, 'onLine', { value: false });
+      window.dispatchEvent(new Event('offline'));
+    });
+
+    await waitFor(() => {
+      expect(getByTestId('test-component')).toHaveTextContent('Network Status: offline');
+    });
   });
 
   it('handles provider nesting and error cases', () => {

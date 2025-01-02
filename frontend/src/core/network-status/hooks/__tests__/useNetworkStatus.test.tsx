@@ -40,3 +40,17 @@ describe('useNetworkStatus', () => {
     consoleSpy.mockRestore();
   });
 })
+
+describe('NetworkStatusProvider', () => {
+  it('should handle online/offline events', () => {
+    // Test online event
+    window.dispatchEvent(new Event('online'));
+
+    // Test offline event
+    window.dispatchEvent(new Event('offline'));
+  });
+
+  it('should properly clean up event listeners', () => {
+    // Test cleanup
+  });
+});

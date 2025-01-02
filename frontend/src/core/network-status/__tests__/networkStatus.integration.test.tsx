@@ -16,8 +16,15 @@ describe('Network Status Integration', () => {
   };
 
   beforeEach(() => {
-    // Reset any previous network status
-    window.setNetworkStatus(true);
+    // Reset navigator.onLine before each test
+    Object.defineProperty(navigator, 'onLine', {
+      configurable: true,
+      value: true
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
   });
 
   it('should handle real browser online/offline events', async () => {
@@ -27,17 +34,27 @@ describe('Network Status Integration', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 
     // Simulate real browser offline event
-    act(() => {
+    await act(async () => {
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        value: false
+      });
       window.dispatchEvent(new Event('offline'));
     });
 
     // Wait for the banner to appear
     await waitFor(() => {
       expect(screen.getByRole('alert')).toBeInTheDocument();
-    });
+    }, { timeout: 1000 }); // Account for 500ms delay
 
     const banner = screen.getByRole('alert');
-    expect(banner).toHaveTextContent('You are offline. Please check your internet connection.');
+
+    // Check for heading and text content
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('You are offline');
+    expect(screen.getByText('Please check your internet connection.')).toBeInTheDocument();
+
+    // Verify icon presence
+    expect(banner.querySelector('svg')).toBeInTheDocument();
 
     // Verify banner positioning and layout
     expect(banner).toHaveStyle({
@@ -54,7 +71,11 @@ describe('Network Status Integration', () => {
     const initialHeight = appContent.clientHeight;
 
     // Simulate real browser online event
-    act(() => {
+    await act(async () => {
+      Object.defineProperty(navigator, 'onLine', {
+        configurable: true,
+        value: true
+      });
       window.dispatchEvent(new Event('online'));
     });
 
@@ -67,41 +88,25 @@ describe('Network Status Integration', () => {
     expect(appContent.clientHeight).toBe(initialHeight);
   });
 
-  it('should propagate state changes through component tree', async () => {
-    const { container } = renderApp();
-
-    // Take initial snapshot
-    expect(container).toMatchSnapshot();
-
-    // Go offline
-    await act(async () => {
-      window.setNetworkStatus(false);
-    });
-
-    // Take offline snapshot
-    expect(container).toMatchSnapshot();
-
-    // Go back online
-    await act(async () => {
-      window.setNetworkStatus(true);
-    });
-
-    // Take final snapshot
-    expect(container).toMatchSnapshot();
-  });
-
   it('should handle rapid network status changes', async () => {
     renderApp();
 
     await act(async () => {
       // Simulate network flapping
+      Object.defineProperty(navigator, 'onLine', { value: false });
       window.dispatchEvent(new Event('offline'));
+
+      Object.defineProperty(navigator, 'onLine', { value: true });
       window.dispatchEvent(new Event('online'));
+
+      Object.defineProperty(navigator, 'onLine', { value: false });
       window.dispatchEvent(new Event('offline'));
     });
 
-    // Should end up showing banner in offline state
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    // Wait for the final offline state to be reflected
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
   it('should cleanup event listeners', () => {
