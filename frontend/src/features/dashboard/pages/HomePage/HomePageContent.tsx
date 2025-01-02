@@ -5,9 +5,11 @@ import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SingleStatisticsCard } from '@/features/dashboard/organisms/SingleStatisticsCard/SingleStatisticsCard';
 import { OnlineServicesCard } from '@/features/dashboard/organisms/OnlineServicesCard/OnlineServicesCard';
+import { StorageLocationsTabCard } from '@/features/dashboard/organisms/StorageLocationsTabCard/StorageLocationsTabCard';
 
 // Mock Data
 import { onlineServicesData } from '@/features/dashboard/organisms/OnlineServicesCard/onlineServicesCard.mockdata';
+import { storageLocationsData } from '@/features/dashboard/organisms/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
 
 export function HomePageContent() {
   return (
@@ -20,6 +22,7 @@ export function HomePageContent() {
       </PageHeadline>
 
       <PageGrid>
+
         {/* Statistics Cards */}
         <SingleStatisticsCard
           title="Games"
@@ -46,14 +49,21 @@ export function HomePageContent() {
           icon="package"
         />
 
-        {/* Larger Card Skeletons */}
+        {/* Larger Cards */}
         <OnlineServicesCard
           totalAnnual={onlineServicesData.totalAnnual}
           renewsThisMonth={onlineServicesData.renewsThisMonth}
           totalServices={onlineServicesData.totalServices}
           services={onlineServicesData.services}
         />
-        <Skeleton className="h-[400px] w-full" /> {/* StorageLocations */}
+
+        <StorageLocationsTabCard
+          totalDigitalLocations={storageLocationsData.totalDigitalLocations}
+          totalPhysicalLocations={storageLocationsData.totalPhysicalLocations}
+          digitalStorageServices={storageLocationsData.digitalStorage}
+          physicalStorageLocations={storageLocationsData.physicalStorage}
+        />
+
         <Skeleton className="h-[400px] w-full" /> {/* ItemsByPlatform */}
         <Skeleton className="h-[400px] w-full" /> {/* MonthlySpending */}
       </PageGrid>
