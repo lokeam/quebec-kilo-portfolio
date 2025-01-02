@@ -1,26 +1,20 @@
 import {
-  IconBarrierBlock,
   IconBrowserCheck,
-  IconError404,
   IconHelp,
   IconLayoutDashboard,
-  IconLock,
   IconNotification,
   IconPackages,
   IconPalette,
-  IconServerOff,
   IconSettings,
   IconTool,
   IconUserCog,
-  IconUserOff,
   IconCloudDataConnection,
   IconSearch,
   IconPencilCheck,
-  IconCoin,
   IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
-import { Package, LibraryBig, Gamepad2, Clapperboard } from 'lucide-react'
+import { Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
 import { type SidebarData } from '@/features/navigation/organisms/SideNav/sideNav.types'
 
 export const sidebarData: SidebarData = {
@@ -69,7 +63,7 @@ export const sidebarData: SidebarData = {
           title: 'Spend Tracking',
           url: '/spending',
           badge: '5',
-          icon: IconCoin,
+          icon: CircleDollarSign,
         },
         {
           title: 'Wishlist',
@@ -88,9 +82,9 @@ export const sidebarData: SidebarData = {
           url: '/library',
         },
         {
-          title: 'Online Providers',
+          title: 'Online Services',
           icon: IconCloudDataConnection,
-          url: '/providers',
+          url: '/online-services',
         },
         {
           title: 'Media Storage',

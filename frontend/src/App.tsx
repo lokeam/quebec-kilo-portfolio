@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import HomePage from '@/pages/HomePage/HomePage';
+import HomePage from '@/features/dashboard/pages/HomePage/HomePage';
 import { ErrorBoundaryProvider } from '@/core/error/providers/ErrorBoundaryProvider';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
 import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/AuthenticatedLayout';
