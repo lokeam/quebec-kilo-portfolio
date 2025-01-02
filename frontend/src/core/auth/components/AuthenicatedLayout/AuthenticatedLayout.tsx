@@ -5,8 +5,7 @@ import { SearchButton } from '@/features/navigation/molecules/SearchButton/Searc
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
 import { cn } from '@/shared/components/ui/utils';
-
-//import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
+import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 
 import { Outlet } from 'react-router-dom';
 
@@ -29,7 +28,7 @@ export default function AuthenticatedLayout() {
         )}
       >
         {/* Network Status Provider - Offline Banner */}
-        {/* <OfflineBanner /> */}
+        <OfflineBanner />
 
         {/* Top Navigation w/ Sidebar Toggle */}
           <TopNavigation>

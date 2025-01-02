@@ -7,6 +7,7 @@ import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/Authe
 import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute';
 import { SidebarProvider } from './shared/components/ui/sidebar';
 import { Loading } from '@/shared/components/ui/loading/Loading';
+import { NetworkStatusProvider } from '@/core/network-status/providers/NetworkStatusProvider';
 
 // TODO: Lazy load secondary routes
 
@@ -15,21 +16,23 @@ function App() {
     <ErrorBoundaryProvider>
       <BrowserRouter>
         <ThemeProvider enableSystemPreference>
-          <SidebarProvider defaultOpen={true}>
-            <Suspense fallback={<Loading />}>
-              <Routes>
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <AuthenticatedLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/" element={<HomePage />} />
-                </Route>
-              </Routes>
-            </Suspense>
-          </SidebarProvider>
+          <NetworkStatusProvider>
+            <SidebarProvider defaultOpen={true}>
+              <Suspense fallback={<Loading />}>
+                <Routes>
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <AuthenticatedLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/" element={<HomePage />} />
+                  </Route>
+                </Routes>
+              </Suspense>
+            </SidebarProvider>
+          </NetworkStatusProvider>
         </ThemeProvider>
       </BrowserRouter>
     </ErrorBoundaryProvider>
