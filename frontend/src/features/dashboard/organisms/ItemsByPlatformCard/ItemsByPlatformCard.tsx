@@ -6,7 +6,6 @@ import type { PlatformItem } from "./itemsByPlatformCard.types"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,

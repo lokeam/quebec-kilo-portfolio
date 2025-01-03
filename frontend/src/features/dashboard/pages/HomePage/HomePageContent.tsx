@@ -2,10 +2,10 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageGrid } from '@/shared/components/layout/page-grid';
 import { Button } from '@/shared/components/ui/button';
-import { Skeleton } from '@/shared/components/ui/skeleton';
 import { SingleStatisticsCard } from '@/features/dashboard/organisms/SingleStatisticsCard/SingleStatisticsCard';
 import { OnlineServicesCard } from '@/features/dashboard/organisms/OnlineServicesCard/OnlineServicesCard';
 import { StorageLocationsTabCard } from '@/features/dashboard/organisms/StorageLocationsTabCard/StorageLocationsTabCard';
+import { WishListDealsCard } from '@/features/dashboard/organisms/WishlistDealsCard/WishListDealsCard';
 import { MonthlySpendingCard } from '@/features/dashboard/organisms/MonthlySpendingCard/MonthlySpendingCard';
 
 // Mock Data
@@ -13,7 +13,9 @@ import { onlineServicesData } from '@/features/dashboard/organisms/OnlineService
 import { storageLocationsData } from '@/features/dashboard/organisms/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
 import { ItemsByPlatformCard } from '../../organisms/ItemsByPlatformCard/ItemsByPlatformCard';
 import { itemsByPlatformData } from '@/features/dashboard/organisms/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
+import { wishlistDealsCardMockData } from '@/features/dashboard/organisms/WishlistDealsCard/wishlistDealsCard.mockdata';
 import { monthlySpendingData } from '@/features/dashboard/organisms/MonthlySpendingCard/monthlySpendingCard.mockdata';
+
 
 export function HomePageContent() {
   return (
@@ -75,7 +77,12 @@ export function HomePageContent() {
           newItemCount={itemsByPlatformData.newItemCount}
         />
 
-        <Skeleton className="flex flex-col"></Skeleton>
+        <WishListDealsCard
+          starredItem={wishlistDealsCardMockData.starredItem}
+          starredItemCurrentPrice={wishlistDealsCardMockData.starredItemCurrentPrice}
+          itemsOnSale={wishlistDealsCardMockData.itemsOnSale}
+          cheapestSaleItemPercentage={wishlistDealsCardMockData.cheapestSaleItemPercentage}
+        />
 
         <MonthlySpendingCard
           domains={monthlySpendingData.domains}

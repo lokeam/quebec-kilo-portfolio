@@ -4,7 +4,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/shared/components/ui/card';
-import { SINGLE_STATISTICS_ICONS } from './constants/singelStatCardIcons';
+import { SINGLE_STATISTICS_ICONS } from './constants/singleStatCardIcons';
 import type { StatCardIconType } from './types/singleStatCard.types';
 
 interface SingleStatisticsCardProps {
