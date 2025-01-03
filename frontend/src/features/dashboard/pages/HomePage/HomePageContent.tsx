@@ -10,6 +10,8 @@ import { StorageLocationsTabCard } from '@/features/dashboard/organisms/StorageL
 // Mock Data
 import { onlineServicesData } from '@/features/dashboard/organisms/OnlineServicesCard/onlineServicesCard.mockdata';
 import { storageLocationsData } from '@/features/dashboard/organisms/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
+import { ItemsByPlatformCard } from '../../organisms/ItemsByPlatformCard/ItemsByPlatformCard';
+import { itemsByPlatformData } from '@/features/dashboard/organisms/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
 
 export function HomePageContent() {
   return (
@@ -64,7 +66,12 @@ export function HomePageContent() {
           physicalStorageLocations={storageLocationsData.physicalStorage}
         />
 
-        <Skeleton className="h-[400px] w-full" /> {/* ItemsByPlatform */}
+        <ItemsByPlatformCard
+          domain={itemsByPlatformData.domain}
+          totalItemCount={itemsByPlatformData.totalItemCount}
+          platformList={itemsByPlatformData.platformList}
+          newItemCount={itemsByPlatformData.newItemCount}
+        />
         <Skeleton className="h-[400px] w-full" /> {/* MonthlySpending */}
       </PageGrid>
     </PageMain>
