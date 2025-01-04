@@ -14,7 +14,7 @@ export function PageHeadline({
   return (
     <div
       className={cn(
-        'mb-2 flex items-center justify-between space-y-2', className
+        'mb-2 flex flex-row items-center justify-between space-y-2', className
       )}
       {...props}
     >
