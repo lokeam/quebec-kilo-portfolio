@@ -1,15 +1,25 @@
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute';
+
+// Pages
 import HomePage from '@/features/dashboard/pages/HomePage/HomePage';
+import { Loading } from '@/shared/components/ui/loading/Loading';
+
+// Layouts
+import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/AuthenticatedLayout';
+
+// Providers
 import { ErrorBoundaryProvider } from '@/core/error/providers/ErrorBoundaryProvider';
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
-import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/AuthenticatedLayout';
-import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute';
 import { SidebarProvider } from './shared/components/ui/sidebar';
-import { Loading } from '@/shared/components/ui/loading/Loading';
 import { NetworkStatusProvider } from '@/core/network-status/providers/NetworkStatusProvider';
 
 // TODO: Lazy load secondary routes
+const OnlineServicesPage = lazy(() => import(
+  /* webpackChunkName: "OnlineServicesPage" */
+  '@/features/dashboard/pages/OnlineServices/OnlineServicesPage'
+));
 
 function App() {
   return (
@@ -28,6 +38,7 @@ function App() {
                     }
                   >
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/online-services" element={<OnlineServicesPage />} />
                   </Route>
                 </Routes>
               </Suspense>
