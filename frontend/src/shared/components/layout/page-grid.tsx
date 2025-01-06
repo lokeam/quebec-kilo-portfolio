@@ -18,7 +18,7 @@ export function PageGrid({
   columns = { sm: 2, lg: 4 }, // Default to original values
   ...props
 }: PageGridProps) {
-  // Construct grid classes dynamically
+
   const gridColumns = cn(
     'grid gap-4',
     columns.sm && `sm:grid-cols-${columns.sm}`,

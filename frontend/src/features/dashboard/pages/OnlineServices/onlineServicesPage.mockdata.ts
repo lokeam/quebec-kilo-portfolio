@@ -6,6 +6,7 @@ export interface OnlineService {
   billingCycle: string; // FREE, 1 mo, 3 mo, 1yr
   currency: string;
   price: string;
+  paymentMethod?: string;
 }
 
 export interface OnlineServicesList {
@@ -27,6 +28,7 @@ export const mockdata = {
       billingCycle: '1 yr', // 1mo, 3mo, 1yr
       currency: 'USD',
       price: '$6.66',
+      paymentMethod: 'visa',
     },
     {
       name: 'xbox',
@@ -36,6 +38,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$5',
+      paymentMethod: 'visa',
     },
     {
       name: 'nintendo',
@@ -45,6 +48,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$100',
+      paymentMethod: 'paypal',
     },
     {
       name: 'steam',
@@ -54,6 +58,7 @@ export const mockdata = {
       billingCycle: 'NA',
       currency: 'USD',
       price: 'FREE',
+      paymentMethod: 'paypal',
     },
     {
       name: 'epicgames',
@@ -63,6 +68,7 @@ export const mockdata = {
       billingCycle: 'NA',
       currency: 'USD',
       price: 'FREE',
+      paymentMethod: 'mastercard',
     },
     {
       name: 'gog',
@@ -72,6 +78,7 @@ export const mockdata = {
       billingCycle: 'NA',
       currency: 'USD',
       price: 'FREE',
+      paymentMethod: 'visa',
     },
     {
       name: 'humble',
@@ -81,6 +88,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '11.99',
+      paymentMethod: 'mastercard',
     },
     {
       name: 'greenman',
@@ -90,6 +98,7 @@ export const mockdata = {
       billingCycle: 'NA',
       currency: 'USD',
       price: 'FREE',
+      paymentMethod: 'discover',
     },
     {
       name: 'fanatical',
@@ -99,6 +108,7 @@ export const mockdata = {
       billingCycle: 'NA',
       currency: 'USD',
       price: 'FREE',
+      paymentMethod: 'googlepay',
     },
     {
       name: 'ubisoft',
@@ -108,6 +118,7 @@ export const mockdata = {
       billingCycle: '1 mo',
       currency: 'USD',
       price: '$18',
+      paymentMethod: 'mastercard',
     },
     {
       name: 'googleplaypass',
@@ -117,6 +128,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$100',
+      paymentMethod: 'googlepay',
     },
     {
       name: 'applearcade',
@@ -126,6 +138,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$6.99',
+      paymentMethod: 'applepay',
     },
     {
       name: 'netflixgames',
@@ -135,6 +148,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$15.49',
+      paymentMethod: 'visa',
     },
     {
       name: 'geforce',
@@ -144,6 +158,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$5.99',
+      paymentMethod: 'amex',
     },
     {
       name: 'primegaming',
@@ -153,6 +168,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$100',
+      paymentMethod: 'discover',
     },
     {
       name: 'amazonluna',
@@ -162,6 +178,7 @@ export const mockdata = {
       billingCycle: '1 mo',
       currency: 'USD',
       price: '$9.99',
+      paymentMethod: 'samsungpay',
     },
     {
       name: 'eaplay',
@@ -171,6 +188,7 @@ export const mockdata = {
       billingCycle: '1 yr', // 1 mo, 1 yr
       currency: 'USD',
       price: '$5.99',
+      paymentMethod: 'mastercard',
     },
     {
       name: 'videogamesmonthly',
@@ -180,6 +198,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$34.99', // 3up - 34.99, 4up - 39.99, 5up - 44.99, pwpak - 79.99, megabox - 152.99
+      paymentMethod: 'discover',
     },
     {
       name: 'retrogametreasure',
@@ -189,6 +208,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$100', // m2m - 39.99, 3mo - 116.97, 6mo - 227.97
+      paymentMethod: 'visa',
     },
     {
       name: 'quest+',
@@ -198,6 +218,7 @@ export const mockdata = {
       billingCycle: '1 yr',
       currency: 'USD',
       price: '$7.99', // monthly - 7.99, yearly - 59.99
+      paymentMethod: 'amex',
     },
   ]
 }
@@ -295,7 +316,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
   },
   {
     name: 'googleplaypass',
-    label: 'Google Play Pass',
+    label: 'googlepay Play Pass',
     logo: 'googleplaypasslogo',
     tier: '', // monthly -  4.99, yearly - 29.99
     billingCycle: '1 yr',
