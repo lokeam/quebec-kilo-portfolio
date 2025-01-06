@@ -5,7 +5,11 @@ import { Button } from '@/shared/components/ui/button';
 import { Skeleton } from '@/shared/components/ui/skeleton';
 
 // Components
-import { OnlineServicesToolbar } from '../../organisms/OnlineServicesToolbar/OnlineServicesToolbar';
+import { OnlineServicesToolbar } from '@/features/dashboard/organisms/OnlineServicesToolbar/OnlineServicesToolbar';
+import { SingleOnlineServiceCard } from '@/features/dashboard/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
+
+// Utils + Hooks
+import { useCardLabelWidth } from '@/features/dashboard/organisms/SingleOnlineServiceCard/useCardLabelWidth';
 
 // Mock Data
 import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
@@ -13,7 +17,21 @@ import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
 // Icons
 import { Plus } from 'lucide-react';
 
+
 export function OnlineServicesPageContent() {
+  // Truncate card label width, add ellipsis if necessary
+  useCardLabelWidth({
+    selectorAttribute: '[data-card-sentinel]',
+    breakpoints: {
+      narrow: 320,
+      medium: 360
+    },
+    widths: {
+      narrow: '60px',
+      medium: '100px',
+      wide: '200px'
+    }
+  });
 
   return (
     <PageMain>
@@ -37,10 +55,11 @@ export function OnlineServicesPageContent() {
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
           {onlineServicesPageMockData.length > 0 ? (
             onlineServicesPageMockData.map((service, index) => (
-              <Skeleton
-              key={`${service.name}-${index}`}
-              className="w-full h-[100px]"
-            />
+              <SingleOnlineServiceCard
+                key={`${service.name}-${index}`}
+                {...service}
+                isWatchedByResizeObserver={index === 0}
+              />
             ))
           ) : (
             <div className="col-span-2">
