@@ -7,11 +7,13 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 
 // Hooks
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
+import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/stores/onlineServicesStore';
 
 // Constants
 import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
 
 export function OnlineServicesToolbar() {
+  const { viewMode, setViewMode } = useOnlineServicesStore();
   const billingCycleFilter = useFilterCheckboxes(
     BILLING_CYCLE_OPTIONS.map(option => option.key)
   );
@@ -47,13 +49,28 @@ export function OnlineServicesToolbar() {
       <div className="flex items-center gap-3">
         <span className="text-sm text-gray-500">View</span>
         <div className="flex bg-black rounded-md p-1 gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant={viewMode === ViewModes.GRID ? 'default' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode(ViewModes.GRID)}
+          >
             <LayoutGrid className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant={viewMode === ViewModes.LIST ? 'default' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode(ViewModes.LIST)}
+          >
             <LayoutList className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant={viewMode === ViewModes.TABLE ? 'default' : 'ghost'}
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setViewMode(ViewModes.TABLE)}
+          >
             <Sheet className="h-4 w-4" />
           </Button>
         </div>
