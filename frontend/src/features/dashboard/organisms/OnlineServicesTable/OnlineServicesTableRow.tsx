@@ -1,8 +1,10 @@
-import React from 'react'
-import { TableCell, TableRow } from "@/shared/components/ui/table"
-import { Checkbox } from "@/shared/components/ui/checkbox"
-import { Switch } from "@/shared/components/ui/switch"
-import { Monitor } from 'lucide-react'
+import { TableCell, TableRow } from "@/shared/components/ui/table";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Switch } from "@/shared/components/ui/switch";
+import { Monitor } from 'lucide-react';
+import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
+import type{ LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+
 
 interface OnlineService {
   name: string
@@ -12,12 +14,12 @@ interface OnlineService {
   billingCycle: string
   currency: string
   price: string
-}
+};
 
 interface OnlineServicesTableRowProps {
   service: OnlineService
   index: number
-}
+};
 
 const getStatusStyle = (index: number) => {
   const styles = [
@@ -31,13 +33,22 @@ const getStatusStyle = (index: number) => {
 const getStatusText = (index: number) => {
   const statuses = ['Inactive', 'Publish', 'Scheduled']
   return statuses[index % 3]
-}
-
-const generateSKU = (name: string) => {
-  return name.toUpperCase().slice(0, 3) + Math.floor(Math.random() * 90000 + 10000)
-}
+};
 
 export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRowProps) {
+  const logoNameMap: Record<string, string> = {
+    'greenmanlogo': 'greenman',
+    'primegaminglogo': 'prime',
+    'netflixgameslogo': 'netflix',
+    'geforcelogo': 'nvidia',
+    'eaplaylogo': 'ea',
+    'metaquestlogo': 'meta',
+    'amazonlunalogo': 'luna'
+  };
+
+  const logoName = logoNameMap[service.logo] || service.logo?.replace('logo', '');
+  const hasValidLogo = Boolean(logoName);
+
   return (
     <TableRow className="h-[72px]">
       <TableCell>
@@ -45,12 +56,16 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center">
-            <img
-              src={`/placeholder.svg?height=48&width=48`}
-              alt={service.label}
-              className="h-8 w-8"
-            />
+          <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
+          {hasValidLogo ? (
+              <SVGLogo
+                domain="games"
+                name={logoName as LogoName<'games'>}
+                className="h-8 w-8"
+              />
+            ) : (
+              <Monitor className="h-8 w-8 text-slate-500" />
+            )}
           </div>
           <div className="flex flex-col">
             <span className="font-medium">{service.label}</span>
@@ -71,7 +86,7 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
       <TableCell>
         <Switch />
       </TableCell>
-      <TableCell>{generateSKU(service.name)}</TableCell>
+      <TableCell>{service.tier}</TableCell>
       <TableCell>{service.price}</TableCell>
       <TableCell>{Math.floor(Math.random() * 900 + 100)}</TableCell>
       <TableCell>
@@ -83,6 +98,5 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
         </div>
       </TableCell>
     </TableRow>
-  )
+  );
 }
-
