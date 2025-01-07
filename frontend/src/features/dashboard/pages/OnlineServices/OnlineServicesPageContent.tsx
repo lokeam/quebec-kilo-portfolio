@@ -16,9 +16,11 @@ import { ViewModes } from '@/features/dashboard/stores/onlineServicesStore';
 
 // Mock Data
 import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
+import { useFilteredServices } from '@/features/dashboard/hooks/useFilteredServices';
 
 export function OnlineServicesPageContent() {
   const { viewMode } = useOnlineServicesStore();
+  const filteredServices = useFilteredServices(onlineServicesPageMockData);
 
   useCardLabelWidth({
     selectorAttribute: '[data-card-sentinel]',
@@ -50,15 +52,15 @@ export function OnlineServicesPageContent() {
       <OnlineServicesToolbar />
 
       {viewMode === ViewModes.TABLE ? (
-        <OnlineServicesTable services={onlineServicesPageMockData} />
+        <OnlineServicesTable services={filteredServices} />
       ) : (
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === ViewModes.GRID
             ? 'md:grid-cols-2 2xl:grid-cols-3'
             : 'md:grid-cols-1'
         }`}>
-          {onlineServicesPageMockData.length > 0 ? (
-            onlineServicesPageMockData.map((service, index) => (
+          {filteredServices.length > 0 ? (
+            filteredServices.map((service, index) => (
               <SingleOnlineServiceCard
                 key={`${service.name}-${index}`}
                 {...service}

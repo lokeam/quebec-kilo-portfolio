@@ -1,6 +1,7 @@
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, LayoutList, Sheet } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
+import { useCallback } from 'react';
 
 // Components
 import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDropdown';
@@ -13,7 +14,7 @@ import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/stores/o
 import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
 
 export function OnlineServicesToolbar() {
-  const { viewMode, setViewMode } = useOnlineServicesStore();
+  const { viewMode, setViewMode, setSearchQuery } = useOnlineServicesStore();
   const billingCycleFilter = useFilterCheckboxes(
     BILLING_CYCLE_OPTIONS.map(option => option.key)
   );
@@ -21,13 +22,21 @@ export function OnlineServicesToolbar() {
     PAYMENT_METHOD_OPTIONS.map(option => option.key)
   );
 
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(event.target.value.toLowerCase());
+    },
+    [setSearchQuery]
+  );
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
       <div className="flex flex-wrap items-center gap-3">
         <Input
           className="w-[300px]"
-          id="filerServices"
+          id="filterServices"
           placeholder="Filter Services..."
+          onChange={handleSearchChange}
         />
         <span className="text-sm text-gray-500">Filter by</span>
 
