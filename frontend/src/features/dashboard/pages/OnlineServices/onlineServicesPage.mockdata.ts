@@ -1,3 +1,8 @@
+
+export type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" |
+"Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" |
+"Mir" | "Paypal" | "Unionpay" | "Visa";
+
 export interface OnlineService {
   name: string;
   label: string;
@@ -6,7 +11,7 @@ export interface OnlineService {
   billingCycle: string; // FREE, 1 mo, 3 mo, 1yr
   currency: string;
   price: string;
-  paymentMethod?: string;
+  paymentMethod?: PaymentMethodType;
 }
 
 export interface OnlineServicesList {
@@ -23,6 +28,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr', // 1mo, 3mo, 1yr
     currency: 'USD',
     price: '$6.66',
+    paymentMethod: 'Visa',
   },
   {
     name: 'xbox',
@@ -32,6 +38,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$5',
+    paymentMethod: 'Mastercard',
   },
   {
     name: 'nintendo',
@@ -41,6 +48,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$100',
+    paymentMethod: 'Visa',
   },
   {
     name: 'steam',
@@ -50,6 +58,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: 'NA',
     currency: 'USD',
     price: 'FREE',
+    paymentMethod: 'Paypal',
   },
   {
     name: 'epicgames',
@@ -59,6 +68,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: 'NA',
     currency: 'USD',
     price: 'FREE',
+    paymentMethod: 'Alipay',
   },
   {
     name: 'gog',
@@ -68,6 +78,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: 'NA',
     currency: 'USD',
     price: 'FREE',
+    paymentMethod: 'Paypal',
   },
   {
     name: 'humble',
@@ -77,6 +88,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '11.99',
+    paymentMethod: 'Visa',
   },
   {
     name: 'greenman',
@@ -86,6 +98,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: 'NA',
     currency: 'USD',
     price: 'FREE',
+    paymentMethod: 'Mir',
   },
   {
     name: 'fanatical',
@@ -95,6 +108,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: 'NA',
     currency: 'USD',
     price: 'FREE',
+    paymentMethod: 'Mastercard',
   },
   {
     name: 'applearcade',
@@ -104,6 +118,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$6.99',
+    paymentMethod: 'Visa',
   },
   {
     name: 'netflixgames',
@@ -113,6 +128,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$15.49',
+    paymentMethod: 'Jcb',
   },
   {
     name: 'geforce',
@@ -122,6 +138,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$5.99',
+    paymentMethod: 'Amex',
   },
   {
     name: 'primegaming',
@@ -131,6 +148,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$100',
+    paymentMethod: 'Visa',
   },
   {
     name: 'playpass',
@@ -140,6 +158,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$29.99',
+    paymentMethod: 'Jcb',
   },
   {
     name: 'eaplay',
@@ -149,6 +168,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr', // 1 mo, 1 yr
     currency: 'USD',
     price: '$5.99',
+    paymentMethod: 'Paypal',
   },
   {
     name: 'quest+',
@@ -158,5 +178,6 @@ export const onlineServicesPageMockData: OnlineService[] = [
     billingCycle: '1 yr',
     currency: 'USD',
     price: '$7.99', // monthly - 7.99, yearly - 59.99
+    paymentMethod: 'Alipay',
   },
 ]

@@ -4,35 +4,13 @@ import { Switch } from "@/shared/components/ui/switch";
 import { Monitor } from 'lucide-react';
 import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
 import type{ LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
-
-
-interface OnlineService {
-  name: string
-  label: string
-  logo: string
-  tier: string
-  billingCycle: string
-  currency: string
-  price: string
-};
+import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import type { PaymentMethodType } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
 
 interface OnlineServicesTableRowProps {
   service: OnlineService
   index: number
-};
-
-const getStatusStyle = (index: number) => {
-  const styles = [
-    'bg-red-100 text-red-800',
-    'bg-green-100 text-green-800',
-    'bg-yellow-100 text-yellow-800'
-  ]
-  return styles[index % 3]
-}
-
-const getStatusText = (index: number) => {
-  const statuses = ['Inactive', 'Publish', 'Scheduled']
-  return statuses[index % 3]
 };
 
 export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRowProps) {
@@ -87,15 +65,13 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
         <Switch />
       </TableCell>
       <TableCell>{service.tier}</TableCell>
+      <TableCell>{service.billingCycle}</TableCell>
       <TableCell>{service.price}</TableCell>
-      <TableCell>{Math.floor(Math.random() * 900 + 100)}</TableCell>
       <TableCell>
-        <div className={`
-          inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-          ${getStatusStyle(index)}
-        `}>
-          {getStatusText(index)}
-        </div>
+        <PaymentIcon
+          type={(service.paymentMethod || 'Generic') as PaymentMethodType}
+          format="flatRounded"
+        />
       </TableCell>
     </TableRow>
   );
