@@ -1,7 +1,7 @@
+import { useCallback, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, LayoutList, Sheet } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
-import { useCallback } from 'react';
 
 // Components
 import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDropdown';
@@ -14,7 +14,13 @@ import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/stores/o
 import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
 
 export function OnlineServicesToolbar() {
-  const { viewMode, setViewMode, setSearchQuery } = useOnlineServicesStore();
+  const {
+    viewMode,
+    setViewMode,
+    setSearchQuery,
+    setBillingCycleFilters,
+    setPaymentMethodFilters,
+  } = useOnlineServicesStore();
   const billingCycleFilter = useFilterCheckboxes(
     BILLING_CYCLE_OPTIONS.map(option => option.key)
   );
@@ -28,6 +34,26 @@ export function OnlineServicesToolbar() {
     },
     [setSearchQuery]
   );
+
+  useEffect(() => {
+    const selectedBillingCycles = Object.entries(billingCycleFilter.checkboxes)
+      .filter(([_, isChecked]) => isChecked)
+      .map(([key]) => key);
+
+    console.log('Selected Billing Cycles:', selectedBillingCycles); // Debug log
+
+    setBillingCycleFilters(selectedBillingCycles);
+  }, [billingCycleFilter.checkboxes, setBillingCycleFilters]);
+
+  useEffect(() => {
+    const selectedPaymentMethods = Object.entries(paymentMethodFilter.checkboxes)
+      .filter(([_, isChecked]) => isChecked)
+      .map(([key]) => key);
+
+    console.log('Selected Payment Methods:', selectedPaymentMethods); // Debug log
+
+    setPaymentMethodFilters(selectedPaymentMethods);
+  }, [paymentMethodFilter.checkboxes, setPaymentMethodFilters]);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">

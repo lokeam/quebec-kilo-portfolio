@@ -19,7 +19,12 @@ import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
 import { useFilteredServices } from '@/features/dashboard/hooks/useFilteredServices';
 
 export function OnlineServicesPageContent() {
-  const { viewMode } = useOnlineServicesStore();
+  const {
+    viewMode,
+    searchQuery,
+    billingCycleFilters,
+    paymentMethodFilters,
+  } = useOnlineServicesStore();
   const filteredServices = useFilteredServices(onlineServicesPageMockData);
 
   useCardLabelWidth({

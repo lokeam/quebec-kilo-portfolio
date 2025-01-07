@@ -35,7 +35,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     label: 'Xbox Network',
     logo: 'xbox',
     tier: 'livegold', // Live Gold, Game Pass, Game Pass Ultimate
-    billingCycle: '1 yr',
+    billingCycle: '3 mo',
     currency: 'USD',
     price: '$5',
     paymentMethod: 'Mastercard',
@@ -115,7 +115,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     label: 'Apple Arcade',
     logo: 'apple',
     tier: '', // monthly, yearly
-    billingCycle: '1 yr',
+    billingCycle: '1 mo',
     currency: 'USD',
     price: '$6.99',
     paymentMethod: 'Visa',
@@ -155,7 +155,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     label: 'Google Play Pass',
     logo: 'playpass',
     tier: '', // prime - 5.99mo / 29.99yr
-    billingCycle: '1 yr',
+    billingCycle: '1 mo',
     currency: 'USD',
     price: '$29.99',
     paymentMethod: 'Jcb',
