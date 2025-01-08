@@ -331,7 +331,7 @@ export const mockAvailableServices: OnlineService[] = [
     logo: 'steam',
     tierName: '', // No tier
     url: 'https://store.steampowered.com',
-    billingCycle: 'NA',
+    billingCycle: 'FREE',
     monthlyFee: 'FREE',
     quarterlyFee: 'FREE',
     annualFee: 'FREE',
