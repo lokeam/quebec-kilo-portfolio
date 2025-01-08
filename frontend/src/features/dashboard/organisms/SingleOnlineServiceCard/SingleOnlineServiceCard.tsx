@@ -1,50 +1,42 @@
+import { memo } from 'react';
 import { Card } from "@/shared/components/ui/card"
-import { ChevronDown } from 'lucide-react'
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { Power } from 'lucide-react'
+import { IconCloudDataConnection, IconCalendarDollar } from '@tabler/icons-react';
 import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
 import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+import { Badge } from "@/shared/components/ui/badge";
 
-type SingleOnlineServiceCardProps = {
+interface SingleOnlineServiceCardProps {
   name: string;
   label: string;
   logo: string;
-  tier: string;
-  price: string;
-  billingCycle: string;
-  currency: string;
-  isWatchedByResizeObserver: boolean;
+  tierName: string;
+  monthlyFee: string;
+  isActive: boolean;
+  renewalMonth: string;
+  isWatchedByResizeObserver?: boolean;
+  onClick?: () => void;
 }
 
-export function SingleOnlineServiceCard({
+export const SingleOnlineServiceCard = memo(({
   label,
   logo,
-  tier,
-  price,
-  billingCycle,
+  tierName,
+  monthlyFee,
+  renewalMonth,
+  isActive,
   isWatchedByResizeObserver,
-}: SingleOnlineServiceCardProps) {
-  console.log('logo: ', logo);
+}: SingleOnlineServiceCardProps) => {
 
-  const isServiceFree = price === 'FREE';
-
-  // Create a mapping for special cases
-  const logoNameMap: Record<string, string> = {
-    'greenmanlogo': 'greenman',
-    'primegaminglogo': 'prime',
-    'netflixgameslogo': 'netflix',
-    'geforcelogo': 'nvidia',
-    'eaplaylogo': 'ea',
-    'metaquestlogo': 'meta',
-    'amazonlunalogo': 'luna'
-  };
-
-  // Get the correct logo name using the mapping or fallback to simple replacement
-  const logoName = logoNameMap[logo] || logo?.replace('logo', '');
-  const hasValidLogo = Boolean(logoName);
+  const isServiceFree = monthlyFee === 'FREE';
+  const hasValidLogo = Boolean(logo);
+  const date = new Date();
+  const currentMonth = date.toLocaleString('default', { month: 'long' });
+  const isRenewalMonth = currentMonth === renewalMonth;
 
   return (
     <Card
-      className={`w-full max-w-lg min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 ${isWatchedByResizeObserver ? 'w-full' : 'max-w-lg'}`}
+      className={`relative cursor-pointer w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800`}
       {...(isWatchedByResizeObserver ? { 'data-card-sentinel': true } : {})}
     >
       <div className="flex items-center justify-between h-full">
@@ -53,7 +45,7 @@ export function SingleOnlineServiceCard({
             {hasValidLogo ? (
               <SVGLogo
                 domain="games"
-                name={logoName as LogoName<'games'>}
+                name={logo as LogoName<'games'>}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -68,22 +60,34 @@ export function SingleOnlineServiceCard({
                 display: 'block',
               }}
             >{label}</span>
-            {!isServiceFree && tier && (
-              <span className="text-xs text-muted-foreground">{tier}</span>
+            {!isServiceFree && (
+              <span className="text-xs text-muted-foreground">{tierName || 'Standard subscription'}</span>
             )}
           </div>
         </div>
         <div className="flex items-center gap-1 text-sm">
           {!isServiceFree && (
             <>
-              <span className="font-medium text-white">{price}</span>
-              <span className="text-muted-foreground text-xs">/ {billingCycle}</span>
+              <span className="font-medium text-white">{monthlyFee}</span>
+              <span className="text-muted-foreground text-xs">/ 1 mo</span>
             </>
           )}
-          <ChevronDown className="h-4 w-4 text-muted-foreground ml-1" />
+          {
+            isActive && (
+              <Power className="h-5 w-5 ml-1 text-green-500" />
+            )
+          }
+          {
+            !isActive && isRenewalMonth && (
+              <Badge variant="default" className="ml-1 bg-red-900 absolute top-3 right-2">
+                <IconCalendarDollar className="h-5 w-5 ml-1 text-white" />
+                <span className="ml-1">Renews this month</span>
+              </Badge>
+
+            )
+          }
         </div>
       </div>
     </Card>
   )
-}
-
+});

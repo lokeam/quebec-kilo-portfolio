@@ -10,16 +10,7 @@ import {
 } from "@/shared/components/ui/table"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { OnlineServicesTableRow } from './OnlineServicesTableRow'
-
-interface OnlineService {
-  name: string
-  label: string
-  logo: string
-  tier: string
-  billingCycle: string
-  currency: string
-  price: string
-}
+import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata'
 
 interface OnlineServicesTableProps {
   services: OnlineService[]
@@ -31,12 +22,11 @@ const TableHeaderRow: React.FC = () => (
       <Checkbox />
     </TableHead>
     <TableHead>Service</TableHead>
-    <TableHead>Category</TableHead>
     <TableHead>Active</TableHead>
-    <TableHead>Tier</TableHead>
     <TableHead>Billing Cycle</TableHead>
     <TableHead>Amount</TableHead>
     <TableHead>Payment Method</TableHead>
+    <TableHead>Renewal Date</TableHead>
   </TableRow>
 )
 

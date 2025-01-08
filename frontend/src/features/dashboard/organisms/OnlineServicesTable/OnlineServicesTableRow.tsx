@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Switch } from "@/shared/components/ui/switch";
@@ -9,23 +10,15 @@ import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/on
 import type { PaymentMethodType } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
 
 interface OnlineServicesTableRowProps {
-  service: OnlineService
+  service: OnlineService;
   index: number
 };
 
-export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRowProps) {
-  const logoNameMap: Record<string, string> = {
-    'greenmanlogo': 'greenman',
-    'primegaminglogo': 'prime',
-    'netflixgameslogo': 'netflix',
-    'geforcelogo': 'nvidia',
-    'eaplaylogo': 'ea',
-    'metaquestlogo': 'meta',
-    'amazonlunalogo': 'luna'
-  };
-
-  const logoName = logoNameMap[service.logo] || service.logo?.replace('logo', '');
-  const hasValidLogo = Boolean(logoName);
+function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProps) {
+  const hasValidLogo = Boolean(service.logo);
+  const paymentDate = `${service.renewalMonth} ${service.renewalDay}`;
+  const isFree = service.billingCycle === 'NA';
+  console.log(`${service.label} ${service.billingCycle}`);
 
   return (
     <TableRow className="h-[72px]">
@@ -38,7 +31,7 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
           {hasValidLogo ? (
               <SVGLogo
                 domain="games"
-                name={logoName as LogoName<'games'>}
+                name={service.logo as LogoName<'games'>}
                 className="h-8 w-8"
               />
             ) : (
@@ -48,31 +41,61 @@ export function OnlineServicesTableRow({ service, index }: OnlineServicesTableRo
           <div className="flex flex-col">
             <span className="font-medium">{service.label}</span>
             <span className="text-sm text-muted-foreground">
-              {service.tier || "Standard subscription"}
+              {service.tierName || "Standard subscription"}
             </span>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-            <Monitor className="h-4 w-4 text-purple-500" />
-          </div>
-          <span>Gaming Services</span>
-        </div>
+        {
+          service.isActive ? (
+            <Switch checked={true} />
+          ) : (
+            <Switch checked={false} />
+          )
+        }
       </TableCell>
       <TableCell>
-        <Switch />
+        {
+          isFree ? (
+            <span>--</span>
+          ) : (
+            <span>{service.billingCycle}</span>
+          )
+        }
       </TableCell>
-      <TableCell>{service.tier}</TableCell>
-      <TableCell>{service.billingCycle}</TableCell>
-      <TableCell>{service.price}</TableCell>
+      <TableCell>{service.monthlyFee}</TableCell>
       <TableCell>
         <PaymentIcon
           type={(service.paymentMethod || 'Generic') as PaymentMethodType}
           format="flatRounded"
         />
       </TableCell>
+      <TableCell>
+        {
+          isFree ? (
+            <span>--</span>
+          ) : (
+            <span>{paymentDate}</span>
+          )
+        }
+      </TableCell>
     </TableRow>
   );
 }
+
+export const OnlineServicesTableRow = memo(
+  OnlineServicesTableRowComponent,
+  (prevProps, nextProps) => {
+    return (
+      prevProps.index === nextProps.index &&
+      prevProps.service.name === nextProps.service.name &&
+      prevProps.service.label === nextProps.service.label &&
+      prevProps.service.logo === nextProps.service.logo &&
+      prevProps.service.tierName === nextProps.service.tierName &&
+      prevProps.service.billingCycle === nextProps.service.billingCycle &&
+      prevProps.service.monthlyFee === nextProps.service.monthlyFee &&
+      prevProps.service.paymentMethod === nextProps.service.paymentMethod
+    );
+  }
+);

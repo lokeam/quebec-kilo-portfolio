@@ -1,4 +1,4 @@
-export default function NetflixLogo({ className }: { className?: string }) {
+export default function NetflixLogo() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="100px" height="100px" viewBox="-89.6 -40 302 302" id="svg2">
       <g id="layer1" transform="translate(12.495 6.756)">
