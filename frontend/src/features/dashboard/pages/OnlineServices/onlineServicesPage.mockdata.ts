@@ -132,7 +132,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
   {
     name: 'greenman',
     label: 'Green Man Gaming',
-    logo: 'greenmanlogo',
+    logo: 'greenman',
     tierName: '', // Unknown - requires research
     url: 'https://www.greenmangaming.com/',
     billingCycle: 'NA',

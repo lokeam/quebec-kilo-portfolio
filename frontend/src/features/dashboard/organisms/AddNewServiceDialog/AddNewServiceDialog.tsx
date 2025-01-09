@@ -22,13 +22,15 @@ export function AddNewServiceDialog() {
 
   return (
     <Dialog>
-      <DialogTrigger>
+      {/* Trigger & button */}
+      <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4" />
           New Service
         </Button>
       </DialogTrigger>
 
+      {/* Dialog Modal + Content */}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add a New Service</DialogTitle>
