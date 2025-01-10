@@ -21,6 +21,11 @@ const OnlineServicesPage = lazy(() => import(
   '@/features/dashboard/pages/OnlineServices/OnlineServicesPage'
 ));
 
+const LibraryPage = lazy(() => import(
+  /* webpackChunkName: "LibraryPage" */
+  '@/features/dashboard/pages/LibraryPage/LibraryPage'
+));
+
 function App() {
   return (
     <ErrorBoundaryProvider>
@@ -38,6 +43,7 @@ function App() {
                     }
                   >
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/library" element={<LibraryPage />}/>
                     <Route path="/online-services" element={<OnlineServicesPage />} />
                   </Route>
                 </Routes>
