@@ -1,11 +1,19 @@
 export interface OnlineService {
   name: string;
+  label?: string;
+  logo?: string;
+  tierName?: string;
+  billingCycle?: string;
+  quarterlyFee?: string;
+  renewalDay?: string;
+  isActive?: boolean;
+  paymentMethod?: string;
   url: string;
   monthlyFee: string;
   annualFee: string;
   plan: "" | "1 Month" | "3 Month" | "12 Month";
   renewalMonth: string;
-  avatar: string;
+  avatar?: string;
 };
 
 export interface OnlineServicesData {

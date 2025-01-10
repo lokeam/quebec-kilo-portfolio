@@ -17,6 +17,7 @@ export interface OnlineService {
   renewalMonth: string;
   isActive: boolean;
   paymentMethod?: PaymentMethodType;
+  plan?: string;
 }
 
 export interface OnlineServicesList {
@@ -38,6 +39,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'January',
     isActive: true,
     paymentMethod: 'Visa',
+    plan: '3 month',
   },
   {
     name: 'xbox',
@@ -53,6 +55,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'March',
     isActive: true,
     paymentMethod: 'Mastercard',
+    plan: '1 month',
   },
   {
     name: 'nintendo',
@@ -68,6 +71,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'January',
     isActive: true,
     paymentMethod: 'Visa',
+    plan: '1 month',
   },
   {
     name: 'steam',
@@ -83,6 +87,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'NA',
     isActive: true,
     paymentMethod: 'Paypal',
+    plan: '',
   },
   {
     name: 'epicgames',
@@ -98,6 +103,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'NA',
     isActive: false,
     paymentMethod: 'Alipay',
+    plan: '',
   },
   {
     name: 'gog',
@@ -113,6 +119,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'NA',
     isActive: false,
     paymentMethod: 'Jcb',
+    plan: '12 month',
   },
   {
     name: 'humble',
@@ -128,6 +135,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'January',
     isActive: false,
     paymentMethod: 'Paypal',
+    plan: '',
   },
   {
     name: 'greenman',
@@ -143,6 +151,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'NA',
     isActive: false,
     paymentMethod: 'Visa',
+    plan: '',
   },
   {
     name: 'fanatical',
@@ -158,6 +167,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'NA',
     isActive: false,
     paymentMethod: 'Amex',
+    plan: '',
   },
   {
     name: 'applearcade',
@@ -173,6 +183,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'August',
     isActive: true,
     paymentMethod: 'Mastercard',
+    plan: '1 month',
   },
   {
     name: 'netflixgames',
@@ -188,6 +199,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'January',
     isActive: true,
     paymentMethod: 'Visa',
+    plan: '1 month',
   },
   {
     name: 'geforce',
@@ -203,6 +215,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'February',
     isActive: false,
     paymentMethod: 'Alipay',
+    plan: '',
   },
   {
     name: 'primegaming',
@@ -218,6 +231,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'March',
     isActive: true,
     paymentMethod: 'Visa',
+    plan: '1 month',
   },
   {
     name: 'playpass',
@@ -233,6 +247,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'August',
     isActive: false,
     paymentMethod: 'Discover',
+    plan: '',
   },
   {
     name: 'eaplay',
@@ -248,6 +263,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'August',
     isActive: false,
     paymentMethod: 'Mastercard',
+    plan: '',
   },
   {
     name: 'quest+',
@@ -263,6 +279,7 @@ export const onlineServicesPageMockData: OnlineService[] = [
     renewalMonth: 'August',
     isActive: false,
     paymentMethod: 'Amex',
+    plan: '',
   },
 ];
 
@@ -271,6 +288,7 @@ export type AvailableService = {
   name: string;
   label: string;
   logo: string;
+  plan?: string;
   tierName: string;
   billingCycle: string;
   url: string;
