@@ -7,7 +7,7 @@ export type Game = {
   isInLibrary: boolean;
 };
 
-export const searchPageMockData: Game[] = [
+export const addItemSearchDialogMockData: Game[] = [
   {
     id: 1,
     name: 'Bloodborne: Game of the Year Edition',
@@ -62,6 +62,7 @@ export const searchPageMockData: Game[] = [
     name: 'Metal Slug Tactics',
     description: 'Description 7',
     coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8c4a.webp',
+    isInLibrary: false,
   },
   {
     id: 9,

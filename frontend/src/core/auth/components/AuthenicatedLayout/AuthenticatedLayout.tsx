@@ -1,7 +1,9 @@
 
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
 import { NotifyButton } from '@/features/navigation/molecules/NotifyButton/NotifyButton';
-import { SearchButton } from '@/features/navigation/molecules/SearchButton/SearchButton';
+
+import { AddItemSearchDialog } from '@/features/dashboard/organisms/AddItemSearchDialog/AddItemSearchDialog';
+
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
 import { cn } from '@/shared/components/ui/utils';
@@ -34,7 +36,7 @@ export default function AuthenticatedLayout() {
           <TopNavigation>
             <div className='ml-auto flex items-center space-x-4'>
               {/* Search Bar */}
-              <SearchButton />
+              <AddItemSearchDialog />
 
               {/* Notifications */}
               <NotifyButton />

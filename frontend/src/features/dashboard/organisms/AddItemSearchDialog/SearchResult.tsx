@@ -8,12 +8,6 @@ type SearchResultProps = {
   isInLibrary: boolean;
 }
 
-/*
-        <div className="relative aspect-[4/3] md:aspect-square">
-          <Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
-        </div>
-*/
-
 export function SearchResult({
   title,
   // imageUrl,
@@ -48,5 +42,5 @@ export function SearchResult({
         </p> */}
       </div>
     </Card>
-  )
+  );
 }

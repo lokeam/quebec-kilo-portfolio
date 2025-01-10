@@ -91,11 +91,6 @@ export const sidebarData: SidebarData = {
           icon: Package,
           url: '/media-storage',
         },
-        {
-          title: 'Search',
-          icon: IconSearch,
-          url: '/search',
-        },
       ],
     },
     {
