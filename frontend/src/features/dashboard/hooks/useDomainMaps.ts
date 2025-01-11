@@ -27,6 +27,15 @@ import XboxLogo from '@/shared/components/ui/LogoMap/domains/games/xbox_logo';
 
 // TODO: Refactor out other domain maps into their own files
 
+// Platform related logos
+import {
+  IconBrandAndroid,
+  IconBrandApple,
+  IconBrandWindowsFilled,
+  IconDeviceGamepad,
+  IconDeviceMobile,
+ } from '@tabler/icons-react';
+
 /**
  * @file useDomainMaps.ts
  * @description Custom hook for managing domain-specific SVG logo mappings.
@@ -72,6 +81,13 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
   },
   movies: {},
   music: {},
+  platforms: {
+    android: IconBrandAndroid,
+    ios: IconBrandApple,
+    pc: IconBrandWindowsFilled,
+    console: IconDeviceGamepad,
+    mobile: IconDeviceMobile,
+  },
 };
 
 /**
@@ -83,5 +99,6 @@ export function useDomainMaps() {
     games: useMemo(() => LOGO_MAP.games, []),
     movies: useMemo(() => LOGO_MAP.movies, []),
     music: useMemo(() => LOGO_MAP.music, []),
+    platforms: useMemo(() => LOGO_MAP.platforms, []),
   };
 }

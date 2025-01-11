@@ -1,6 +1,6 @@
-import type { WishlistPageData } from '@/features/dashboard/types/page.types';
+import type { WishListPageData } from '@/features/dashboard/types/page.types';
 
-export const wishlistPageMockData: WishlistPageData = {
+export const wishlistPageMockData: WishListPageData = {
   pc: [
     {
       id: '1',
@@ -19,52 +19,13 @@ export const wishlistPageMockData: WishlistPageData = {
         discountPercentage: 75,
         vendor: 'Steam',
       },
-      platform: 'PC',
+      platform: 'pc',
+      hasMacOSVersion: false,
     },
   ],
   console: [
     {
-      id: '2',
-      title: 'Balatro',
-      thumbnailUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co752b.webp',
-      tags: ['Strategy', 'Indie', 'Card & Board Game', 'Single Player', 'Isometric'],
-      releaseDate: 'Nov 1, 2011',
-      rating: {
-        positive: 300,
-        negative: 10,
-        totalReviews: 230,
-      },
-      price: {
-        original: 14.99,
-        discounted: 10.99,
-        discountPercentage: 15,
-        vendor: 'iOS App Store',
-      },
-      platform: 'Mobile',
-    },
-    {
-      id: '2',
-      title: 'Levelhead',
-      thumbnailUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1ks9.webp',
-      tags: ['Platform', 'Simulator', 'Adventure', 'Single Player', 'Side View'],
-      releaseDate: 'Nov 1, 2011',
-      rating: {
-        positive: 700,
-        negative: 440,
-        totalReviews: 1140,
-      },
-      price: {
-        original: 6.99,
-        discounted: 5.99,
-        discountPercentage: 15,
-        vendor: 'Google Play Store',
-      },
-      platform: 'Mobile',
-    },
-  ],
-  mobile: [
-    {
-      id: '3',
+      id: '4',
       title: 'Dark Souls III',
       thumbnailUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1vcf.webp',
       tags: ['Role-playing (RPG)', 'Adventure', 'Action', 'Fantasy', 'Single Player', 'Multiplayer'],
@@ -80,7 +41,7 @@ export const wishlistPageMockData: WishlistPageData = {
         discountPercentage: 15,
         vendor: 'iOS App Store',
       },
-      platform: 'Console',
+      platform: 'console',
     },
     {
       id: '3',
@@ -99,7 +60,51 @@ export const wishlistPageMockData: WishlistPageData = {
         discountPercentage: 6.7,
         vendor: 'Best Buy',
       },
-      platform: 'Console',
+      platform: 'console',
+    },
+  ],
+  mobile: [
+    {
+      id: '2',
+      title: 'Balatro',
+      thumbnailUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co752b.webp',
+      tags: ['Strategy', 'Indie', 'Card & Board Game', 'Single Player', 'Isometric'],
+      releaseDate: 'Nov 1, 2011',
+      rating: {
+        positive: 300,
+        negative: 10,
+        totalReviews: 230,
+      },
+      price: {
+        original: 14.99,
+        discounted: 10.99,
+        discountPercentage: 15,
+        vendor: 'iOS App Store',
+      },
+      platform: 'mobile',
+      hasAndroidVersion: true,
+      hasIOSVersion: true,
+    },
+    {
+      id: '3',
+      title: 'Levelhead',
+      thumbnailUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1ks9.webp',
+      tags: ['Platform', 'Simulator', 'Adventure', 'Single Player', 'Side View'],
+      releaseDate: 'Nov 1, 2011',
+      rating: {
+        positive: 700,
+        negative: 440,
+        totalReviews: 1140,
+      },
+      price: {
+        original: 6.99,
+        discounted: 5.99,
+        discountPercentage: 15,
+        vendor: 'Google Play Store',
+      },
+      platform: 'mobile',
+      hasAndroidVersion: true,
+      hasIOSVersion: true,
     },
   ],
 }

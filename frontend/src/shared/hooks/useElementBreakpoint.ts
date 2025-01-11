@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import debounce from 'lodash/debounce';
 
 /**
@@ -55,37 +55,49 @@ export function useElementBreakpoint<T>(config: ElementBreakpointConfig<T>): voi
     debounceDelay = 16
   } = config;
 
+  // Create a stable reference to the resize handler
   const handleResize = useCallback((width: number) => {
-    // Find the first matching breakpoint rule
     const matchingRule = [...breakpointRules]
       .reverse()
       .find(rule => width <= rule.breakpoint);
-
-    // Apply matching rule value or default value
     onBreakpointChange(matchingRule ? matchingRule.value : defaultValue);
   }, [breakpointRules, defaultValue, onBreakpointChange]);
 
+  // Create a stable reference to the debounce function
+  const debouncedHandleResize = useMemo(() => {
+    return debounce(handleResize, debounceDelay);
+  }, [handleResize, debounceDelay]);
+
+  // useEffect kicks everything off
   useEffect(() => {
-    const updateBreakpoint = debounce(() => {
-      const element = document.querySelector(selector);
-      if (!element) return;
+    let resizeObserver: ResizeObserver | null = null;
+    const targetEls = document.querySelectorAll(selector);
 
-      const width = element.getBoundingClientRect().width;
-      handleResize(width);
-    }, debounceDelay);
+    try {
+      // Handle initial size exactly once per element
+      for (const el of targetEls) {
+        const width = el.getBoundingClientRect().width;
+        handleResize(width);
+      }
 
-    const resizeObserver = new ResizeObserver(updateBreakpoint);
-    const element = document.querySelector(selector);
+      // Set up observer for future changes
+      resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          debouncedHandleResize(entry.contentRect.width);
+        }
+      });
 
-    if (element) {
-      resizeObserver.observe(element);
-      // Initial check
-      updateBreakpoint();
+      for (const el of targetEls) {
+        resizeObserver?.observe(el);
+      }
+    } catch (error) {
+      console.error('Error setting up ResizeObserver:', error);
     }
 
+    // Cleanup observer on unmount
     return () => {
-      resizeObserver.disconnect();
-      updateBreakpoint.cancel();
+      debouncedHandleResize.cancel();
+      resizeObserver?.disconnect();
     };
-  }, [selector, handleResize, debounceDelay]);
+  },[selector, handleResize, debouncedHandleResize]);
 }
