@@ -26,6 +26,12 @@ const LibraryPage = lazy(() => import(
   '@/features/dashboard/pages/LibraryPage/LibraryPage'
 ));
 
+const WishListPage = lazy(() => import(
+  /* webpackChunkName: "WishListPage" */
+  '@/features/dashboard/pages/WishListPage/WishListPage'
+));
+
+
 function App() {
   return (
     <ErrorBoundaryProvider>
@@ -45,6 +51,7 @@ function App() {
                     <Route path="/" element={<HomePage />} />
                     <Route path="/library" element={<LibraryPage />}/>
                     <Route path="/online-services" element={<OnlineServicesPage />} />
+                    <Route path="/wishlist" element={<WishListPage />} />
                   </Route>
                 </Routes>
               </Suspense>
