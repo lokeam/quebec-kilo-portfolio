@@ -85,7 +85,7 @@ export function SearchDialog({
           <div className="flex items-start justify-center">
             <DialogContent
               className={cn(
-                "fixed left-[50%] top-[5%] z-50 w-[90vw] max-w-[940px] -translate-x-[50%] translate-y-0 bg-background rounded-lg shadow-lg",
+                "fixed pt-10 px-4 left-[50%] top-[5%] z-50 w-[95vw] sm:w-[90vw] max-w-[940px] -translate-x-[50%] translate-y-0 bg-background rounded-lg shadow-lg",
                 "transition-opacity duration-200",
                 "opacity-0 data-[state=open]:opacity-100",
                 className
@@ -102,7 +102,7 @@ export function SearchDialog({
                   </DialogHeader>
                 )}
 
-                <div className="shrink-0 p-4 border-b">
+                <div className="shrink-0 p2 md:p-4">
                   <Input
                     placeholder={searchPlaceholder}
                     value={searchQuery}
@@ -111,8 +111,8 @@ export function SearchDialog({
                   />
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                  <div className="p-4 space-y-2">
+                <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+                  <div className="py-2 space-y-2 md:p-4 md:space-y-4">
                     {children}
                   </div>
                 </div>

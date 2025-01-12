@@ -36,12 +36,12 @@ export const SingleOnlineServiceCard = memo(({
 
   return (
     <Card
-      className={`relative cursor-pointer w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800`}
+      className={`flex relative cursor-pointer w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800`}
       {...(isWatchedByResizeObserver ? { 'data-card-sentinel': true } : {})}
     >
-      <div className="flex items-center justify-between h-full">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 text-white flex items-center justify-center">
+      <div className="flex items-center justify-between min-w-0 w-full">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
             {hasValidLogo ? (
               <SVGLogo
                 domain="games"
@@ -65,7 +65,7 @@ export const SingleOnlineServiceCard = memo(({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 text-sm">
+        <div className="flex items-center gap-1 text-sm shrink-0">
           {!isServiceFree && (
             <>
               <span className="font-medium text-white">{monthlyFee}</span>

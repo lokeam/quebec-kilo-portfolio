@@ -54,7 +54,7 @@ export const addItemSearchDialogMockData: Game[] = [
     id: 7,
     name: 'Gran Turismo 7',
     description: 'Description 6',
-    coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2g84.webpp',
+    coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2g84.webp',
     isInLibrary: false,
   },
   {
@@ -124,7 +124,7 @@ export const addItemSearchDialogMockData: Game[] = [
     id: 16,
     name: 'Chef Chen',
     description: 'Description 16',
-    coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co8ae0.webp',
+    coverImage: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co7pix.webp',
     isInLibrary: false,
   },
   {

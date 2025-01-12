@@ -9,7 +9,6 @@ import {
   IconTool,
   IconUserCog,
   IconCloudDataConnection,
-  IconSearch,
   IconPencilCheck,
   IconShoppingCartHeart,
   IconBook,

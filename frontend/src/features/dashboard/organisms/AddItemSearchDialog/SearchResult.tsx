@@ -1,21 +1,28 @@
-import { LibraryBig } from 'lucide-react';
+
+// Components
 import { Card } from '@/shared/components/ui/card';
-import { Skeleton } from '@/shared/components/ui/skeleton';
+import { Button } from '@/shared/components/ui/button';
+import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
+
+// Icons
+import { LibraryBig } from 'lucide-react';
+import { IconHeart } from '@tabler/icons-react';
+
 
 type SearchResultProps = {
   title: string;
-  imageUrl: string;
+  imageUrl: string | null | undefined;
   isInLibrary: boolean;
 }
 
 export function SearchResult({
   title,
-  // imageUrl,
+  imageUrl,
  // price,
   isInLibrary = false,
 }: SearchResultProps) {
   return (
-    <Card className="relative flex items-center gap-4 p-4 transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group">
+    <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
       {isInLibrary && (
         <div className="absolute left-0 top-0 bottom-0 z-10">
           <div className="flex h-full items-center">
@@ -28,18 +35,39 @@ export function SearchResult({
           </div>
         </div>
       )}
-      <div className="relative w-16 h-20 shrink-0">
-        <div className="relative aspect-[4/3] md:aspect-square">
-          <Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
+      <div className="shrink-0 p-2">
+        <div className="relative w-24 md:w-32 p-2">
+          <ImageWithFallback
+            src={imageUrl}
+            alt={title}
+            width={292}
+            height={120}
+            className="rounded-sm w-[140px] h-full object-cover"
+          />
         </div>
       </div>
-      <div className="flex flex-col">
-        <h3 className="font-medium text-white group-hover:text-black">
-          {title}
-        </h3>
-        {/* <p className="text-white/80 group-hover:text-black/80">
-          ${price.toFixed(2)}
-        </p> */}
+
+      <div className="flex flex-1 min-w-0 items-center pr-2">
+        <div className="flex-1 min-w-0"> {/* nested min-w-0 for text truncation */}
+          <h3 className="font-medium text-white text-wrap max-w-[140px] max-h-[48px] md:max-w-full md:max-h-unset truncate">
+            {title}
+          </h3>
+        </div>
+
+        {
+          !isInLibrary && (
+            <div className="flex shrink-0 gap-1 mt-1 ml-2">
+              <Button variant="outline">
+                <LibraryBig className="w-5 h-5" />
+                <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to library</span>
+              </Button>
+              <Button variant="outline">
+                <IconHeart className="w-5 h-5" />
+                <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to wishlist</span>
+              </Button>
+            </div>
+          )
+        }
       </div>
     </Card>
   );
