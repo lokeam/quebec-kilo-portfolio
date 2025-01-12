@@ -8,7 +8,7 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 
 // Hooks
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
-import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/stores/onlineServicesStore';
+import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Constants
 import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';

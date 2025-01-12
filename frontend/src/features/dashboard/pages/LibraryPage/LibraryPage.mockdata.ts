@@ -1,4 +1,4 @@
-import { type LibraryItem } from "@/features/dashboard/types/page.types";
+import { type LibraryItem } from "@/features/dashboard/lib/types/page.types";
 
 export const libraryPageMockData: LibraryItem[] = [
   {

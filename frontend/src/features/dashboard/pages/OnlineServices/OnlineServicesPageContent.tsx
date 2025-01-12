@@ -2,19 +2,19 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 
 // Components
-import { OnlineServicesToolbar } from '@/features/dashboard/organisms/OnlineServicesToolbar/OnlineServicesToolbar';
-import { SingleOnlineServiceCard } from '@/features/dashboard/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
-import { OnlineServicesTable } from '@/features/dashboard/organisms/OnlineServicesTable/OnlineServicesTable';
-import { AddNewServiceDialog } from '@/features/dashboard/organisms/AddNewServiceDialog/AddNewServiceDialog';
+import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesToolbar/OnlineServicesToolbar';
+import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
+import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesTable/OnlineServicesTable';
+import { AddNewServiceDialog } from '@/features/dashboard/components/organisms/AddNewServiceDialog/AddNewServiceDialog';
 
 // Utils + Hooks
-import { useCardLabelWidth } from '@/features/dashboard/organisms/SingleOnlineServiceCard/useCardLabelWidth';
-import { useOnlineServicesStore } from '@/features/dashboard/stores/onlineServicesStore';
-import { ViewModes } from '@/features/dashboard/stores/onlineServicesStore';
+import { useCardLabelWidth } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/useCardLabelWidth';
+import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import { ViewModes } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Mock Data
 import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
-import { useFilteredServices } from '@/features/dashboard/hooks/useFilteredServices';
+import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
 import { OnlineServicesEmptyPage } from '@/features/dashboard/pages/OnlineServices/OnlineServicesEmptyPage';
 
 export function OnlineServicesPageContent() {

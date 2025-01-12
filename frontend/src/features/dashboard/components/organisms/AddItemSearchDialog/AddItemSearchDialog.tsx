@@ -3,8 +3,8 @@ import { Button } from "@/shared/components/ui/button"
 import { DialogTrigger } from '@/shared/components/ui/dialog'
 import { SearchIcon } from 'lucide-react'
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog'
-import { SearchResult } from '@/features/dashboard/organisms/AddItemSearchDialog/SearchResult'
-import { useSearchGames } from '@/features/dashboard/hooks/useSearchGames'
+import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult'
+import { useSearchGames } from '@/features/dashboard/lib/hooks/useSearchGames'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import type { Game } from '@/types/types/domain.types'
 

@@ -2,19 +2,19 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageGrid } from '@/shared/components/layout/page-grid';
 import { Button } from '@/shared/components/ui/button';
-import { SingleStatisticsCard } from '@/features/dashboard/organisms/SingleStatisticsCard/SingleStatisticsCard';
-import { OnlineServicesCard } from '@/features/dashboard/organisms/OnlineServicesCard/OnlineServicesCard';
-import { StorageLocationsTabCard } from '@/features/dashboard/organisms/StorageLocationsTabCard/StorageLocationsTabCard';
-import { WishListDealsCard } from '@/features/dashboard/organisms/WishlistDealsCard/WishListDealsCard';
-import { MonthlySpendingCard } from '@/features/dashboard/organisms/MonthlySpendingCard/MonthlySpendingCard';
+import { ItemsByPlatformCard } from '@/features/dashboard/components/organisms/ItemsByPlatformCard/ItemsByPlatformCard';
+import { SingleStatisticsCard } from '@/features/dashboard/components/organisms/SingleStatisticsCard/SingleStatisticsCard';
+import { OnlineServicesCard } from '@/features/dashboard/components/organisms/OnlineServicesCard/OnlineServicesCard';
+import { StorageLocationsTabCard } from '@/features/dashboard/components/organisms/StorageLocationsTabCard/StorageLocationsTabCard';
+import { WishListDealsCard } from '@/features/dashboard/components/organisms/WishlistDealsCard/WishListDealsCard';
+import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/MonthlySpendingCard/MonthlySpendingCard';
 
 // Mock Data
-import { onlineServicesData } from '@/features/dashboard/organisms/OnlineServicesCard/onlineServicesCard.mockdata';
-import { storageLocationsData } from '@/features/dashboard/organisms/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
-import { ItemsByPlatformCard } from '../../organisms/ItemsByPlatformCard/ItemsByPlatformCard';
-import { itemsByPlatformData } from '@/features/dashboard/organisms/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
-import { wishlistDealsCardMockData } from '@/features/dashboard/organisms/WishlistDealsCard/wishlistDealsCard.mockdata';
-import { monthlySpendingData } from '@/features/dashboard/organisms/MonthlySpendingCard/monthlySpendingCard.mockdata';
+import { onlineServicesData } from '@/features/dashboard/components/organisms/OnlineServicesCard/onlineServicesCard.mockdata';
+import { storageLocationsData } from '@/features/dashboard/components/organisms/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
+import { itemsByPlatformData } from '@/features/dashboard/components/organisms/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
+import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/WishlistDealsCard/wishlistDealsCard.mockdata';
+import { monthlySpendingData } from '@/features/dashboard/components/organisms/MonthlySpendingCard/monthlySpendingCard.mockdata';
 
 
 export function HomePageContent() {

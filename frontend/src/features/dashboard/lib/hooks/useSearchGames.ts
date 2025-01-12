@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { addItemSearchDialogMockData } from '@/features/dashboard/organisms/AddItemSearchDialog/addItemSearchDialog.mockdata';
+import { addItemSearchDialogMockData } from '@/features/dashboard/components/organisms/AddItemSearchDialog/addItemSearchDialog.mockdata';
 import type { Game } from '@/types/types/domain.types';
 
 export interface UseSearchGamesResult {

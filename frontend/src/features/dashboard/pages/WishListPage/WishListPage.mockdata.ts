@@ -1,4 +1,4 @@
-import type { WishListPageData } from '@/features/dashboard/types/page.types';
+import type { WishListPageData } from '@/features/dashboard/lib/types/page.types';
 
 export const wishlistPageMockData: WishListPageData = {
   pc: [

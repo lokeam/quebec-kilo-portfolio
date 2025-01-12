@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { SupportedItemPlatforms } from './SupportedItemPlatforms';
-import type { Platform } from '@/features/dashboard/types/page.types';
+import type { Platform } from '@/features/dashboard/lib/types/page.types';
 
 interface ReleaseDateSectionProps {
   platform: string;

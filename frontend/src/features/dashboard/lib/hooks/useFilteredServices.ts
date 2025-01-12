@@ -4,7 +4,7 @@ import {
   useOnlineServicesSearch,
   useOnlineServicesBillingFilters,
   useOnlineServicesPaymentFilters,
-} from '../stores/onlineServicesStore';
+} from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 export function useFilteredServices(services: OnlineService[]) {
   const searchQuery = useOnlineServicesSearch();
