@@ -1,8 +1,8 @@
 export const BILLING_CYCLE_OPTIONS = [
   { key: 'NA', label: 'Free' },
-  { key: '1 no', label: 'Monthly' },
+  { key: '1 mo', label: 'Monthly' },
   { key: '3 mo', label: 'Quarterly' },
-  { key: '1 year', label: 'Yearly' },
+  { key: '1 yr', label: 'Yearly' },
 ] as const;
 
 export const PAYMENT_METHOD_OPTIONS = [

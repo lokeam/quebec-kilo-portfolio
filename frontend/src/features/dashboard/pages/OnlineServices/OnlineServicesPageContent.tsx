@@ -1,17 +1,16 @@
 import { useEffect } from 'react';
-import { PageHeadline } from '@/shared/components/layout/page-headline';
-import { PageMain } from '@/shared/components/layout/page-main';
 
 // Components
 import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesToolbar/OnlineServicesToolbar';
 import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesTable/OnlineServicesTable';
 import { AddNewServiceDialog } from '@/features/dashboard/components/organisms/AddNewServiceDialog/AddNewServiceDialog';
+import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
+import { ServiceListContainer } from '@/features/dashboard/components/templates/ServiceListContainer';
 
 // Utils + Hooks
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/useCardLabelWidth';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import { ViewModes } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Mock Data
 import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
@@ -20,7 +19,7 @@ import { OnlineServicesEmptyPage } from '@/features/dashboard/pages/OnlineServic
 
 export function OnlineServicesPageContent() {
   const { viewMode } = useOnlineServicesStore();
-  const filteredServices = useFilteredServices(onlineServicesPageMockData);
+  const filteredServices = useFilteredServices(onlineServicesPageMockData?.services);
   const setServices = useOnlineServicesStore((state) => state.setServices);
 
   useCardLabelWidth({
@@ -37,61 +36,23 @@ export function OnlineServicesPageContent() {
   });
 
   useEffect(() => {
-    setServices(onlineServicesPageMockData);
+    setServices(onlineServicesPageMockData?.services);
   }, [setServices])
 
   console.log('checking filteredServices', filteredServices);
 
-  // If there are no services, show the empty page
-  if (filteredServices.length === 0) {
-    return (
-      <PageMain>
-        <PageHeadline>
-          <div className='flex items-center'>
-            <h1 className='text-2xl font-bold tracking-tight'>Online Services</h1>
-          </div>
-        </PageHeadline>
-        <OnlineServicesEmptyPage />
-      </PageMain>
-    );
-  }
-
   return (
-    <PageMain>
-      <PageHeadline>
-        <div className='flex items-center'>
-          <h1 className='text-2xl font-bold tracking-tight'>Online Services</h1>
-        </div>
-        <div className='flex items-center space-x-2'>
-          <AddNewServiceDialog />
-        </div>
-      </PageHeadline>
-
-      <OnlineServicesToolbar />
-
-      {viewMode === ViewModes.TABLE ? (
-        <OnlineServicesTable services={filteredServices} />
-      ) : (
-        <div className={`grid grid-cols-1 gap-4 ${
-          viewMode === ViewModes.GRID
-            ? 'md:grid-cols-2 2xl:grid-cols-3'
-            : ''
-        }`}>
-          {filteredServices.length > 0 ? (
-            filteredServices.map((service, index) => (
-              <SingleOnlineServiceCard
-                key={`${service.name}-${index}`}
-                {...service}
-                isWatchedByResizeObserver={index === 0}
-              />
-            ))
-          ) : (
-            <div className="col-span-full">
-              <p>No online services found</p>
-            </div>
-          )}
-        </div>
-      )}
-    </PageMain>
+    <ServiceListContainer
+      services={filteredServices || []}
+      totalServices={onlineServicesPageMockData?.totalServices || 0}
+      viewMode={viewMode}
+      title="Online Services"
+      EmptyPage={OnlineServicesEmptyPage}
+      NoResultsFound={NoResultsFound}
+      AddNewDialog={AddNewServiceDialog}
+      Toolbar={OnlineServicesToolbar}
+      Table={OnlineServicesTable}
+      Card={SingleOnlineServiceCard}
+    />
   );
 }

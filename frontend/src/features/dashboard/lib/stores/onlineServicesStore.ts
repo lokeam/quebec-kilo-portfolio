@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
 
 export const ViewModes = {
   GRID: 'grid',
