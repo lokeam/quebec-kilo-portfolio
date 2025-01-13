@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+
+// Shadcn Components
 import { Button } from "@/shared/components/ui/button"
 import { DialogTrigger } from '@/shared/components/ui/dialog'
-import { SearchIcon } from 'lucide-react'
+
+// Components
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog'
 import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult'
+
+// Hooks
 import { useSearchGames } from '@/features/dashboard/lib/hooks/useSearchGames'
 import { useDebounce } from '@/shared/hooks/useDebounce'
+
+// Icons
+import { SearchIcon } from 'lucide-react'
+
+// Types
 import type { Game } from '@/types/types/domain.types'
 
 export function AddItemSearchDialog() {

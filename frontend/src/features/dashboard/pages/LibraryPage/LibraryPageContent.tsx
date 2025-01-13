@@ -10,7 +10,7 @@ export function LibraryPageContent() {
   return (
     <PageMain>
       <PageHeadline>
-      <div className='flex items-center'>
+        <div className='flex items-center'>
           <h1 className='text-2xl font-bold tracking-tight'>Library Page</h1>
         </div>
       </PageHeadline>

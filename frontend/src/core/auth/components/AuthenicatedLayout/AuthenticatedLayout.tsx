@@ -1,15 +1,17 @@
 
+// Components
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
 import { NotifyButton } from '@/features/navigation/molecules/NotifyButton/NotifyButton';
-
 import { AddItemSearchDialog } from '@/features/dashboard/components/organisms/AddItemSearchDialog/AddItemSearchDialog';
-
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
-import { cn } from '@/shared/components/ui/utils';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
+import { Toaster } from '@/shared/components/ui/sonner';
 
+// Utils
 import { Outlet } from 'react-router-dom';
+import { cn } from '@/shared/components/ui/utils';
+
 
 export default function AuthenticatedLayout() {
   return (
@@ -48,6 +50,9 @@ export default function AuthenticatedLayout() {
 
           <Outlet />
       </div>
+
+      {/* Toaster */}
+      <Toaster />
     </>
   );
 };

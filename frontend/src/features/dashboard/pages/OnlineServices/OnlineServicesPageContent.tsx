@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 
@@ -20,6 +21,7 @@ import { OnlineServicesEmptyPage } from '@/features/dashboard/pages/OnlineServic
 export function OnlineServicesPageContent() {
   const { viewMode } = useOnlineServicesStore();
   const filteredServices = useFilteredServices(onlineServicesPageMockData);
+  const setServices = useOnlineServicesStore((state) => state.setServices);
 
   useCardLabelWidth({
     selectorAttribute: '[data-card-sentinel]',
@@ -33,6 +35,10 @@ export function OnlineServicesPageContent() {
       wide: '200px'
     }
   });
+
+  useEffect(() => {
+    setServices(onlineServicesPageMockData);
+  }, [setServices])
 
   console.log('checking filteredServices', filteredServices);
 

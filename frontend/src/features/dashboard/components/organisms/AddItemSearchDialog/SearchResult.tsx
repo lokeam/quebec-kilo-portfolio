@@ -8,6 +8,9 @@ import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/Imag
 import { LibraryBig } from 'lucide-react';
 import { IconHeart } from '@tabler/icons-react';
 
+// Hooks
+import { toast } from 'sonner';
+
 
 type SearchResultProps = {
   title: string;
@@ -21,6 +24,24 @@ export function SearchResult({
  // price,
   isInLibrary = false,
 }: SearchResultProps) {
+
+  const handleAddToLibrary = () => {
+    toast( `${title} successfully added to library`,{
+      description: 'You can now access it in your library',
+      className: 'bg-green-500 text-white',
+      duration: 2500,
+    });
+  };
+
+  const handleAddToWishlist = () => {
+    toast(`${title} successfully added to wishlist`, {
+      description: 'You can now access it in your wishlist',
+      className: 'bg-green-500 text-white',
+      duration: 2500,
+    });
+  };
+
+
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
       {isInLibrary && (
@@ -57,11 +78,11 @@ export function SearchResult({
         {
           !isInLibrary && (
             <div className="flex shrink-0 gap-1 mt-1 ml-2">
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleAddToLibrary}>
                 <LibraryBig className="w-5 h-5" />
                 <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to library</span>
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleAddToWishlist}>
                 <IconHeart className="w-5 h-5" />
                 <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to wishlist</span>
               </Button>

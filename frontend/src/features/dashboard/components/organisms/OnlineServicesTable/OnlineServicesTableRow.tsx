@@ -1,17 +1,34 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
+
+// Shadcn Components
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Switch } from "@/shared/components/ui/switch";
-import { Monitor } from 'lucide-react';
+
+// Icons
 import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
-import type{ LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+import { Monitor } from 'lucide-react';
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+
+// Types
 import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
 import type { PaymentMethodType } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+
+// Hooks
+import { toast } from 'sonner';
+import { useOnlineServicesToggleActive, useOnlineServicesIsActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 interface OnlineServicesTableRowProps {
   service: OnlineService;
   index: number
+};
+
+const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) => {
+  toast(`Recorded ${label} as ${isActive ? 'active' : 'inactive'}`, {
+    className: 'bg-green-500 text-white',
+    duration: 2500,
+  });
 };
 
 function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProps) {
@@ -19,6 +36,16 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
   const paymentDate = `${service.renewalMonth} ${service.renewalDay}`;
   const isFree = service.billingCycle === 'NA';
   console.log(`${service.label} ${service.billingCycle}`);
+
+
+  // Handlers for online service activation
+  const toggleActiveOnlineService = useOnlineServicesToggleActive();
+  const isActive = useOnlineServicesIsActive(service.name);
+
+  const handleToggleActiveOnlineService = useCallback((isChecked: boolean) => {
+    toggleActiveOnlineService(service.name, isChecked);
+    createToggleActiveOnlineServiceToast(service.label, isChecked);
+  }, [service.name, service.label, toggleActiveOnlineService]);
 
   return (
     <TableRow className="h-[72px]">
@@ -47,13 +74,10 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
         </div>
       </TableCell>
       <TableCell>
-        {
-          service.isActive ? (
-            <Switch checked={true} />
-          ) : (
-            <Switch checked={false} />
-          )
-        }
+        <Switch
+          checked={isActive}
+          onCheckedChange={handleToggleActiveOnlineService}
+        />
       </TableCell>
       <TableCell>
         {
@@ -95,7 +119,8 @@ export const OnlineServicesTableRow = memo(
       prevProps.service.tierName === nextProps.service.tierName &&
       prevProps.service.billingCycle === nextProps.service.billingCycle &&
       prevProps.service.monthlyFee === nextProps.service.monthlyFee &&
-      prevProps.service.paymentMethod === nextProps.service.paymentMethod
+      prevProps.service.paymentMethod === nextProps.service.paymentMethod &&
+      prevProps.service.isActive === nextProps.service.isActive
     );
   }
 );

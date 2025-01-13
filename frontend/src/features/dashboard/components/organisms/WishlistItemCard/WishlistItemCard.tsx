@@ -14,6 +14,7 @@ import { ReleaseDateSection } from './ReleaseDateSection';
 // Hooks + Utils
 import { useElementBreakpoint } from '@/shared/hooks/useElementBreakpoint'
 import { visibilityReducer } from './visibilityReducer';
+import { toast } from 'sonner';
 
 // Icons
 import { IconX } from '@tabler/icons-react'
@@ -46,6 +47,15 @@ export type WishlistItemCardProps = {
   index: number;
 };
 
+
+// Handlers for wishlist removal
+const createRemoveFromWishlistToast = (title: string) => {
+  toast(`${title} successfully removed from wishlist`, {
+    className: 'bg-green-500 text-white',
+    duration: 2500,
+  });
+};
+
 export const WishlistItemCard = memo(({
   id,
   title,
@@ -72,8 +82,9 @@ export const WishlistItemCard = memo(({
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleRemoveFromWishlist = useCallback(() => {
-    // TODO: Add handler for wishlist removal
-  }, []);
+    // TODO: Wire-up handler for wishlist removal to query the backend
+    createRemoveFromWishlistToast(title);
+  }, [title]);
 
   const selector = useMemo(() =>
     `[data-wishlist-item="${index}-${id}"]`,
@@ -175,6 +186,7 @@ export const WishlistItemCard = memo(({
     rating,
     price
   ]);
+
 
   return (
     <Card
