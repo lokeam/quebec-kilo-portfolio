@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
-import { onlineServicesPageMockData } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata'; // Import your mock data
-import type{ AvailableService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import { onlineServicesPageMockData } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
 
 
 export interface UseAvailableServicesResult {
-  availableServices: AvailableService[];
+  availableServices: OnlineService[];
   isLoading: boolean;
   error: Error | null;
 }
 
 export function useAvailableServices(searchQuery: string): UseAvailableServicesResult {
-  const [availableServices, setAvailableServices] = useState<AvailableService[]>([]);
+  const [availableServices, setAvailableServices] = useState<OnlineService[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -27,7 +27,7 @@ export function useAvailableServices(searchQuery: string): UseAvailableServicesR
     const timeoutId = setTimeout(() => {
       try {
         // Filter using label instead of name
-        const filtered = onlineServicesPageMockData.filter(service =>
+        const filtered = onlineServicesPageMockData.services.filter((service: OnlineService) =>
           service.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setAvailableServices(filtered);

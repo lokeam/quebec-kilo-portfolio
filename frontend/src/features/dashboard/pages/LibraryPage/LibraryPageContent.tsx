@@ -1,7 +1,7 @@
 // Components
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
-import { LibraryMediaItem } from '@/features/dashboard/components/organisms/LibraryMediaItem/LibraryMediaItem';
+import { LibraryMediaItem } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaItem/LibraryMediaItem';
 
 // Mock Data
 import { libraryPageMockData } from './LibraryPage.mockdata';

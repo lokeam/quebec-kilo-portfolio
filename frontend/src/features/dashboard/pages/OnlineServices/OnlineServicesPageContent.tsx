@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 
 // Components
-import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesToolbar/OnlineServicesToolbar';
-import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
-import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesTable/OnlineServicesTable';
-import { AddNewServiceDialog } from '@/features/dashboard/components/organisms/AddNewServiceDialog/AddNewServiceDialog';
+import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
+import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
+import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
+import { AddNewServiceDialog } from '@/features/dashboard/components/organisms/OnlineServicesPage/AddNewServiceDialog/AddNewServiceDialog';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { ServiceListContainer } from '@/features/dashboard/components/templates/ServiceListContainer';
 
 // Utils + Hooks
-import { useCardLabelWidth } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/useCardLabelWidth';
+import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Mock Data

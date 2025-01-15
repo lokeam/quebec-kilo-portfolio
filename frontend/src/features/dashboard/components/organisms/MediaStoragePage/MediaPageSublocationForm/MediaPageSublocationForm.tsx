@@ -8,7 +8,7 @@ import { Input } from "@/shared/components/ui/input"
 import { Button } from "@/shared/components/ui/button";
 
 // Icons
-import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookShelfIcon';
+import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
 import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
 
 import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';

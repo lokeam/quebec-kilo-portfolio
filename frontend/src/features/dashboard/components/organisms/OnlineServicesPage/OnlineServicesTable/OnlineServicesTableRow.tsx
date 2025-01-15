@@ -12,8 +12,8 @@ import { Monitor } from 'lucide-react';
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
-import type { PaymentMethodType } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
+import type { PaymentMethodType } from '@/features/dashboard/lib/types/service.types';
 
 // Hooks
 import { toast } from 'sonner';

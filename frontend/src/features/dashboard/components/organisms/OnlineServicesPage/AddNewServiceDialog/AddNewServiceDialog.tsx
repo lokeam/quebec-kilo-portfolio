@@ -3,7 +3,7 @@ import { DialogTrigger } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Plus } from 'lucide-react';
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
-import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/SingleOnlineServiceCard/SingleOnlineServiceCard';
+import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useAvailableServices } from '@/features/dashboard/lib/hooks/useAvailableService';
 

@@ -41,7 +41,6 @@ export function SearchResult({
     });
   };
 
-
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
       {isInLibrary && (

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 // Components
 import { PageHeadline } from "@/shared/components/layout/page-headline";
 import { PageMain } from "@/shared/components/layout/page-main";
-import { WishlistItemCard } from '@/features/dashboard/components/organisms/WishlistItemCard/WishlistItemCard';
+import { WishlistItemCard } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/WishlistItemCard';
 
 // Mock Data
 import { wishlistPageMockData } from '@/features/dashboard/pages/WishListPage/WishListPage.mockdata';

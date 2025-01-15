@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { OnlineService } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
+import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
 import {
   useOnlineServicesSearch,
   useOnlineServicesBillingFilters,
