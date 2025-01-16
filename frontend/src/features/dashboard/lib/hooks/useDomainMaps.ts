@@ -25,6 +25,16 @@ import SteamLogo from '@/shared/components/ui/LogoMap/domains/games/steam_logo';
 import UbisoftLogo from '@/shared/components/ui/LogoMap/domains/games/ubisoft_logo';
 import XboxLogo from '@/shared/components/ui/LogoMap/domains/games/xbox_logo';
 
+// Location related icons
+import { IconCar } from '@tabler/icons-react';
+import { House, Building, Building2, Warehouse, Package } from 'lucide-react';
+import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
+import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
+import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
+import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
+import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
+
+
 // TODO: Refactor out other domain maps into their own files
 
 // Platform related logos
@@ -88,6 +98,29 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
     console: IconDeviceGamepad,
     mobile: IconDeviceMobile,
   },
+  location: {},
+  sublocation: {
+
+  }
+
+};
+
+export const ICON_MAP = {
+  location: {
+    house: House,
+    apartment: Building,
+    office: Building2,
+    warehouse: Warehouse,
+    vehicle: IconCar,
+  },
+  sublocation: {
+    shelf: BookshelfIcon,
+    console: MediaConsoleIcon,
+    cabinet: CabinetIcon,
+    closet: ClosetIcon,
+    drawer: DrawerIcon,
+    box: Package,
+  },
 };
 
 /**
@@ -100,5 +133,7 @@ export function useDomainMaps() {
     movies: useMemo(() => LOGO_MAP.movies, []),
     music: useMemo(() => LOGO_MAP.music, []),
     platforms: useMemo(() => LOGO_MAP.platforms, []),
+    location: useMemo(() => ICON_MAP.location, []),
+    sublocation: useMemo(() => ICON_MAP.sublocation, []),
   };
 }

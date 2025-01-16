@@ -54,11 +54,13 @@ export interface OnlineServicesData {
 /**
  * Media Storage
 */
-export interface MediaStorageService extends BaseService {
+export interface MediaStorageData extends BaseService {
   name: string;
   label: string;
   physicalLocations: PhysicalMediaStorageLocation[];
   digitalLocations: DigitalMediaStorageLocation[];
+  totalPhysicalLocations: number;
+  totalDigitalLocations: number;
   totalItems: number;
   totalPhysicalItems: number;
   totalDigitalItems: number;
@@ -67,10 +69,22 @@ export interface MediaStorageService extends BaseService {
 export interface PhysicalMediaStorageLocation {
   name: string;
   label: string;
-  notes: string;
-  storedItems: number;
-  items: MediaStorageItem[];
+  locationType?: string;
+  locationImage: string;
+  mapCoordinates: string;
+  subLocations: SubLocation[];
+  subLocationCount: number;
+  totalSublocationItems: number;
+  totalStoredItems: number;
+  items: MediaItem[];
 };
+
+export interface SubLocation {
+  name: string;
+  label: string;
+  totalItems: number;
+  items: MediaItem[];
+}
 
 export interface DigitalMediaStorageLocation extends PhysicalMediaStorageLocation {
   url: string;
@@ -80,14 +94,21 @@ export interface DigitalMediaStorageLocation extends PhysicalMediaStorageLocatio
 }
 
 export interface MediaStorageItem {
-  name: string;
-  label: string;
+  itemName: string;
+  itemLabel: string;
   createdAt?: string;
   lastUpdatedAt?: string;
 }
 
+export interface MediaStorageServicesData {
+  services: MediaStorageData[];
+  totalServices: number;
+};
+
+// Domain Specific Media Storage Items
 export interface GameItem extends MediaStorageItem {
-  platform: string;
+  itemPlatform: string;
+  itemPlatformVersion: string;
   coverArtUrl?: string;
   backdropArtUrl?: string;
   artworks?: string[];
@@ -101,9 +122,9 @@ export interface GameItem extends MediaStorageItem {
   playerPerspectives?: string[];
   developers?: string[];
   releaseDate?: string;
-  isDigital: boolean;
-  isOwned: boolean;
-  isWishlisted: boolean;
+  isDigital?: boolean;
+  isOwned?: boolean;
+  isWishlisted?: boolean;
 }
 
 export interface MovieItem extends MediaStorageItem {
@@ -124,4 +145,5 @@ export interface MovieItem extends MediaStorageItem {
 /**
  * Union Type for all services
 */
-export type Service = OnlineService | MediaStorageService;
+export type Service = OnlineService | MediaStorageData;
+export type MediaItem = GameItem | MovieItem;

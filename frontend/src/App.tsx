@@ -31,6 +31,10 @@ const WishListPage = lazy(() => import(
   '@/features/dashboard/pages/WishListPage/WishListPage'
 ));
 
+const MediStoragePage = lazy(() => import(
+  /* webpackChunkName: "MediaStoragepage" */
+  '@/features/dashboard/pages/MediaStoragePage/MediaStoragePage'
+));
 
 function App() {
   return (
@@ -52,6 +56,7 @@ function App() {
                     <Route path="/library" element={<LibraryPage />}/>
                     <Route path="/online-services" element={<OnlineServicesPage />} />
                     <Route path="/wishlist" element={<WishListPage />} />
+                    <Route path="/media-storage" element={<MediStoragePage />} />
                   </Route>
                 </Routes>
               </Suspense>

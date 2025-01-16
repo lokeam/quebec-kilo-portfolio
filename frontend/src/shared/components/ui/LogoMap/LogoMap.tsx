@@ -40,9 +40,9 @@ function SVGLogoComponent<D extends DomainName>({
   // Memoize entire logo selection + rendering process to prevent unnecessary re-renders
   return useMemo(() => {
     const domainMap = MEMOIZED_DOMAIN_MAPS[domain as keyof typeof MEMOIZED_DOMAIN_MAPS];
-    const SelectedLogo = !domainMap || !domainMap[name]
+    const SelectedLogo = !domainMap || !domainMap[name as keyof typeof domainMap]
       ? IconCloudDataConnection // Fallback to a generic Network services icon if logo not found
-      : domainMap[name];
+      : domainMap[name as keyof typeof domainMap];
 
     return <SelectedLogo className={className} />;
   }, [domain, name, className, MEMOIZED_DOMAIN_MAPS]);
