@@ -4,4 +4,8 @@ export interface CardVisibility {
   showReleaseDate: boolean;
   showMoreDeals: boolean;
   stackPriceContent: boolean;
+  stackInfoContent?: boolean;
+  showLocationInfo?: boolean;
+  showSublocationInfo?: boolean;
+  isMobile?: boolean;
 };

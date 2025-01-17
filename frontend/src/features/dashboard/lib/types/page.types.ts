@@ -5,6 +5,13 @@ export type LibraryItem = {
   title: string;
   favorite: boolean;
   dateAdded: string;
+  diskSize?: string;
+  platformVersion?: string;
+  physicalLocation?: string;
+  physicalLocationType?: string;
+  physicalSublocation?: string;
+  physicalSublocationType?: string;
+  digitalLocation?: string;
 };
 
 /* Wishlist/Deals Page */

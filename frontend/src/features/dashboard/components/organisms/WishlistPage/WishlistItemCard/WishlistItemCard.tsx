@@ -192,7 +192,7 @@ export const WishlistItemCard = memo(({
     <Card
       ref={cardRef}
       data-wishlist-item={`${index}-${id}`}
-      className={`bg-[#1a1b1f] text-white overflow-hidden w-full ${index % 2 === 0 ? 'mb-2' : ''}`}
+      className={`bg-[#1a1b1f] text-white overflow-hidden w-full ${index % 2 === 0 ? 'my-2' : ''}`}
     >
       <div className="flex gap-4 p-4 h-[190px]">
         <div className="relative shrink-0 h-full">
