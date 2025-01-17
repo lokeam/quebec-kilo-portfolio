@@ -9,7 +9,7 @@ import {
 } from "@/shared/components/ui/pagination"
 import { ServiceList } from './OnlineServicesList';
 import type { OnlineService } from './onlineServicesCard.types';
-import { ITEMS_PER_PAGE } from '@/features/dashboard/constants/dashboard.constants';
+import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
 
 type OnlineServicesCardProps = {
   totalAnnual: string;

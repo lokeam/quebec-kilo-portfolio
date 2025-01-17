@@ -9,7 +9,7 @@ import {
   PaginationPrevious,
 } from "@/shared/components/ui/pagination"
 import type { DigitalStorageService, PhysicalStorageLocation } from './storageLocationsTabCard.mockdata';
-import { ITEMS_PER_PAGE } from '@/features/dashboard/constants/dashboard.constants';
+import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
 import { StorageLocationList } from './StorageLocationList';
 
 

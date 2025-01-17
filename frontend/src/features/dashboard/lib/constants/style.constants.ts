@@ -1,0 +1,2 @@
+// Tailwind Form classes
+export const CARD_PARENT_CLASS = "rounded-lg border bg-card text-card-foreground shadow-sm relative cursor-pointer w-full p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800" as const;

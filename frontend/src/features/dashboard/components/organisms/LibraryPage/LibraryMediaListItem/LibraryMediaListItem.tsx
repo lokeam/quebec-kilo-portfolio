@@ -1,5 +1,4 @@
 import { memo, useReducer, useCallback, useMemo, useRef } from 'react';
-import { isEqual } from 'lodash';
 
 // Components
 import { InfoSection } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection';
@@ -29,7 +28,7 @@ import {
 } from '@tabler/icons-react';
 
 // Constants
-import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/constants/dashboard.constants';
+import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';
 
 interface LibraryMediaListItemProps {
   index: number;
