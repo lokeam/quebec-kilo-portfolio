@@ -1,7 +1,7 @@
 /* Library Page */
 export type LibraryItem = {
   id: string;
-  image: string;
+  imageUrl: string;
   title: string;
   favorite: boolean;
   dateAdded: string;

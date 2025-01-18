@@ -36,6 +36,7 @@
     "@tabler/icons": "^3.26.0",
     "@tabler/icons-react": "^3.26.0",
     "@tsconfig/vite-react": "^3.4.0",
+    "cmdk": "^1.0.4",
     "date-fns": "^3.6.0",
     "framer-motion": "^11.18.0",
     "immer": "^10.1.1",

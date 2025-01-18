@@ -1,30 +1,30 @@
+import { useEffect } from 'react';
+
 // Components
-import { PageHeadline } from '@/shared/components/layout/page-headline';
-import { PageMain } from '@/shared/components/layout/page-main';
-import { LibraryMediaItem } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaItem/LibraryMediaItem';
+import { LibraryPageToolbar } from '@/features/dashboard/components/organisms/LibraryPage/LibraryPageToolbar/LibraryPageToolbar';
+import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
+import { LibraryLayoutContainer } from '@/features/dashboard/components/templates/LibraryLayoutContainer';
+
+// Utils + Hooks
+import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
 
 // Mock Data
 import { libraryPageMockData } from './LibraryPage.mockdata';
 
 export function LibraryPageContent() {
+  const { viewMode, setGames } = useLibraryStore();
+
+  // Set games in store when page mounts
+  useEffect(() => {
+    setGames(libraryPageMockData);
+  }, [setGames]);
+
   return (
-    <PageMain>
-      <PageHeadline>
-        <div className='flex items-center'>
-          <h1 className='text-2xl font-bold tracking-tight'>Library Page</h1>
-        </div>
-      </PageHeadline>
-
-      <div className="flex h-full w-full flex-wrap content-start">
-          {libraryPageMockData.map((game) => (
-            <LibraryMediaItem
-              key={game.id}
-              href={`steam://rungameid/${game.id}`}
-              imageUrl={game.image}
-            />
-          ))}
-      </div>
-
-    </PageMain>
+    <LibraryLayoutContainer
+      viewMode={viewMode}
+      EmptyPage={NoResultsFound}
+      Toolbar={LibraryPageToolbar}
+      title="All Games"
+    />
   );
 }
