@@ -33,7 +33,7 @@ import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/co
 interface LibraryMediaListItemProps {
   index: number;
   title: string;
-  coverImage?: string;
+  imageUrl?: string;
   lastPlayed?: string;
   favorite?: boolean;
   physicalLocation?: string;
@@ -57,7 +57,7 @@ const createAddToFavoritesToast = (title: string) => {
 function LibraryMediaListItem({
   index,
   title,
-  coverImage,
+  imageUrl,
   favorite = false,
   physicalLocation = "",
   physicalLocationType = "",
@@ -89,11 +89,11 @@ function LibraryMediaListItem({
   const locationIcon = useMemo(() => {
     if (physicalLocation && physicalLocationType) {
       const IconComponent = locationIcons[physicalLocationType.toLowerCase() as keyof typeof locationIcons];
-      return IconComponent ? <IconComponent className="h-6 w-6" /> : null;
+      return IconComponent ? <IconComponent className="h-7 w-7" /> : null;
     }
 
     if (digitalLocation) {
-      return <IconCloudDataConnection className="h-6 w-6" />
+      return <IconCloudDataConnection className="h-7 w-7" />
     }
     return null;
   }, [physicalLocation, physicalLocationType, digitalLocation, locationIcons])
@@ -101,7 +101,7 @@ function LibraryMediaListItem({
   const subLocationIcon = useMemo(() => {
     if (physicalSublocationType) {
       const IconComponent = sublocationIcons[physicalSublocationType.toLowerCase() as keyof typeof sublocationIcons];
-      return IconComponent ? <IconComponent className="h-6 w-6" /> : null;
+      return IconComponent ? <IconComponent className="h-6 w-6 mt-1" /> : null;
     }
 
     return null;
@@ -126,8 +126,8 @@ function LibraryMediaListItem({
   // Memoize expensive computations
   const platformIcon = useMemo(() => {
     return platformVersion === "PC" ?
-      <IconDevicesPc className="h-6 w-6" /> :
-      <IconDeviceGamepad className="h-6 w-6" />
+      <IconDevicesPc className="h-8 w-8 mt-[-4px]" /> :
+      <IconDeviceGamepad className="h-7 w-7" />
   }, [platformVersion]);
 
   const defaultValue = useMemo(() => ({
@@ -156,7 +156,7 @@ function LibraryMediaListItem({
       {/* Game Cover */}
       <div className="h-16 w-28 flex-shrink-0">
         <ImageWithFallback
-          src={coverImage}
+          src={imageUrl}
           alt={title}
           className="h-full w-full rounded-md object-cover"
         />
@@ -199,7 +199,7 @@ function LibraryMediaListItem({
 
             {/* Game Disk Size */}
             <InfoSection
-              icon={<IconFileFilled className="h-6 w-6" />}
+              icon={<IconFileFilled className="h-7 w-7" />}
               label="Disk Size"
               value={diskSize}
               hasStackedContent={visibility.stackInfoContent}
