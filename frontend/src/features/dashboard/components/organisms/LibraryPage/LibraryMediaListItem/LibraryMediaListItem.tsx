@@ -7,7 +7,7 @@ import { InfoSection } from '@/features/dashboard/components/organisms/LibraryPa
 import { Button } from '@/shared/components/ui/button';
 
 // Hooks + Utils
-import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
+import { useLocationIcons } from '@/features/dashboard/lib/hooks/useLocationIcons';
 import { useElementBreakpoint } from '@/shared/hooks/useElementBreakpoint';
 import { visibilityReducer } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/visibilityReducer';
 import { toast } from 'sonner';
@@ -22,7 +22,6 @@ import {
   IconFileFilled,
   IconStar,
   IconStarFilled,
-  IconCloudDataConnection,
   IconDevicesPc,
   IconDeviceGamepad,
 } from '@tabler/icons-react';
@@ -80,32 +79,12 @@ function LibraryMediaListItem({
     `[data-library-item="${index}-${title}"]`,
     [index, title]
   );
-
-  const {
-    location: locationIcons,
-    sublocation: sublocationIcons
-  } = useDomainMaps();
-
-  const locationIcon = useMemo(() => {
-    if (physicalLocation && physicalLocationType) {
-      const IconComponent = locationIcons[physicalLocationType.toLowerCase() as keyof typeof locationIcons];
-      return IconComponent ? <IconComponent className="h-7 w-7" /> : null;
-    }
-
-    if (digitalLocation) {
-      return <IconCloudDataConnection className="h-7 w-7" />
-    }
-    return null;
-  }, [physicalLocation, physicalLocationType, digitalLocation, locationIcons])
-
-  const subLocationIcon = useMemo(() => {
-    if (physicalSublocationType) {
-      const IconComponent = sublocationIcons[physicalSublocationType.toLowerCase() as keyof typeof sublocationIcons];
-      return IconComponent ? <IconComponent className="h-6 w-6 mt-1" /> : null;
-    }
-
-    return null;
-  }, [physicalSublocationType, sublocationIcons]);
+  const { locationIcon, subLocationIcon } = useLocationIcons({
+    physicalLocation,
+    physicalLocationType,
+    digitalLocation,
+    physicalSublocationType
+  });
 
   // Visibility reducer to handle breakpoint related visibility changes
   const [visibility, dispatch] = useReducer(visibilityReducer, {
