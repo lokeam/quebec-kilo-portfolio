@@ -13,6 +13,7 @@ import {
   useLibraryGames,
   useLibraryPlatformFilter,
 } from '@/features/dashboard/lib/stores/libraryStore';
+import { useLibraryTitle } from '@/features/dashboard/lib/hooks/useLibraryTitle';
 
 // Types
 import { type ComponentType } from 'react';
@@ -24,24 +25,32 @@ interface LibraryLayoutProps {
   title: ReactNode;
 }
 
-export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: LibraryLayoutProps) {
+export function LibraryLayoutContainer({
+  viewMode,
+  EmptyPage,
+  Toolbar,
+  baseTitle,
+}: LibraryLayoutProps) {
+
+  /* Grab data from Zustand store */
   const services = useLibraryGames();
-  const platformFilter = useLibraryPlatformFilter();
 
-  console.log('services', services);
-
-  /* True empty state - first time user zero services */
+  /* Guard clause empty state - first time user zero services */
   if (services.length === 0) {
     <PageMain>
       <PageHeadline>
         <div className='flex items-center'>
-          <h1 className='text-2xl font-bold tracking-tight'>{title}</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>{baseTitle}</h1>
         </div>
       </PageHeadline>
       <EmptyPage />
     </PageMain>
   }
 
+  /* Grab platform filter and count from Zustand store */
+  const platformFilter = useLibraryPlatformFilter();
+
+  /* Filter services based on platform filter */
   const filteredServices = useMemo(() => {
     if (!platformFilter) return services;
     return services.filter(game =>
@@ -49,13 +58,22 @@ export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: 
     );
   }, [services, platformFilter]);
 
+  /* Pass filtered data to title hook */
+  const { title, countText } = useLibraryTitle({
+    baseTitle,
+    filteredCount: filteredServices.length,
+    platformFilter,
+  });
 
+  /* Render content based on view mode */
   const renderContent = () => {
     if (services.length === 0) {
       return <NoResultsFound />;
     }
 
-    const CardComponent = viewMode === ViewModes.GRID ? LibraryMediaItem : MemoizedLibraryMediaListItem;
+    const CardComponent = viewMode === ViewModes.GRID ?
+      LibraryMediaItem :
+      MemoizedLibraryMediaListItem;
 
     console.log('services', services);
     return (
@@ -73,18 +91,15 @@ export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: 
 
   return (
     <PageMain>
-
       <Toolbar />
-
       <PageHeadline>
         <div className='flex items-center'>
           <h1 className='text-3xl font-bold tracking-tight'>
            {title}
-            <span className='text-[20px] text-gray-500 ml-1'>({services.length} games)</span>
+            <span className='text-[20px] text-gray-500 ml-1'>{countText}</span>
           </h1>
         </div>
       </PageHeadline>
-
       {renderContent()}
     </PageMain>
   );
