@@ -9,6 +9,8 @@ export const ViewModes = {
 export type ViewMode = typeof ViewModes[keyof typeof ViewModes];
 
 interface LibraryState {
+  platformFilter: string;
+  setPlatformFilter: (filter: string) => void;
   userGames: LibraryItem[];
   viewMode: ViewMode;
   setGames: (games: LibraryItem[]) => void;
@@ -18,6 +20,8 @@ interface LibraryState {
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
+  platformFilter: '',
+  setPlatformFilter: (platform) => set({ platformFilter: platform}),
   userGames: [],
   viewMode: ViewModes.GRID,
   searchQuery: '',
@@ -32,3 +36,5 @@ export const useLibraryViewMode = () => useLibraryStore((state) => state.viewMod
 export const useLibrarySetGames = () => useLibraryStore((state) => state.setGames);
 export const useLibrarySetViewMode = () => useLibraryStore((state) => state.setViewMode);
 export const useLibrarySearchQuery = () => useLibraryStore((state) => state.setViewMode);
+export const useLibraryPlatformFilter = () => useLibraryStore((state) => state.platformFilter);
+export const useLibrarySetPlatformFilter = () => useLibraryStore((state) => state.setPlatformFilter);

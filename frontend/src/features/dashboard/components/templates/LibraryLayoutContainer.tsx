@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 // Components
 import { PageHeadline } from '@/shared/components/layout/page-headline';
@@ -8,7 +8,11 @@ import { LibraryMediaItem } from '@/features/dashboard/components/organisms/Libr
 import { MemoizedLibraryMediaListItem } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/LibraryMediaListItem';
 
 // Utils + Hooks
-import { ViewModes, useLibraryGames } from '@/features/dashboard/lib/stores/libraryStore';
+import {
+  ViewModes,
+  useLibraryGames,
+  useLibraryPlatformFilter,
+} from '@/features/dashboard/lib/stores/libraryStore';
 
 // Types
 import { type ComponentType } from 'react';
@@ -22,6 +26,7 @@ interface LibraryLayoutProps {
 
 export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: LibraryLayoutProps) {
   const services = useLibraryGames();
+  const platformFilter = useLibraryPlatformFilter();
 
   console.log('services', services);
 
@@ -37,6 +42,14 @@ export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: 
     </PageMain>
   }
 
+  const filteredServices = useMemo(() => {
+    if (!platformFilter) return services;
+    return services.filter(game =>
+      game.platformVersion?.toLowerCase() === platformFilter.toLowerCase()
+    );
+  }, [services, platformFilter]);
+
+
   const renderContent = () => {
     if (services.length === 0) {
       return <NoResultsFound />;
@@ -47,7 +60,7 @@ export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: 
     console.log('services', services);
     return (
       <div className="flex h-full w-full flex-wrap content-start">
-        {services.map((item, index) => (
+        {filteredServices.map((item, index) => (
           <CardComponent
             key={`${item.id}-${index}`}
             index={index}
@@ -57,7 +70,6 @@ export function LibraryLayoutContainer({ viewMode, EmptyPage, Toolbar, title }: 
       </div>
     );
   };
-
 
   return (
     <PageMain>
