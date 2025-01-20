@@ -13,6 +13,7 @@ import {
   useLibraryGames,
   useLibraryPlatformFilter,
 } from '@/features/dashboard/lib/stores/libraryStore';
+import { useLibrarySearchQuery } from '@/features/dashboard/lib/stores/libraryStore';
 import { useLibraryTitle } from '@/features/dashboard/lib/hooks/useLibraryTitle';
 
 // Types
@@ -49,14 +50,28 @@ export function LibraryLayoutContainer({
 
   /* Grab platform filter and count from Zustand store */
   const platformFilter = useLibraryPlatformFilter();
+  const searchQuery = useLibrarySearchQuery();
 
-  /* Filter services based on platform filter */
+  /* Combined filtering for both platform and title search */
   const filteredServices = useMemo(() => {
-    if (!platformFilter) return services;
-    return services.filter(game =>
-      game.platformVersion?.toLowerCase() === platformFilter.toLowerCase()
-    );
-  }, [services, platformFilter]);
+    let filtered = services;
+
+    /* Apply platform filter */
+    if (platformFilter) {
+      filtered = filtered.filter(game =>
+        game.platformVersion?.toLowerCase() === platformFilter.toLowerCase()
+      );
+    }
+
+    /* Apply search filter */
+    if (searchQuery) {
+      filtered = filtered.filter(game =>
+        game.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [services, platformFilter, searchQuery]);
 
   /* Pass filtered data to title hook */
   const { title, countText } = useLibraryTitle({

@@ -1,3 +1,6 @@
+import { useCallback } from 'react';
+
+// ShadCN UI Components
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, LayoutList } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
@@ -6,23 +9,22 @@ import { Input } from '@/shared/components/ui/input';
 import { PlatformCombobox } from '@/features/dashboard/components/organisms/LibraryPage/LibraryPagePlatformCombobox/LibraryPagePlatformCombobox';
 
 // Hooks
-import { useLibraryViewMode, useLibrarySetViewMode, ViewModes } from '@/features/dashboard/lib/stores/libraryStore';
-
-/*
-  Filters:
-
-  - Platform
-  - Online Service
-  - Alphabetical by Title
-  - Size
-  - Date Added
-
-*/
-
+import {
+  useLibrarySetSearchQuery,
+  useLibraryViewMode,
+  useLibrarySetViewMode,
+  ViewModes
+} from '@/features/dashboard/lib/stores/libraryStore';
 
 export function LibraryPageToolbar() {
   const currentViewMode = useLibraryViewMode();
   const setCurrentViewMode = useLibrarySetViewMode();
+  const setSearchQuery = useLibrarySetSearchQuery();
+
+  const handleSearchChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(event.target.value.toLowerCase());
+  }, [setSearchQuery]);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -31,7 +33,7 @@ export function LibraryPageToolbar() {
           className="w-[300px]"
           id="filterServices"
           placeholder="Filter games in your library..."
-          onChange={() => {console.log('input filter change')}}
+          onChange={handleSearchChange}
         />
         <span className="text-sm text-gray-500">Filter by</span>
 

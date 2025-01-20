@@ -28,6 +28,7 @@ export function PlatformCombobox({
 }: PlatformComboboxProps) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const setPlatformFilter = useLibrarySetPlatformFilter();
   const { availablePlatforms, handleSearch } = usePlatformSearch();
 
@@ -36,6 +37,7 @@ export function PlatformCombobox({
     if (platform !== value) {
       setValue(platform);
       setOpen(false);
+      setSearchQuery('');
       onPlatformSelect?.(platform);
       setPlatformFilter(platform);
       handleSearch(''); // Reset search when selection is made
@@ -45,6 +47,7 @@ export function PlatformCombobox({
   const handleClear = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
     setValue('');
+    setSearchQuery('');
     setPlatformFilter('');
     onPlatformSelect?.('');
     setOpen(false);
@@ -71,12 +74,22 @@ export function PlatformCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
-        <Command className="rounded-lg border border-input bg-background">
+        <Command
+          className="rounded-lg border border-input bg-background"
+          /* Add filter prop to disable CMDK built in filtering */
+          filter={() => {
+            /* Always return 1 to disable CMDK's built-in filtering */
+            return 1;
+          }}
+        >
           <Command.Input
             autoFocus
             placeholder="Search platforms..."
-            onValueChange={handleSearch}
-            value={value}
+            onValueChange={(search) => {
+              setSearchQuery(search);
+              handleSearch(search);
+            }}
+            value={searchQuery}
             className="h-9 px-3 py-2 text-sm bg-transparent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
           <ScrollArea className="h-[200px]">
