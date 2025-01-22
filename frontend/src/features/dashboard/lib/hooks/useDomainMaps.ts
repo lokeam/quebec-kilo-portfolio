@@ -34,6 +34,9 @@ import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
 import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
 import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
 
+// Physical Media related icons
+import { IconDisc, IconCpu, IconCloudDown, IconSparkles } from '@tabler/icons-react';
+
 
 // TODO: Refactor out other domain maps into their own files
 
@@ -63,7 +66,6 @@ type LogoComponent = ComponentType<{ className?: string }>;
  * Each domain contains a record of logo name to component mappings
  */
 export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
-  books: {},
   games: {
     amazon_luna: AmazonLunaLogo,
     apple: AppleLogo,
@@ -89,8 +91,6 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
     ubisoft: UbisoftLogo,
     xbox: XboxLogo,
   },
-  movies: {},
-  music: {},
   platforms: {
     android: IconBrandAndroid,
     ios: IconBrandApple,
@@ -98,11 +98,9 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
     console: IconDeviceGamepad,
     mobile: IconDeviceMobile,
   },
-  location: {},
-  sublocation: {
-
-  }
-
+  movies: {},
+  music: {},
+  books: {},
 };
 
 export const ICON_MAP = {
@@ -121,6 +119,14 @@ export const ICON_MAP = {
     drawer: DrawerIcon,
     box: Package,
   },
+  physicalMedia: {
+    disc: IconDisc,
+    hardware: IconCpu,
+  },
+  digitalMedia: {
+    dlc: IconCloudDown,
+    inGamePurchase: IconSparkles,
+  }
 };
 
 /**
@@ -135,5 +141,7 @@ export function useDomainMaps() {
     platforms: useMemo(() => LOGO_MAP.platforms, []),
     location: useMemo(() => ICON_MAP.location, []),
     sublocation: useMemo(() => ICON_MAP.sublocation, []),
+    physicalMedia: useMemo(() => ICON_MAP.physicalMedia, []),
+    digitalMedia: useMemo(() => ICON_MAP.digitalMedia, []),
   };
 }

@@ -36,6 +36,11 @@ const MediStoragePage = lazy(() => import(
   '@/features/dashboard/pages/MediaStoragePage/MediaStoragePage'
 ));
 
+const SpendTrackingPage = lazy(() => import(
+  /* webpackChunkName: "SpendTrackingPage" */
+  '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPage'
+));
+
 function App() {
   return (
     <ErrorBoundaryProvider>
@@ -57,6 +62,7 @@ function App() {
                     <Route path="/online-services" element={<OnlineServicesPage />} />
                     <Route path="/wishlist" element={<WishListPage />} />
                     <Route path="/media-storage" element={<MediStoragePage />} />
+                    <Route path="/spend-tracking" element={<SpendTrackingPage />} />
                   </Route>
                 </Routes>
               </Suspense>

@@ -17,6 +17,44 @@ export interface BaseService {
 /**
  * Spend Tracking Service
 */
+export type SpendTrackingMediaType =
+  | 'hardware'
+  | 'dlc'
+  | 'inGamePurchase'
+  | 'subscription'
+  | 'physical'
+  | 'disc';
+
+export interface SpendTrackingService extends BaseService {
+  day?: string;
+  month?: string;
+  year?: string;
+  onlineService?: string;
+  title?: string;
+  amount?: string;
+  billingCycle?: string;
+  spendType?: string; // subscription, one-time
+  paymentMethod?: string;
+  isActive?: boolean;
+  isDigital?: boolean;
+  isRecurring?: boolean;
+  billingDate?: string;
+  annualTotalSpend?: string;
+  isWishlisted?: boolean;
+  isPaid?: boolean;
+  mediaType?: SpendTrackingMediaType;
+}
+
+export interface SpendTrackingData {
+  recurringThisMonth: SpendTrackingService[];
+  recurringNextMonth: SpendTrackingService[];
+  oneTimeThisMonth: SpendTrackingService[];
+  totalSpendsThisMonth: string;
+  totalSpendsThisYear: string;
+  top5SpendsAll: SpendTrackingService[];
+  top5SpendsDigital: SpendTrackingService[];
+  top5SpendsPhysical: SpendTrackingService[];
+}
 
 /**
  * Online Service
