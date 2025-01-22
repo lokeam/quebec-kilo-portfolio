@@ -172,6 +172,7 @@
     @apply overflow-x-hidden;
     /* Shadcn UI Dropdown Menu fix */
     overflow-y: scroll;
+    scroll-behavior: smooth;
   }
   body {
     @apply min-h-svh w-full bg-background text-foreground;

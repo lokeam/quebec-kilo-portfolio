@@ -43,7 +43,7 @@ import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosit
 
 interface DrawerContainerProps {
 // Trigger props
-  triggerText: ReactNode;
+  triggerText?: ReactNode;
   triggerVariant?: 'default' | 'outline' | 'secondary' | 'ghost';
 
   // Drawer content props
@@ -137,14 +137,16 @@ export function DrawerContainer({
       modal={true} /* <-- This is the default value, but we're explicitly setting it here to handle focus management properly */
       aria-modal="true"
     >
-      <DrawerTrigger asChild>
-      <Button
-          variant={triggerVariant}
-          data-testid="drawer-trigger"
-        >
-          {triggerText}
-        </Button>
-      </DrawerTrigger>
+      {triggerText && (
+        <DrawerTrigger asChild>
+          <Button
+            variant={triggerVariant}
+            data-testid="drawer-trigger"
+          >
+            {triggerText}
+          </Button>
+        </DrawerTrigger>
+      )}
 
       {/* Use DrawerContent directly, passing through additional props */}
       <DrawerContent

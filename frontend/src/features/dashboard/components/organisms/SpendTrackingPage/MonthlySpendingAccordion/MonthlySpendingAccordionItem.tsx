@@ -1,8 +1,6 @@
 import { memo } from 'react';
 
 // Hooks + Utils
-import { visibilityReducer } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/visibilityReducer';
-import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { LogoOrIcon } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/LogoOrIcon';
 
 // Icons
@@ -30,7 +28,6 @@ const BADGE_STYLES = {
     "one-time": "bg-slate-700/50 text-slate-200"
   }
 } as const;
-const ICON_CLASS = 'w-full h-full';
 const SUBSCRIPTION_MEDIA = 'subscription';
 
 // Tightly coupled render fn
