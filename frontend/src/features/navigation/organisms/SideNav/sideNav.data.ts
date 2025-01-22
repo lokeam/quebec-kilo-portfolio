@@ -60,7 +60,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: 'Spend Tracking',
-          url: '/spending',
+          url: '/spend-tracking',
           badge: '5',
           icon: CircleDollarSign,
         },

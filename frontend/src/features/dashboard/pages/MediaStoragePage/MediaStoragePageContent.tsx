@@ -6,41 +6,10 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer' ;
 import { MediaPageLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageLocationForm/MediaPageLocationForm';
 import { MediaPageSublocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
-import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePageAccordion/MediaStoragePageAccordion';
+import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordion';
 
 // Mock Data
 import { mediaStoragePageMockData } from '@/features/dashboard/pages/MediaStoragePage/mediaStoragePage.mockdata';
-
-// Mock data - You might want to move this to a separate file
-const physicalLocationsData = [
-  {
-    name: "Physical Location 1",
-    subLocations: [
-      {
-        title: "Sub Location A",
-        description: "Description for Sub Location A",
-        src: "/placeholder.svg",
-        ctaText: "Learn More",
-      },
-    ],
-  },
-  // Add more locations as needed
-];
-
-const digitalLocationsData = [
-  {
-    name: "Digital Location 1",
-    subLocations: [
-      {
-        title: "Digital Sub Location A",
-        description: "Description for Digital Sub Location A",
-        src: "/placeholder.svg",
-        ctaText: "Access",
-      },
-    ],
-  },
-  // Add more locations as needed
-];
 
 export function MediaStoragePageContent() {
   const [open, setOpen] = useState<boolean>(false)
@@ -63,7 +32,7 @@ export function MediaStoragePageContent() {
             title="Physical Location"
             description="Tell us about where your games are stored."
           >
-            <MediaPageSublocationForm onSuccess={() => setOpen(false)} />
+            <MediaPageLocationForm onSuccess={() => setOpen(false)} />
           </DrawerContainer>
         </div>
 

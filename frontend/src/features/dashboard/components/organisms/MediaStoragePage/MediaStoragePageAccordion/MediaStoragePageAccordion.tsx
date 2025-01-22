@@ -13,7 +13,7 @@ import { Avatar } from '@/shared/components/ui/avatar';
 // Components
 import {
   MediaStoragePageAccordionCard,
-} from '@/features/dashboard/components/organisms/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
+} from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
