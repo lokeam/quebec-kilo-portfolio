@@ -36,10 +36,16 @@ const MediStoragePage = lazy(() => import(
   '@/features/dashboard/pages/MediaStoragePage/MediaStoragePage'
 ));
 
+const NotificationsPage = lazy(() => import(
+  /* webpackChunkName: "NotificationsPage" */
+  '@/features/dashboard/pages/NotificationsPage/NotificationsPage'
+));
+
 const SpendTrackingPage = lazy(() => import(
   /* webpackChunkName: "SpendTrackingPage" */
   '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPage'
 ));
+
 
 function App() {
   return (
@@ -63,6 +69,7 @@ function App() {
                     <Route path="/wishlist" element={<WishListPage />} />
                     <Route path="/media-storage" element={<MediStoragePage />} />
                     <Route path="/spend-tracking" element={<SpendTrackingPage />} />
+                    <Route path="/notifications" element={<NotificationsPage /> } />
                   </Route>
                 </Routes>
               </Suspense>

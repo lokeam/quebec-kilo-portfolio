@@ -76,7 +76,10 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
         </span>
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 flex items-center justify-center">
-            <LogoOrIcon name={name} mediaType={mediaType} />
+            <LogoOrIcon
+              name={name}
+              mediaType={mediaType}
+            />
           </div>
           <div className="flex flex-col">
             <span
@@ -93,7 +96,11 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
           </SpendingBadge>
         )}
 
-        <SpendingBadge className={`hidden md:inline-flex ${BADGE_STYLES.spendType[spendType]}`}>
+        <SpendingBadge
+          className={
+            `hidden md:inline-flex
+              ${BADGE_STYLES.spendType[spendType as keyof typeof BADGE_STYLES.spendType]}
+            `}>
           {spendType}
         </SpendingBadge>
 
