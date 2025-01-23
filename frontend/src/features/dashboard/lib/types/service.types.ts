@@ -15,6 +15,20 @@ export interface BaseService {
 * /
 
 /**
+ * Notifications Service
+*/
+export interface Notification {
+  notificationTitle: string;
+  notificationIcon: string;
+  timestamp: string;
+  notificationHd: string;
+  notificationMsg?: string;
+  notificationSubHead?: string;
+  isRead: boolean;
+};
+
+
+/**
  * Spend Tracking Service
 */
 export type SpendTrackingMediaType =

@@ -37,6 +37,12 @@ import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
 // Physical Media related icons
 import { IconDisc, IconCpu, IconCloudDown, IconSparkles } from '@tabler/icons-react';
 
+// Notification related icons
+import { Bell, Tag, BarChart, SquareCheckBig } from 'lucide-react';
+import { IconAlertTriangle } from '@tabler/icons-react';
+
+// Misc related icons
+import { PdfIcon } from '@/shared/components/ui/LogoMap/misc/pdfFile';
 
 // TODO: Refactor out other domain maps into their own files
 
@@ -101,6 +107,9 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
   movies: {},
   music: {},
   books: {},
+  misc: {
+    pdf: PdfIcon,
+  }
 };
 
 export const ICON_MAP = {
@@ -126,6 +135,13 @@ export const ICON_MAP = {
   digitalMedia: {
     dlc: IconCloudDown,
     inGamePurchase: IconSparkles,
+  },
+  notifications: {
+    check: SquareCheckBig,
+    tag: Tag,
+    barChart: BarChart,
+    alertTriangle: IconAlertTriangle,
+    default: Bell,
   }
 };
 
@@ -143,5 +159,7 @@ export function useDomainMaps() {
     sublocation: useMemo(() => ICON_MAP.sublocation, []),
     physicalMedia: useMemo(() => ICON_MAP.physicalMedia, []),
     digitalMedia: useMemo(() => ICON_MAP.digitalMedia, []),
+    misc: useMemo(() => LOGO_MAP.misc, []),
+    notifications: useMemo(() => ICON_MAP.notifications, []),
   };
 }

@@ -13,7 +13,7 @@ import {
   IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
-import { Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
+import { Bell, Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
 import { type SidebarData } from '@/features/navigation/organisms/SideNav/sideNav.types'
 
 export const sidebarData: SidebarData = {
@@ -49,14 +49,24 @@ export const sidebarData: SidebarData = {
           icon: IconLayoutDashboard,
         },
         {
-          title: 'Recently Updated',
-          url: '/updated',
-          icon: IconPencilCheck,
+          title: 'Notifications',
+          url: '/notifications',
+          icon: Bell,
         },
         {
           title: 'Apps',
           url: '/apps',
           icon: IconPackages,
+        },
+      ],
+    },
+    {
+      title: 'Pages',
+      items: [
+        {
+          title: 'Library',
+          icon: LibraryBig,
+          url: '/library',
         },
         {
           title: 'Spend Tracking',
@@ -69,16 +79,6 @@ export const sidebarData: SidebarData = {
           url: '/wishlist',
           badge: '3',
           icon: IconShoppingCartHeart,
-        },
-      ],
-    },
-    {
-      title: 'Pages',
-      items: [
-        {
-          title: 'Library',
-          icon: LibraryBig,
-          url: '/library',
         },
         {
           title: 'Online Services',
@@ -98,33 +98,7 @@ export const sidebarData: SidebarData = {
         {
           title: 'Settings',
           icon: IconSettings,
-          items: [
-            {
-              title: 'Profile',
-              url: '/settings',
-              icon: IconUserCog,
-            },
-            {
-              title: 'Account',
-              url: '/settings/account',
-              icon: IconTool,
-            },
-            {
-              title: 'Appearance',
-              url: '/settings/appearance',
-              icon: IconPalette,
-            },
-            {
-              title: 'Notifications',
-              url: '/settings/notifications',
-              icon: IconNotification,
-            },
-            {
-              title: 'Display',
-              url: '/settings/display',
-              icon: IconBrowserCheck,
-            },
-          ],
+          url: '/settings',
         },
         {
           title: 'FAQs',

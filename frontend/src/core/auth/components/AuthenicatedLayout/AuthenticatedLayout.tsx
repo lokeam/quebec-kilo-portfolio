@@ -2,10 +2,13 @@
 // Components
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
 import { NotifyButton } from '@/features/navigation/molecules/NotifyButton/NotifyButton';
+import { NotifyPopover } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotifyPopover';
 import { AddItemSearchDialog } from '@/features/dashboard/components/organisms/AddItemSearchDialog/AddItemSearchDialog';
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
+
+// ShadCN UI Components
 import { Toaster } from '@/shared/components/ui/sonner';
 
 // Utils
@@ -41,7 +44,7 @@ export default function AuthenticatedLayout() {
               <AddItemSearchDialog />
 
               {/* Notifications */}
-              <NotifyButton />
+              <NotifyPopover />
 
               {/* User Login Avatar */}
               <AvatarDropDownMenu />
