@@ -1,4 +1,3 @@
-
 export interface BaseService {
   name: string;
   status?: 'active' | 'inactive' | 'error';
@@ -17,16 +16,60 @@ export interface BaseService {
 /**
  * Notifications Service
 */
-export interface Notification {
-  notificationTitle: string;
-  notificationIcon: string;
+interface BaseNotification {
+  id: string;
   timestamp: string;
-  notificationHd: string;
-  notificationMsg?: string;
-  notificationSubHead?: string;
   isRead: boolean;
-};
+  icon: string;
+title: string;
+  message?: string;
+}
 
+interface AppUpdateNotification extends BaseNotification {
+  type: 'appUpdate';
+  update: {
+    version?: string;
+    infoUrl: string;
+    changes: string[];
+  }
+}
+
+interface ReportNotification extends BaseNotification {
+  type: 'report';
+  report: {
+    type: 'monthly' | 'annual';
+    period: {
+      month?: string;
+      year: string;
+    };
+    downloadUrl: string;
+    fileSize?: string;
+  };
+}
+
+interface WishlistNotification extends BaseNotification {
+  type: 'wishlist';
+  item: {
+    name: string;
+    salePrice: string;
+    originalPrice: string;
+    discountPercentage: number;
+    coverUrl?: string;
+  };
+}
+
+export type Notification =
+  | AppUpdateNotification
+  | ReportNotification
+  | WishlistNotification;
+
+export type NotificationReportType = 'monthly' | 'annual';
+
+export type NotificationType =
+  | 'wishlist'
+  | 'appUpdate'
+  | 'report'
+  | 'alert';
 
 /**
  * Spend Tracking Service
