@@ -1,3 +1,10 @@
+import { useState } from 'react';
+
+// Components
+import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
+import { MonthlySpendingItemDetails } from './MonthlySpendingItemDetails';
+import { MemoizedMonthlySpendingAccordionItem } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordionItem';
+
 // Shadcn UI Components
 import {
   Accordion,
@@ -7,25 +14,23 @@ import {
 } from '@/shared/components/ui/accordion';
 import { Separator } from '@/shared/components/ui/separator';
 
-// Components
-import { MemoizedMonthlySpendingAccordionItem } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordionItem';
-
 // Types
-import type { SpendTrackingService } from '@/features/dashboard/lib/types/service.types';
-import { useState } from 'react';
-import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
-import { MonthlySpendingItemDetails } from './MonthlySpendingItemDetails';
+import type { SubscriptionSpend } from '@/features/dashboard/lib/types/spend-tracking/subscription';
+import type { OneTimeSpend } from '@/features/dashboard/lib/types/spend-tracking/purchases';
+import type { YearlySpending } from '@/features/dashboard/lib/types/spend-tracking/base';
+
 
 interface MonthlySpendingAccordionProps {
-  thisMonth: SpendTrackingService[];
-  future: SpendTrackingService[];
+  thisMonth: (SubscriptionSpend | OneTimeSpend)[];
+  future: (SubscriptionSpend | OneTimeSpend)[];
+  oneTimeTotal: YearlySpending[];
 }
 
-export function MonthlySpendingAccordion({ thisMonth, future }: MonthlySpendingAccordionProps) {
-  const [selectedItem, setSelectedItem] = useState<SpendTrackingService | null>(null);
+export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: MonthlySpendingAccordionProps) {
+  const [selectedItem, setSelectedItem] = useState<SubscriptionSpend | OneTimeSpend | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const handleItemClick = (item: SpendTrackingService) => {
+  const handleItemClick = (item: SubscriptionSpend | OneTimeSpend) => {
     setSelectedItem(item);
     setIsDrawerOpen(true);
   };
@@ -42,7 +47,7 @@ export function MonthlySpendingAccordion({ thisMonth, future }: MonthlySpendingA
               {thisMonth.map((item, index) => (
                 <MemoizedMonthlySpendingAccordionItem
                   key={index}
-                  {...item}
+                  item={item}
                   onClick={() => handleItemClick(item)}
                 />
               ))}
@@ -61,7 +66,8 @@ export function MonthlySpendingAccordion({ thisMonth, future }: MonthlySpendingA
               {future.map((item, index) => (
                 <MemoizedMonthlySpendingAccordionItem
                   key={index}
-                  {...item}
+                  item={item}
+                  onClick={() => handleItemClick(item)}
                 />
               ))}
             </div>
@@ -77,7 +83,10 @@ export function MonthlySpendingAccordion({ thisMonth, future }: MonthlySpendingA
           description={""}
           triggerText=""  // Empty because we're controlling open state externally
         >
-          <MonthlySpendingItemDetails item={selectedItem} />
+          <MonthlySpendingItemDetails
+            item={selectedItem}
+            oneTimeTotal={oneTimeTotal}
+          />
         </DrawerContainer>
       )}
     </>

@@ -13,7 +13,7 @@ import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 
 // Types
 import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
-import type { PaymentMethodType } from '@/features/dashboard/lib/types/service.types';
+import type { PaymentMethod } from '@/features/dashboard/lib/types/service.types';
 
 // Hooks
 import { toast } from 'sonner';
@@ -91,7 +91,7 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
       <TableCell>{service.monthlyFee}</TableCell>
       <TableCell>
         <PaymentIcon
-          type={(service.paymentMethod || 'Generic') as PaymentMethodType}
+          type={(service.paymentMethod || 'Generic') as PaymentMethod}
           format="flatRounded"
         />
       </TableCell>

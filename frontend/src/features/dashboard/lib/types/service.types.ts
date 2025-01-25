@@ -1,3 +1,5 @@
+import type { PaymentMethod, SpendTransaction } from "./spend-tracking/constants";
+
 export interface BaseService {
   name: string;
   status?: 'active' | 'inactive' | 'error';
@@ -74,6 +76,92 @@ export type NotificationType =
 /**
  * Spend Tracking Service
 */
+
+/**
+ * Core date and currency types used throughout the spending system
+ */
+type ISO8601Date = string; // YYYY-MM-DD format
+type Currency = string; // TODO: Use decimal library?
+
+/**
+ * Defines all possible billing cycles for subscription services
+ * Used for calculating recurring charges and forecasting expenses
+ */
+type BillingCycle =
+  | '1 month'
+  | '3 month'
+  | '6 month'
+  | '1 year';
+
+
+  /**
+ * Media types represent the category of purchased content or item
+ * This helps with reporting and analytics
+ */
+export const PURCHASED_MEDIA_CATEGORIES = {
+  HARDWARE: 'hardware',
+  DLC: 'dlc',
+  IN_GAME_PURCHASE: 'inGamePurchase',
+  SUBSCRIPTION: 'subscription',
+  PHYSICAL: 'physical',
+  DISC: 'disc'
+} as const;
+
+export type PurchasedMediaCategory = typeof PURCHASED_MEDIA_CATEGORIES[keyof typeof PURCHASED_MEDIA_CATEGORIES];
+
+/**
+ * Types of in-game purchases available in the system
+ * Used for categorizing microtransactions and virtual goods
+ */
+export type InGamePurchaseType =
+  | 'currency'
+  | 'item'
+  | 'cosmetic'
+  | 'feature';
+
+/**
+ * Physical item conditions for inventory tracking
+ * Applies to hardware and physical media
+ */
+export type ItemCondition =
+  | 'new'
+  | 'used'
+  | 'refurbished';
+
+
+/**
+ * Base interface for all spending transactions
+ * Contains common fields required for any type of purchase
+ */
+interface BaseSpendTracking {
+  id: string;
+  amount: Currency;
+  title: string;
+  spendTransactionType: SpendTransaction;
+  paymentMethod: PaymentMethod;
+  mediaType: PurchasedMediaCategory;
+  createdAt: ISO8601Date;
+  updatedAt: ISO8601Date;
+};
+
+// Specific Spend Tracking interfaces extending base
+export interface SubscriptionSpend extends BaseSpendTracking {
+  spendTransactionType: 'subscription';
+  billingCycle: BillingCycle;
+  nextBillingDate: ISO8601Date;
+  isActive: boolean;
+}
+
+export interface OneTimeSpend extends BaseSpendTracking {
+  spendTransactionType: 'one-time';
+  isDigital: boolean;
+  isWishlisted: boolean;
+}
+
+// Union type for spend tracking
+export type SpendTrackingService = SubscriptionSpend | OneTimeSpend;
+
+
 export type SpendTrackingMediaType =
   | 'hardware'
   | 'dlc'
@@ -82,43 +170,37 @@ export type SpendTrackingMediaType =
   | 'physical'
   | 'disc';
 
-export interface SpendTrackingService extends BaseService {
-  day?: string;
-  month?: string;
-  year?: string;
-  onlineService?: string;
-  title?: string;
-  amount?: string;
-  billingCycle?: string;
-  spendType?: string; // subscription, one-time
-  paymentMethod?: string;
-  isActive?: boolean;
-  isDigital?: boolean;
-  isRecurring?: boolean;
-  billingDate?: string;
-  annualTotalSpend?: string;
-  isWishlisted?: boolean;
-  isPaid?: boolean;
-  mediaType?: SpendTrackingMediaType;
-}
+// export interface SpendTrackingService extends BaseService {
+//   day?: string;
+//   month?: string;
+//   year?: string;
+//   onlineService?: string;
+//   title?: string;
+//   amount?: string;
+//   billingCycle?: string;
+//   spendTransactionType?: string; // subscription, one-time
+//   paymentMethod?: string;
+//   isActive?: boolean;
+//   isDigital?: boolean;
+//   isRecurring?: boolean;
+//   billingDate?: string;
+//   annualTotalSpend?: string;
+//   isWishlisted?: boolean;
+//   isPaid?: boolean;
+//   mediaType?: SpendTrackingMediaType;
+// }
 
 export interface SpendTrackingData {
-  recurringThisMonth: SpendTrackingService[];
+  currentTotalThisMonth: SpendTrackingService[];
   recurringNextMonth: SpendTrackingService[];
   oneTimeThisMonth: SpendTrackingService[];
   totalSpendsThisMonth: string;
   totalSpendsThisYear: string;
-  top5SpendsAll: SpendTrackingService[];
-  top5SpendsDigital: SpendTrackingService[];
-  top5SpendsPhysical: SpendTrackingService[];
 }
 
 /**
  * Online Service
  */
-export type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" |
-"Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" |
-"Mir" | "Paypal" | "Unionpay" | "Visa";
 
 export interface OnlineService extends BaseService {
   label: string;
@@ -132,7 +214,7 @@ export interface OnlineService extends BaseService {
   renewalDay: string;
   renewalMonth: string;
   isActive: boolean;
-  paymentMethod?: PaymentMethodType;
+  paymentMethod?: PaymentMethod;
   plan?: string;
 };
 

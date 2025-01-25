@@ -43,8 +43,6 @@ export const MemoizedNotificationItem = memo(function NotifcationItem({
     onRemove(timestamp);
   };
 
-
-
   return (
     <div
       className="flex items-start gap-4 p-4 cursor-default relative group hover:bg-accent transition-colors"

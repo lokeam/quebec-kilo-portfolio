@@ -75,8 +75,10 @@ const MemoizedDrawerHeaderContent = memo(function DrawerHeaderContent({
 }) {
   return (
     <>
-      <DrawerTitle data-testid="drawer-title">{title}</DrawerTitle>
-      {description && <DrawerDescription>{description}</DrawerDescription>}
+      <DrawerTitle className="sr-only" data-testid="drawer-title">{title}</DrawerTitle>
+      <DrawerDescription className="sr-only" data-testid="drawer-description">
+        {description || title}
+      </DrawerDescription>
     </>
   );
 });
@@ -152,6 +154,7 @@ export function DrawerContainer({
       <DrawerContent
         className={cn(positionStyles, className)}
         data-testid="drawer-content"
+        aria-describedby="drawer-description"
         {...rest}
       >
         <DrawerHeader className="text-left" data-testid="drawer-header">
