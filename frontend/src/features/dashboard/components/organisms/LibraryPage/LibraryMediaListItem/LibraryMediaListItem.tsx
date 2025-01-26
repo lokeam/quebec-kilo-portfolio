@@ -28,6 +28,7 @@ import {
 
 // Constants
 import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';
+import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
 
 interface LibraryMediaListItemProps {
   index: number;
@@ -44,6 +45,7 @@ interface LibraryMediaListItemProps {
   platform?: string;
   onFavorite?: () => void;
   onSettings?: () => void;
+  onRemoveFromLibrary?: () => void;
 }
 
 const createAddToFavoritesToast = (title: string) => {
@@ -65,7 +67,8 @@ function LibraryMediaListItem({
   physicalSublocationType = "",
   digitalLocation = "",
   diskSize = "",
-  onSettings
+  onSettings,
+  onRemoveFromLibrary = () => {},
 }: LibraryMediaListItemProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -206,13 +209,7 @@ function LibraryMediaListItem({
               <IconStar className="h-4 w-4" />
             )}
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onSettings}
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          <MemoizedMediaListItemDropDownMenu onRemoveFromLibrary={onRemoveFromLibrary} />
         </div>
       </div>
     </div>
