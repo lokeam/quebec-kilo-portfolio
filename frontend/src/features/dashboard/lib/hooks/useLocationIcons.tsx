@@ -34,6 +34,7 @@ export function useLocationIcons({
   physicalLocation,
   physicalLocationType,
   digitalLocation,
+  physicalSublocation,
   physicalSublocationType
 }: LocationIconsProps) {
   const { location: locationIcons, sublocation: sublocationIcons } = useDomainMaps();
@@ -51,13 +52,13 @@ export function useLocationIcons({
   }, [physicalLocation, physicalLocationType, digitalLocation, locationIcons]);
 
   const subLocationIcon = useMemo(() => {
-    if (physicalSublocationType) {
-      const IconComponent = sublocationIcons[physicalSublocationType.toLowerCase() as keyof typeof sublocationIcons];
-      return IconComponent ? <IconComponent className="h-6 w-6 mt-1" /> : null;
+    if (physicalSublocationType && physicalSublocation) {
+      const key = physicalSublocationType.toLowerCase() as keyof typeof sublocationIcons;
+      const IconComponent = sublocationIcons[key];
+      return IconComponent ? <IconComponent className="h-7 w-7" /> : null;
     }
-
     return null;
-  }, [physicalSublocationType, sublocationIcons]);
+  }, [physicalSublocationType, physicalSublocation, sublocationIcons]);
 
   return { locationIcon, subLocationIcon };
 }

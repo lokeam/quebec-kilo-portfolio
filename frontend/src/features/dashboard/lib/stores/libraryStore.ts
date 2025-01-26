@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type LibraryItem } from '@/features/dashboard/lib/types/page.types';
+import { type LibraryItem } from '@/features/dashboard/lib/types/library/items';
 
 export const ViewModes = {
   GRID: 'grid',

@@ -8,6 +8,7 @@ const BookshelfIcon = ({ size = 24, ...props }: BookshelfIconProps) => (
   <svg
     width={size}
     height={size}
+    style={{ minWidth: size, minHeight: size }}
     viewBox="0 0 508 508"
     xmlns="http://www.w3.org/2000/svg"
     fill="currentColor"

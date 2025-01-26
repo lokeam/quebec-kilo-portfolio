@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CONSOLE_PLATFORMS } from '@/features/dashboard/lib/constants/filterOptions/library/platform.filterOptions';
+import { CONSOLE_PLATFORMS } from '@/features/dashboard/lib/constants/filter-options/library/platform.filterOptions';
 /**
  * Interface for useLibraryTitle hook options
  * @interface UseLibraryTitleOptions

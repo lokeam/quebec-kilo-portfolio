@@ -40,14 +40,8 @@ export function LibraryMediaItem({
     physicalLocation,
     physicalLocationType,
     digitalLocation,
+    physicalSublocation,
     physicalSublocationType
-  });
-
-  console.log('Testing LibraryListMediaItem props:', {
-    physicalLocation: physicalLocation,
-    physicalLocationType: physicalLocationType,
-    physicalSublocation: physicalSublocation,
-    physicalSublocationType: physicalSublocationType
   });
 
   return (

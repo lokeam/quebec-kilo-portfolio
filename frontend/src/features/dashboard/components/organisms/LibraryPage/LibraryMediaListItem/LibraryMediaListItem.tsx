@@ -41,7 +41,7 @@ interface LibraryMediaListItemProps {
   physicalSublocationType?: string;
   digitalLocation?: string;
   diskSize?: string;
-  platformVersion?: string;
+  platform?: string;
   onFavorite?: () => void;
   onSettings?: () => void;
 }
@@ -58,14 +58,13 @@ function LibraryMediaListItem({
   title,
   imageUrl,
   favorite = false,
+  platform = "",
   physicalLocation = "",
   physicalLocationType = "",
   physicalSublocation = "",
   physicalSublocationType = "",
   digitalLocation = "",
-  platformVersion = "",
   diskSize = "",
-  onFavorite,
   onSettings
 }: LibraryMediaListItemProps) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -83,6 +82,7 @@ function LibraryMediaListItem({
     physicalLocation,
     physicalLocationType,
     digitalLocation,
+    physicalSublocation,
     physicalSublocationType
   });
 
@@ -104,10 +104,10 @@ function LibraryMediaListItem({
 
   // Memoize expensive computations
   const platformIcon = useMemo(() => {
-    return platformVersion === "PC" ?
+    return platform === "PC" ?
       <IconDevicesPc className="h-8 w-8 mt-[-4px]" /> :
       <IconDeviceGamepad className="h-7 w-7" />
-  }, [platformVersion]);
+  }, [platform]);
 
   const defaultValue = useMemo(() => ({
     showTags: true,
@@ -128,7 +128,9 @@ function LibraryMediaListItem({
 
   return (
     <div
-      className={`flex items-center gap-4 w-full rounded-lg border bg-card p-4 text-card-foreground shadow-sm overflow-x-hidden ${index % 2 === 0 ? 'my-2' : ''}`}
+      className={`flex items-center gap-4 w-full rounded-lg border bg-card p-4 text-card-foreground shadow-sm overflow-x-hidden ${
+        index % 2 === 0 ? 'my-2' : ''}`
+      }
       data-library-item={`${index}-${title}`}
       ref={cardRef}
     >
@@ -152,7 +154,7 @@ function LibraryMediaListItem({
             <InfoSection
               icon={platformIcon}
               label="Platform"
-              value={platformVersion}
+              value={platform}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
@@ -177,13 +179,15 @@ function LibraryMediaListItem({
             />
 
             {/* Game Disk Size */}
-            <InfoSection
-              icon={<IconFileFilled className="h-7 w-7" />}
-              label="Disk Size"
-              value={diskSize}
-              hasStackedContent={visibility.stackInfoContent}
-              isMobile={visibility.isMobile}
-            />
+            {diskSize && (
+              <InfoSection
+                icon={<IconFileFilled className="h-7 w-7" />}
+                label="Disk Size"
+                value={diskSize}
+                hasStackedContent={visibility.stackInfoContent}
+                isMobile={visibility.isMobile}
+              />
+            )}
 
           </div>
         </div>

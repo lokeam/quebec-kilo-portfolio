@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode } from 'react';
 
 // Components
 import { PageHeadline } from '@/shared/components/layout/page-headline';
@@ -18,12 +18,14 @@ import { useLibraryTitle } from '@/features/dashboard/lib/hooks/useLibraryTitle'
 
 // Types
 import { type ComponentType } from 'react';
+import { useFilteredLibraryItems } from '../../lib/hooks/useFilteredLibraryItems';
 
 interface LibraryLayoutProps {
   viewMode: typeof ViewModes[keyof typeof ViewModes];
   EmptyPage: ComponentType;
   Toolbar: ComponentType;
   title: ReactNode;
+  baseTitle?: string;
 }
 
 export function LibraryLayoutContainer({
@@ -35,50 +37,36 @@ export function LibraryLayoutContainer({
 
   /* Grab data from Zustand store */
   const services = useLibraryGames();
-
-  /* Guard clause empty state - first time user zero services */
-  if (services.length === 0) {
-    <PageMain>
-      <PageHeadline>
-        <div className='flex items-center'>
-          <h1 className='text-2xl font-bold tracking-tight'>{baseTitle}</h1>
-        </div>
-      </PageHeadline>
-      <EmptyPage />
-    </PageMain>
-  }
-
-  /* Grab platform filter and count from Zustand store */
   const platformFilter = useLibraryPlatformFilter();
   const searchQuery = useLibrarySearchQuery();
 
   /* Combined filtering for both platform and title search */
-  const filteredServices = useMemo(() => {
-    let filtered = services;
+  const filteredServices = useFilteredLibraryItems(services, platformFilter, searchQuery);
 
-    /* Apply platform filter */
-    if (platformFilter) {
-      filtered = filtered.filter(game =>
-        game.platformVersion?.toLowerCase() === platformFilter.toLowerCase()
-      );
-    }
+  console.log('filteredServices', filteredServices);
 
-    /* Apply search filter */
-    if (searchQuery) {
-      filtered = filtered.filter(game =>
-        game.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [services, platformFilter, searchQuery]);
 
   /* Pass filtered data to title hook */
   const { title, countText } = useLibraryTitle({
-    baseTitle,
+    baseTitle: baseTitle || '',
     filteredCount: filteredServices.length,
     platformFilter,
   });
+
+  /* Guard clause empty state - first time user zero services */
+  if (services.length === 0) {
+    return (
+      <PageMain>
+        <PageHeadline>
+          <div className='flex items-center'>
+            <h1 className='text-2xl font-bold tracking-tight'>{title}</h1>
+            <span className='text-[20px] text-gray-500 ml-1'>{countText}</span>
+          </div>
+        </PageHeadline>
+        <EmptyPage />
+      </PageMain>
+    );
+  }
 
   /* Render content based on view mode */
   const renderContent = () => {
@@ -86,20 +74,19 @@ export function LibraryLayoutContainer({
       return <NoResultsFound />;
     }
 
-    const CardComponent = viewMode === ViewModes.GRID ?
-      LibraryMediaItem :
-      MemoizedLibraryMediaListItem;
+    const CardComponent = viewMode === ViewModes.GRID
+      ? LibraryMediaItem
+      : MemoizedLibraryMediaListItem;
 
-    console.log('services', services);
     return (
       <div className="flex h-full w-full flex-wrap content-start">
         {filteredServices.map((item, index) => (
           <CardComponent
-            key={`${item.id}-${index}`}
-            index={index}
+            key={`${item.title}-${index}`}
             {...item}
           />
-        ))}
+        ))
+        }
       </div>
     );
   };

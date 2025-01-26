@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useLibraryGames } from '@/features/dashboard/lib/stores/libraryStore';
-import { type PlatformOption, CONSOLE_PLATFORMS } from '@/features/dashboard/lib/constants/filterOptions/library/platform.filterOptions';
-import { type LibraryItem } from '@/features/dashboard/lib/types/page.types';
+import { type PlatformOption, CONSOLE_PLATFORMS } from '@/features/dashboard/lib/constants/filter-options/library/platform.filterOptions';
+import { type LibraryItem } from '@/features/dashboard/lib/types/library/items';
 import { useMultiMatchSearch } from '@/features/dashboard/lib/hooks/useMultiMatchSearch';
 
 /**
@@ -114,7 +114,7 @@ export function usePlatformSearch(): UsePlatformSearchReturn {
   /* Get unique platform keys from user's game library */
   const platformKeys = useMemo(() =>
     new Set(userGames.map((game: LibraryItem) =>
-      (game.platformVersion ?? '').toLowerCase()
+      game.platform.category
     )),
     [userGames]
   );
@@ -124,7 +124,7 @@ export function usePlatformSearch(): UsePlatformSearchReturn {
     const platforms = Object.entries(CONSOLE_PLATFORMS)
       .flatMap(([manufacturer, platforms]) =>
         platforms
-          .filter(platform => platformKeys.has(platform.key.toLowerCase()))
+          .filter(platform => platformKeys.has(platform.key))
           .map(platform => ({
             ...platform,
             manufacturer,

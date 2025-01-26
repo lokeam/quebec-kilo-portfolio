@@ -1,3 +1,5 @@
+import type { ServiceProviderRecord } from "../types/services";
+
 /**
  * Physical item conditions for inventory tracking.
  * Applies to hardware and physical media.
@@ -12,7 +14,7 @@ export type ItemCondition =
  * Maps service providers to their display names and internal identifiers
  * Used for consistent provider identification across the application
  */
-export const ONLINE_SERVICE_PROVIDERS = {
+export const ONLINE_SERVICE_PROVIDERS: ServiceProviderRecord = {
   APPLE: {
     displayName: 'Apple Arcade',
     id: 'apple',
