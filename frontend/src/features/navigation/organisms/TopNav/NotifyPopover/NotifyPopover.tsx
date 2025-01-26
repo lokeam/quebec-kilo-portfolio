@@ -7,7 +7,6 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 
 // Components
 import { MemoizedNotificationItem } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotificationItem';
@@ -17,11 +16,11 @@ import { NoNotificationsMessage } from '@/features/dashboard/components/molecule
 import { useNotifications } from '@/features/dashboard/lib/hooks/useNotifications';
 
 // Types
-import type { Notification } from '@/features/dashboard/lib/types/service.types';
+import type { Notification } from '@/features/dashboard/lib/types/notifications/event-variants';
 
 // Icons
 import { Bell } from 'lucide-react';
-import { IconMailSpark, IconMailOpened, IconMailOff } from '@tabler/icons-react';
+import { IconMailSpark, IconMailOpened } from '@tabler/icons-react';
 
 // Constants
 import { POPOVER_DIMENSIONS } from '@/features/navigation/constants/navigation.constants';
@@ -35,8 +34,8 @@ export interface NotificationState {
 
 
 export const NotifyPopover = memo(function NotifyPopover() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [hasOpenedPopover, setHasOpenedPopover] = useState(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [hasOpenedPopover, setHasOpenedPopover] = useState<boolean>(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -54,8 +53,8 @@ export const NotifyPopover = memo(function NotifyPopover() {
     }
   };
 
-  const handleRemoveNotification = (timestamp: string) => {
-    const isEmpty = removeNotification(timestamp);
+  const handleRemoveNotification = (id: string) => {
+    const isEmpty = removeNotification(id);
     if (isEmpty) {
       setIsOpen(false);
       setHasOpenedPopover(false);
@@ -90,28 +89,22 @@ export const NotifyPopover = memo(function NotifyPopover() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b">
             <h2 className="text-sm font-semibold">Notifications</h2>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={markAllAsRead}
-                    aria-label={`Mark all as ${allRead ? 'unread' : 'read'}`}
-                  >
-                    {allRead ? (
-                      <IconMailOpened className="h-4 w-4" />
-                    ) : (
-                      <IconMailSpark className="h-4 w-4" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">
-                  <p>Mark all as {allRead ? 'unread' : 'read'}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={markAllAsRead}
+                aria-label={`Mark all as ${allRead ? 'unread' : 'read'}`}
+            >
+              {allRead ? (
+                <IconMailOpened className="h-4 w-4" />
+              ) : (
+                <IconMailSpark className="h-4 w-4" />
+              )}
+              </Button>
+              <span className="text-sm">Mark all {allRead ? 'unread' : 'read'}</span>
+            </div>
           </div>
 
           {/* Notification List */}

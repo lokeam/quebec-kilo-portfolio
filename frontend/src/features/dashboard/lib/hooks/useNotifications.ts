@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Notification } from '@/features/dashboard/lib/types/service.types';
+import type { Notification } from '@/features/dashboard/lib/types/notifications/event-variants';
 
 /**
  * Interface for the return value of useNotifications hook
@@ -58,8 +58,8 @@ export function useNotifications(
    * @param timestamp - Unique timestamp identifier of the notification to remove
    * @returns boolean indicating if the notifications list is now empty
    */
-  const removeNotification = (timestamp: string) => {
-    const newNotifications = notifications.filter((n) => n.timestamp !== timestamp);
+  const removeNotification = (id: string) => {
+    const newNotifications = notifications.filter((n) => n.id !== id);
     setNotifications(newNotifications);
     setAllRead(newNotifications.every((n) => n.isRead));
     return newNotifications.length === 0;

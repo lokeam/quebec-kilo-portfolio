@@ -13,42 +13,48 @@ import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { X } from 'lucide-react'
 
 // Types
-import type { Notification } from '@/features/dashboard/lib/types/service.types';
+import type { Notification } from '@/features/dashboard/lib/types/notifications/event-variants';
 import type { NotificationIconType } from '@/features/navigation/types/navigation.types';
+
+// Guards
+import { transformNotificationIcon } from '@/features/dashboard/lib/types/library/guards';
 
 interface NotificationItemProps {
   notification: Notification;
-  onRemove: (timestamp: string) => void;
+  onRemove: (id: string) => void;
 }
 
 export const MemoizedNotificationItem = memo(function NotifcationItem({
   notification,
   onRemove
 }: NotificationItemProps) {
+  console.log('notification', notification);
+
   const {
     timestamp,
-    notificationIcon,
-    notificationTitle,
-    notificationHd,
-    notificationMsg,
+    icon,
+    title,
+    id,
+    message,
     isRead,
   } = notification;
 
   const { notifications } = useDomainMaps();
-  const NoticiationIcon = notifications[notificationIcon as NotificationIconType]
+  const iconName = transformNotificationIcon(icon);
+  const NoticiationIcon = notifications[iconName as NotificationIconType]
     || notifications.default;
 
   // Memoize click handler to prevent unnecessary re-renders
   const handleRemove = () => {
-    onRemove(timestamp);
+    onRemove(id);
   };
 
   return (
     <div
-      className="flex items-start gap-4 p-4 cursor-default relative group hover:bg-accent transition-colors"
+      className="flex items-start gap-4 p-4 cursor-default relative group hover:bg-white/5 transition-colors"
       // Add proper accessibility attributes
       role="listitem"
-      aria-label={notificationTitle}
+      aria-label={title}
     >
       {/* Unread indicator */}
       {!isRead && (
@@ -59,20 +65,19 @@ export const MemoizedNotificationItem = memo(function NotifcationItem({
       )}
 
       {/* Notification icon */}
-      <Avatar className="h-9 w-9 bg-secondary">
-        <AvatarFallback>
-          <NoticiationIcon />
+      <Avatar className="h-9 w-9 bg-green-500/20">
+        <AvatarFallback className="bg-transparent">
+          <NoticiationIcon className="h-5 w-5 text-green-500"/>
         </AvatarFallback>
       </Avatar>
 
       {/* Notification content */}
-      <div className="flex-1 space-y-1">
+      <div className="flex-1 space-y-3">
         <p className="text-sm font-medium leading-none">
-          {notificationTitle}
+          {title}
         </p>
         <p className="text-sm text-muted-foreground">
-          {notificationHd}
-          {notificationMsg && ` ${notificationMsg}`}
+          {message && ` ${message}`}
         </p>
         <p className="text-xs text-muted-foreground">
           {formatTimestamp(timestamp)}

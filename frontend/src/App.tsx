@@ -14,6 +14,7 @@ import { ErrorBoundaryProvider } from '@/core/error/providers/ErrorBoundaryProvi
 import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
 import { SidebarProvider } from './shared/components/ui/sidebar';
 import { NetworkStatusProvider } from '@/core/network-status/providers/NetworkStatusProvider';
+import { TooltipProvider } from '@/shared/components/ui/tooltip';
 
 // TODO: Lazy load secondary routes
 const OnlineServicesPage = lazy(() => import(
@@ -41,6 +42,11 @@ const NotificationsPage = lazy(() => import(
   '@/features/dashboard/pages/NotificationsPage/NotificationsPage'
 ));
 
+const SettingsPage = lazy(() => import(
+  /* webpackChunkName: "SettingsPage" */
+  '@/features/dashboard/pages/SettingsPage/SettingsPage'
+));
+
 const SpendTrackingPage = lazy(() => import(
   /* webpackChunkName: "SpendTrackingPage" */
   '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPage'
@@ -52,29 +58,32 @@ function App() {
     <ErrorBoundaryProvider>
       <BrowserRouter>
         <ThemeProvider enableSystemPreference>
-          <NetworkStatusProvider>
-            <SidebarProvider defaultOpen={true}>
-              <Suspense fallback={<Loading />}>
-                <Routes>
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <AuthenticatedLayout />
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/library" element={<LibraryPage />}/>
-                    <Route path="/online-services" element={<OnlineServicesPage />} />
-                    <Route path="/wishlist" element={<WishListPage />} />
-                    <Route path="/media-storage" element={<MediStoragePage />} />
-                    <Route path="/spend-tracking" element={<SpendTrackingPage />} />
-                    <Route path="/notifications" element={<NotificationsPage /> } />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </SidebarProvider>
-          </NetworkStatusProvider>
+          <TooltipProvider delayDuration={300}>
+            <NetworkStatusProvider>
+              <SidebarProvider defaultOpen={true}>
+                <Suspense fallback={<Loading />}>
+                  <Routes>
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <AuthenticatedLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/library" element={<LibraryPage />}/>
+                      <Route path="/online-services" element={<OnlineServicesPage />} />
+                      <Route path="/wishlist" element={<WishListPage />} />
+                      <Route path="/media-storage" element={<MediStoragePage />} />
+                      <Route path="/spend-tracking" element={<SpendTrackingPage />} />
+                      <Route path="/notifications" element={<NotificationsPage /> } />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </SidebarProvider>
+            </NetworkStatusProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </BrowserRouter>
     </ErrorBoundaryProvider>

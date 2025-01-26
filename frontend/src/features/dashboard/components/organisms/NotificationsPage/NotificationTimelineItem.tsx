@@ -12,9 +12,12 @@ import { formatTimestamp } from '@/features/navigation/utils/formatTimestamp';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 
 // Types
-import type { Notification } from '@/features/dashboard/lib/types/service.types';
+import type { Notification, WishlistPayload } from '@/features/dashboard/lib/types/notifications/event-variants';
 import type { NotificationIconType } from '@/features/navigation/types/navigation.types';
 
+
+// Guards
+import { transformNotificationIcon } from '@/features/dashboard/lib/types/library/guards';
 
 
 interface ReportNotificationProps {
@@ -38,13 +41,7 @@ interface AppUpdateNotificationProps {
 };
 
 interface WishlistNotificationProps {
-  item: {
-    name: string;
-    salePrice: string;
-    originalPrice: string;
-    discountPercentage: number;
-    coverUrl?: string;
-  };
+    item: WishlistPayload;
 }
 
 // Specialized Content Components
@@ -88,18 +85,23 @@ const WishlistNotification = memo(function WishlistNotification({
 }: WishlistNotificationProps) {
   return (
     <div className="mt-2 flex items-center gap-4">
-      {item.coverUrl && (
+      {item.coverImageUrl && (
         <img
-          src={item.coverUrl}
+          src={item.coverImageUrl}
           alt={item.name}
           className="h-16 w-12 rounded object-cover"
         />
       )}
       <div className="flex flex-col gap-1">
-        <p className="text-sm text-gray-400">
-          ${item.salePrice} <span className="text-xs line-through">${item.originalPrice}</span>
+        <p className="text-md font-bold text-white">
+          <a href={item.storeUrl} target="_blank" rel="noopener noreferrer">
+            {item.name}
+          </a>
         </p>
-        <p className="text-xs text-green-500">Save {item.discountPercentage}%</p>
+        <p className="text-md text-white">
+          ${item.salePrice} <span className="text-xs line-through text-gray-400">${item.originalPrice}</span>
+        </p>
+        <p className="text-sm text-green-500">Save {item.discountPercentage}%</p>
       </div>
     </div>
   );
@@ -132,7 +134,8 @@ export const NotificationTimelineItem = memo(function NotificationTimelineItem({
   onRemove
 }: NotificationTimelineItemProps) {
   const { notifications } = useDomainMaps();
-  const NotificationIcon = notifications[notification.icon as NotificationIconType]
+  const iconName = transformNotificationIcon(notification.icon);
+  const NotificationIcon = notifications[iconName as NotificationIconType]
     || notifications.default;
 
   return (
@@ -149,7 +152,7 @@ export const NotificationTimelineItem = memo(function NotificationTimelineItem({
           {/* Timeline Dot */}
           <Avatar className="h-8 w-8 bg-green-500/20">
             <AvatarFallback className="bg-transparent">
-              <NotificationIcon className="h-4 w-4 text-green-500" />
+              <NotificationIcon className="h-5 w-5 text-green-500" />
             </AvatarFallback>
           </Avatar>
           {/* Timeline Vertical Line */}
@@ -160,7 +163,7 @@ export const NotificationTimelineItem = memo(function NotificationTimelineItem({
         <div className="flex-1">
           <h3 className="text-lg font-medium text-white">{notification.title}</h3>
           {notification.message && (
-            <p className="mt-1 text-sm text-gray-400">{notification.message}</p>
+            <p className="mt-1 text-md text-green-500">{notification.message}</p>
           )}
           {renderNotificationContent(notification)}
         </div>

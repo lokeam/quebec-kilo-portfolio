@@ -8,7 +8,7 @@ import { NoNotificationsMessage } from '@/features/dashboard/components/molecule
 import { useNotifications } from '@/features/dashboard/lib/hooks/useNotifications';
 
 // Types
-import type { Notification } from '@/features/dashboard/lib/types/service.types';
+import type { Notification } from '@/features/dashboard/lib/types/notifications/event-variants';
 
 interface NotificationListProps {
   initialNotifications: Notification[]

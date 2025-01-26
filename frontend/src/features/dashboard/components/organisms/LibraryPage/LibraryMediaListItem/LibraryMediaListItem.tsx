@@ -17,7 +17,6 @@ import type { CardVisibility } from '@/features/dashboard/components/organisms/W
 
 // Icons
 import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
-import { Settings } from 'lucide-react';
 import {
   IconFileFilled,
   IconStar,
@@ -67,7 +66,6 @@ function LibraryMediaListItem({
   physicalSublocationType = "",
   digitalLocation = "",
   diskSize = "",
-  onSettings,
   onRemoveFromLibrary = () => {},
 }: LibraryMediaListItemProps) {
   const cardRef = useRef<HTMLDivElement>(null);
