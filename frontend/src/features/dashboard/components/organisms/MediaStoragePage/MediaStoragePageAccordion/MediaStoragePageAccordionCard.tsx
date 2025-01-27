@@ -15,7 +15,9 @@ import { motion } from 'framer-motion';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 
 // Types
-import type { SubLocationType, GameItem, SubLocation } from '@/features/dashboard/types/media-storage.types';
+import type { SubLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { SubLocation } from '@/features/dashboard/lib/types/media-storage/physical';
+import type { GameItem } from '@/features/dashboard/lib/types/media-storage/items';
 
 // Icons
 import { IconCloudDataConnection } from '@tabler/icons-react';
@@ -76,12 +78,12 @@ export function MediaStoragePageAccordionCard({
                   >
                     {card.name}
                   </motion.h3>
-                  <motion.p
+                  {/* <motion.p
                     layoutId={`description-${card.description}-${id}`}
                     className="text-muted-foreground"
                   >
                     {card.description}
-                  </motion.p>
+                  </motion.p> */}
                 </div>
               </CardHeader>
             </AccordionTrigger>
@@ -90,13 +92,13 @@ export function MediaStoragePageAccordionCard({
             <div className="space-y-2 pl-24">
               {card.items?.map((item, index) => (
                 <div
-                  key={`${item.itemLabel}-${index}`}
+                  key={`${item.label}-${index}`}
                   className="flex items-center justify-between py-2"
                 >
                   <div>
-                    <p className="font-medium">{item.itemName}</p>
+                    <p className="font-medium">{item.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {item.itemPlatform} {item.itemPlatformVersion}
+                      {item.platform.charAt(0).toUpperCase() + item.platform.slice(1)} {item.platformVersion}
                     </p>
                   </div>
                 </div>

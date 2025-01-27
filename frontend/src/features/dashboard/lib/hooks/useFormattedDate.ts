@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { formatDate } from '@/features/dashboard/lib/utils/formatDate';
-import  { type PurchasedMediaCategory, PURCHASED_MEDIA_CATEGORIES } from "@/features/dashboard/lib/types/service.types";
+import  {
+  type PurchasedMediaCategory,
+  PURCHASED_MEDIA_CATEGORIES
+} from "@/features/dashboard/lib/types/spend-tracking/media";
 import type { ISO8601Date } from "@/shared/types/types";
 
 export function useFormattedDate(

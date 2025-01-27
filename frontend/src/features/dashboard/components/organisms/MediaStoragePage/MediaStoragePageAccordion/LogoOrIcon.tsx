@@ -1,11 +1,11 @@
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
-import type { SpendTrackingMediaType } from '@/features/dashboard/lib/types/service.types';
+import type { BaseMediaCategory } from '@/features/dashboard/lib/types/spend-tracking/constants';
 
 const ICON_CLASS = 'w-full h-full';
 
 interface LogoOrIconProps {
   name: string;
-  mediaType: SpendTrackingMediaType;
+  mediaType: BaseMediaCategory;
 };
 
 export function LogoOrIcon({ name, mediaType }: LogoOrIconProps) {

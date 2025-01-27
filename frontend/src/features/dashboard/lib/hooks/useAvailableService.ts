@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onlineServicesPageMockData } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
-import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { ServiceTierName } from '../types/online-services/tiers';
 
 
 export interface UseAvailableServicesResult {
@@ -23,14 +24,27 @@ export function useAvailableServices(searchQuery: string): UseAvailableServicesR
     setIsLoading(true);
     setError(null);
 
-    // Simulate network delay
+    // Simulate network delay - replace with Tanstack Query
     const timeoutId = setTimeout(() => {
       try {
         // Filter using label instead of name
-        const filtered = onlineServicesPageMockData.services.filter((service: OnlineService) =>
+        // NOTE: Replace with proper data from Tanstack Query
+        const services = onlineServicesPageMockData.services.map(service => ({
+          ...service,
+          tier: {
+            currentTier: (service.tier.name || 'free') as ServiceTierName,
+            availableTiers: [{
+              id: '1',
+              name: service.tier.name || 'free',
+              features: service.tier.features,
+              isDefault: true
+            }],
+          }
+        })) as OnlineService[];
+        const filtered = services.filter((service) =>
           service.label.toLowerCase().includes(searchQuery.toLowerCase())
         );
-        setAvailableServices(filtered);
+        setAvailableServices(filtered as OnlineService[]);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('An error occurred'));

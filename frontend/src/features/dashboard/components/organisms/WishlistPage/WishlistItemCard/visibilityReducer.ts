@@ -1,4 +1,4 @@
-import type { CardVisibility } from './WishlistCardItem.types';
+import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
 
 /**
  * Action type for visibility state changes

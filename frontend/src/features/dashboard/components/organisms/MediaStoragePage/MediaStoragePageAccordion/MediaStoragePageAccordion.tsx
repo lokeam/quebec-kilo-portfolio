@@ -7,24 +7,26 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/shared/components/ui/accordion';
-import { Button } from '@/shared/components/ui/button';
 import { Avatar } from '@/shared/components/ui/avatar';
 
 // Components
+import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer' ;
 import {
   MediaStoragePageAccordionCard,
 } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
+import { MediaPageSublocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 
 // Type
-import type {
-  PhysicalLocation,
-  DigitalLocation,
-  LocationCardData,
-  MediaStorageMetadata
-} from '@/features/dashboard/types/media-storage.types';
+import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
+import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
+import type { LocationCardData } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
+import type { MediaStorageMetadata } from '@/features/dashboard/lib/types/media-storage/metadata';
+
+// Guards
+import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage/guards';
 
 interface MediaStoragePageAccordionProps {
   locationData: PhysicalLocation[] | DigitalLocation[];
@@ -47,6 +49,7 @@ export function MediaStoragePageAccordion({
   type
 }: MediaStoragePageAccordionProps) {
   const [activeCard, setActiveCard] = useState<LocationCardData | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
   const { games, location: locationIcons } = useDomainMaps();
 
   const handleSetActive = (card: LocationCardData) => {
@@ -107,7 +110,7 @@ export function MediaStoragePageAccordion({
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4">
-                {type === 'physical' ? (
+                {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
                   <>
                     {location.subLocations?.map((sublocation, cardIndex) => (
@@ -119,24 +122,32 @@ export function MediaStoragePageAccordion({
                         isDigital={false}
                       />
                     ))}
-                    <Button>Add Sublocation</Button>
+                    <DrawerContainer
+                      open={open}
+                      onOpenChange={setOpen}
+                      triggerText="Add Sublocation"
+                      title="SubLocation (Unit Storage)"
+                      description="Where in your physical location do you keep your games?"
+                    >
+                      <MediaPageSublocationForm onSuccess={() => setOpen(false)} />
+                    </DrawerContainer>
                   </>
                 ) : (
                   /* For digital locations, show items directly */
                   <div className="space-y-2 pl-8">
                     {(location as DigitalLocation).items?.map((item, index) => (
                       <div
-                        key={`${item.itemLabel}-${index}`}
+                        key={`${item.label}-${index}`}
                         className="flex items-center justify-between py-2"
                       >
                         <div>
-                          <p className="font-medium">{item.itemName}</p>
+                          <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-muted-foreground">
-                            {item.itemPlatform} {item.itemPlatformVersion}
+                            {item.platform.charAt(0).toUpperCase() + item.platform.slice(1)} {item.platformVersion}
                           </p>
                         </div>
                       </div>
-                        ))}
+                    ))}
                   </div>
                 )}
               </div>

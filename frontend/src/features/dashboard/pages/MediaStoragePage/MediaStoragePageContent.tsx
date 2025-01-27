@@ -5,14 +5,13 @@ import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer' ;
 import { MediaPageLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageLocationForm/MediaPageLocationForm';
-import { MediaPageSublocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
 import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordion';
 
 // Mock Data
 import { mediaStoragePageMockData } from '@/features/dashboard/pages/MediaStoragePage/mediaStoragePage.mockdata';
 
 export function MediaStoragePageContent() {
-  const [open, setOpen] = useState<boolean>(false)
+  const [open, setOpen] = useState<boolean>(false);
 
 
   const { data: { physicalLocations, digitalLocations }, meta } = mediaStoragePageMockData;

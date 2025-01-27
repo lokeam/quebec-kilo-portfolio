@@ -90,7 +90,7 @@ const MemoizedDrawerHeaderContent = memo(function DrawerHeaderContent({
 const MemoizedDrawerFooter = memo(function DrawerFooter() {
   return (
     <DrawerClose asChild>
-      <div className="px-4 pb-4 w-full">
+      <div className="px-8 pb-4 w-full">
       <Button
           variant="outline"
           className="w-full"
