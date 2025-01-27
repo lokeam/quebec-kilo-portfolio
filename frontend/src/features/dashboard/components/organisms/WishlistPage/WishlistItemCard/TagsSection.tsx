@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Badge } from "@/shared/components/ui/badge";
 
 interface TagsSectionProps {
-  tags: string[];
+  readonly tags: ReadonlyArray<string>;
 }
 
 export const TagsSection = memo(({ tags }: TagsSectionProps) => {

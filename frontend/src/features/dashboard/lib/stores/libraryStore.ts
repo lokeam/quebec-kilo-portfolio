@@ -6,7 +6,7 @@ import {
 } from '@/shared/constants/viewModes';
 
 
-type LibraryViewMode = typeof featureViewModes.library.allowed[number];
+export type LibraryViewMode = typeof featureViewModes.library.allowed[number];
 
 interface LibraryState {
   platformFilter: string;

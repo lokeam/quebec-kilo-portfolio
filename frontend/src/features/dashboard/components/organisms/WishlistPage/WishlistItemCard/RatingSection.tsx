@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { calculateRatingPercentage } from '@/features/dashboard/lib/types/wishlist/ratings';
 
 interface RatingProps {
   positive: number;
@@ -12,7 +13,7 @@ export const RatingSection = memo(({ positive, negative, totalReviews }: RatingP
       <div className="h-2 w-32 bg-gray-700 rounded-full overflow-hidden">
         <div
           className="h-full bg-blue-500 rounded-full"
-          style={{ width: `${positive}%` }}
+          style={{ width: `${calculateRatingPercentage({ positive, negative, totalReviews })}%` }}
         />
       </div>
       <div className="flex items-center gap-1 text-xs text-gray-400">

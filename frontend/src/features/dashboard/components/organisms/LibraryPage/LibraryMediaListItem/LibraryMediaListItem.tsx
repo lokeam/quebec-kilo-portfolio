@@ -13,7 +13,7 @@ import { visibilityReducer } from '@/features/dashboard/components/organisms/Wis
 import { toast } from 'sonner';
 
 // Types
-import type { CardVisibility } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/WishlistCardItem.types';
+import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
 
 // Icons
 import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';

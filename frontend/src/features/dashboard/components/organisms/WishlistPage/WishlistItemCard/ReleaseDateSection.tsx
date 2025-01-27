@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { SupportedItemPlatforms } from './SupportedItemPlatforms';
-import type { Platform } from '@/features/dashboard/lib/types/page.types';
+import type { PlatformCategory } from '@/shared/types/platform';
 
 interface ReleaseDateSectionProps {
   platform: string;
@@ -20,7 +20,7 @@ export const ReleaseDateSection = memo(({
   return (
     <div className="flex items-center gap-2 text-sm text-gray-400 mt-2">
       <SupportedItemPlatforms
-        platform={platform as Platform}
+        platform={platform as PlatformCategory}
         hasAndroidVersion={hasAndroidVersion}
         hasIOSVersion={hasIOSVersion}
         hasMacOSVersion={hasMacOSVersion}

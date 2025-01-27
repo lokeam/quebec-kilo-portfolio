@@ -13,8 +13,10 @@ import {
   useLibrarySetSearchQuery,
   useLibraryViewMode,
   useLibrarySetViewMode,
-  ViewModes
 } from '@/features/dashboard/lib/stores/libraryStore';
+
+// Constants
+import { featureViewModes } from '@/shared/constants/viewModes';
 
 export function LibraryPageToolbar() {
   const currentViewMode = useLibraryViewMode();
@@ -44,19 +46,19 @@ export function LibraryPageToolbar() {
       <div className="flex items-center gap-3">
         <span className="text-sm text-gray-500">View</span>
         <div className="flex bg-black rounded-md p-1 gap-1">
-          <Button
-            variant={currentViewMode === ViewModes.GRID ? 'default' : 'ghost'}
+        <Button
+            variant={currentViewMode === featureViewModes.library.allowed[0] ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setCurrentViewMode(ViewModes.GRID)}
+            onClick={() => setCurrentViewMode(featureViewModes.library.allowed[0])}
           >
             <LayoutGrid className="h-4 w-4" />
           </Button>
           <Button
-            variant={currentViewMode === ViewModes.LIST ? 'default' : 'ghost'}
+            variant={currentViewMode === featureViewModes.library.allowed[1] ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setCurrentViewMode(ViewModes.LIST)}
+            onClick={() => setCurrentViewMode(featureViewModes.library.allowed[1])}
           >
             <LayoutList className="h-4 w-4" />
           </Button>

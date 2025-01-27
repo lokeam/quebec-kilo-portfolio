@@ -1,6 +1,6 @@
-import type { WishListPageData } from '@/features/dashboard/lib/types/page.types';
+import type { WishlistGroups } from '@/features/dashboard/lib/types/wishlist/base';
 
-export const wishlistPageMockData: WishListPageData = {
+export const wishlistPageMockData: WishlistGroups = {
   pc: [
     {
       id: '1',
@@ -11,7 +11,7 @@ export const wishlistPageMockData: WishListPageData = {
       rating: {
         positive: 80,
         negative: 20,
-        totalReviews: 207000,
+        totalReviews: 100,
       },
       price: {
         original: 19.99,
@@ -19,8 +19,10 @@ export const wishlistPageMockData: WishListPageData = {
         discountPercentage: 75,
         vendor: 'Steam',
       },
-      platform: 'pc',
-      hasMacOSVersion: false,
+      platform: 'PC',
+      platformSupport: {
+        hasMacOSVersion: false,
+      },
     },
   ],
   console: [
@@ -33,7 +35,7 @@ export const wishlistPageMockData: WishListPageData = {
       rating: {
         positive: 300,
         negative: 10,
-        totalReviews: 230,
+        totalReviews: 310,
       },
       price: {
         original: 59.99,
@@ -41,7 +43,7 @@ export const wishlistPageMockData: WishListPageData = {
         discountPercentage: 15,
         vendor: 'iOS App Store',
       },
-      platform: 'console',
+      platform: 'Console',
     },
     {
       id: '3',
@@ -60,7 +62,7 @@ export const wishlistPageMockData: WishListPageData = {
         discountPercentage: 6.7,
         vendor: 'Best Buy',
       },
-      platform: 'console',
+      platform: 'Console',
     },
   ],
   mobile: [
@@ -73,7 +75,7 @@ export const wishlistPageMockData: WishListPageData = {
       rating: {
         positive: 300,
         negative: 10,
-        totalReviews: 230,
+        totalReviews: 310,
       },
       price: {
         original: 14.99,
@@ -81,9 +83,11 @@ export const wishlistPageMockData: WishListPageData = {
         discountPercentage: 15,
         vendor: 'iOS App Store',
       },
-      platform: 'mobile',
-      hasAndroidVersion: true,
-      hasIOSVersion: true,
+      platform: 'Mobile',
+      platformSupport: {
+        hasAndroidVersion: true,
+        hasIOSVersion: true,
+      },
     },
     {
       id: '3',
@@ -102,9 +106,11 @@ export const wishlistPageMockData: WishListPageData = {
         discountPercentage: 15,
         vendor: 'Google Play Store',
       },
-      platform: 'mobile',
-      hasAndroidVersion: true,
-      hasIOSVersion: true,
+      platform: 'Mobile',
+      platformSupport: {
+        hasAndroidVersion: true,
+        hasIOSVersion: true,
+      },
     },
   ],
 }

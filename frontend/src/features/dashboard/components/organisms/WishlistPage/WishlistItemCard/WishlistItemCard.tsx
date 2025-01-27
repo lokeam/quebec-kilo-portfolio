@@ -20,31 +20,22 @@ import { toast } from 'sonner';
 import { IconX } from '@tabler/icons-react'
 
 // Types
-import type { CardVisibility } from './WishlistCardItem.types';
-
+import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
+import type { PlatformSupport } from '@/features/dashboard/lib/types/wishlist/base';
+import type { Price } from '@/shared/types/pricing';
+import type { Rating } from '@/features/dashboard/lib/types/wishlist/ratings';
 
 export type WishlistItemCardProps = {
-  id: string;
-  title: string;
-  thumbnailUrl: string;
-  tags: string[];
-  releaseDate: string;
-  rating: {
-    positive: number;
-    negative: number;
-    totalReviews: number;
-  };
-  price: {
-    original: number;
-    discounted?: number | undefined | null;
-    discountPercentage?: number | undefined | null;
-    vendor: string;
-  };
-  platform: string;
-  hasMacOSVersion?: boolean | undefined | null;
-  hasAndroidVersion?: boolean | undefined | null;
-  hasIOSVersion?: boolean | undefined | null;
-  index: number;
+  readonly id: string;
+  readonly title: string;
+  readonly thumbnailUrl: string;
+  readonly tags: ReadonlyArray<string>;
+  readonly releaseDate: string;
+  readonly price: Price;
+  readonly platform: string;
+  readonly platformSupport?: PlatformSupport;
+  readonly rating?: Rating;
+  readonly index: number;
 };
 
 
@@ -66,9 +57,7 @@ export const WishlistItemCard = memo(({
   platform,
   price,
   index,
-  hasAndroidVersion,
-  hasIOSVersion,
-  hasMacOSVersion
+  platformSupport,
 }: WishlistItemCardProps) => {
   // Edit: Move visibility state to useReducer for better performance
   const [visibility, dispatch] = useReducer(visibilityReducer, {
@@ -134,6 +123,8 @@ export const WishlistItemCard = memo(({
     onBreakpointChange: setVisibilityCallback
   });
 
+  const { hasAndroidVersion, hasIOSVersion, hasMacOSVersion } = platformSupport ?? {};
+
   // Memoize the card content to prevent unnecessary re-renders
   const cardContent = useMemo(() => (
     <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
@@ -163,7 +154,7 @@ export const WishlistItemCard = memo(({
               hasMacOSVersion={hasMacOSVersion ?? false}
             />
           )}
-          {visibility.showRating && <RatingSection {...rating} />}
+          {visibility.showRating && rating && <RatingSection {...rating} />}
         </div>
 
         <PriceSection
@@ -219,8 +210,8 @@ export const WishlistItemCard = memo(({
     isEqual(prevProps.price, nextProps.price) &&
     isEqual(prevProps.rating, nextProps.rating) &&
     isEqual(prevProps.tags, nextProps.tags) &&
-    prevProps.hasAndroidVersion === nextProps.hasAndroidVersion &&
-    prevProps.hasIOSVersion === nextProps.hasIOSVersion &&
-    prevProps.hasMacOSVersion === nextProps.hasMacOSVersion
+    prevProps.platformSupport?.hasAndroidVersion === nextProps.platformSupport?.hasAndroidVersion &&
+    prevProps.platformSupport?.hasIOSVersion === nextProps.platformSupport?.hasIOSVersion &&
+    prevProps.platformSupport?.hasMacOSVersion === nextProps.platformSupport?.hasMacOSVersion
   );
 });
