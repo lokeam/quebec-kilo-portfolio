@@ -9,7 +9,7 @@ import { MemoizedLibraryMediaListItem } from '@/features/dashboard/components/or
 
 // Utils + Hooks
 import {
-  ViewModes,
+  type LibraryViewMode,
   useLibraryGames,
   useLibraryPlatformFilter,
 } from '@/features/dashboard/lib/stores/libraryStore';
@@ -21,7 +21,7 @@ import { type ComponentType } from 'react';
 import { useFilteredLibraryItems } from '../../lib/hooks/useFilteredLibraryItems';
 
 interface LibraryLayoutProps {
-  viewMode: typeof ViewModes[keyof typeof ViewModes];
+  viewMode: LibraryViewMode;
   EmptyPage: ComponentType;
   Toolbar: ComponentType;
   title: ReactNode;
@@ -74,7 +74,7 @@ export function LibraryLayoutContainer({
       return <NoResultsFound />;
     }
 
-    const CardComponent = viewMode === ViewModes.GRID
+    const CardComponent = viewMode === 'grid'
       ? LibraryMediaItem
       : MemoizedLibraryMediaListItem;
 

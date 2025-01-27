@@ -1,20 +1,20 @@
 import { create } from 'zustand';
 import { type LibraryItem } from '@/features/dashboard/lib/types/library/items';
+import {
+  featureViewModes,
+  getStoredViewMode,
+} from '@/shared/constants/viewModes';
 
-export const ViewModes = {
-  GRID: 'grid',
-  LIST: 'list',
-} as const;
 
-export type ViewMode = typeof ViewModes[keyof typeof ViewModes];
+type LibraryViewMode = typeof featureViewModes.library.allowed[number];
 
 interface LibraryState {
   platformFilter: string;
   setPlatformFilter: (filter: string) => void;
   userGames: LibraryItem[];
   setGames: (games: LibraryItem[]) => void;
-  viewMode: ViewMode;
-  setViewMode: (mode: ViewMode) => void;
+  viewMode: LibraryViewMode;
+  setViewMode: (mode: LibraryViewMode) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 }
@@ -24,8 +24,18 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   setPlatformFilter: (platform) => set({ platformFilter: platform}),
   userGames: [],
   setGames: (games) => set({ userGames: games }),
-  viewMode: ViewModes.GRID,
-  setViewMode: (mode) =>{ set({ viewMode: mode })},
+  viewMode: getStoredViewMode(
+    featureViewModes.library.storageKey,
+    featureViewModes.library.default,
+    featureViewModes.library.allowed, // Need to pass allowed modes here to differentiate between modes with or without table view
+  ),
+  setViewMode: (mode) =>{
+    // Only allow modes that are valid for library
+    if (featureViewModes.library.allowed.includes(mode)) {
+      localStorage.setItem(featureViewModes.library.storageKey, mode);
+      set({ viewMode: mode });
+    }
+  },
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));

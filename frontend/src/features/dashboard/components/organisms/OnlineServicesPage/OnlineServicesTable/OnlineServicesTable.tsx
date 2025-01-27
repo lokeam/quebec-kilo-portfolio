@@ -10,7 +10,7 @@ import {
 } from "@/shared/components/ui/table"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
-import type { OnlineService } from '@/features/dashboard/lib/types/service.types'
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services'
 
 interface OnlineServicesTableProps {
   services: OnlineService[]

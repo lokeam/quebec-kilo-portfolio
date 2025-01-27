@@ -8,7 +8,7 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 
 // Hooks
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
-import { useOnlineServicesStore, ViewModes } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Constants
 import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
@@ -36,21 +36,20 @@ export function OnlineServicesToolbar() {
   );
 
   useEffect(() => {
-    const selectedBillingCycles = Object.entries(billingCycleFilter.checkboxes)
-      .filter(([_, isChecked]) => isChecked)
-      .map(([key]) => key);
 
-    console.log('Selected Billing Cycles:', selectedBillingCycles); // Debug log
+    const selectedBillingCycles = Object.entries(billingCycleFilter.checkboxes)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .filter(([_, isChecked]) => isChecked === true)
+      .map(([key]) => key);
 
     setBillingCycleFilters(selectedBillingCycles);
   }, [billingCycleFilter.checkboxes, setBillingCycleFilters]);
 
   useEffect(() => {
     const selectedPaymentMethods = Object.entries(paymentMethodFilter.checkboxes)
-      .filter(([_, isChecked]) => isChecked)
-      .map(([key]) => key);
-
-    console.log('Selected Payment Methods:', selectedPaymentMethods); // Debug log
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    .filter(([_, isChecked]) => isChecked === true)
+    .map(([key]) => key);
 
     setPaymentMethodFilters(selectedPaymentMethods);
   }, [paymentMethodFilter.checkboxes, setPaymentMethodFilters]);
@@ -85,26 +84,26 @@ export function OnlineServicesToolbar() {
         <span className="text-sm text-gray-500">View</span>
         <div className="flex bg-black rounded-md p-1 gap-1">
           <Button
-            variant={viewMode === ViewModes.GRID ? 'default' : 'ghost'}
+            variant={viewMode === 'grid' ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setViewMode(ViewModes.GRID)}
+            onClick={() => setViewMode('grid')}
           >
             <LayoutGrid className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === ViewModes.LIST ? 'default' : 'ghost'}
+            variant={viewMode === 'list' ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setViewMode(ViewModes.LIST)}
+            onClick={() => setViewMode('list')}
           >
             <LayoutList className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === ViewModes.TABLE ? 'default' : 'ghost'}
+            variant={viewMode === 'table' ? 'default' : 'ghost'}
             size="icon"
             className="h-8 w-8"
-            onClick={() => setViewMode(ViewModes.TABLE)}
+            onClick={() => setViewMode('table')}
           >
             <Sheet className="h-4 w-4" />
           </Button>

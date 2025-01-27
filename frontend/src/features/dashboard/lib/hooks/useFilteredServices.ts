@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 import {
   useOnlineServicesSearch,
   useOnlineServicesBillingFilters,
@@ -12,27 +12,22 @@ export function useFilteredServices(services: OnlineService[]) {
   const paymentMethodFilters = useOnlineServicesPaymentFilters();
 
   return useMemo(() => {
-
     return services.filter((service) => {
       // Search filter
-      const matchesSearch = !searchQuery || service.label.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !searchQuery ||
+        service.label.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Billing cycle filter
-      const matchesBillingCycle = billingCycleFilters.length === 0 ||
-        billingCycleFilters.includes(service.billingCycle);
+      const matchesBillingCycle =
+        billingCycleFilters.length === 0 || // if no filters, show all
+        (service.billing?.cycle &&
+         billingCycleFilters.some(filter => filter === service.billing.cycle));
 
       // Payment method filter
-      const matchesPaymentMethod = paymentMethodFilters.length === 0 ||
-        (service.paymentMethod && paymentMethodFilters.includes(service.paymentMethod))
-
-      console.log('Service filtering:', {
-        service: service.label,
-        billingCycle: service.billingCycle,
-        paymentMethod: service.paymentMethod,
-        matchesBillingCycle,
-        matchesPaymentMethod
-      });
-
+      const matchesPaymentMethod =
+        paymentMethodFilters.length === 0 || // if no filters, show all
+        (service.billing?.paymentMethod &&
+         paymentMethodFilters.some(filter => filter === service.billing.paymentMethod));
       return matchesSearch && matchesBillingCycle && matchesPaymentMethod;
     });
   }, [services, searchQuery, billingCycleFilters, paymentMethodFilters]);

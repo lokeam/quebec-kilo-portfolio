@@ -5,26 +5,28 @@ import { PageMain } from '@/shared/components/layout/page-main';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 
 // Utils + Hooks
-import { ViewModes } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import type { ViewMode } from '@/shared/constants/viewModes';
 
 // Types
 import { type ComponentType } from 'react';
-import type { Service } from '@/features/dashboard/lib/types/service.types';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 
-interface ServiceListContainerProps<T extends Service> {
-  services: T[];
+interface ServiceListContainerProps {
+  services: OnlineService[];
   totalServices: number;
-  viewMode: typeof ViewModes[keyof typeof ViewModes];
+  viewMode: ViewMode;
   title: string;
   EmptyPage: ComponentType;
   AddNewDialog: ComponentType;
   Toolbar: ComponentType;
-  Table: ComponentType<{ services: T[] }>;
-  Card: ComponentType<T & { isWatchedByResizeObserver: boolean }>;
+  Table: ComponentType<{ services: OnlineService[] }>;
+  Card: ComponentType<OnlineService & { isWatchedByResizeObserver: boolean }>;
   NoResultsFound: ComponentType;
+  containerClassName?: string;
+  hasCSSGridLayout?: boolean;
 }
 
-export function ServiceListContainer<T extends Service>({
+export function ServiceListContainer({
   services,
   totalServices,
   viewMode,
@@ -34,6 +36,8 @@ export function ServiceListContainer<T extends Service>({
   Toolbar,
   Table,
   Card,
+  containerClassName = 'grid grid-cols-1 gap-4',
+  hasCSSGridLayout = true,
 }: ServiceListContainerProps<T>) {
   /* True empty state - first time user zero services */
   if (totalServices === 0) {
@@ -53,13 +57,16 @@ export function ServiceListContainer<T extends Service>({
       return <NoResultsFound />;
     }
 
-    if (viewMode === ViewModes.TABLE) {
+    if (viewMode === 'table') {
       return <Table services={services} />;
     }
 
     return (
-      <div className={`grid grid-cols-1 gap-4 ${
-        viewMode === ViewModes.GRID ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
+      <div className={`${containerClassName} ${
+        viewMode === 'grid'
+        && hasCSSGridLayout
+        ? 'md:grid-cols-2 2xl:grid-cols-3'
+        : ''
       }`}>
         {services.map((service, index) => (
           <Card

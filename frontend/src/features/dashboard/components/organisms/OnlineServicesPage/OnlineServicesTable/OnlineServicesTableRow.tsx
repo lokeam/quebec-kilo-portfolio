@@ -12,12 +12,13 @@ import { Monitor } from 'lucide-react';
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/lib/types/service.types';
-import type { PaymentMethod } from '@/features/dashboard/lib/types/service.types';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { PaymentMethod } from '@/shared/constants/payment';
 
 // Hooks
 import { toast } from 'sonner';
 import { useOnlineServicesToggleActive, useOnlineServicesIsActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import { isServiceFree } from '@/features/dashboard/lib/utils/online-service-status';
 
 interface OnlineServicesTableRowProps {
   service: OnlineService;
@@ -33,10 +34,8 @@ const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) 
 
 function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProps) {
   const hasValidLogo = Boolean(service.logo);
-  const paymentDate = `${service.renewalMonth} ${service.renewalDay}`;
-  const isFree = service.billingCycle === 'NA';
-  console.log(`${service.label} ${service.billingCycle}`);
-
+  const paymentDate = service.billing?.renewalDate ? `${service.billing.renewalDate.month} ${service.billing.renewalDate.day}` : '--';
+  const isFree = isServiceFree({ billing: service.billing } as OnlineService);
 
   // Handlers for online service activation
   const toggleActiveOnlineService = useOnlineServicesToggleActive();
@@ -68,7 +67,7 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
           <div className="flex flex-col">
             <span className="font-medium">{service.label}</span>
             <span className="text-sm text-muted-foreground">
-              {service.tierName || "Standard subscription"}
+              {service.tier?.currentTier || "Standard subscription"}
             </span>
           </div>
         </div>
@@ -84,14 +83,14 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
           isFree ? (
             <span>--</span>
           ) : (
-            <span>{service.billingCycle}</span>
+            <span>{service.billing?.cycle}</span>
           )
         }
       </TableCell>
-      <TableCell>{service.monthlyFee}</TableCell>
+      <TableCell>{service.billing?.fees.monthly}</TableCell>
       <TableCell>
         <PaymentIcon
-          type={(service.paymentMethod || 'Generic') as PaymentMethod}
+          type={(service.billing?.paymentMethod || 'Generic') as PaymentMethod}
           format="flatRounded"
         />
       </TableCell>
@@ -116,11 +115,12 @@ export const OnlineServicesTableRow = memo(
       prevProps.service.name === nextProps.service.name &&
       prevProps.service.label === nextProps.service.label &&
       prevProps.service.logo === nextProps.service.logo &&
-      prevProps.service.tierName === nextProps.service.tierName &&
-      prevProps.service.billingCycle === nextProps.service.billingCycle &&
-      prevProps.service.monthlyFee === nextProps.service.monthlyFee &&
-      prevProps.service.paymentMethod === nextProps.service.paymentMethod &&
-      prevProps.service.isActive === nextProps.service.isActive
+      prevProps.service.tier?.currentTier === nextProps.service.tier?.currentTier &&
+      prevProps.service.billing?.cycle === nextProps.service.billing?.cycle &&
+      prevProps.service.billing?.fees.monthly === nextProps.service.billing?.fees.monthly &&
+      prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
+      prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
+      prevProps.service.status === nextProps.service.status
     );
   }
 );

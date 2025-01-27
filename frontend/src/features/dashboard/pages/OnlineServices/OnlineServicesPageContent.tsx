@@ -12,14 +12,25 @@ import { ServiceListContainer } from '@/features/dashboard/components/templates/
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
+// Types
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+
 // Mock Data
 import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
 import { OnlineServicesEmptyPage } from '@/features/dashboard/pages/OnlineServices/OnlineServicesEmptyPage';
+import type { ServiceType } from '@/shared/constants/service.constants';
 
 export function OnlineServicesPageContent() {
   const { viewMode } = useOnlineServicesStore();
-  const filteredServices = useFilteredServices(onlineServicesPageMockData?.services);
+  const filteredServices = useFilteredServices(onlineServicesPageMockData?.services.map(service => ({
+    ...service,
+    type: service.type as ServiceType,
+    tier: {
+      currentTier: service.tier.name,
+      availableTiers: [{ name: service.tier.name, features: service.tier.features }]
+    }
+  })) as OnlineService[]);
   const setServices = useOnlineServicesStore((state) => state.setServices);
 
   useCardLabelWidth({
@@ -36,10 +47,15 @@ export function OnlineServicesPageContent() {
   });
 
   useEffect(() => {
-    setServices(onlineServicesPageMockData?.services);
+    setServices(onlineServicesPageMockData?.services.map(service => ({
+      ...service,
+      type: service.type as ServiceType,
+      tier: {
+        currentTier: service.tier.name,
+        availableTiers: [{ name: service.tier.name, features: service.tier.features }]
+      }
+    })) as OnlineService[]);
   }, [setServices])
-
-  console.log('checking filteredServices', filteredServices);
 
   return (
     <ServiceListContainer
@@ -53,6 +69,7 @@ export function OnlineServicesPageContent() {
       Toolbar={OnlineServicesToolbar}
       Table={OnlineServicesTable}
       Card={SingleOnlineServiceCard}
+      hasCSSGridLayout={true}
     />
   );
 }
