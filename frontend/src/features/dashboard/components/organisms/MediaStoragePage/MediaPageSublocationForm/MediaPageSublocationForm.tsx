@@ -3,19 +3,8 @@
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
 
 // Shadcn UI Components
-import { Input } from "@/shared/components/ui/input"
-
-import { Button } from "@/shared/components/ui/button";
-
-// Icons
-import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
-import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
-
-import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
-import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
-import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
-import { Package } from 'lucide-react';
-
+import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
 import {
   FormControl,
   FormDescription,
@@ -23,7 +12,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/shared/components/ui/form"
+} from '@/shared/components/ui/form';
 
 import {
   Select,
@@ -31,17 +20,25 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/shared/components/ui/select"
+} from '@/shared/components/ui/select';
+
+// Icons
+import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
+import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
+import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
+import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
+import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
+import { Package } from 'lucide-react';
 
 // Hooks
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { toast } from "sonner"
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 // Zod
-import { z } from "zod"
+import { z } from 'zod';
 
-const FormSchema = z.object({
+export const FormSchema = z.object({
   locationName: z
     .string({
       required_error: "Please enter a location name",
@@ -60,18 +57,24 @@ const FormSchema = z.object({
 });
 
 interface MediaPageSublocationFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (data: z.infer<typeof FormSchema>) => void;
+  defaultValues?: z.infer<typeof FormSchema>;
+  buttonText?: string;
 }
 
-export function MediaPageSublocationForm({ onSuccess}: MediaPageSublocationFormProps) {
+export function MediaPageSublocationForm({
+  onSuccess,
+  defaultValues = {
+    locationName: '',
+    locationType: '',
+    bgColor: '',
+  },
+  buttonText = "Submit",
+}: MediaPageSublocationFormProps) {
   /* Specific form components creates their own useForm hook instances */
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      locationName: '',
-      locationType: '',
-      bgColor: '',
-    }
+    defaultValues
   });
 
   const handleSubmit = (data: z.infer<typeof FormSchema>) => {
@@ -79,9 +82,8 @@ export function MediaPageSublocationForm({ onSuccess}: MediaPageSublocationFormP
       className: 'bg-green-500 text-white',
       duration: 2500,
     });
-    onSuccess?.();
+    onSuccess?.(data);
   };
-
 
   return (
     <FormContainer form={form} onSubmit={handleSubmit}>
@@ -94,10 +96,10 @@ export function MediaPageSublocationForm({ onSuccess}: MediaPageSublocationFormP
           <FormItem>
             <FormLabel>Sublocation Name</FormLabel>
             <FormControl>
-              <Input placeholder="Example: Study bookshelf A" {...field} />
+              <Input placeholder="Example: Study bookcase" {...field} />
             </FormControl>
             <FormDescription>
-              This is the area in your main location where the media is stored.
+              What shall we call this area?
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -158,7 +160,7 @@ export function MediaPageSublocationForm({ onSuccess}: MediaPageSublocationFormP
               </SelectContent>
             </Select>
             <FormDescription>
-              Think of this as the venue where the media is stored.
+              What kind of furniture or storage unit is this?
             </FormDescription>
 
             <FormMessage />
@@ -201,9 +203,7 @@ export function MediaPageSublocationForm({ onSuccess}: MediaPageSublocationFormP
         )}
       />
 
-
-
-      <Button type="submit" className="w-full">Submit</Button>
+      <Button type="submit" className="w-full">{buttonText}</Button>
     </FormContainer>
-  )
+  );
 }

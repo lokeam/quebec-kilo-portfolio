@@ -1,2 +1,2 @@
 export { SearchDialog } from './SearchDialog';
-export { SearchDialogSkeleton } from './SearchDialogSkeleton';
+export { SearchServicesSkeleton } from './SearchServicesSkeleton';

@@ -52,6 +52,41 @@ const SpendTrackingPage = lazy(() => import(
   '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPage'
 ));
 
+const OnboardingPage = lazy(() => import(
+  /* webpackChunkName: "OnboardingPage" */
+  '@/features/dashboard/pages/Onboarding/OnboardingPage'
+));
+
+const OnboardingIntro = lazy(() => import(
+  /* webpackChunkName: "OnboardingIntro" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingIntro'
+));
+
+const OnboardingPageComplete = lazy(() => import(
+  /* webpackChunkName: "OnboardingPageComplete" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPageComplete'
+));
+
+const OnboardingLocationSelection = lazy(() => import(
+  /* webpackChunkName: "OnboardingLocationSelection" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingLocationSelection'
+));
+
+const OnboardingPagePhysicalLocations = lazy(() => import(
+  /* webpackChunkName: "OnboardingPagePhysicalLocations" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPagePhysicalLocations'
+));
+
+const OnboardingPagePhysicalSublocations = lazy(() => import(
+  /* webpackChunkName: "OnboardingPagePhysicalSublocations" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPagePhysicalSublocations'
+));
+
+const OnboardingPageDigital = lazy(() => import(
+  /* webpackChunkName: "OnboardingPageDigital" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingDigital'
+));
+
 
 function App() {
   return (
@@ -63,6 +98,14 @@ function App() {
               <SidebarProvider defaultOpen={true}>
                 <Suspense fallback={<Loading />}>
                   <Routes>
+                    <Route path="/onboarding/welcome" element={<OnboardingPage />} />
+                    <Route path="/onboarding/intro" element={<OnboardingIntro />} />
+                    <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
+                    <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
+                    <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
+                    <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
+                    <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
+
                     <Route
                       element={
                         <ProtectedRoute>

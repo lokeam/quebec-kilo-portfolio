@@ -34,6 +34,7 @@ export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS]
  * Defines all possible billing cycles for subscription services
  */
 export const BILLING_CYCLES = {
+  NA: 'NA',
   MONTHLY: '1 month',
   QUARTERLY: '3 month',
   BIANNUAL: '6 month',

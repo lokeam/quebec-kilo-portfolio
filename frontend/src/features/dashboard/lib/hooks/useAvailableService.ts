@@ -16,19 +16,11 @@ export function useAvailableServices(searchQuery: string): UseAvailableServicesR
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setAvailableServices([]);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
-    // Simulate network delay - replace with Tanstack Query
     const timeoutId = setTimeout(() => {
       try {
-        // Filter using label instead of name
-        // NOTE: Replace with proper data from Tanstack Query
         const services = onlineServicesPageMockData.services.map(service => ({
           ...service,
           tier: {
@@ -41,10 +33,14 @@ export function useAvailableServices(searchQuery: string): UseAvailableServicesR
             }],
           }
         })) as OnlineService[];
-        const filtered = services.filter((service) =>
-          service.label.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setAvailableServices(filtered as OnlineService[]);
+
+        const filtered = searchQuery.trim()
+          ? services.filter((service) =>
+              service.label.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+          : services;
+
+        setAvailableServices(filtered);
         setIsLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('An error occurred'));

@@ -37,7 +37,7 @@ import { z } from "zod"
 import { House, Building, Building2, Warehouse } from 'lucide-react';
 import { IconCar } from '@tabler/icons-react';
 
-const FormSchema = z.object({
+export const FormSchema = z.object({
   locationName: z
     .string({
       required_error: "Please enter a location name",
@@ -63,21 +63,27 @@ const FormSchema = z.object({
 });
 
 interface MediaPageLocationFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (data: z.infer<typeof FormSchema>) => void;
+  defaultValues?: z.infer<typeof FormSchema>;
+  buttonText?: string;
 }
 
-export function MediaPageLocationForm({ onSuccess}: MediaPageLocationFormProps) {
+export function MediaPageLocationForm({
+  buttonText = "Submit",
+  onSuccess,
+  defaultValues = {
+    locationName: '',
+    locationType: '',
+    coordinates: {
+      enabled: false,
+      value: '' // Ensure value is never undefined
+    }
+  }
+}: MediaPageLocationFormProps) {
   /* Specific form components creates their own useForm hook instances */
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      locationName: '',
-      locationType: '',
-      coordinates: {
-        enabled: false,
-        value: '' // Ensure value is never undefined
-      }
-    }
+    defaultValues
   });
 
   const handleSubmit = (data: z.infer<typeof FormSchema>) => {
@@ -85,7 +91,7 @@ export function MediaPageLocationForm({ onSuccess}: MediaPageLocationFormProps) 
       className: 'bg-green-500 text-white',
       duration: 2500,
     });
-    onSuccess?.();
+    onSuccess?.(data);
   };
 
   return (
@@ -215,7 +221,7 @@ export function MediaPageLocationForm({ onSuccess}: MediaPageLocationFormProps) 
         )}
       />
 
-      <Button type="submit" className="w-full">Submit</Button>
+      <Button type="submit" className="w-full">{buttonText}</Button>
     </FormContainer>
   )
 }

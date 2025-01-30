@@ -5,7 +5,7 @@ import { Button } from "@/shared/components/ui/button"
 import { DialogTrigger } from '@/shared/components/ui/dialog'
 
 // Components
-import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog'
+import { SearchDialog, SearchServicesSkeleton } from '@/shared/components/ui/SearchDialog'
 import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult'
 
 // Hooks
@@ -74,7 +74,7 @@ export function AddItemSearchDialog() {
       }
     >
       {isLoading ? (
-        <SearchDialogSkeleton />
+        <SearchServicesSkeleton />
       ) : error ? (
         <div className="text-red-500 p-4">
           We're having trouble with search. Please try again later.
