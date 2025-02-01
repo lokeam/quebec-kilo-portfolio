@@ -1,5 +1,6 @@
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { DefaultErrorFallbackPage } from '../pages/DefaultErrorFallbackPage';
+import { QueryErrorResetBoundary } from '@tanstack/react-query';
 // import type { ErrorInfo } from 'react';
 // import { sendToSentry } from '@/services/monitoring'; // Assuming you have monitoring
 
@@ -20,7 +21,9 @@ export const ErrorBoundaryProvider = ({
    * Handles logging of caught errors
    * @param error - The error that was thrown
    * @param errorInfo - React's error info object containing component stack
-   * Pattern from: https://github.com/bvaughn/react-error-boundary#error-boundary
+   * Patterns from:
+   * https://github.com/bvaughn/react-error-boundary#error-boundary
+   * https://github.com/bvaughn/react-error-boundary#reset-keys
    */
   //const handleError = (error: Error, errorInfo: ErrorInfo) => {
     // TODO: Wire into monitoring service
@@ -32,14 +35,16 @@ export const ErrorBoundaryProvider = ({
   //};
 
   return (
-    <ErrorBoundary
-      FallbackComponent={FallbackComponent}
-      // onError={handleError}
-      // Don't retry on same error to prevent infinite loops
-      // https://github.com/bvaughn/react-error-boundary#reset-keys
-      resetKeys={[]}
-    >
-      {children}
-    </ErrorBoundary>
+    <QueryErrorResetBoundary>
+      {({ reset }) => (
+        <ErrorBoundary
+          FallbackComponent={FallbackComponent}
+          onReset={reset}
+          resetKeys={[]}
+        >
+          {children}
+        </ErrorBoundary>
+      )}
+    </QueryErrorResetBoundary>
   );
 };
