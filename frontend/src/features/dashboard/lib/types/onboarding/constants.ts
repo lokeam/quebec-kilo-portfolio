@@ -23,4 +23,4 @@ export const NAVIGATION_ROUTES = {
   ONBOARDING_SELECT_PHYSICAL_SUB: '/onboarding/physical/sublocation',
   ONBOARDING_SELECT_DIGITAL: '/onboarding/digital',
   ONBOARDING_COMPLETE: '/onboarding/complete',
-};
+} as const;

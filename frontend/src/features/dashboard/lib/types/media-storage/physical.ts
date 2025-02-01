@@ -45,22 +45,8 @@ export interface PhysicalLocation extends BaseLocation {
   /** Geographic coordinates of the location */
   mapCoordinates?: string;
 
-  /** Street address of the location */
-  address?: string;
-
   /** List of storage subdivisions within this location */
   subLocations?: SubLocation[];
-
-  /** Hours during which the location can be accessed */
-  accessHours?: string;
-
-  /** Environmental conditions monitoring */
-  climate?: {
-    /** Temperature in Celsius */
-    temperature?: number;
-    /** Relative humidity percentage */
-    humidity?: number;
-  };
 }
 
 /**
