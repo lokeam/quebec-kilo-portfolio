@@ -4,9 +4,16 @@ import { Auth0Provider } from '@auth0/auth0-react';
 import { AuthInitializer } from '@/core/api/components/AuthInitializer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { logger } from '@/core/utils/logger/logger';
 
 import App from './App.tsx'
 import './index.css'
+
+// Debug
+logger.configure({
+  enabled: process.env.NODE_ENV === 'development',
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'error'
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,6 +30,7 @@ createRoot(document.getElementById('root')!).render(
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
+
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: 'openid profile email'
