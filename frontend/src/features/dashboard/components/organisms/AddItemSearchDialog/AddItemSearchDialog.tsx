@@ -1,60 +1,38 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useCallback } from 'react';
 
 // Shadcn Components
-import { Button } from "@/shared/components/ui/button"
-import { DialogTrigger } from '@/shared/components/ui/dialog'
+import { Button } from '@/shared/components/ui/button';
+import { DialogTrigger } from '@/shared/components/ui/dialog';
 
 // Components
-import { SearchDialog, SearchServicesSkeleton } from '@/shared/components/ui/SearchDialog'
-import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult'
+import { SearchDialog, SearchServicesSkeleton } from '@/shared/components/ui/SearchDialog';
+import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult';
 
 // Hooks
-import { useSearchGames } from '@/features/dashboard/lib/hooks/useSearchGames'
-import { useDebounce } from '@/shared/hooks/useDebounce'
+import { useDebounce } from '@/shared/hooks/useDebounce';
+import { useMediaItemSearch } from '@/core/api/queries/useMediaItemSearch';
 
 // Icons
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon } from 'lucide-react';
 
 // Types
-import type { Game } from '@/types/types/domain.types'
+//import type { Game } from '@/types/types/domain.types';
 
 export function AddItemSearchDialog() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [searchResults, setSearchResults] = useState<Game[]>([]);
+
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
-  const { games, isLoading, error } = useSearchGames(debouncedSearchQuery);
+  const { data: games, isLoading, error } = useMediaItemSearch(debouncedSearchQuery);
 
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open)
-    if (!open) {
-      setSearchQuery('')
-    }
+    if (!open) setSearchQuery('')
   }, []);
 
   const handleSearchQueryChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value)
   }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (games?.length > 0 && isMounted) {
-      setSearchResults(games)
-    }
-
-    return () => {
-      isMounted = false;
-    }
-  }, [games]);
-
-  const displaySearchResults = useMemo(() => {
-    // Early return for undefined/empty cases
-    if (!games && !searchResults.length) return [];
-
-    // Prefer games over searchResults when available
-    return games?.length ? games : searchResults;
-  }, [games, searchResults]);
 
   return (
     <SearchDialog
@@ -79,17 +57,17 @@ export function AddItemSearchDialog() {
         <div className="text-red-500 p-4">
           We're having trouble with search. Please try again later.
         </div>
-      ) : displaySearchResults.length === 0 ? (
+      ) : games?.length === 0 ? (
         <div className="text-muted-foreground p-4 text-center">
           {debouncedSearchQuery ? 'No games found' : 'Start typing to search for games'}
         </div>
       ) : (
-        displaySearchResults.map((game, index) => (
+        games?.map((game, index) => (
           <SearchResult
-            key={`${game.name}-${index}`}
-            title={game.name}
-            imageUrl={game.coverImage}
-            isInLibrary={game.isInLibrary}
+            key={`${game?.title}-${index}`}
+            title={game?.title ?? ''}
+            imageUrl={game?.thumbnailUrl ?? ''}
+            isInLibrary={game?.isInLibrary ?? false}
           />
         ))
       )}
