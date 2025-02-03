@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
 	Server ServerConfig
 	Env    string
 	Debug  bool
+	IGDB   IGDBConfig
 }
 
 type ServerConfig struct {
@@ -17,23 +19,32 @@ type ServerConfig struct {
 	Host string
 }
 
+type IGDBConfig struct {
+	ClientID       string
+	ClientSecret   string
+	AuthURL        string           // Twitch OAuth URL
+	BaseURL        string           // IGDB API base URL
+	TokenTTL       time.Duration    // Duration until we need a token refresh
+}
+
 func Load() (*Config, error) {
-	env := os.Getenv("ENV")
+	env := os.Getenv(EnvEnvironment)
 	if env == "" {
-		env = "dev"
-	} else if env != "dev" && env != "test" && env != "prod" {
-		return nil, fmt.Errorf("invalid environment: must be one of dev, test or prod")
+		env = EnvDevelopment
+	} else if env != EnvDevelopment && env != EnvTest && env != EnvProduction {
+		return nil, fmt.Errorf("invalid environment: must be one of %s, %s or %s",
+			EnvDevelopment, EnvTest, EnvProduction)
 	}
 
 	// Debug mode handling
 	debug := false
-	if debugStr := os.Getenv("APP_DEBUG"); debugStr == "true" {
+	if debugStr := os.Getenv(EnvDebug); debugStr == "true" {
 		debug = true
 	}
 
 	// Port handling
-	portStr := os.Getenv("PORT")
-	port := 8080 // default
+	portStr := os.Getenv(EnvPort)
+	port := DefaultPort
 	if portStr != "" {
 		var err error
 		port, err = strconv.Atoi(portStr)
@@ -46,14 +57,23 @@ func Load() (*Config, error) {
 	}
 
 	// Host handling
-	host := os.Getenv("HOST")
+	host := os.Getenv(EnvHost)
 	// Check if HOST was explicitly set to empty
-	if _, exists := os.LookupEnv("HOST"); exists && host == "" {
+	if _, exists := os.LookupEnv(EnvHost); exists && host == "" {
 			return nil, fmt.Errorf("host cannot be empty")
 	}
 	// Use default if HOST not set
 	if host == "" {
-		host = "localhost"
+		host = DefaultHost
+	}
+
+	// IGDB Configuration
+	igdbConfig := IGDBConfig{
+		ClientID:        os.Getenv(EnvIGDBClientID),
+		ClientSecret:    os.Getenv(EnvIGDBClientSecret),
+		AuthURL:         IGDBAuthURL,
+		BaseURL:         IGDBBaseURL,
+		TokenTTL:        24 * time.Hour,
 	}
 
 	return &Config{
@@ -63,5 +83,6 @@ func Load() (*Config, error) {
 		},
 		Env: env,
 		Debug: debug,
+		IGDB: igdbConfig,
 	}, nil
 }
