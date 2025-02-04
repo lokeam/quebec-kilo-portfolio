@@ -2,10 +2,10 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
 )
@@ -13,6 +13,7 @@ import (
 type Server struct {
 	config *config.Config
 	logger *logger.Logger
+	router chi.Router
 }
 
 func NewServer(
@@ -20,33 +21,18 @@ func NewServer(
 	logger *logger.Logger,
 ) *Server {
 
-	return &Server{
+	srv := &Server{
 		config: config,
 		logger: logger,
+		router: chi.NewRouter(),
 	}
+
+	return srv
 }
 
 // Add http.Handler
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Use router to handle requests
-	s.Routes().ServeHTTP(w, r)
-}
-
-// Utility - write JSON
-func (s *Server) writeJSON(
-	w http.ResponseWriter,
-	status int,
-	data any,
-	headers http.Header,
-) error {
-	w.Header().Set("Content-Type", "application/json")
-
-	for key, value := range headers {
-		w.Header()[key] = value
-	}
-
-	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(data)
+	s.router.ServeHTTP(w, r)
 }
 
 // Gracefully shut down server
@@ -55,7 +41,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		"time": time.Now().Format(time.RFC3339),
 	})
 
-	// Clean up tasts
+	// Clean up tasks
 	return nil
 }
 

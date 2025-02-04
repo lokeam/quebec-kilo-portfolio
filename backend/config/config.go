@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -11,12 +12,22 @@ type Config struct {
 	Server ServerConfig
 	Env    string
 	Debug  bool
+	CORS   CORSConfig
 	IGDB   IGDBConfig
 }
 
 type ServerConfig struct {
 	Port int
 	Host string
+}
+
+type CORSConfig struct {
+	AllowedOrigins       []string
+	AllowedMethods       []string
+	AllowedHeaders       []string
+	ExposedHeaders       []string
+	AllowCredentials     bool
+	MaxAge               int
 }
 
 type IGDBConfig struct {
@@ -67,6 +78,16 @@ func Load() (*Config, error) {
 		host = DefaultHost
 	}
 
+	// CORS Configuration + defaults
+	corsConfig := CORSConfig{
+		AllowedOrigins:   strings.Split(getEnvOrDefault("CORS_ALLOWED_ORIGINS", "https://*,http://*"), ","),
+		AllowedMethods:   strings.Split(getEnvOrDefault("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS"), ","),
+		AllowedHeaders:   strings.Split(getEnvOrDefault("CORS_ALLOWED_HEADERS", "Accept,Authorization,Content-Type,X-CSRF-Token"), ","),
+		ExposedHeaders:   strings.Split(getEnvOrDefault("CORS_EXPOSED_HEADERS", "Link"), ","),
+		AllowCredentials: getEnvBoolOrDefault("CORS_ALLOW_CREDENTIALS", true),
+		MaxAge:          getEnvIntOrDefault("CORS_MAX_AGE", 300),
+	}
+
 	// IGDB Configuration
 	igdbConfig := IGDBConfig{
 		ClientID:        os.Getenv(EnvIGDBClientID),
@@ -83,6 +104,7 @@ func Load() (*Config, error) {
 		},
 		Env: env,
 		Debug: debug,
+		CORS: corsConfig,
 		IGDB: igdbConfig,
 	}, nil
 }
