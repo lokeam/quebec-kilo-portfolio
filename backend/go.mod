@@ -3,6 +3,7 @@ module github.com/lokeam/qko-beta
 go 1.22.0
 
 require (
+	github.com/Henry-Sarabia/igdb v1.0.3
 	github.com/auth0/go-jwt-middleware/v2 v2.2.0
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.2.0
@@ -15,9 +16,13 @@ require (
 )
 
 require (
+	github.com/Henry-Sarabia/apicalypse v1.0.2 // indirect
+	github.com/Henry-Sarabia/blank v3.0.0+incompatible // indirect
+	github.com/Henry-Sarabia/sliceconv v1.0.2 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect

@@ -42,8 +42,12 @@ init-env:
 
 # Check required tools
 check-docker:
-	@if [ -z "$(shell docker-compose --version 2>/dev/null)" ]; then \
-		echo "$(RED)Error: docker-compose is not installed$(RESET)"; \
+	@if ! command -v docker > /dev/null 2>&1; then \
+		echo "$(RED)Error: docker is not installed$(RESET)"; \
+		exit 1; \
+	fi
+	@if ! docker compose version > /dev/null 2>&1; then \
+		echo "$(RED)Error: Docker Compose is not installed$(RESET)"; \
 		exit 1; \
 	fi
 
@@ -69,15 +73,17 @@ check-env-files:
 # Start development environment
 dev: CURRENT_ENV=development
 dev: check-docker check-env-files validate-env validate-env-type
-	docker-compose --env-file .env.dev up -d
+	docker compose --env-file .env.dev up -d
 	@echo "Waiting for services to be healthy..."
 	@sleep 5
 	@make health
+	@echo "Launching Golang API..."
+	@make run-api
 
 # Start test environment
 test: CURRENT_ENV=test
 test: check-docker check-env-files validate-env validate-env-type
-	docker-compose --env-file .env.test up -d
+	docker compose --env-file .env.test up -d
 	@echo "Waiting for services to be healthy..."
 	@sleep 5
 	@make health
@@ -91,11 +97,11 @@ prod: check-docker check-env-files validate-env validate-env-type
 		echo "$(BLUE)Aborted$(RESET)"; \
 		exit 1; \
 	fi
-	docker-compose --env-file .env.prod up -d
+	docker compose --env-file .env.prod up -d
 
 # Shut down environment and remove volumes
 down:
-	docker-compose --env-file .env.dev down -v
+	docker compose --env-file .env.dev down -v
 
 #==========================================
 # Cleanup
@@ -104,7 +110,7 @@ down:
 # Remove all containers, volumes, and docker artifacts
 clean:
 	@echo "Cleaning up all resources..."
-	docker-compose --env-file .env.dev down -v
+	docker compose --env-file .env.dev down -v
 	docker system prune -f
 	@echo "$(GREEN)Cleanup complete$(RESET)"
 
@@ -114,14 +120,14 @@ clean:
 
 # Quick health status check
 health:
-	docker-compose ps
+	docker compose ps
 
 # Detailed health status with logs
 health-detail:
 	@echo "=== Container Status ==="
-	docker-compose ps
+	docker compose ps
 	@echo "\n=== Health Check Logs ==="
-	docker-compose ps | grep -q "healthy" || (echo "⚠️  Unhealthy services detected" && exit 1)
+	docker compose ps | grep -q "healthy" || (echo "⚠️  Unhealthy services detected" && exit 1)
 	@echo "✅ All services healthy"
 
 #==========================================
@@ -130,19 +136,19 @@ health-detail:
 
 # View all service logs
 logs:
-	docker-compose logs
+	docker compose logs
 
 # View Postgres logs
 logs-postgres:
-	docker-compose logs postgres
+	docker compose logs postgres
 
 # View Redis logs
 logs-redis:
-	docker-compose logs redis
+	docker compose logs redis
 
 # View Mailhog logs
 logs-mailhog:
-	docker-compose logs mailhog
+	docker compose logs mailhog
 
 #==========================================
 # Troubleshooting
@@ -150,9 +156,11 @@ logs-mailhog:
 
 # Validate environment
 validate-env:
-	@if [ "$(CURRENT_ENV)" = "production" ] && [ -z "$(shell grep -E '^POSTGRES_PASSWORD=CHANGE_ME' .env.prod)" ]; then \
-		echo "$(RED)Error: Default production passwords detected. Please change them!$(RESET)"; \
-		exit 1; \
+	@if [ "$(CURRENT_ENV)" = "production" ]; then \
+		if grep -qE '^POSTGRES_PASSWORD=CHANGE_ME' .env.prod; then \
+			echo "$(RED)Error: Default production passwords detected. Please change them!$(RESET)"; \
+			exit 1; \
+		fi \
 	fi
 
 # Validate environment type
@@ -170,20 +178,33 @@ validate-env-type:
 # Detailed Postgres troubleshooting
 troubleshoot-postgres:
 	@echo "=== Postgres Status ==="
-	docker-compose ps postgres
+	docker compose ps postgres
 	@echo "\n=== Postgres Logs ==="
-	docker-compose logs --tail=50 postgres
+	docker compose logs --tail=50 postgres
 	@echo "\n=== Postgres Environment ==="
-	docker-compose exec postgres env
+	docker compose exec postgres env
 
 # Detailed Redis troubleshooting
 troubleshoot-redis:
 	@echo "=== Redis Status ==="
-	docker-compose ps redis
+	docker compose ps redis
 	@echo "\n=== Redis Logs ==="
-	docker-compose logs --tail=50 redis
+	docker compose logs --tail=50 redis
 	@echo "\n=== Redis Ping Test ==="
-	docker-compose exec redis redis-cli ping
+	docker compose exec redis redis-cli ping
+
+#==========================================
+# Run API
+#==========================================
+# The run-api target starts the Golang API.
+# It assumes that the main entrypoint of your app is located at ./cmd/api/main.go.
+# Make sure your Go environment is properly configured to run the API.
+run-api:
+	@echo "Updating backend/.env from .env.dev..."
+	@cp .env.dev backend/.env
+	@echo "Starting Golang API..."
+	cd backend && go run cmd/api/main.go
+
 
 #==========================================
 # Help

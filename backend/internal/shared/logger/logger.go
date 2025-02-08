@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"go.uber.org/zap"
+	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -22,11 +23,28 @@ const (
 )
 
 const (
+	// Alert levels
 	LevelDebug AlertLevel = "debug"
 	LevelInfo  AlertLevel = "info"
 	LevelWarn  AlertLevel = "warn"
 	LevelError AlertLevel = "error"
+
+	// Color codes
+	yellow = "\x1b[33m"
+	red = "\x1b[31m"
+	green = "\x1b[32m"
+	purple  = "\x1b[35m"
+	blue = "\x1b[34m"
+	magenta = "\x1b[95m"
+	cyan = "\x1b[36m"
+	gray = "\x1b[90m"
+	reset = "\x1b[0m"
 )
+
+type customConsoleEncoder struct {
+	zapcore.Encoder
+}
+
 
 // Logger is a wrapper around zap
 type Logger struct {
@@ -102,8 +120,10 @@ func NewLogger(options ...Option) (*Logger, error) {
 				LineEnding:       zapcore.DefaultLineEnding,
 
 				// Color encoding for specific components
-				EncodeLevel:      zapcore.CapitalColorLevelEncoder,    // Colors for INFO, ERROR, etc
-				EncodeTime:       zapcore.TimeEncoderOfLayout(time.RFC3339),
+				EncodeLevel:      zapcore.CapitalColorLevelEncoder,
+				EncodeTime: func(t time.Time, enc zapcore.PrimitiveArrayEncoder) { // Gray color for timestamp
+					enc.AppendString(gray + t.Format(time.RFC3339) + reset)
+				},
 				EncodeDuration:   zapcore.SecondsDurationEncoder,
 				EncodeCaller:   func(
 					caller zapcore.EntryCaller,
@@ -111,20 +131,13 @@ func NewLogger(options ...Option) (*Logger, error) {
 					) {
 					enc.AppendString("\x1b[36m" + caller.TrimmedPath() + "\x1b[0m") // Cyan color for caller
 				},
-
-				// Custom encoder for field keys and values
-				EncodeName: func(
-					loggerName string,
-					enc zapcore.PrimitiveArrayEncoder,
-					) {
-					enc.AppendString("\x1b[35m" + loggerName + "\x1b[0m") // Magenta for logger name
-				},
-
 			}
 
 			// Create core with console encoder for readable output
+			encoder := customConsoleEncoder{zapcore.NewConsoleEncoder(config.EncoderConfig)}
+
 			core = zapcore.NewCore(
-				zapcore.NewConsoleEncoder(config.EncoderConfig),
+				encoder,
 				zapcore.AddSync(logger.output),
 				zap.NewAtomicLevelAt(zapcore.DebugLevel),
 			)
@@ -156,8 +169,7 @@ func NewLogger(options ...Option) (*Logger, error) {
 	// Create the logger with the configured core
 	logger.zap = zap.New(
 			core,
-			zap.AddCaller(),
-			zap.AddStacktrace(zapcore.ErrorLevel),
+			// zap.AddCaller(), TODO: Debug Zapcore bug where call defaults to logger instead of error file source
 	)
 
 	return logger, nil
@@ -271,4 +283,19 @@ func (l *Logger) LogMiddleware(next http.Handler) http.Handler {
 // Cleanup releases resources
 func (l *Logger) Cleanup() error {
 	return l.zap.Sync()
+}
+
+// Checks log level + colorizes the message
+func (c customConsoleEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.Field) (*buffer.Buffer, error) {
+	if entry.Level == zapcore.ErrorLevel {
+		entry.Message = yellow + entry.Message + reset
+	}
+	if entry.Level == zapcore.InfoLevel {
+		entry.Message = green + entry.Message + reset
+	}
+	if entry.Level == zapcore.DebugLevel {
+		entry.Message = cyan + entry.Message + reset
+	}
+
+	return c.Encoder.EncodeEntry(entry, fields)
 }
