@@ -69,7 +69,9 @@ See [Architecture Documentation](docs/architecture.md)
 - Make
 
 ### Environment Setup
-TBD - Instructions coming soon
+
+## Redis Setup & Configuration
+See [Redis Configuration](docs/technical/redis.md) for more information.
 
 ## Testing
 

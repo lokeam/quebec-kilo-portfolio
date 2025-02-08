@@ -25,9 +25,11 @@ services:
       - "${REDIS_MAX_MEMORY:-256mb}"
       - "--maxmemory-policy"
       - "allkeys-lru"
+    # Volumes: "redis_data" persists data and "./redis.conf" injects custom configuration.
     volumes:
       - redis_data:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
+      # Mount the custom redis.conf file from the project root into the container.
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
