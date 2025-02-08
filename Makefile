@@ -2,8 +2,9 @@
 # Version: 2.0.0
 #
 # This Makefile leverages Docker Compose to build, run, and manage
-# your containerized services:
-#   - API (your Golang application)
+# the followingcontainerized services:
+#   - Backend API (Golang application)
+#   - Frontend (React application)
 #   - Redis
 #   - Postgres
 #   - Mailhog
@@ -120,6 +121,9 @@ health-detail:
 logs:
 	docker compose logs
 
+logs-frontend:
+	docker compose logs frontend
+
 logs-postgres:
 	docker compose logs postgres
 
@@ -132,6 +136,12 @@ logs-mailhog:
 # -----------------------------------------
 # Troubleshooting
 # -----------------------------------------
+troubleshoot-frontend:
+	@echo "=== Frontend Status ==="
+	docker compose ps frontend
+	@echo "\n=== Frontend Logs ==="
+	docker compose logs --tail=50 frontend
+
 troubleshoot-postgres:
 	@echo "=== Postgres Status ==="
 	docker compose ps postgres
