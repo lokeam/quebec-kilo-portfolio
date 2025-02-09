@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+const (
+	TwitchAccessTokenKey = "twitch:access_token"
+)
+
 type Config struct {
 	Server ServerConfig
 	Env    string
@@ -36,6 +40,7 @@ type IGDBConfig struct {
 	AuthURL        string           // Twitch OAuth URL
 	BaseURL        string           // IGDB API base URL
 	TokenTTL       time.Duration    // Duration until we need a token refresh
+	AccessTokenKey string           // Key for storing access token in Redis + Memcache
 }
 
 func Load() (*Config, error) {
@@ -95,6 +100,7 @@ func Load() (*Config, error) {
 		AuthURL:         IGDBAuthURL,
 		BaseURL:         IGDBBaseURL,
 		TokenTTL:        24 * time.Hour,
+		AccessTokenKey:  TwitchAccessTokenKey,
 	}
 
 	return &Config{

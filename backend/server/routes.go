@@ -26,7 +26,8 @@ func (s *Server) Routes() http.Handler {
 		r.Mount("/health", health.NewHealthHandler(s.config, s.logger))
 
 		// Feature routes (NOTE: add to protected routes post testing)
-		// r.Mount("/search", search.NewSearchHandler(s.config, s.logger))
+
+		// Feature routes (NOTE: add to protected routes post testing)
 
 		// Protected routes
 		r.Use(auth0middleware.EnsureValidToken())
