@@ -2,6 +2,8 @@ module github.com/lokeam/qko-beta
 
 go 1.22.0
 
+toolchain go1.23.4
+
 require (
 	github.com/Henry-Sarabia/igdb v1.0.3
 	github.com/auth0/go-jwt-middleware/v2 v2.2.0

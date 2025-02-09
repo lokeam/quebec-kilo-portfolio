@@ -1,5 +1,5 @@
 # QKO BETA API - Development Operations (Containerized Setup)
-# Version: 2.0.0
+# Version: 2.5.0
 #
 # This Makefile leverages Docker Compose to build, run, and manage
 # the followingcontainerized services:
@@ -21,12 +21,68 @@
 # Define allowed environments and set current environment
 ENVS := development test production
 CURRENT_ENV ?= development
+REDIS_VOLUME ?= redis_data_updated
 
 # Colors (for terminal output)
 BLUE := \033[34m
 GREEN := \033[32m
 RED := \033[31m
 RESET := \033[0m
+
+# ---------------------------------------------------------------------------
+# Reset: Forcefully tear down containers + remove persistent volumes
+#
+# This target stops all running containers and removes all associated volumes,
+# including forcing the removal of the designated Redis volume. It also prunes
+# any dangling volumes from the Docker system.
+#
+# Usage: make reset
+#
+# ⚠️ Warning: This is a destructive operation that removes persistent data.
+# ---------------------------------------------------------------------------
+reset:
+	@echo "Stopping containers and removing volumes..."
+	docker compose down -v
+	@echo "Forcibly removing redis volume..."
+	docker volume rm -f $(REDIS_VOLUME)
+	@echo "Pruning dangling volumes (if any)..."
+	docker volume prune -f
+
+# ---------------------------------------------------------------------------
+# Up: Build + start backend services (excluding frontend)
+#
+# This target rebuilds and starts the backend services along with necessary
+# dependencies, including:
+#   • Traefik (as the reverse proxy)
+#   • Backend API (Golang application)
+#   • Redis
+#   • Postgres
+#   • Mailhog
+#
+# The frontend service is purposefully excluded when using this target.
+#
+# Usage: make up
+# ---------------------------------------------------------------------------
+up:
+	@echo "Rebuilding and starting backend services (excluding frontend)..."
+	docker compose --env-file .env up --build -d traefik api redis postgres mailhog
+
+# ---------------------------------------------------------------------------
+# Restart: Fully reset the environment + bring up the backend services
+#
+# This composite target first calls the 'reset' target to clean up existing
+# containers and volumes, then invokes the 'up' target to rebuild and start
+# the backend services.
+#
+# Usage: make restart
+#
+# ⚠️ Warning: This process is destructive as it removes all running containers
+# and volumes before restarting.
+# ---------------------------------------------------------------------------
+restart: reset up
+
+clean:
+	docker compose down
 
 # -----------------------------------------
 # Environment Initialization
@@ -72,6 +128,8 @@ check-env-files:
 # -----------------------------------------
 # Environment Management via Docker Compose
 # -----------------------------------------
+
+# Start development environment
 dev: CURRENT_ENV=development
 dev: check-docker check-env-files
 	@echo "$(BLUE)Starting development environment...$(RESET)"
@@ -79,6 +137,7 @@ dev: check-docker check-env-files
 	@sleep 5
 	@$(MAKE) health
 
+# Start test environment
 test: CURRENT_ENV=test
 test: check-docker check-env-files
 	@echo "$(BLUE)Starting test environment...$(RESET)"
@@ -86,6 +145,7 @@ test: check-docker check-env-files
 	@sleep 5
 	@$(MAKE) health
 
+# Start production environment
 prod: CURRENT_ENV=production
 prod: check-docker check-env-files
 	@echo "$(RED)You are about to start the PRODUCTION environment$(RESET)"
@@ -96,9 +156,21 @@ prod: check-docker check-env-files
 	fi
 	docker compose --env-file .env.prod up --build -d
 
+# -----------------------------------------
+# Start development environment without building the frontend
+# -----------------------------------------
+dev-backend: CURRENT_ENV=development
+dev-backend: check-docker check-env-files
+	@echo "$(BLUE)Starting development environment without frontend...$(RESET)"
+	docker compose --env-file .env.dev up --build -d traefik api postgres redis mailhog
+	@sleep 5
+	@$(MAKE) health
+
+# Shut down the development environment
 down:
 	docker compose --env-file .env.dev down -v
 
+# Clean up all resources
 clean:
 	@echo "$(BLUE)Cleaning up all resources...$(RESET)"
 	docker compose --env-file .env.dev down -v
@@ -164,20 +236,22 @@ troubleshoot-redis:
 help:
 	@echo "$(BLUE)Available commands:$(RESET)"
 	@echo "$(BLUE)Environment:$(RESET)"
-	@echo "  make init-env         - Initialize environment files from templates"
-	@echo "  make dev              - Start development environment (containerized)"
-	@echo "  make test             - Start test environment (containerized)"
-	@echo "  make prod             - Start production environment (containerized)"
-	@echo "  make down             - Shut down environment and remove volumes"
-	@echo "  make clean            - Remove all containers, volumes, and Docker artifacts"
-	@echo "\nHealth Checks:"
-	@echo "  make health           - Quick health status"
-	@echo "  make health-detail    - Detailed health status"
-	@echo "\nLogging:"
-	@echo "  make logs             - View all logs"
-	@echo "  make logs-postgres    - View Postgres logs"
-	@echo "  make logs-redis       - View Redis logs"
-	@echo "  make logs-mailhog     - View Mailhog logs"
-	@echo "\nTroubleshooting:"
-	@echo "  make troubleshoot-postgres  - Troubleshoot Postgres"
-	@echo "  make troubleshoot-redis     - Troubleshoot Redis"
+	@echo " make init-env           - Initialize environment files from templates"
+	@echo " make dev                - Start development environment (containerized)"
+	@echo " make test               - Start test environment (containerized)"
+	@echo " make prod               - Start production environment (containerized)"
+	@echo " make dev-backend        - Start development environment excluding the frontend (for backend development only)"
+	@echo " make down               - Shut down environment and remove volumes"
+	@echo " make clean              - Remove all containers, volumes, and Docker artifacts"
+	@echo "\n$(BLUE)Health Checks:$(RESET)"
+	@echo " make health             - Quick health status"
+	@echo " make health-detail      - Detailed health status"
+	@echo "\n$(BLUE)Logging:$(RESET)"
+	@echo " make logs               - View all logs"
+	@echo " make logs-postgres      - View Postgres logs"
+	@echo " make logs-redis         - View Redis logs"
+	@echo " make logs-mailhog       - View Mailhog logs"
+	@echo "\n$(BLUE)Troubleshooting:$(RESET)"
+	@echo " make troubleshoot-frontend - Troubleshoot Frontend"
+	@echo " make troubleshoot-postgres - Troubleshoot Postgres"
+	@echo " make troubleshoot-redis    - Troubleshoot Redis"
