@@ -112,11 +112,11 @@ func (c *RueidisClient) Get(ctx context.Context, key string) (string, error) {
 	if err != nil {
 		c.stats.Errors.Add(1)
 		c.logger.Error("redis get failed", map[string]any{
-			"key": key,
-			"error": err,
-			"duration": time.Since(start),
+				"key": key,
+				"error": err,
+				"duration": time.Since(start),
 		})
-		return "", err
+		return "", c.ConvertRueidisError(err, "GET")
 	}
 
 	c.logger.Debug("redis get completed", map[string]any{
@@ -166,13 +166,13 @@ func (c *RueidisClient) Set(ctx context.Context, key string, value interface{}, 
 	err := c.client.Do(ctx, cmd).Error()
 
 	if err != nil {
-			c.stats.Errors.Add(1)
-			c.logger.Error("redis set failed", map[string]any{
-			"key": key,
-			"error": err,
-			"duration": time.Since(start),
+		c.stats.Errors.Add(1)
+		c.logger.Error("redis set failed", map[string]any{
+				"key": key,
+				"error": err,
+				"duration": time.Since(start),
 		})
-		return fmt.Errorf("redis set failed: %w", err)
+		return c.ConvertRueidisError(err, "SET")
 	}
 
 	c.logger.Debug("redis set successful", map[string]any{
@@ -271,4 +271,4 @@ func (c *RueidisClient) GetConfig() *RueidisConfig {
 }
 
 // Private methods
-func (c *RueidisClient) updateStats(err error) {}
+//func (c *RueidisClient) updateStats(err error) {}

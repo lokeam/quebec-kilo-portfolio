@@ -10,6 +10,23 @@ import (
 	"github.com/redis/rueidis"
 )
 
+const (
+	MIN_REDIS_PORT = 1
+	MAX_REDIS_PORT = 65535
+	MAX_REDIS_DB = 15
+
+	REDIS_HOST_ENV_VAR = "REDIS_HOST"
+	REDIS_PORT_ENV_VAR = "REDIS_PORT"
+	REDIS_PASSWORD_ENV_VAR = "REDIS_PASSWORD"
+	REDIS_DB_ENV_VAR = "REDIS_DB"
+	REDIS_CONN_WRITE_TIMEOUT_ENV_VAR = "REDIS_CONN_WRITE_TIMEOUT"
+	REDIS_CONN_READ_TIMEOUT_ENV_VAR = "REDIS_CONN_READ_TIMEOUT"
+	REDIS_TIMEOUT_READ_ENV_VAR = "REDIS_TIMEOUT_READ"
+	REDIS_TIMEOUT_WRITE_ENV_VAR = "REDIS_TIMEOUT_WRITE"
+	REDIS_TIMEOUT_DEFAULT_ENV_VAR = "REDIS_TIMEOUT_DEFAULT"
+	RUEIDIS_CLIENT_OPTION_USERNAME = "default"
+)
+
 // Structs / Interfaces
 type RueidisConfig struct {
 	// Connection settings (required, loaded from environment)
@@ -92,14 +109,14 @@ func NewRueidisConfig() *RueidisConfig {
 // Methods
 func (c *RueidisConfig) LoadFromEnv() error {
 	// Required: Host
-	host := os.Getenv("REDIS_HOST")
+	host := os.Getenv(REDIS_HOST_ENV_VAR)
 	if host == "" {
 		return fmt.Errorf("REDIS_HOST environment variable is required")
 	}
 	c.Host = host
 
 	// Required: Port
-	portStr := os.Getenv("REDIS_PORT")
+	portStr := os.Getenv(REDIS_PORT_ENV_VAR)
 	if portStr == "" {
 		return fmt.Errorf("REDIS_PORT environment variable is required")
 	}
@@ -107,13 +124,13 @@ func (c *RueidisConfig) LoadFromEnv() error {
 	if err != nil {
 		return fmt.Errorf("invalid REDIS_PORT value: %w", err)
 	}
-	if port < 1 || port > 65535 {
+	if port < MIN_REDIS_PORT || port > MAX_REDIS_PORT {
 		return fmt.Errorf("REDIS_PORT must be between 1 and 65535")
 	}
 	c.Port = port
 
 	// Optional: Password
-	if pass := os.Getenv("REDIS_PASSWORD"); pass != "" {
+	if pass := os.Getenv(REDIS_PASSWORD_ENV_VAR); pass != "" {
 		c.Password = pass
 	}
 
@@ -121,19 +138,19 @@ func (c *RueidisConfig) LoadFromEnv() error {
 	// fmt.Printf("DEBUG: REDIS_PASSWORD=%q\n", c.Password)
 
 	// Optional: Database number
-	if dbStr := os.Getenv("REDIS_DB"); dbStr != "" {
+	if dbStr := os.Getenv(REDIS_DB_ENV_VAR); dbStr != "" {
 		db, err := strconv.Atoi(dbStr)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_DB value: %w", err)
 		}
-		if db < 0 {
-			return fmt.Errorf("REDIS_DB must be non-negative")
+		if db < 0 || db > MAX_REDIS_DB{
+			return fmt.Errorf("REDIS_DB must be between 0 and %d", MAX_REDIS_DB)
 		}
 		c.DB = db
 	}
 
 	// Load connection timeouts from environment (optional)
-	if writeTimeout := os.Getenv("REDIS_CONN_WRITE_TIMEOUT"); writeTimeout != "" {
+	if writeTimeout := os.Getenv(REDIS_CONN_WRITE_TIMEOUT_ENV_VAR); writeTimeout != "" {
 		duration, err := time.ParseDuration(writeTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_CONN_WRITE_TIMEOUT value: %w", err)
@@ -141,7 +158,7 @@ func (c *RueidisConfig) LoadFromEnv() error {
 		c.ConnWriteTimeout = duration
 	}
 
-	if readTimeout := os.Getenv("REDIS_CONN_READ_TIMEOUT"); readTimeout != "" {
+	if readTimeout := os.Getenv(REDIS_CONN_READ_TIMEOUT_ENV_VAR); readTimeout != "" {
 		duration, err := time.ParseDuration(readTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_CONN_READ_TIMEOUT value: %w", err)
@@ -150,7 +167,7 @@ func (c *RueidisConfig) LoadFromEnv() error {
 	}
 
 	// Load operation-specific timeouts
-	if opReadTimeout := os.Getenv("REDIS_TIMEOUT_READ"); opReadTimeout != "" {
+	if opReadTimeout := os.Getenv(REDIS_TIMEOUT_READ_ENV_VAR); opReadTimeout != "" {
 		duration, err := time.ParseDuration(opReadTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_TIMEOUT_READ value: %w", err)
@@ -158,7 +175,7 @@ func (c *RueidisConfig) LoadFromEnv() error {
 		c.TimeoutConfig.Read = duration
 	}
 
-	if opWriteTimeout := os.Getenv("REDIS_TIMEOUT_WRITE"); opWriteTimeout != "" {
+	if opWriteTimeout := os.Getenv(REDIS_TIMEOUT_WRITE_ENV_VAR); opWriteTimeout != "" {
 		duration, err := time.ParseDuration(opWriteTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_TIMEOUT_WRITE value: %w", err)
@@ -166,7 +183,7 @@ func (c *RueidisConfig) LoadFromEnv() error {
 		c.TimeoutConfig.Write = duration
 	}
 
-	if opDefaultTimeout := os.Getenv("REDIS_TIMEOUT_DEFAULT"); opDefaultTimeout != "" {
+	if opDefaultTimeout := os.Getenv(REDIS_TIMEOUT_DEFAULT_ENV_VAR); opDefaultTimeout != "" {
 		duration, err := time.ParseDuration(opDefaultTimeout)
 		if err != nil {
 			return fmt.Errorf("invalid REDIS_TIMEOUT_DEFAULT value: %w", err)
@@ -181,7 +198,7 @@ func (c *RueidisConfig) Validate() error {
 	if c.Host == "" {
 		return fmt.Errorf("redis host cannot be empty")
 	}
-	if c.Port == 0 || c.Port < 1 || c.Port > 65535 {
+	if c.Port == 0 || c.Port < MIN_REDIS_PORT || c.Port > MAX_REDIS_PORT {
 		return fmt.Errorf("invalid Redis port: %d", c.Port)
 	}
 
@@ -211,7 +228,7 @@ func (c *RueidisConfig) Validate() error {
 func (c *RueidisConfig) GetRueidisOptions() rueidis.ClientOption {
 	return rueidis.ClientOption{
 			InitAddress:      []string{fmt.Sprintf("%s:%d", c.Host, c.Port)},
-			Username:         "default",
+			Username:         RUEIDIS_CLIENT_OPTION_USERNAME,
 			Password:         c.Password, // Use the environment-loaded value
 			SelectDB:         c.DB,
 			ConnWriteTimeout: c.ConnWriteTimeout,
