@@ -5,9 +5,9 @@ import (
 	"time"
 
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
-	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
 	"github.com/lokeam/qko-beta/internal/shared/connectionutil"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 	"github.com/lokeam/qko-beta/internal/shared/token"
 	"github.com/lokeam/qko-beta/internal/shared/twitch"
 )
@@ -16,12 +16,12 @@ import (
 func InitIGDBJob(
 	ctx context.Context,
 	redisKey string,
-	rueidisClient *cache.RueidisClient,
+	rueidisClient redisclient.RedisClient,
 	memCache *memcache.MemoryCache,
 	clientID string,
 	clientSecret string,
 	authURL string,
-	log logger.Logger,
+	log logger.LoggerInterface,
 ) error {
 
 	log.Info("Starting INIT_IGDB job", nil)
@@ -66,7 +66,7 @@ func InitIGDBJob(
 			clientID,
 			clientSecret,
 			authURL,
-			&log,
+			log,
 		)
 		if err == nil {
 			log.Info("Successfully refreshed Twitch token", nil)
@@ -95,7 +95,7 @@ func InitIGDBJob(
 			rueidisClient,
 			memCache,
 			tokenInfo,
-			&log,
+			log,
 		)
 		if err == nil {
 			log.Info("Successfully saved Twitch token in Redis + Memcache", nil)

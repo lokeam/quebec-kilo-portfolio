@@ -3,63 +3,12 @@ package worker
 import (
 	"context"
 	"errors"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/lokeam/qko-beta/internal/shared/testutils"
 	"github.com/stretchr/testify/assert"
 )
-
-const (
-	jobStopContextCancelled = "Worker stopping: context cancelled"
-	jobSkipped              = "Worker condition not met; skipping job"
-	jobError                = "Worker job error"
-)
-
-
-type TestLogger struct {
-	mu            sync.Mutex
-	infoCalls     []string
-	debugCalls    []string
-	errorCalls    []string
-}
-
-func NewTestLogger() *TestLogger {
-	return &TestLogger{}
-}
-
-func (tl *TestLogger) Info(msg string, fields map[string]any) {
-	tl.mu.Lock()
-	defer tl.mu.Unlock()
-
-	tl.infoCalls = append(tl.infoCalls, msg)
-}
-
-func (tl *TestLogger) Debug(msg string, fields map[string]any) {
-	tl.mu.Lock()
-	defer tl.mu.Unlock()
-	tl.debugCalls = append(tl.debugCalls, msg)
-}
-
-func (tl *TestLogger) Error(msg string, fields map[string]any) {
-	tl.mu.Lock()
-	defer tl.mu.Unlock()
-
-	errStr := msg
-	if fields != nil {
-		if err, ok := fields["error"].(error); ok {
-			errStr += ": " + err.Error()
-		}
-	}
-	tl.errorCalls = append(tl.errorCalls, errStr)
-}
-
-func (tl *TestLogger) Warn(msg string, fields map[string]any) {
-	tl.mu.Lock()
-	defer tl.mu.Unlock()
-	// You can choose to log warnings similarly to Debug messages.
-	tl.debugCalls = append(tl.debugCalls, msg)
-}
 
 /*
 	Behaviors:
@@ -85,7 +34,7 @@ func TestWorkerSuite(t *testing.T) {
 		runCondition              func() bool            // If exists and return false, worker will skip executing the job
 		runDurationBeforeCancel   time.Duration          // Duration to let the worker run before cancelling context
 		runDurationAfterCancel    time.Duration          // Gives worker time to wrap up and log any final messages after cancelling
-		didBehaviorOccur          func(t *testing.T, fakeLogger *TestLogger, jobCount int)
+		didBehaviorOccur          func(t *testing.T, testLogger *testutils.TestLogger, jobCount int)
 	}{
 		{
 			name: "Worker stops when context is cancelled",
@@ -103,13 +52,13 @@ func TestWorkerSuite(t *testing.T) {
 			runCondition:              nil,
 			runDurationBeforeCancel:   30 * time.Millisecond,
 			runDurationAfterCancel:    20 * time.Millisecond,
-			didBehaviorOccur: func(t *testing.T, testLogger *TestLogger, jobCount int) {
-				testLogger.mu.Lock()
-				defer testLogger.mu.Unlock()
+			didBehaviorOccur: func(t *testing.T, testLogger *testutils.TestLogger, jobCount int) {
+				testLogger.Mu.Lock()
+				defer testLogger.Mu.Unlock()
 
 				var foundJob bool
 
-				for _, msg := range testLogger.infoCalls {
+				for _, msg := range testLogger.InfoCalls {
 					if msg == jobStopContextCancelled {
 						foundJob = true
 						break
@@ -136,14 +85,14 @@ func TestWorkerSuite(t *testing.T) {
 			runCondition: func() bool { return false },
 			runDurationBeforeCancel: 50 * time.Millisecond,
 			runDurationAfterCancel: 0,
-			didBehaviorOccur: func(t *testing.T, testLogger *TestLogger, jobCount int) {
+			didBehaviorOccur: func(t *testing.T, testLogger *testutils.TestLogger, jobCount int) {
 				assert.Equal(t, 0, jobCount, "job should not have been executed when condition is false")
 
-				testLogger.mu.Lock()
-				defer testLogger.mu.Unlock()
+				testLogger.Mu.Lock()
+				defer testLogger.Mu.Unlock()
 
 				var foundJob bool
-				for _, msg := range testLogger.debugCalls {
+				for _, msg := range testLogger.DebugCalls {
 					if msg == jobSkipped {
 						foundJob = true
 						break
@@ -175,13 +124,13 @@ func TestWorkerSuite(t *testing.T) {
 			runCondition: nil,
 			runDurationBeforeCancel:  50 * time.Millisecond,
 			runDurationAfterCancel:   0,
-			didBehaviorOccur: func(t *testing.T, testLogger *TestLogger, jobCount int) {
-				testLogger.mu.Lock()
-				defer testLogger.mu.Unlock()
+			didBehaviorOccur: func(t *testing.T, testLogger *testutils.TestLogger, jobCount int) {
+				testLogger.Mu.Lock()
+				defer testLogger.Mu.Unlock()
 
 				var found bool
 
-				for _, msg := range testLogger.errorCalls {
+				for _, msg := range testLogger.ErrorCalls {
 					if msg == jobError {
 						found = true
 						break
@@ -199,7 +148,7 @@ func TestWorkerSuite(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
-			testLogger := NewTestLogger()
+			testLogger := testutils.NewTestLogger()
 			job, jobCountPointer := testCase.jobFactory(t)
 
 			// Create worker with specified params

@@ -31,11 +31,11 @@ type Sanitizer struct {
 }
 
 // Constructor
-func NewSanitizer() *Sanitizer {
+func NewSanitizer() (*Sanitizer, error) {
 	return &Sanitizer{
 		policy:         bluemonday.UGCPolicy(),
 		safetyPattern:  regexp.MustCompile(`^[\w\s\-\.,?!]+$`),
-	}
+	}, nil
 }
 
 // Methods

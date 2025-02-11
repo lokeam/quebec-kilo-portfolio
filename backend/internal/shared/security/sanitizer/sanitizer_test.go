@@ -76,7 +76,8 @@ func TestSanitizeSearchQuerySearchQuery(t *testing.T) {
 			t.Log(testCase.description)
 
 			// Given a new sanitizer instance
-			sanitizer := NewSanitizer()
+			sanitizer, err := NewSanitizer()
+			require.NoError(t, err, "Failed to create sanitizer")
 
 			// When we sanitize the provided search query
 			santizerOutput, err := sanitizer.SanitizeSearchQuery(testCase.searchQuery)
@@ -95,7 +96,8 @@ func TestSanitizeSearchQuerySearchQuery(t *testing.T) {
 }
 
 func BenchmarkSanitizeSearchQuery(b *testing.B) {
-	sanitizer := NewSanitizer()
+	sanitizer, err := NewSanitizer()
+	require.NoError(b, err, "Failed to create sanitizer")
 	input := "Do you know what a duvee is?"
 
 	for i := 0; i < b.N; i++ {

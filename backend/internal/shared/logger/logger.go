@@ -45,6 +45,12 @@ type customConsoleEncoder struct {
 	zapcore.Encoder
 }
 
+type LoggerInterface interface {
+	Info(msg string, fields map[string]any)
+	Debug(msg string, fields map[string]any)
+	Warn(msg string, fields map[string]any)
+	Error(msg string, fields map[string]any)
+}
 
 // Logger is a wrapper around zap
 type Logger struct {

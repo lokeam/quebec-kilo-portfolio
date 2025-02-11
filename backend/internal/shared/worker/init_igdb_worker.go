@@ -14,7 +14,7 @@ func StartInitIGDBJob(
 	clientID,
 	clientSecret,
 	authURL string,
-	log logger.Logger,
+	log logger.LoggerInterface,
 ) {
 	go func() {
 		if err := InitIGDBJob(
