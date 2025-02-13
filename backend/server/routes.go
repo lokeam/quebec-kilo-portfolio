@@ -1,17 +1,16 @@
 package server
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/lokeam/qko-beta/internal/health"
-	auth0middleware "github.com/lokeam/qko-beta/internal/shared/middleware"
+	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/search"
 )
 
-func (s *Server) Routes() http.Handler {
+func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	// Create Router
 	mux := chi.NewRouter()
 
@@ -19,19 +18,24 @@ func (s *Server) Routes() http.Handler {
 	s.setupMiddleware(mux)
 	s.setupCORS(mux)
 
+	// Initialize handlers using single App Context
+	searchHandler := search.NewSearchHandler(appContext)
+	//healthHandler := health.NewHealthHandler(s.config, s.logger)
+
 	// Initialize Routes
 	mux.Route("/api/v1", func(r chi.Router) {
 
-		// Core + utility routes
-		r.Mount("/health", health.NewHealthHandler(s.config, s.logger))
-
-		// Feature routes (NOTE: add to protected routes post testing)
-
-		// Feature routes (NOTE: add to protected routes post testing)
-
 		// Protected routes
-		r.Use(auth0middleware.EnsureValidToken())
+		//r.Use(auth0middleware.EnsureValidToken())
 		// Mounted protected features below
+
+		// Core + utility routes
+		//r.Handle("/health", healthHandler)
+
+		// Feature routes (NOTE: add to protected routes post testing)
+		r.Handle("/search", searchHandler)
+
+		// Feature routes (NOTE: add to protected routes post testing)
 	})
 
 	return mux
@@ -47,11 +51,11 @@ func (s *Server) setupMiddleware(mux *chi.Mux) {
 
 func (s *Server) setupCORS(mux *chi.Mux) {
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:      s.config.CORS.AllowedOrigins,
-		AllowedMethods:      s.config.CORS.AllowedMethods,
-		AllowedHeaders:      s.config.CORS.AllowedHeaders,
-		ExposedHeaders:      s.config.CORS.ExposedHeaders,
-		AllowCredentials:    s.config.CORS.AllowCredentials,
-		MaxAge:              s.config.CORS.MaxAge,
+		AllowedOrigins:      s.AppContext.Config.CORS.AllowedOrigins,
+		AllowedMethods:      s.AppContext.Config.CORS.AllowedMethods,
+		AllowedHeaders:      s.AppContext.Config.CORS.AllowedHeaders,
+		ExposedHeaders:      s.AppContext.Config.CORS.ExposedHeaders,
+		AllowCredentials:    s.AppContext.Config.CORS.AllowCredentials,
+		MaxAge:              s.AppContext.Config.CORS.MaxAge,
 	}))
 }

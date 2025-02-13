@@ -11,11 +11,6 @@ import (
 	"github.com/lokeam/qko-beta/internal/shared/logger"
 )
 
-type ResponseWriter interface {
-	http.ResponseWriter
-	Written() bool
-}
-
 // RespondWithJSON writes a JSON response with provided data + status code.
 // Creates a standarized way to write responses that include:
 //   - Content-Type header management
@@ -42,7 +37,7 @@ type ResponseWriter interface {
 //	}
 func RespondWithJSON(
 	w http.ResponseWriter,
-	logger *logger.Logger,
+	logger logger.LoggerInterface,
 	status int,
 	data any,
 	) error {
@@ -135,8 +130,8 @@ func RespondWithJSON(
 //	    return RespondWithError(w, logger, requestID, err)
 //	}
 func RespondWithError(
-	w http.ResponseWriter,
-	logger *logger.Logger,
+	w ResponseWriter,
+	logger logger.LoggerInterface,
 	requestID string,
 	err error,
 	) error {

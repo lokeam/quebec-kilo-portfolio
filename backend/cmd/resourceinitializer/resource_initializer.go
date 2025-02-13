@@ -12,14 +12,8 @@ import (
 
 type ResourceInitializer struct {
 	// Cache
-	RedisClient           *rueidis.RueidisClient
-
-	// Memcahe
-	MemCache              *memcache.MemoryCache
-
-	// Postgres - TBD
-
-	// Handlers - TBD
+	RedisClient       *rueidis.RueidisClient
+	MemCache          *memcache.MemoryCache
 }
 
 func NewResourceInitializer(
@@ -58,8 +52,8 @@ func NewResourceInitializer(
 
 
 		return &ResourceInitializer{
-			RedisClient: redisClient,
-			MemCache:    memCache,
+			RedisClient:   redisClient,
+			MemCache:      memCache,
 		}, nil
 }
 

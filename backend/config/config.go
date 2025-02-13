@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -17,7 +18,8 @@ type Config struct {
 	Env    string
 	Debug  bool
 	CORS   CORSConfig
-	IGDB   IGDBConfig
+	IGDB   *IGDBConfig
+	Redis  RedisConfig
 }
 
 type ServerConfig struct {
@@ -41,6 +43,11 @@ type IGDBConfig struct {
 	BaseURL        string           // IGDB API base URL
 	TokenTTL       time.Duration    // Duration until we need a token refresh
 	AccessTokenKey string           // Key for storing access token in Redis + Memcache
+}
+
+type RedisConfig struct {
+	RedisTimeout time.Duration
+	RedisTTL     time.Duration
 }
 
 func Load() (*Config, error) {
@@ -102,6 +109,10 @@ func Load() (*Config, error) {
 		TokenTTL:        24 * time.Hour,
 		AccessTokenKey:  TwitchAccessTokenKey,
 	}
+	redisConfig := RedisConfig{
+		RedisTimeout: 5 * time.Second,
+		RedisTTL:     5 * time.Minute,
+	}
 
 	return &Config{
 		Server: ServerConfig{
@@ -110,7 +121,15 @@ func Load() (*Config, error) {
 		},
 		Env: env,
 		Debug: debug,
-		CORS: corsConfig,
-		IGDB: igdbConfig,
+		CORS:  corsConfig,
+		IGDB:  &igdbConfig,
+		Redis: redisConfig,
 	}, nil
+}
+
+func (cfg *IGDBConfig) GetAccessTokenKey() (string, error) {
+	if cfg.AccessTokenKey == "" {
+		return "", errors.New("IGDB access token key is missing")
+	}
+	return cfg.AccessTokenKey, nil
 }

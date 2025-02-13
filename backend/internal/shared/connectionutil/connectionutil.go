@@ -17,7 +17,7 @@ import (
 //
 // Returns:
 //   - bool: true if the connection is successful, false otherwise.
-func IsOnline(host string, port int, timeout time.Duration) bool {
+var IsOnline = func (host string, port int, timeout time.Duration) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

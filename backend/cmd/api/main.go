@@ -12,6 +12,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lokeam/qko-beta/cmd/resourceinitializer"
 	"github.com/lokeam/qko-beta/config"
+	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
 	"github.com/lokeam/qko-beta/internal/shared/worker"
 	"github.com/lokeam/qko-beta/server"
@@ -69,8 +70,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Build app context
+	appCtx := appcontext.NewAppContext(cfg, log, resources.MemCache, resources.RedisClient)
+
 	// 6. Create server
-	srv := server.NewServer(cfg, log)
+	srv := server.NewServer(cfg, log, appCtx)
 
 	// 7. Start background workers
 	worker.StartInitIGDBJob(
@@ -83,7 +87,7 @@ func main() {
 		cfg.IGDB.ClientID,
 		cfg.IGDB.ClientSecret,
 		cfg.IGDB.AuthURL,
-		*log,
+		log,
 	)
 
 	// 8. Configure HTTP server
@@ -124,6 +128,7 @@ func main() {
 
 		// 12. Graceful shutdown
 		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 30*time.Second)
+		// Clean up resources associated with the context
 		defer shutdownCancel()
 
 		if err := srv.Shutdown(shutdownCtx); err != nil {

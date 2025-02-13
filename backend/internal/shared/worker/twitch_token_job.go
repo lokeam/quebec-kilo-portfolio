@@ -5,18 +5,18 @@ import (
 	"time"
 
 	memorycache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
-	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 	"github.com/lokeam/qko-beta/internal/shared/token"
 )
 
-func UpdateTwitchTokenJob(
+var UpdateTwitchTokenJob = func(
 	ctx context.Context,
 	redisKey string,
-	redisClient *cache.RueidisClient,
+	redisClient redisclient.RedisClient,
 	memCache *memorycache.MemoryCache,
 	tokenInfo token.TokenInfo,
-	logger *logger.Logger,
+	logger logger.LoggerInterface,
 ) error {
 	// Save token in memory cache
 	logger.Info("Saving token in memory cache", nil)
@@ -39,7 +39,7 @@ func UpdateTwitchTokenJob(
 		redisClient,
 		tokenInfo,
 		time.Until(tokenInfo.ExpiresAt),
-			*logger,
+		logger,
 	); err != nil {
 		logger.Error("Failed to save token in Redis", map[string]any{"error": err})
 		return err

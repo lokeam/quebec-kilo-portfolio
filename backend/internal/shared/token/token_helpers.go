@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 )
 
 type TokenInfo struct {
@@ -19,10 +19,10 @@ type TokenInfo struct {
 func SaveTokenInRedis(
 	ctx context.Context,
 	key string,
-	redisClient *cache.RueidisClient,
+	redisClient redisclient.RedisClient,
 	tokenInfo TokenInfo,
 	ttl time.Duration,
-	log logger.Logger,
+	log logger.LoggerInterface,
 ) error {
 	data, err := json.Marshal(tokenInfo)
 	if err != nil {
