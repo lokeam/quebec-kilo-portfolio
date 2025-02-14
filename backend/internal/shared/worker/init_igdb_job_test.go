@@ -7,12 +7,12 @@ import (
 	"time"
 
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/connectionutil"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
 	"github.com/lokeam/qko-beta/internal/shared/redisclient"
-	"github.com/lokeam/qko-beta/internal/shared/testutils"
 	"github.com/lokeam/qko-beta/internal/shared/token"
 	"github.com/lokeam/qko-beta/internal/shared/twitch"
+	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
 // mockRueidisClient is our test implementation for the redis connectivity check
@@ -53,7 +53,7 @@ func TestInitIGDBJob_HappyPath(t *testing.T) {
 				clientID,
 				clientSecret,
 				authURL string,
-				logger logger.LoggerInterface,
+				logger interfaces.Logger,
 			) (*twitch.TokenResponse,error) {
 				return &twitch.TokenResponse{
 					AccessToken: "test-access-token",
@@ -71,7 +71,7 @@ func TestInitIGDBJob_HappyPath(t *testing.T) {
 				redisClient redisclient.RedisClient,
 				memCache *memcache.MemoryCache,
 				tokenInfo token.TokenInfo,
-				log logger.LoggerInterface,
+				log interfaces.Logger,
 			) error {
 				return nil
 			}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/middleware"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"go.uber.org/zap"
 	"go.uber.org/zap/buffer"
 	"go.uber.org/zap/zapcore"
@@ -43,13 +44,6 @@ const (
 
 type customConsoleEncoder struct {
 	zapcore.Encoder
-}
-
-type LoggerInterface interface {
-	Info(msg string, fields map[string]any)
-	Debug(msg string, fields map[string]any)
-	Warn(msg string, fields map[string]any)
-	Error(msg string, fields map[string]any)
 }
 
 // Logger is a wrapper around zap
@@ -305,3 +299,6 @@ func (c customConsoleEncoder) EncodeEntry(entry zapcore.Entry, fields []zapcore.
 
 	return c.Encoder.EncodeEntry(entry, fields)
 }
+
+
+var _ interfaces.Logger = (*Logger)(nil)

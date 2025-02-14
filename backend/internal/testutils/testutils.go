@@ -1,7 +1,10 @@
 package testutils
 
-import "sync"
+import (
+	"sync"
+)
 
+// --------- Test Logger ---------
 type TestLogger struct {
 	Mu         sync.Mutex
 	InfoCalls  []string
@@ -44,3 +47,17 @@ func (tl *TestLogger) Warn(msg string, fields map[string]any) {
 	tl.WarnCalls = append(tl.WarnCalls, msg)
 }
 
+
+// --------- IGDB Config ---------
+type MockIGDBConfig struct {
+	tokenKey   string
+	err        error
+}
+
+func (mic *MockIGDBConfig) GetTokenKey() (string, error) {
+	if mic.err != nil {
+		return "", mic.err
+	}
+
+	return mic.tokenKey, nil
+}

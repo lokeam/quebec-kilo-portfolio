@@ -42,7 +42,7 @@ func getTestClient(t *testing.T) *RueidisClient {
 		Password: os.Getenv("TEST_REDIS_PASSWORD"),
 	}
 	testLogger, _ := logger.NewLogger()
-	testRueidisClient, err := NewRueidisClient(testConfig, *testLogger)
+	testRueidisClient, err := NewRueidisClient(testConfig, testLogger)
 	if err != nil {
 		t.Fatalf("GIVEN a valid config, WHEN we call NewRueidisClient(), THEN we expect no error but we got this: %v", err)
 	}

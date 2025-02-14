@@ -4,13 +4,13 @@ import (
 	"github.com/lokeam/qko-beta/config"
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
 	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/twitch"
 )
 
 type AppContext struct {
 	Config                 *config.Config
-	Logger                 logger.LoggerInterface
+	Logger                 interfaces.Logger
 	MemCache               *memcache.MemoryCache
 	RedisClient            *cache.RueidisClient
 	TwitchTokenRetriever   *twitch.TwitchTokenRetriever
@@ -18,7 +18,7 @@ type AppContext struct {
 
 func NewAppContext(
 	config *config.Config,
-	logger logger.LoggerInterface,
+	logger interfaces.Logger,
 	memCache *memcache.MemoryCache,
 	redisClient *cache.RueidisClient,
 ) *AppContext {

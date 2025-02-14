@@ -7,7 +7,7 @@ import (
 	"github.com/lokeam/qko-beta/config"
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
 	rueidis "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
-	logger "github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 )
 
 type ResourceInitializer struct {
@@ -19,7 +19,7 @@ type ResourceInitializer struct {
 func NewResourceInitializer(
 	ctx context.Context,
 	config *config.Config,
-	logger *logger.Logger,
+	logger interfaces.Logger,
 	) (*ResourceInitializer, error) {
 		// Initialize Redis
 		cfg := rueidis.NewRueidisConfig()
@@ -31,7 +31,7 @@ func NewResourceInitializer(
 		}
 
 		// Create Redis Client
-		redisClient, err := rueidis.NewRueidisClient(cfg, *logger)
+		redisClient, err := rueidis.NewRueidisClient(cfg, logger)
 		if err != nil {
 			logger.Error("redis client error", map[string]any{
 				"error": err.Error(),

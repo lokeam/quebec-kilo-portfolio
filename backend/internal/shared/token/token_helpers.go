@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 )
 
@@ -22,7 +22,7 @@ func SaveTokenInRedis(
 	redisClient redisclient.RedisClient,
 	tokenInfo TokenInfo,
 	ttl time.Duration,
-	log logger.LoggerInterface,
+	log interfaces.Logger,
 ) error {
 	data, err := json.Marshal(tokenInfo)
 	if err != nil {

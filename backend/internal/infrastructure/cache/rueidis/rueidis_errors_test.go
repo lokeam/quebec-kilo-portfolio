@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lokeam/qko-beta/internal/shared/testutils"
+	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
 /*

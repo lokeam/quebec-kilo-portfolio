@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/core"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
 )
 
 // RespondWithJSON writes a JSON response with provided data + status code.
@@ -37,7 +37,7 @@ import (
 //	}
 func RespondWithJSON(
 	w http.ResponseWriter,
-	logger logger.LoggerInterface,
+	logger interfaces.Logger,
 	status int,
 	data any,
 	) error {
@@ -131,7 +131,7 @@ func RespondWithJSON(
 //	}
 func RespondWithError(
 	w ResponseWriter,
-	logger logger.LoggerInterface,
+	logger interfaces.Logger,
 	requestID string,
 	err error,
 	) error {

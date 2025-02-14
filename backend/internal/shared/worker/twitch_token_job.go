@@ -5,7 +5,7 @@ import (
 	"time"
 
 	memorycache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 	"github.com/lokeam/qko-beta/internal/shared/token"
 )
@@ -16,7 +16,7 @@ var UpdateTwitchTokenJob = func(
 	redisClient redisclient.RedisClient,
 	memCache *memorycache.MemoryCache,
 	tokenInfo token.TokenInfo,
-	logger logger.LoggerInterface,
+	logger interfaces.Logger,
 ) error {
 	// Save token in memory cache
 	logger.Info("Saving token in memory cache", nil)

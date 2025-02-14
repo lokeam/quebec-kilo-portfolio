@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/redis/rueidis"
 )
 
@@ -21,7 +21,7 @@ const (
 
 type RueidisClient struct {
 	client rueidis.Client
-	logger logger.Logger
+	logger interfaces.Logger
 	config *RueidisConfig
 
 	// Metrics go here
@@ -48,7 +48,7 @@ type Stats struct {
 // Constructor
 func NewRueidisClient(
 	rcfg *RueidisConfig,
-	logger logger.Logger,
+	logger interfaces.Logger,
 ) (*RueidisClient, error) {
 	// Guard clauses
 	if rcfg == nil {

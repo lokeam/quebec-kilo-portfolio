@@ -5,8 +5,8 @@ import (
 	"time"
 
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/shared/connectionutil"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
 	"github.com/lokeam/qko-beta/internal/shared/redisclient"
 	"github.com/lokeam/qko-beta/internal/shared/token"
 	"github.com/lokeam/qko-beta/internal/shared/twitch"
@@ -21,7 +21,7 @@ func InitIGDBJob(
 	clientID string,
 	clientSecret string,
 	authURL string,
-	log logger.LoggerInterface,
+	log interfaces.Logger,
 ) error {
 
 	log.Info("Starting INIT_IGDB job", nil)

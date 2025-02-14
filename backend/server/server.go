@@ -8,19 +8,19 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 )
 
 type Server struct {
 	Config      *config.Config
 	AppContext  *appcontext.AppContext
-	Logger      logger.LoggerInterface
+	Logger      interfaces.Logger
 	Router      chi.Router
 }
 
 func NewServer(
 	config *config.Config,
-	logger logger.LoggerInterface,
+	logger interfaces.Logger,
 	appContext *appcontext.AppContext,
 ) *Server {
 

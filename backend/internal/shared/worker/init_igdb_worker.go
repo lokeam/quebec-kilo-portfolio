@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 )
 
 // StartInitIGDBJob launches the INIT_IGDB job as a goroutine.
@@ -14,7 +14,7 @@ func StartInitIGDBJob(
 	clientID,
 	clientSecret,
 	authURL string,
-	log logger.LoggerInterface,
+	log interfaces.Logger,
 ) {
 	go func() {
 		if err := InitIGDBJob(

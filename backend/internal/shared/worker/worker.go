@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/shared/logger"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 )
 
 const (
@@ -19,14 +19,14 @@ type Worker struct {
 	interval  time.Duration
 	job       func(context.Context) error   // The job function to execute
 	condition func() bool                   // Optional condition: if provided, job runs only if condition() returns true.
-	logger    logger.LoggerInterface
+	logger    interfaces.Logger
 }
 
 func NewWorker(
 	interval time.Duration,
 	job func(context.Context) error,
 	condition func() bool,
-	logger logger.LoggerInterface) *Worker {
+	logger interfaces.Logger) *Worker {
 	return &Worker{
 		interval:  interval,
 		job:       job,
