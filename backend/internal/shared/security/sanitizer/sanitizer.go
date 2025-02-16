@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -37,6 +38,9 @@ func NewSanitizer() (*Sanitizer, error) {
 		safetyPattern:  regexp.MustCompile(`^[\w\s\-\.,?!]+$`),
 	}, nil
 }
+
+// Make sure that Sanitizer implements interfaces.Sanitizer.
+var _ interfaces.Sanitizer = (*Sanitizer)(nil)
 
 // Methods
 func (s *Sanitizer) SanitizeSearchQuery(input string) (string, error) {
