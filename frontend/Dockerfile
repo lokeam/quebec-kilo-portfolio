@@ -1,5 +1,5 @@
 # Stage 1: Build React app
-FROM node:16-alpine AS build
+FROM node:18-alpine AS build
 
 # Set the working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ FROM nginx:stable-alpine
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy the React build output to Nginx's public directory
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Expose port 80 so that the container is accessible from the host
 EXPOSE 80

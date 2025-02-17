@@ -84,6 +84,25 @@ restart: reset up
 clean:
 	docker compose down
 
+# ---------------------------------------------------------------------------
+# Restart-All: Fully reset the environment + bring up ALL services (backend & frontend)
+#
+# This composite target calls the 'reset' target to clean up existing
+# containers and volumes, then starts both backend and frontend services.
+#
+# Usage: make restart-all
+#
+# ⚠️ Warning: This process is destructive as it removes all running containers
+# and volumes before restarting all services.
+# ---------------------------------------------------------------------------
+restart-all: CURRENT_ENV=development
+restart-all: check-docker check-env-files
+	@echo "$(BLUE)Fully resetting environment and starting all services (backend & frontend)...$(RESET)"
+	$(MAKE) reset
+	docker compose --env-file .env.dev up --build -d
+	@sleep 5
+	@$(MAKE) health
+
 # -----------------------------------------
 # Environment Initialization
 # -----------------------------------------
@@ -240,6 +259,7 @@ help:
 	@echo " make dev                - Start development environment (containerized)"
 	@echo " make test               - Start test environment (containerized)"
 	@echo " make prod               - Start production environment (containerized)"
+	@echo " make restart-all        - Fully reset environment and start all services (backend & frontend)"
 	@echo " make dev-backend        - Start development environment excluding the frontend (for backend development only)"
 	@echo " make down               - Shut down environment and remove volumes"
 	@echo " make clean              - Remove all containers, volumes, and Docker artifacts"
