@@ -1,6 +1,9 @@
 package searchdef
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 const (
 	DefaultPageSize = 20
@@ -17,6 +20,11 @@ type SearchRequest struct {
 // For this example, we assume a simple query string.
 type SearchQuery struct {
 	Query string
+	Limit int
+}
+
+func (sq SearchQuery) ToCacheKey() string {
+	return fmt.Sprintf("search:%s:%d", sq.Query, sq.Limit)
 }
 
 // Game represents a title from IGDB
