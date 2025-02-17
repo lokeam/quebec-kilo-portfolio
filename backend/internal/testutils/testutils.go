@@ -1,6 +1,8 @@
 package testutils
 
 import (
+	"errors"
+	"net/http"
 	"sync"
 )
 
@@ -60,4 +62,12 @@ func (mic *MockIGDBConfig) GetTokenKey() (string, error) {
 	}
 
 	return mic.tokenKey, nil
+}
+
+
+// --------- Round Tripper (simulate network error) ---------
+type ErrorRoundTripper struct {}
+
+func (ert *ErrorRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return nil, errors.New("network error")
 }

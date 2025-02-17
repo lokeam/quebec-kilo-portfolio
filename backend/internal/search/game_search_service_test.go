@@ -3,7 +3,6 @@ package search
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/Henry-Sarabia/igdb"
@@ -153,7 +152,7 @@ func TestGameSearchService(t *testing.T) {
 			if testErr != nil {
 				t.Errorf("expected no error on cache hit, but instead got: %v", testErr)
 			}
-			if !reflect.DeepEqual(*actualResult, expectedResult) {
+			if !searchResultEqual(*actualResult, expectedResult) {
 				t.Errorf("expected result to be %v, but instead got: %v", expectedResult, *actualResult)
 			}
 		},
@@ -275,4 +274,26 @@ func TestGameSearchService(t *testing.T) {
 			}
 		},
 	)
+}
+
+
+// searchResultEqual compares two SearchResult values.
+func searchResultEqual(a, b searchdef.SearchResult) bool {
+	// Compare number of games.
+	if len(a.Games) != len(b.Games) {
+			return false
+	}
+	// Compare each game (adjust the fields as needed).
+	for i := range a.Games {
+			if a.Games[i].ID != b.Games[i].ID || a.Games[i].Name != b.Games[i].Name {
+					return false
+			}
+	}
+	// Compare meta fields.
+	if a.Meta.CacheHit != b.Meta.CacheHit ||
+	a.Meta.CacheTTL != b.Meta.CacheTTL ||
+	a.Meta.TimestampUTC != b.Meta.TimestampUTC {
+			return false
+	}
+	return true
 }

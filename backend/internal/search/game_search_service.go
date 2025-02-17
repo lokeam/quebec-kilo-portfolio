@@ -2,8 +2,10 @@ package search
 
 import (
 	"context"
+	"strconv"
 	"time"
 
+	"github.com/Henry-Sarabia/igdb"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
@@ -122,4 +124,15 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	}
 
 	return result, nil
+}
+
+func convertIGDBGame(g igdb.Game) searchdef.Game {
+	return searchdef.Game{
+		ID:               int64(g.ID),
+		Name:             g.Name,
+		Summary:          g.Summary,
+		Cover:            strconv.Itoa(g.Cover),
+		FirstReleaseDate: int64(g.FirstReleaseDate),
+		Rating:           g.Rating,
+	}
 }
