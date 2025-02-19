@@ -9,6 +9,8 @@ services:
       - "--api.insecure=true"                         # Traefik dashboard (insecure—use only in development)
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"   # Only containers with explicit labels are exposed
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
     ports:
       - "80:80"       # HTTP entry point
       - "443:443"     # HTTPS entry point (if TLS is configured)
@@ -51,6 +53,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`frontend.localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"  # Internal port where the frontend container serves
     networks:
       - web
