@@ -6,9 +6,9 @@ services:
     image: traefik:v2.9
     command:
       - "--log.level=INFO"
-      - "--api.insecure=true"                         # Traefik dashboard (insecure—use only in development)
+      - "--api.insecure=true"  # Traefik dashboard (insecure—use only in development)
       - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"   # Only containers with explicit labels are exposed
+      - "--providers.docker.exposedbydefault=false"  # Only containers with explicit labels are exposed
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
     ports:
@@ -23,23 +23,31 @@ services:
   # Golang API Service
   api:
     build: ./backend
+    env_file:
+      - .env
     environment:
-      - API_ENV=development
-      - POSTGRES_HOST=postgres
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    # Traefik labels for routing
+      API_ENV: dev
+      DATABASE_URL: "postgres://user:password@postgres:5432/qkapi"
+      PORT: "8000"
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`api.localhost`)"
-      - "traefik.http.services.api.loadbalancer.server.port=8000"  # Internal port the API listens on
+      - "traefik.http.routers.api.entrypoints=web"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+      - "traefik.docker.network=quebec-kilo_web"  # Force Traefik to use the explicit 'quebec-kilo_web' network
     networks:
-      - web
-      - backend
+      web:
+        aliases:
+          - api  # Now the API container is consistently reachable via the alias "api"
+      backend: {}
+
     depends_on:
       - redis
       - postgres
@@ -48,25 +56,23 @@ services:
   frontend:
     build: ./frontend
     environment:
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://api.localhost}
-    # Traefik labels so requests to frontend.localhost route here
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://api.localhost}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`frontend.localhost`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls=true"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"  # Internal port where the frontend container serves
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
     networks:
       - web
 
   # Mailhog for Email Testing
   mailhog:
     image: mailhog/mailhog:latest
-    # Traefik routing labels for Mailhog
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mailhog.rule=Host(`mailhog.localhost`)"
-      - "traefik.http.services.mailhog.loadbalancer.server.port=8026"  # Mailhog’s internal port
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8026"
     networks:
       - web
 
@@ -110,8 +116,10 @@ services:
 
 networks:
   web:
+    name: "quebec-kilo_web"
     driver: bridge
   backend:
+    name: "quebec-kilo_backend"
     driver: bridge
 
 volumes:

@@ -202,11 +202,19 @@ clean:
 health:
 	docker compose ps
 
+# Actively test the API health endpoint
+health-api:
+	@echo "Testing API health endpoint..."
+	@curl -fsS http://localhost:8000/api/v1/health && echo "API healthy" || (echo "API unhealthy" && exit 1)
+
+# Detailed health check including container status and API health endpoint test
 health-detail:
 	@echo "=== Container Status ==="
-	docker compose ps
-	@echo "\n=== Health Check Logs ==="
-	docker compose ps | grep -q "healthy" || (echo "⚠️ Unhealthy services detected" && exit 1)
+	@docker compose ps
+	@echo "\n=== API Health Endpoint Check ==="
+	@$(MAKE) health-api
+	@echo "\n=== Docker Health Check Logs ==="
+	@docker compose ps | grep -q "healthy" || (echo "⚠️ Unhealthy services detected" && exit 1)
 	@echo "✅ All services healthy"
 
 logs:
