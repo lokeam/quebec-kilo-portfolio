@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/search"
 )
 
@@ -20,7 +21,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 	// Initialize handlers using single App Context
 	searchHandler := search.NewSearchHandler(appContext)
-	//healthHandler := health.NewHealthHandler(s.config, s.logger)
+	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
 
 	// Initialize Routes
 	mux.Route("/api/v1", func(r chi.Router) {
@@ -30,7 +31,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		// Mounted protected features below
 
 		// Core + utility routes
-		//r.Handle("/health", healthHandler)
+		r.Get("/health", healthHandler)
 
 		// Feature routes (NOTE: add to protected routes post testing)
 		r.Handle("/search", searchHandler)
