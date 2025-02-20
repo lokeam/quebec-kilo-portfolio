@@ -3,7 +3,7 @@ package config
 // Environment Variables
 const (
 	// Server
-	EnvEnvironment = "ENV"
+	EnvEnvironment = "API_ENV"
 	EnvDebug       = "APP_DEBUG"
 	EnvPort        = "PORT"
 	EnvHost        = "HOST"
@@ -28,6 +28,6 @@ const (
 
 // Defaults
 const (
-	DefaultPort = 8080
+	DefaultPort = 8000
 	DefaultHost = "localhost"
 )

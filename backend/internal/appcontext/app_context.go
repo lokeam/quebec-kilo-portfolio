@@ -5,7 +5,7 @@ import (
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
 	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
 	"github.com/lokeam/qko-beta/internal/interfaces"
-	"github.com/lokeam/qko-beta/internal/shared/twitch"
+	twitch "github.com/lokeam/qko-beta/internal/shared/twitch"
 )
 
 type AppContext struct {
@@ -27,6 +27,12 @@ func NewAppContext(
 		Logger: logger,
 		MemCache: memCache,
 		RedisClient: redisClient,
-		TwitchTokenRetriever: twitch.NewTwitchTokenRetriever(memCache, redisClient),
+		TwitchTokenRetriever: twitch.NewTwitchTokenRetriever(
+			memCache,
+			redisClient,
+			config.IGDB.ClientID,
+			config.IGDB.ClientSecret,
+			config.IGDB.AuthURL,
+		),
 	}
 }

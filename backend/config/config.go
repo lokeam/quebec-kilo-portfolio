@@ -52,6 +52,7 @@ type RedisConfig struct {
 
 func Load() (*Config, error) {
 	env := os.Getenv(EnvEnvironment)
+
 	if env == "" {
 		env = EnvDevelopment
 	} else if env != EnvDevelopment && env != EnvTest && env != EnvProduction {
