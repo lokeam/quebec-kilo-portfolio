@@ -13,7 +13,7 @@ type AppContext struct {
 	Logger                 interfaces.Logger
 	MemCache               *memcache.MemoryCache
 	RedisClient            *cache.RueidisClient
-	TwitchTokenRetriever   *twitch.TwitchTokenRetriever
+	TwitchTokenRetriever   interfaces.TokenRetriever
 }
 
 func NewAppContext(

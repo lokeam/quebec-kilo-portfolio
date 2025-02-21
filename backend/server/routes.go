@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,23 +22,40 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	s.setupCORS(mux)
 
 	// Initialize handlers using single App Context
-	searchHandler := search.NewSearchHandler(appContext)
+	searchServiceFactory := search.NewSearchServiceFactory(appContext)
+	searchHandler := search.NewSearchHandler(appContext, searchServiceFactory)
 	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
+
+	// Debug logging for searchHandler
+	if searchHandler == nil {
+		appContext.Logger.Error("searchHandler is nil", map[string]any{
+			"appContext": appContext,
+		})
+	} else {
+		appContext.Logger.Info("searchHandler initialized successfully", map[string]any{
+			"appContext": appContext,
+		})
+	}
+
+	if reflect.TypeOf(searchHandler) != reflect.TypeOf(http.HandlerFunc(nil)) {
+		appContext.Logger.Error("searchHandler is not of type http.HandlerFunc", map[string]any{
+			"appContext": appContext,
+		})
+	} else {
+		appContext.Logger.Info("searchHandler is of type http.HandlerFunc", map[string]any{
+			"appContext": appContext,
+		})
+	}
 
 	// Initialize Routes
 	mux.Route("/api/v1", func(r chi.Router) {
-
-		// Protected routes
-		//r.Use(auth0middleware.EnsureValidToken())
-		// Mounted protected features below
-
-		// Core + utility routes
 		r.Get("/health", healthHandler)
-
-		// Feature routes (NOTE: add to protected routes post testing)
-		r.Handle("/search", searchHandler)
-
-		// Feature routes (NOTE: add to protected routes post testing)
+		r.Post("/search", searchHandler) // Use searchHandler directly
+		r.Post("/search/", searchHandler) // Handle trailing slash
+		appContext.Logger.Info("Routes registered", map[string]any{
+			"health": "/api/v1/health",
+			"search": "/api/v1/search",
+		})
 	})
 
 	return mux
@@ -52,11 +71,11 @@ func (s *Server) setupMiddleware(mux *chi.Mux) {
 
 func (s *Server) setupCORS(mux *chi.Mux) {
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:      s.AppContext.Config.CORS.AllowedOrigins,
-		AllowedMethods:      s.AppContext.Config.CORS.AllowedMethods,
-		AllowedHeaders:      s.AppContext.Config.CORS.AllowedHeaders,
-		ExposedHeaders:      s.AppContext.Config.CORS.ExposedHeaders,
-		AllowCredentials:    s.AppContext.Config.CORS.AllowCredentials,
-		MaxAge:              s.AppContext.Config.CORS.MaxAge,
+		AllowedOrigins:   s.AppContext.Config.CORS.AllowedOrigins,
+		AllowedMethods:   s.AppContext.Config.CORS.AllowedMethods,
+		AllowedHeaders:   s.AppContext.Config.CORS.AllowedHeaders,
+		ExposedHeaders:   s.AppContext.Config.CORS.ExposedHeaders,
+		AllowCredentials: s.AppContext.Config.CORS.AllowCredentials,
+		MaxAge:           s.AppContext.Config.CORS.MaxAge,
 	}))
 }

@@ -134,17 +134,25 @@ func RespondWithError(
 	logger interfaces.Logger,
 	requestID string,
 	err error,
+	statusCode ...int,
 	) error {
 	// Start timing the response
 	start := time.Now()
 
 	// Determine HTTP status code based on error type
 	status := http.StatusInternalServerError
-	if errors.Is(err, core.ErrValidation) {
-			status = http.StatusBadRequest
-	} else if errors.Is(err, core.ErrAuthentication) {
-			status = http.StatusUnauthorized
-	}
+
+	// If custom status codes are provided, use the first one
+    if len(statusCode) > 0 {
+        status = statusCode[0]
+    } else {
+        // Existing error type mapping
+        if errors.Is(err, core.ErrValidation) {
+            status = http.StatusBadRequest
+        } else if errors.Is(err, core.ErrAuthentication) {
+            status = http.StatusUnauthorized
+        }
+    }
 
 	// Create error response
 	response := core.ErrorResponse{

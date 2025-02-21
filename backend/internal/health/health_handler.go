@@ -5,6 +5,7 @@ import (
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
 // NewHealthHandler returns an http.HandlerFunc which handles health check requests.
@@ -17,11 +18,18 @@ func NewHealthHandler(cfg *config.Config, logger interfaces.Logger) http.Handler
 			"remote_addr": r.RemoteAddr,
 		})
 
-		// Set the response headers and write a simple JSON response.
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, err := w.Write([]byte(`{"status":"available","env":"` + cfg.Env + `","version":"1.0.0"}`))
-		if err != nil {
+		// Determine status based on health status
+		status := http.StatusOK
+		if cfg.HealthStatus == "unavailable" {
+			status = http.StatusInternalServerError
+		}
+
+		response := map[string]string{
+			"status":  cfg.HealthStatus,
+			"env":     cfg.Env,
+		}
+
+		if err := httputils.RespondWithJSON(w, logger, status, response); err != nil {
 			logger.Error("health check write failed", map[string]any{"error": err.Error()})
 		}
 	}

@@ -11,6 +11,7 @@ import (
 
 const (
 	TwitchAccessTokenKey = "twitch:access_token"
+	HealthStatus = "health_status"
 )
 
 type Config struct {
@@ -20,6 +21,7 @@ type Config struct {
 	CORS   CORSConfig
 	IGDB   *IGDBConfig
 	Redis  RedisConfig
+	HealthStatus string
 }
 
 type ServerConfig struct {
@@ -91,6 +93,11 @@ func Load() (*Config, error) {
 		host = DefaultHost
 	}
 
+	healthStatus := os.Getenv(HealthStatus)
+	if healthStatus == "" {
+		healthStatus = "available"
+	}
+
 	// CORS Configuration + defaults
 	corsConfig := CORSConfig{
 		AllowedOrigins:   strings.Split(getEnvOrDefault("CORS_ALLOWED_ORIGINS", "https://*,http://*"), ","),
@@ -125,6 +132,7 @@ func Load() (*Config, error) {
 		CORS:  corsConfig,
 		IGDB:  &igdbConfig,
 		Redis: redisConfig,
+		HealthStatus: healthStatus,
 	}, nil
 }
 
