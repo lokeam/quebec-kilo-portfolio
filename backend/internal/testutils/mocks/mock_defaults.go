@@ -3,8 +3,8 @@ package mocks
 import (
 	"context"
 
-	igdb "github.com/Henry-Sarabia/igdb"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // DefaultSanitizer returns a MockSanitizer with a passing default.
@@ -31,9 +31,9 @@ func DefaultValidator() *MockValidator {
 // DefaultIGDBAdapter returns a MockIGDBAdapter with default (happy path) behavior.
 func DefaultIGDBAdapter() *MockIGDBAdapter {
 		return &MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*igdb.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
 						// Default: return an empty slice (or a minimal dummy value).
-						return []*igdb.Game{}, nil
+						return []*types.Game{}, nil
 				},
 		}
 }

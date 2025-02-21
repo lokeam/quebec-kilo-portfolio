@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	igdb "github.com/Henry-Sarabia/igdb"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // FakeSanitizer is a simple implementation of interfaces.Sanitizer used across tests.
@@ -36,10 +36,10 @@ func (mv *MockValidator) ValidateQuery(query searchdef.SearchQuery) error {
 
 // FakeIGDBAdapter implements interfaces.IGDBAdapter.
 type MockIGDBAdapter struct {
-	SearchGamesFunc func(ctx context.Context, query string, limit int) ([]*igdb.Game, error)
+	SearchGamesFunc func(ctx context.Context, query string, limit int) ([]*types.Game, error)
 }
 
-func (mv *MockIGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*igdb.Game, error) {
+func (mv *MockIGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*types.Game, error) {
 	if mv.SearchGamesFunc != nil {
 		return mv.SearchGamesFunc(ctx, query, limit)
 	}

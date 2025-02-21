@@ -13,6 +13,7 @@ func NewMockConfig() *config.Config {
 			Host: "localhost",
 		},
 		Env:   "test",
+		HealthStatus: "available",
 		Debug: true,
 		CORS: config.CORSConfig{
 			AllowedOrigins: []string{"http://localhost"},
