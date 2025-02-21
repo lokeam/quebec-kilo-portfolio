@@ -22,17 +22,20 @@ func NewAppContext(
 	memCache *memcache.MemoryCache,
 	redisClient *cache.RueidisClient,
 ) *AppContext {
+
+	twitchTokenRetriever := twitch.NewTwitchTokenRetriever(
+		memCache,
+		redisClient,
+		config.IGDB.ClientID,
+		config.IGDB.ClientSecret,
+		config.IGDB.AuthURL,
+	)
+
 	return &AppContext{
 		Config: config,
 		Logger: logger,
 		MemCache: memCache,
 		RedisClient: redisClient,
-		TwitchTokenRetriever: twitch.NewTwitchTokenRetriever(
-			memCache,
-			redisClient,
-			config.IGDB.ClientID,
-			config.IGDB.ClientSecret,
-			config.IGDB.AuthURL,
-		),
+		TwitchTokenRetriever: twitchTokenRetriever,
 	}
 }

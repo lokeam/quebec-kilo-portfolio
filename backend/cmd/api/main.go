@@ -54,9 +54,6 @@ func main() {
 	defer log.Cleanup()
 
 	env = os.Getenv("API_ENV")
-	log.Debug("Main.go ln 57: configuration environment", map[string]any{
-		"env": env,
-	})
 
 	// 4. Load app configuration
 	cfg, err := config.Load()
