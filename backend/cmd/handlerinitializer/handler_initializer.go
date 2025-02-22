@@ -14,8 +14,10 @@ type HandlerInitializer struct {
 }
 
 func NewHandlerInitializer(appCtx *appcontext.AppContext) *HandlerInitializer {
+	searchServiceFactory := search.NewSearchServiceFactory(appCtx)
+
 	return &HandlerInitializer{
-		Search: search.NewSearchHandler(appCtx),
+		Search: search.NewSearchHandler(appCtx, searchServiceFactory),
 		Health: health.NewHealthHandler(appCtx.Config, appCtx.Logger),
 	}
 }

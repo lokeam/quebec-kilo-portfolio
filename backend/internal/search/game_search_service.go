@@ -2,15 +2,14 @@ package search
 
 import (
 	"context"
-	"strconv"
 	"time"
 
-	"github.com/Henry-Sarabia/igdb"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // GameSearchService processes search requests by validating and sanitizing the query,
@@ -32,7 +31,10 @@ type SearchService interface {
 func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService, error) {
 
 	// Create an adapter to search IGDB
-	adapter, err := NewIGDBAdapter(appContext.Config, appContext.Logger)
+	appContext.Logger.Info("Game Search Service - Creating IGDBAdapter", map[string]any{
+		"appContext": appContext,
+	})
+	adapter, err := NewIGDBAdapter(appContext)
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +128,12 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	return result, nil
 }
 
-func convertIGDBGame(g igdb.Game) searchdef.Game {
+func convertIGDBGame(g types.Game) searchdef.Game {
 	return searchdef.Game{
 		ID:               int64(g.ID),
 		Name:             g.Name,
 		Summary:          g.Summary,
-		Cover:            strconv.Itoa(g.Cover),
+		Cover:            g.CoverURL,
 		FirstReleaseDate: int64(g.FirstReleaseDate),
 		Rating:           g.Rating,
 	}

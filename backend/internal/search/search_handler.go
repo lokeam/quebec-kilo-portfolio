@@ -8,19 +8,18 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
-func NewSearchHandler(appCtx *appcontext.AppContext) http.HandlerFunc {
+func NewSearchHandler(
+	appCtx *appcontext.AppContext,
+	searchServiceFactory SearchServiceFactory,
+	) http.HandlerFunc {
 	// Instantiate the concrete search service.
 	appCtx.Logger.Info("NewSearchHandler created, initializing game search service", map[string]any{
 		"appContext": appCtx,
 	})
-
-	gameService, err := NewGameSearchService(appCtx)
-	if err != nil {
-		panic(err)
-	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		appCtx.Logger.Info("SearchHandler ServeHTTP called", map[string]any{
@@ -33,11 +32,13 @@ func NewSearchHandler(appCtx *appcontext.AppContext) http.HandlerFunc {
 		query := r.URL.Query().Get("query")
 		if query == "" {
 			err := errors.New("search query is required")
+
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
 				err,
+				http.StatusBadRequest,
 			)
 			return
 		}
@@ -86,20 +87,25 @@ func NewSearchHandler(appCtx *appcontext.AppContext) http.HandlerFunc {
 		var result *searchdef.SearchResult
 
 		// 6. Dispatch to the appropriate service.
-		switch domain {
-		case "games":
-			result, err = gameService.Search(r.Context(), req)
-		// TODO: Add more domains here.
-		default:
-			err := errors.New("unsupported search domain")
+		service, err := searchServiceFactory.GetService(domain)
+		if err != nil {
+
+			domainErr := &types.DomainError{
+				Domain: domain,
+				Err:    err,
+			}
+
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
+				domainErr,
+				http.StatusBadRequest,
 			)
 			return
 		}
+
+		result, err = service.Search(r.Context(), req)
 		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),

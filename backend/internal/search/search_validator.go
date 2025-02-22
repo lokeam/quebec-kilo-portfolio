@@ -127,28 +127,3 @@ func (v *SearchValidator) validateResultLimit(limit, offset int) error {
 	return nil
 }
 
-// func (v *SearchValidator) validateFields(fields []string) error {
-// 	if len(fields) == 0 {
-// 		return nil
-// 	}
-
-// 	// Validate against allowed fields
-// 	allowedFields := map[string]bool{
-// 		"name":               true,
-// 		"summary":            true,
-// 		"cover.url":          true,
-// 		"first_release_date": true,
-// 		"rating":             true,
-// 	}
-
-// 	for _, field := range fields {
-// 		if !allowedFields[field] {
-// 			return &ValidationError{
-// 				Field: "fields",
-// 				Message: fmt.Sprintf("Field %s is not allowed", field),
-// 			}
-// 		}
-// 	}
-
-// 	return nil
-// }

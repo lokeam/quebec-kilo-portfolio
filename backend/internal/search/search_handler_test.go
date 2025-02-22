@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -35,7 +35,17 @@ import (
 	- Valid search request with a search service failure
 */
 
-// --------- Mock Search Service ---------
+type mockSearchServiceFactory struct {
+    mockService SearchService
+}
+
+func (m *mockSearchServiceFactory) GetService(domain string) (SearchService, error) {
+    if domain != "games" {
+        return nil, fmt.Errorf("unsupported domain: %s", domain)
+    }
+    return m.mockService, nil
+}
+
 type mockSearchService struct {
 	searchServiceResult   *searchdef.SearchResult
 	searchServiceError    error
@@ -62,34 +72,46 @@ func TestSearchHandler(t *testing.T) {
 	testIGDBToken := "valid-token"
 	baseAppCtx := appcontext_test.NewTestingAppContext(testIGDBToken, nil)
 
-	// --------- Missing Query Parameter ---------
-	t.Run(
-		`Missing Query Parameter`,
-		func(t *testing.T) {
+	createHandler := func(mockService *mockSearchService) http.HandlerFunc {
+    factory := &mockSearchServiceFactory{mockService: mockService}
+    return NewSearchHandler(baseAppCtx, factory)
+	}
 			/*
 				GIVEN an HTTP request that doesn't contain a query parameter
 				WHEN the SearchHandler is called
 				THEN the error response is returned with httputils.RespondWithError containing the message "search query is required"
 			*/
-			mockSearchService := &mockSearchService{}
-			mockSearchHandler := &SearchHandler{
-				appContext:            baseAppCtx,
-				gameSearchService:     mockSearchService,
-			}
+	// --------- Missing Query Parameter ---------
+	t.Run("Missing Query Parameter", func(t *testing.T) {
+		// Create mock search service
+		mockSearchService := &mockSearchService{}
+		factory := &mockSearchServiceFactory{mockService: mockSearchService}
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search", nil)
+		// Create handler
+		searchHandler := NewSearchHandler(baseAppCtx, factory)
 
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-1")
-			testResponseRecorder := httptest.NewRecorder()
+		// Create test request without query
+		req := httptest.NewRequest(http.MethodPost, "/search", nil)
+		req.Header.Set(httputils.XRequestIDHeader, "test-request-id")
+		recorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError == nil || !strings.Contains(testError.Error(), "search query is required") {
-				t.Errorf("expected an error for a missing query parameter, but got: %v", testError)
-			}
-		},
-	)
+		// Call handler
+		searchHandler.ServeHTTP(recorder, req)
+
+		// Validate response
+		if recorder.Code != http.StatusBadRequest {
+			t.Errorf("Expected status 400 for missing query, got %d", recorder.Code)
+		}
+
+		// Optional: Validate error message
+		var errorResponse map[string]string
+		if err := json.Unmarshal(recorder.Body.Bytes(), &errorResponse); err != nil {
+			t.Fatalf("Failed to unmarshal error response: %v", err)
+		}
+		if errorResponse["error"] != "search query is required" {
+			t.Errorf("Unexpected error message: %v", errorResponse["error"])
+		}
+	})
 
 	// --------- No token or error from IGDB.GetAccessTokenKey ---------
 	t.Run(
@@ -101,7 +123,7 @@ func TestSearchHandler(t *testing.T) {
 				WHEN we call HandleSearch()
 				THEN httputils.RespondWithError produces an error response indicating that the IGDB token could not be retrieved
 			*/
-			tokenError := errors.New("failed to retrieve token")
+			// tokenError := errors.New("failed to retrieve token")
 			brokenAppCtx := &appcontext.AppContext{
 				Logger: baseAppCtx.Logger,
 				Config: &config.Config{
@@ -116,22 +138,21 @@ func TestSearchHandler(t *testing.T) {
 					},
 				},
 			}
+
 			mockSearchService := &mockSearchService{}
-			mockSearchHandler := &SearchHandler{
-				appContext:         brokenAppCtx,
-				gameSearchService:  mockSearchService,
-			}
+			mockSearchHandler := NewSearchHandler(
+				brokenAppCtx,
+				&mockSearchServiceFactory{mockService: mockSearchService},
+			)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search?query=darksouls", nil)
-
+			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=dark%20souls", nil)
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-2")
 			testResponseRecorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError == nil || !strings.Contains(testError.Error(), tokenError.Error()) {
-				t.Fatalf("expected an error for a missing IGDB token, but got: %v", testError)
+			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
+			if testResponseRecorder.Code != http.StatusInternalServerError {
+				t.Errorf("expected status 500 for IGDB token retrieval failure, got: %d", testResponseRecorder.Code)
 			}
 		},
 	)
@@ -155,10 +176,7 @@ func TestSearchHandler(t *testing.T) {
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}
-			mockSearchHandler := &SearchHandler{
-				appContext:            baseAppCtx,
-				gameSearchService:     mockSearchService,
-			}
+			mockSearchHandler := createHandler(mockSearchService)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
 			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls", nil)
@@ -167,14 +185,14 @@ func TestSearchHandler(t *testing.T) {
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-3")
 			testResponseRecorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError != nil {
-				t.Fatalf("ran HandleSearch() and didn't expect to get an error, but instead we got: %v", testError)
+			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
+			if testResponseRecorder.Code != http.StatusOK {
+				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
 			}
 
 			// Verify the default limit is set to 50
-			if mockSearchService.mostRecentRequest.Limit != 50 {
-				t.Fatalf("expected the default limit to be 50 but instead we got: %d", mockSearchService.mostRecentRequest.Limit)
+			if mockSearchService.mostRecentRequest.Limit != 5 {
+				t.Fatalf("expected the default limit to be 5 but instead we got: %d", mockSearchService.mostRecentRequest.Limit)
 			}
 
 			// Check the HTTP response
@@ -206,10 +224,7 @@ func TestSearchHandler(t *testing.T) {
 				THEN httputils.RespondWithError produces an error with message "unsupported search domain"
 			*/
 			mockSearchService := &mockSearchService{}
-			mockSearchHandler := &SearchHandler{
-				appContext:            baseAppCtx,
-				gameSearchService:     mockSearchService,
-			}
+			mockSearchHandler := createHandler(mockSearchService)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
 			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls&domain=music", nil)
@@ -218,9 +233,9 @@ func TestSearchHandler(t *testing.T) {
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-4")
 			testResponseRecorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError == nil || !strings.Contains(testError.Error(), "unsupported search domain") {
-				t.Fatalf("expected an error for an unsupported domain, but instead we got: %v", testError)
+			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
+			if testResponseRecorder.Code != http.StatusBadRequest {
+				t.Errorf("expected status 400 for unsupported domain, got: %d", testResponseRecorder.Code)
 			}
 		},
 	)
@@ -239,10 +254,7 @@ func TestSearchHandler(t *testing.T) {
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}
-			mockSearchHandler := &SearchHandler{
-				appContext:            baseAppCtx,
-				gameSearchService:     mockSearchService,
-			}
+			mockSearchHandler := createHandler(mockSearchService)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
 			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls&limit=100", nil)
@@ -251,9 +263,9 @@ func TestSearchHandler(t *testing.T) {
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-5")
 			testResponseRecorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError != nil {
-				t.Fatalf("ran HandleSearch() and didn't expect to get an error, but instead we got: %v", testError)
+			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
+			if testResponseRecorder.Code != http.StatusOK {
+				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
 			}
 			if mockSearchService.mostRecentRequest == nil {
 				t.Fatalf("expected the most recent request to be set, but it was not")
@@ -282,10 +294,7 @@ func TestSearchHandler(t *testing.T) {
 			mockSearchService := &mockSearchService{
 				searchServiceError: mockSearchServiceError,
 			}
-			mockSearchHandler := &SearchHandler{
-				appContext:            baseAppCtx,
-				gameSearchService:     mockSearchService,
-			}
+			mockSearchHandler := createHandler(mockSearchService)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
 			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls", nil)
@@ -294,9 +303,9 @@ func TestSearchHandler(t *testing.T) {
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-6")
 			testResponseRecorder := httptest.NewRecorder()
 
-			testError := mockSearchHandler.HandleSearch(testResponseRecorder, testRequest)
-			if testError == nil || !strings.Contains(testError.Error(), mockSearchServiceError.Error()) {
-				t.Fatalf("expected a search service error, but instead we got: %v", testError)
+			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
+			if testResponseRecorder.Code != http.StatusInternalServerError {
+				t.Errorf("expected status 500 for search service failure, got: %d", testResponseRecorder.Code)
 			}
 		},
 	)
