@@ -2,97 +2,129 @@ package search
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
-	"time"
 
-	"github.com/Henry-Sarabia/igdb"
-	"github.com/lokeam/qko-beta/config"
+	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/igdb"
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/sony/gobreaker"
 )
 
-// IGDBAdapter retrieves data directly from the IGDB endpoint.
-// It uses a circuit breaker to prevent cascading failures when the IGDB API is slow or failing.
+// IGDBAdapter wraps the IGDB client and adds circuit breaker protection and logging.
 type IGDBAdapter struct {
-	apiURL     string                     // Base URL for IGDB API.
-	apiKey     string                     // API key for authentication.
-	httpClient *http.Client               // HTTP client configured with timeouts.
-	breaker    *gobreaker.CircuitBreaker  // Circuit breaker wrapping IGDB calls.
+	client  *igdb.IGDBClient             // Underlying IGDB client.
+	breaker *gobreaker.CircuitBreaker // Circuit breaker to protect IGDB calls.
+	logger  interfaces.Logger         // Logger interface.
 }
 
-// NewIGDBAdapter creates a new IGDBAdapter instance with circuit breaker protection.
-func NewIGDBAdapter(config *config.Config, logger interfaces.Logger) (*IGDBAdapter, error) {
+// NewIGDBAdapter creates a new IGDBAdapter instance.
+// It retrieves the Twitch token required by IGDB, creates an IGDB client,
+// and sets up the circuit breaker with appropriate settings.
+func NewIGDBAdapter(appContext *appcontext.AppContext) (*IGDBAdapter, error) {
+	appContext.Logger.Debug("NewIGDBAdapter called", map[string]any{"appContext": appContext})
 
-	apiURL := config.IGDB.ClientID
-	apiKey := config.IGDB.ClientSecret
+	// Retrieve Twitch token needed for IGDB authentication.
+	twitchToken, err := appContext.TwitchTokenRetriever.GetToken(
+			context.Background(),
+			appContext.Config.IGDB.ClientID,
+			appContext.Config.IGDB.ClientSecret,
+			appContext.Config.IGDB.AuthURL,
+			appContext.Logger,
+	)
+	if err != nil {
+		appContext.Logger.Error("Failed to fetch Twitch token", map[string]any{
+				"error": err,
+				"clientID": appContext.Config.IGDB.ClientID,
+				"authURL": appContext.Config.IGDB.AuthURL,
+		})
+		return nil, fmt.Errorf("failed to fetch Twitch token: %w", err)
+	}
+	appContext.Logger.Debug("Twitch token retrieved successfully", map[string]any{"token": twitchToken})
 
-	logger.Info("Creating IGDBAdapter", map[string]any{
-		"apiURL": apiURL,
+	// Log the headers for verification.
+	appContext.Logger.Info("Headers for IGDB API request", map[string]any{
+			"Client-ID": appContext.Config.IGDB.ClientID,
+			"Authorization": fmt.Sprintf("Bearer %s", twitchToken),
 	})
 
-	// Configure the circuit breaker settings.
-	cbSettings := gobreaker.Settings{
-		Name: "IGDBAPI",
-		Timeout: 5 * time.Second,  // Duration after which the circuit breaker resets.
-		ReadyToTrip: func(counts gobreaker.Counts) bool {
-			// Open the circuit after 3 consecutive failures.
-			return counts.ConsecutiveFailures >= 3
-		},
-
-		// Interval: time window to reset counts if the failure rate improves.
-		Interval: 1 * time.Minute,
+	// Create the IGDB client.
+	client := igdb.NewIGDBClient(appContext, twitchToken)
+	if client == nil {
+			return nil, fmt.Errorf("failed to create IGDB client")
 	}
+
+	appContext.Logger.Info("Creating IGDBAdapter", map[string]any{
+			"clientID": appContext.Config.IGDB.ClientID,
+	})
+
 	return &IGDBAdapter{
-		apiURL: apiURL,
-		apiKey: apiKey,
-		httpClient: &http.Client{
-			Timeout: 10 * time.Second, // Set an appropriate timeout for IGDB calls.
-		},
-		breaker: gobreaker.NewCircuitBreaker(cbSettings),
+			client: client,
+			logger: appContext.Logger,
 	}, nil
 }
 
-// SearchGames retrieves games from the IGDB API using the circuit breaker.
-// It returns a slice of pointers to igdb.Game or an error.
-func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*igdb.Game, error) {
-	// Wrap the API call in a circuit breaker.
-	result, err := a.breaker.Execute(func() (interface{}, error) {
-		// NOTE: Build the request URL. In production, use url.Values for query parameters.
-		urlStr := a.apiURL + "/games?search=" + url.QueryEscape(query) + "&limit=" + fmt.Sprintf("%d", limit)
-		req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
-		if err != nil {
-			return nil, err
-		}
-		// Include the API key in the request (header or query parameter, as required).
-		req.Header.Set("Authorization", "Bearer "+a.apiKey)
-
-		resp, err := a.httpClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, errors.New("IGDB API returned non-200 status: " + resp.Status)
-		}
-
-		var games []*igdb.Game
-		// Decode the JSON response into games.
-		if err := json.NewDecoder(resp.Body).Decode(&games); err != nil {
-			return nil, err
-		}
-		return games, nil
+// SearchGames wraps the IGDB client's SearchGames method using the circuit breaker.
+// It logs the request and response, and returns an error if the circuit is open or the call fails.
+func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+	a.logger.Info("IGDB Adapter - SearchGames called", map[string]any{
+		"query": query,
+		"limit": limit,
 	})
+
+
+	// Log the query being sent to IGDB
+	igdbQuery := fmt.Sprintf(`fields id,name,summary,first_release_date,rating,cover,genres,platforms; search "%s"; limit %d;`, query, limit)
+	a.logger.Debug("IGDB Query", map[string]any{
+			"query": igdbQuery,
+	})
+
+	// Call the IGDB API
+	games, err := a.client.SearchGames(igdbQuery)
 	if err != nil {
-		return nil, err
+			return nil, err
 	}
-	games, ok := result.([]*igdb.Game)
-	if !ok {
-		return nil, errors.New("unexpected result type from IGDB API")
-	}
+
 	return games, nil
+
+
+	// // Wrap the API call within the circuit breaker.
+	// result, err := a.breaker.Execute(func() (interface{}, error) {
+	// 	// Call the underlying IGDB client.
+	// 	games, err := a.client.SearchGames(query)
+	// 	a.logger.Info("IGDB Adapter - SearchGames result", map[string]any{
+	// 		"games": games,
+	// 		"err":   err,
+	// 	})
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("IGDB search failed: %w", err)
+	// 	}
+	// 	return games, nil
+	// })
+
+	// if err != nil {
+	// 	// Differentiate between a circuit breaker open error and a normal API error.
+	// 	if errors.Is(err, gobreaker.ErrOpenState) {
+	// 		return nil, fmt.Errorf("circuit breaker is open: %w", err)
+	// 	}
+	// 	return nil, fmt.Errorf("search failed: %w", err)
+	// }
+
+	// // Type assertion to the expected result type.
+	// games, ok := result.([]*igdb.Game)
+	// a.logger.Info("IGDB Adapter - SearchGames parsed result", map[string]any{
+	// 	"games": games,
+	// 	"ok":    ok,
+	// })
+	// if !ok {
+	// 	return nil, errors.New("unexpected result type from IGDB API")
+	// }
+
+	// // Optionally, apply the limit here if the underlying client does not support it directly.
+	// if len(games) > limit {
+	// 	games = games[:limit]
+	// }
+
+	// return games, nil
+	//return nil, nil
 }

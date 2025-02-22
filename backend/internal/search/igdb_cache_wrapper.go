@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Henry-Sarabia/igdb"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // igdbCacheItem holds cached IGDB game data along with its expiration time.
 type igdbCacheItem struct {
-	games       []*igdb.Game
+	games       []*types.Game
 	expiration  time.Time
 }
 
