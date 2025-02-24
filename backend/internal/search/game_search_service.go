@@ -110,7 +110,7 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	}
 
 	// Convert adapter results.
-	convertedGames := make([]searchdef.Game, len(games))
+	convertedGames := make([]types.Game, len(games))
 	for i, gamePtr := range games {
 		convertedGames[i] = convertIGDBGame(*gamePtr)
 	}
@@ -128,13 +128,16 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	return result, nil
 }
 
-func convertIGDBGame(g types.Game) searchdef.Game {
-	return searchdef.Game{
-		ID:               int64(g.ID),
-		Name:             g.Name,
-		Summary:          g.Summary,
-		Cover:            g.CoverURL,
-		FirstReleaseDate: int64(g.FirstReleaseDate),
-		Rating:           g.Rating,
+func convertIGDBGame(g types.Game) types.Game {
+	return types.Game{
+		ID:                  int64(g.ID),
+		Name:                g.Name,
+		Summary:             g.Summary,
+		CoverURL:            g.CoverURL,
+		FirstReleaseDate:    int64(g.FirstReleaseDate),
+		Rating:              g.Rating,
+		PlatformNames:       g.PlatformNames,
+		GenreNames:          g.GenreNames,
+		ThemeNames:          g.ThemeNames,
 	}
 }

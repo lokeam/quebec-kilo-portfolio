@@ -10,6 +10,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
+	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,7 +67,7 @@ func TestIGDBCacheWrapper(t *testing.T) {
 				THEN the cached result is properly unmarshalled and marked as a cache hit
 			*/
 			expectedResult := &searchdef.SearchResult{
-				Games: []searchdef.Game{{ID: 1, Name: "Dark Souls"}},
+				Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
 				Meta: searchdef.SearchMeta{
 					CacheHit: true,
 					CacheTTL: time.Duration(1 * time.Hour),
@@ -163,7 +164,7 @@ func TestIGDBCacheWrapper(t *testing.T) {
 
 			query := searchdef.SearchQuery{Query: "sample query", Limit: 10}
 			expectedResult := &searchdef.SearchResult{
-				Games: []searchdef.Game{{ID: 1, Name: "Dark Souls"}},
+				Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
 				Meta: searchdef.SearchMeta{
 					CacheHit: false,
 					CacheTTL: time.Duration(1 * time.Hour),
@@ -196,7 +197,7 @@ func TestIGDBCacheWrapper(t *testing.T) {
 
 			query := searchdef.SearchQuery{Query: "sample query", Limit: 10}
 			expectedResult := &searchdef.SearchResult{
-				Games: []searchdef.Game{{ID: 1, Name: "Dark Souls"}},
+				Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
 				Meta: searchdef.SearchMeta{
 					CacheHit: false,
 					CacheTTL: time.Duration(1 * time.Hour),

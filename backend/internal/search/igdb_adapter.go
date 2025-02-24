@@ -11,6 +11,23 @@ import (
 	"github.com/sony/gobreaker"
 )
 
+/*
+	A typical IGDB query needs to include the following fields:
+		- id
+		- name
+		- summary
+		- first_release_date
+		- rating
+		- cover
+		- genres
+		- themes
+		- game_modes
+		- platforms
+*/
+const (
+	IGDBGameQueryTemplate = `fields id,name,summary,first_release_date,rating,cover,genres,themes,game_modes,platforms; search "%s"; limit %d;`
+)
+
 // IGDBAdapter wraps the IGDB client and adds circuit breaker protection and logging.
 type IGDBAdapter struct {
 	client  *igdb.IGDBClient             // Underlying IGDB client.
@@ -74,15 +91,31 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 
 
 	// Log the query being sent to IGDB
-	igdbQuery := fmt.Sprintf(`fields id,name,summary,first_release_date,rating,cover,genres,platforms; search "%s"; limit %d;`, query, limit)
+	igdbQuery := fmt.Sprintf(IGDBGameQueryTemplate, query, limit)
 	a.logger.Debug("IGDB Query", map[string]any{
 			"query": igdbQuery,
 	})
 
 	// Call the IGDB API
-	games, err := a.client.SearchGames(igdbQuery)
+	gameDetails, err := a.client.SearchGames(igdbQuery)
 	if err != nil {
 			return nil, err
+	}
+
+	// Convert the IGDB Backend Response to what is expected by the Frontend
+	var games []*types.Game
+	for _, details := range gameDetails {
+		games = append(games, &types.Game{
+			ID:                    details.ID,
+			Name:                  details.Name,
+			Summary:               details.Summary,
+			CoverURL:              details.CoverURL,
+			FirstReleaseDate:      details.FirstReleaseDate,
+			Rating:                details.Rating,
+			PlatformNames:         details.PlatformNames,
+			GenreNames:            details.GenreNames,
+			ThemeNames:            details.ThemeNames,
+		})
 	}
 
 	return games, nil

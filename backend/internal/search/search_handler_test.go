@@ -14,8 +14,11 @@ import (
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
+	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/lokeam/qko-beta/internal/wishlist"
 )
 
 /*
@@ -62,7 +65,7 @@ func (mss *mockSearchService) Search(
 }
 
 // Helper fn to create a SearchResult
-func mockSearchResultWithGames(games []searchdef.Game) *searchdef.SearchResult {
+func mockSearchResultWithGames(games []types.Game) *searchdef.SearchResult {
 	return &searchdef.SearchResult{
 		Games: games,
 	}
@@ -72,9 +75,12 @@ func TestSearchHandler(t *testing.T) {
 	testIGDBToken := "valid-token"
 	baseAppCtx := appcontext_test.NewTestingAppContext(testIGDBToken, nil)
 
+	libraryService := library.NewGameLibraryService(baseAppCtx)
+	wishlistService := wishlist.NewGameWishlistService(baseAppCtx)
+
 	createHandler := func(mockService *mockSearchService) http.HandlerFunc {
     factory := &mockSearchServiceFactory{mockService: mockService}
-    return NewSearchHandler(baseAppCtx, factory)
+    return NewSearchHandler(baseAppCtx, factory, libraryService, wishlistService)
 	}
 			/*
 				GIVEN an HTTP request that doesn't contain a query parameter
@@ -88,7 +94,7 @@ func TestSearchHandler(t *testing.T) {
 		factory := &mockSearchServiceFactory{mockService: mockSearchService}
 
 		// Create handler
-		searchHandler := NewSearchHandler(baseAppCtx, factory)
+		searchHandler := NewSearchHandler(baseAppCtx, factory, libraryService, wishlistService)
 
 		// Create test request without query
 		req := httptest.NewRequest(http.MethodPost, "/search", nil)
@@ -143,6 +149,8 @@ func TestSearchHandler(t *testing.T) {
 			mockSearchHandler := NewSearchHandler(
 				brokenAppCtx,
 				&mockSearchServiceFactory{mockService: mockSearchService},
+				libraryService,
+				wishlistService,
 			)
 
 			// NOTE: IGDB requires every search request to use POST instead of GET
@@ -172,7 +180,7 @@ func TestSearchHandler(t *testing.T) {
 			*/
 
 			// Simulate valid search result with an example game
-			games := []searchdef.Game{{ ID: 1, Name: "Dark Souls"}}
+			games := []types.Game{{ ID: 1, Name: "Dark Souls"}}
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}
@@ -250,7 +258,7 @@ func TestSearchHandler(t *testing.T) {
 				THEN the limit used in the constructed Search request is the the provided integer instead of the default (example: 50)
 				AND the JSON success response reflects this limit with the correct number of search results
 			*/
-			games := []searchdef.Game{{ ID: 1, Name: "Dark Souls" }}
+			games := []types.Game{{ ID: 1, Name: "Dark Souls" }}
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}

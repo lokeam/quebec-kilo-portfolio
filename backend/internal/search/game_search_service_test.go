@@ -130,7 +130,7 @@ func TestGameSearchService(t *testing.T) {
 			testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
 
 			expectedResult := searchdef.SearchResult{
-				Games: []searchdef.Game{
+				Games: []types.Game{
 					{
 						ID:   1,
 						Name: "Dark Souls",
