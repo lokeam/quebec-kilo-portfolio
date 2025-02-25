@@ -4,7 +4,7 @@ type Game struct {
     ID                int64    `json:"id"`
     Name              string   `json:"name"`
     Summary           string   `json:"summary,omitempty"`
-    CoverID           int64    `json:"cover_id,omitempty"`
+    CoverID           int64    `json:"cover,omitempty"`
     CoverURL          string   `json:"cover_url,omitempty"`
     FirstReleaseDate  int64    `json:"first_release_date,omitempty"`
     Rating            float64  `json:"rating,omitempty"`
@@ -53,8 +53,8 @@ type GameDetails struct {
     Summary           string     `json:"summary,omitempty"`
     FirstReleaseDate  int64      `json:"first_release_date,omitempty"`
     Rating            float64    `json:"rating,omitempty"`
-    Cover             Cover      `json:"cover,omitempty"`
-    CoverURL          string     `json:"cover_url,omitempty"`
+    Cover             Cover      `json:"cover"`
+    CoverURL          string     `json:"cover_url"`
     Genres            []Genre    `json:"genres"`
     GenreNames        []string   `json:"genre_names"`
     Platforms         []Platform `json:"platforms,omitempty"`

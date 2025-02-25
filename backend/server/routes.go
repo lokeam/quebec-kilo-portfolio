@@ -10,7 +10,10 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/health"
+	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search"
+	"github.com/lokeam/qko-beta/internal/wishlist"
+	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
 func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
@@ -21,10 +24,22 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	s.setupMiddleware(mux)
 	s.setupCORS(mux)
 
+	// Add mock authentication middleware
+	mux.Use(authMiddleware.MockAuthMiddleware(appContext))
+
+	// Initialize services
+	libraryService := library.NewGameLibraryService(appContext)
+	wishlistService := wishlist.NewGameWishlistService(appContext)
+
 	// Initialize handlers using single App Context
 	searchServiceFactory := search.NewSearchServiceFactory(appContext)
-	searchHandler := search.NewSearchHandler(appContext, searchServiceFactory)
 	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
+	searchHandler := search.NewSearchHandler(
+		appContext,
+		searchServiceFactory,
+		libraryService,
+		wishlistService,
+	)
 
 	// Debug logging for searchHandler
 	if searchHandler == nil {

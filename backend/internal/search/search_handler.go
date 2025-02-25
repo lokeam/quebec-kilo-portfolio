@@ -11,6 +11,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/lokeam/qko-beta/internal/wishlist"
+	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
@@ -48,8 +49,8 @@ func NewSearchHandler(
 		}
 
 		// 2. Retrieve the userID from the request context
-		userID, ok := r.Context().Value("userID").(string)
-		if !ok || userID == "" {
+		userID, ok := r.Context().Value(authMiddleware.UserIDKey).(string)
+		if !ok {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})

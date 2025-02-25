@@ -159,6 +159,7 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*types.Game) ([]*types.GameD
         if game.CoverID != 0 {
             if cover, exists := coverMap[game.CoverID]; exists {
                 game.CoverURL = fmt.Sprintf("https://images.igdb.com/igdb/image/upload/t_cover_big/%s.jpg", cover.ImageID)
+                details.CoverURL = game.CoverURL
                 c.logger.Debug("Cover URL set: ", map[string]any{
                     "gameID": game.ID,
                     "coverURL": game.CoverURL,
