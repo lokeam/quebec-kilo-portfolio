@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import { DialogTrigger } from '@/shared/components/ui/dialog';
 
 // Components
-import { SearchDialog, SearchServicesSkeleton } from '@/shared/components/ui/SearchDialog';
+import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
 import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult';
 
 // Hooks
@@ -52,7 +52,7 @@ export function AddItemSearchDialog() {
       }
     >
       {isLoading ? (
-        <SearchServicesSkeleton />
+        <SearchDialogSkeleton />
       ) : error ? (
         <div className="text-red-500 p-4">
           We're having trouble with search. Please try again later.
@@ -64,10 +64,11 @@ export function AddItemSearchDialog() {
       ) : (
         games?.map((game, index) => (
           <SearchResult
-            key={`${game?.title}-${index}`}
-            title={game?.title ?? ''}
-            imageUrl={game?.thumbnailUrl ?? ''}
-            isInLibrary={game?.isInLibrary ?? false}
+            key={`${game?.name}-${index}`}
+            name={game?.name ?? ''}
+            cover_url={game?.cover_url ?? ''}
+            is_in_library={game?.is_in_library ?? false}
+            is_in_wishlist={game?.is_in_wishlist ?? false}
           />
         ))
       )}

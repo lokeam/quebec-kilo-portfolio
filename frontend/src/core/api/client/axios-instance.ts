@@ -1,7 +1,25 @@
-import axios from 'axios';
-import type { AxiosError } from 'axios';
+import axios, { type AxiosRequestConfig, AxiosError } from 'axios';
+//import type { AxiosError } from 'axios';
 import type { ApiError } from '@/core/api/types/api.types';
 import { logger } from '@/core/utils/logger/logger';
+
+/**
+ * Even though Axios methods return just (T) ie: data, not the full response.
+ *
+ * This is complete bullshit that I need to write this just to get Axios to work
+ */
+interface CustomAxiosInstance {
+  post<T = unknown, R = T, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<R>;
+
+  get<T = unknown, R = T, D = unknown>(
+    url: string,
+    config?: AxiosRequestConfig<D>
+  ): Promise<R>;
+}
 
 /**
  * Axios instance configured for backend API requests.
@@ -10,7 +28,7 @@ import { logger } from '@/core/utils/logger/logger';
  * @see https://axios-http.com/docs/config_defaults
  */
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || 'http://api.localhost',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -67,9 +85,13 @@ axiosInstance.interceptors.response.use(
       data: response.data,
       headers: response.headers,
     });
+
     return response.data;
   },
+
   handleAxiosError // Use same error handler
 );
 
-export { axiosInstance };
+// We need to trick TypeScript into accepthing this modified behavior
+const typedAxiosInstance: CustomAxiosInstance = axiosInstance as unknown as CustomAxiosInstance;
+export { typedAxiosInstance as axiosInstance };

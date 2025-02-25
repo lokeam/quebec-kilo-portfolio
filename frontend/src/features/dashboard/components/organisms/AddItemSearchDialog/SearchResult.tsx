@@ -11,22 +11,52 @@ import { IconHeart } from '@tabler/icons-react';
 // Hooks
 import { toast } from 'sonner';
 
+// Legacy
+// type SearchResultProps = {
+//   title: string;
+//   imageUrl: string | null | undefined;
+//   isInLibrary: boolean;
+// }
 
+// New
 type SearchResultProps = {
-  title: string;
-  imageUrl: string | null | undefined;
-  isInLibrary: boolean;
+  id?: number;
+  name: string;
+  summary?: string;
+  cover_url: string;
+  rating?: number;
+  platform_names?: string[];
+  genre_names?: string[];
+  theme_names?: string[];
+  is_in_library: boolean;
+  is_in_wishlist: boolean;
 }
 
+/*
+Legacy:
 export function SearchResult({
   title,
   imageUrl,
  // price,
   isInLibrary = false,
 }: SearchResultProps) {
+*/
+
+export function SearchResult({
+  //id,
+  name,
+  //summary,
+  //rating,
+  cover_url,
+  //platform_names,
+  //genre_names,
+  //theme_names,
+  is_in_library,
+  //is_in_wishlist,
+}: SearchResultProps) {
 
   const handleAddToLibrary = () => {
-    toast( `${title} successfully added to library`,{
+    toast( `${name} successfully added to library`,{
       description: 'You can now access it in your library',
       className: 'bg-green-500 text-white',
       duration: 2500,
@@ -34,7 +64,7 @@ export function SearchResult({
   };
 
   const handleAddToWishlist = () => {
-    toast(`${title} successfully added to wishlist`, {
+    toast(`${name} successfully added to wishlist`, {
       description: 'You can now access it in your wishlist',
       className: 'bg-green-500 text-white',
       duration: 2500,
@@ -43,7 +73,7 @@ export function SearchResult({
 
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
-      {isInLibrary && (
+      {is_in_library && (
         <div className="absolute left-0 top-0 bottom-0 z-10">
           <div className="flex h-full items-center">
             <div className="flex items-center bg-[#1A9FFF] h-[34px] overflow-hidden transition-all duration-200 group-hover:w-[120px] w-[34px] rounded-r-md">
@@ -58,8 +88,8 @@ export function SearchResult({
       <div className="shrink-0 p-2">
         <div className="relative w-24 md:w-32 p-2">
           <ImageWithFallback
-            src={imageUrl}
-            alt={title}
+            src={cover_url}
+            alt={`cover image for ${name}`}
             width={292}
             height={120}
             className="rounded-sm w-[140px] h-full object-cover"
@@ -70,12 +100,12 @@ export function SearchResult({
       <div className="flex flex-1 min-w-0 items-center pr-2">
         <div className="flex-1 min-w-0"> {/* nested min-w-0 for text truncation */}
           <h3 className="font-medium text-white text-wrap max-w-[140px] max-h-[48px] md:max-w-full md:max-h-unset truncate">
-            {title}
+            {name}
           </h3>
         </div>
 
         {
-          !isInLibrary && (
+          !is_in_library && (
             <div className="flex shrink-0 gap-1 mt-1 ml-2">
               <Button variant="outline" onClick={handleAddToLibrary}>
                 <LibraryBig className="w-5 h-5" />

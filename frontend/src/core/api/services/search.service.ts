@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
-import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
+import type { SearchResponse, WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
 import { API_ROUTES } from '@/core/api/constants/routes';
 
 // Debug
@@ -29,15 +29,27 @@ export const searchMediaItems = async (query: string): Promise<WishlistItem[]> =
   logger.debug('🔍 Searching for media items', { query });
 
   try {
-    const { data } = await axiosInstance.get<WishlistItem[]>(
-      API_ROUTES.SEARCH.GAMES,
-      { params: { query } }
-    );
+    const response = await axiosInstance.post<SearchResponse>(
+      '/api/v1/search',
+      { query }
+    ) as unknown as SearchResponse;
 
-    return data;
+    // Debug: Log the full response
+    logger.debug('🔄 Full backend response:', { response });
+
+    // Ensure the response has the required fields
+    if (!response || typeof response !== 'object') {
+      throw new Error(`Invalid response: Expected an object, got ${JSON.stringify(response)}`);
+    }
+
+    // Since your Axios interceptor returns response.data, 'response' is already a SearchResponse
+    if (!response.games || !Array.isArray(response.games)) {
+      throw new Error(`Invalid 'games' field: Expected an array, got ${JSON.stringify(response.games)}`);
+    }
+
+    return response.games; // Return the games array
   } catch (error) {
     logger.error('🚨 Search failed:', { error });
-
     throw error;
   }
 };

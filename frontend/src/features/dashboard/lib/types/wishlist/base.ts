@@ -3,6 +3,17 @@ import type { Price } from '@/shared/types/pricing';
 import type { Rating } from '@/features/dashboard/lib/types/wishlist/ratings';
 
 /**
+ * Represents the response from the search endpoint
+ * @interface SearchResponse
+ */
+export interface SearchResponse {
+  /** Array of wishlist items */
+  readonly games: ReadonlyArray<WishlistItem>;
+  /** Total number of results */
+  readonly total: number;
+}
+
+/**
  * Represents the core properties of a wishlist item
  * @interface BaseWishlistItem
  */
@@ -11,13 +22,19 @@ export interface BaseWishlistItem {
   readonly id: string;
 
   /** Title/name of the game or item */
-  readonly title: string;
+  readonly name: string;
 
   /** URL to the item's thumbnail image */
-  readonly thumbnailUrl: string;
+  readonly cover_url: string;
 
   /** Array of descriptive tags for the item */
-  readonly tags: ReadonlyArray<string>;
+  readonly theme_names: ReadonlyArray<string>;
+
+  /** Indicates if the item is in the user's library */
+  readonly is_in_library: boolean;
+
+  /** Indicates if the item is in the user's wishlist */
+  readonly is_in_wishlist: boolean;
 
   /** Release date of the item
    * @remarks Consider using Date type in production environment

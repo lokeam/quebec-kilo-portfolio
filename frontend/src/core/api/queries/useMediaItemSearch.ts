@@ -3,6 +3,7 @@ import { useBackendQuery } from '@/core/api/hooks/useBackendQuery';
 import { searchKeys } from '@/core/api/constants/query-keys/search';
 import { searchMediaItems } from '@/core/api/services/search.service';
 import { QUERY_GARBAGE_COLLECTION_TIME, QUERY_STALE_TIME } from '@/core/api/config';
+import { logger } from '@/core/utils/logger/logger';
 
 /**
  * Custom hook for searching media items with React Query
@@ -35,7 +36,22 @@ export function useMediaItemSearch(query: string) {
 
   return useBackendQuery({
     queryKey: searchKeys.results({ query }),
-    queryFn: () => searchMediaItems(query),
+    queryFn: async () => {
+      try {
+        const response = await searchMediaItems(query)
+        logger.debug("🔍 Search succeeded - useMediaItemSearch response: ", { response });
+
+        // Ensure the response is valid
+        if (!response || !Array.isArray(response)) {
+          throw new Error(`Invalid response: - useMediaItemSearch - Expected an array, got ${JSON.stringify(response)}`);
+        }
+
+        return response; // Return the games array directly
+      } catch (error) {
+        logger.error("🔍 Search failed - useMediaItemSearch - Error: ", { error });
+        throw error // Re-throw error for React Query
+      }
+    },
     enabled: hasQueryValue,
     placeholderData: keepPreviousData,
     staleTime: QUERY_STALE_TIME,
