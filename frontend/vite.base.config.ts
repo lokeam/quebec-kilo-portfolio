@@ -17,6 +17,14 @@ export default defineConfig({
     // watch: { usePolling: true, interval: 500 },
     hmr: {
       overlay: false // Disable the HMR overlay if you feel it's impacting performance.
+    },
+    proxy: {
+      '/api': {
+        target: 'http://api.localhost', // backend server
+        changeOrigin: true, // change origin of host header to target url
+        rewrite: (path) => path.replace(/^\/api/, '') // Remove the /api prefix
+
+      }
     }
   },
   optimizeDeps: {
