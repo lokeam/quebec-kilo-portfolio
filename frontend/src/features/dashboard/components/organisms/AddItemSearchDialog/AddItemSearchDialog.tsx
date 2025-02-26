@@ -34,6 +34,10 @@ export function AddItemSearchDialog() {
     setSearchQuery(event.target.value)
   }, []);
 
+  const handleAction = () => {
+    setIsOpen(false);
+  }
+
   return (
     <SearchDialog
       open={isOpen}
@@ -65,10 +69,12 @@ export function AddItemSearchDialog() {
         games?.map((game, index) => (
           <SearchResult
             key={`${game?.name}-${index}`}
-            name={game?.name ?? ''}
-            cover_url={game?.cover_url ?? ''}
-            is_in_library={game?.is_in_library ?? false}
-            is_in_wishlist={game?.is_in_wishlist ?? false}
+            // name={game?.name ?? ''}
+            game={game}
+            onAction={handleAction}
+            // cover_url={game?.cover_url ?? ''}
+            // is_in_library={game?.is_in_library ?? false}
+            // is_in_wishlist={game?.is_in_wishlist ?? false}
           />
         ))
       )}
