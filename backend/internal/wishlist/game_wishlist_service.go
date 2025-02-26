@@ -26,4 +26,3 @@ func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID strin
 	// TODO: Implement, return an empty list for testing
 	return []types.Game{}, nil
 }
-

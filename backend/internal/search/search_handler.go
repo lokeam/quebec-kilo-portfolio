@@ -1,7 +1,10 @@
 package search
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -13,6 +16,10 @@ import (
 	"github.com/lokeam/qko-beta/internal/wishlist"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
+
+type SearchRequestBody struct {
+	Query string `json:"query"`
+}
 
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
 func NewSearchHandler(
@@ -34,19 +41,43 @@ func NewSearchHandler(
 
 		// 1. Get the search query parameter.
 		requestID := r.Header.Get(httputils.XRequestIDHeader)
-		query := r.URL.Query().Get("query")
-		if query == "" {
-			err := errors.New("search query is required")
 
+    bodyBytes, _ := io.ReadAll(r.Body)
+    appCtx.Logger.Debug("Request body", map[string]any{
+        "body": string(bodyBytes),
+    })
+    r.Body = io.NopCloser(bytes.NewReader(bodyBytes)) // Reset the body for parsing
+
+		var body SearchRequestBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
+				errors.New("invalid request body"),
 				http.StatusBadRequest,
 			)
 			return
 		}
+		defer r.Body.Close()
+
+		query := body.Query
+    appCtx.Logger.Debug("SearchHandler ServeHTTP called", map[string]any{
+        "request_id": r.Header.Get(httputils.XRequestIDHeader),
+        "query":      query,
+    })
+		if query == "" {
+			err := errors.New("search query is required")
+			httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					r.Header.Get(httputils.XRequestIDHeader),
+					err,
+					http.StatusBadRequest,
+			)
+			return
+		}
+
 
 		// 2. Retrieve the userID from the request context
 		userID, ok := r.Context().Value(authMiddleware.UserIDKey).(string)
@@ -169,7 +200,16 @@ func NewSearchHandler(
 		}
 
 
-		// . Return the search response as JSON.
+		// If no games found, return an empty response
+		if response.Games == nil {
+			response.Games = []types.Game{}
+		}
+
+		appCtx.Logger.Info("Sending response to frontend", map[string]any{
+			"response": response,
+		})
+
+		// Return the search response as JSON.
 		httputils.RespondWithJSON(w, appCtx.Logger, http.StatusOK, response)
 	}
 }

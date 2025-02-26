@@ -2,10 +2,6 @@ package handlerinitializer
 
 import (
 	"net/http"
-
-	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/health"
-	"github.com/lokeam/qko-beta/internal/search"
 )
 
 type HandlerInitializer struct {
@@ -13,11 +9,11 @@ type HandlerInitializer struct {
 	Health  http.Handler
 }
 
-func NewHandlerInitializer(appCtx *appcontext.AppContext) *HandlerInitializer {
-	searchServiceFactory := search.NewSearchServiceFactory(appCtx)
+// func NewHandlerInitializer(appCtx *appcontext.AppContext) *HandlerInitializer {
+// 	searchServiceFactory := search.NewSearchServiceFactory(appCtx)
 
-	return &HandlerInitializer{
-		Search: search.NewSearchHandler(appCtx, searchServiceFactory),
-		Health: health.NewHealthHandler(appCtx.Config, appCtx.Logger),
-	}
-}
+// 	return &HandlerInitializer{
+// 		Search: search.NewSearchHandler(appCtx, searchServiceFactory),
+// 		Health: health.NewHealthHandler(appCtx.Config, appCtx.Logger),
+// 	}
+// }
