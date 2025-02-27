@@ -6,6 +6,7 @@ import (
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
@@ -52,12 +53,17 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 	}
 
 	// Create cache wrapper to handle Redis caching
-	cacheWrapper, err := NewIGDBCacheWrapper(
+	cacheWrapper, err := cache.NewCacheWrapper(
 		appContext.RedisClient,
 		appContext.Config.Redis.RedisTTL,
 		appContext.Config.Redis.RedisTimeout,
 		appContext.Logger,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	igdbCacheAdapter, err := NewIGDBCacheAdapter(cacheWrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +74,7 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 		logger:       appContext.Logger,
 		validator:    validator,
 		sanitizer:    sanitizer,
-		cacheWrapper: cacheWrapper,
+		cacheWrapper: igdbCacheAdapter,
 	}, nil
 }
 
