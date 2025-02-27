@@ -19,6 +19,7 @@ import (
 
 type SearchRequestBody struct {
 	Query string `json:"query"`
+	Limit int    `json:"limit,omitempty"`
 }
 
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
@@ -98,7 +99,7 @@ func NewSearchHandler(
 			"user_id": userID,
 		})
 
-		// 2. Retrieve the IGDB access token key.
+		// 3. Retrieve the IGDB access token key.
 		twitchAccessTokenKey, err := appCtx.Config.IGDB.GetAccessTokenKey()
 		if err != nil || twitchAccessTokenKey == "" {
 			err := errors.New("failed to retrieve token")
@@ -107,6 +108,7 @@ func NewSearchHandler(
 				appCtx.Logger,
 				requestID,
 				err,
+				http.StatusInternalServerError,
 			)
 			return
 		}
@@ -116,15 +118,17 @@ func NewSearchHandler(
 			"token_key":  twitchAccessTokenKey,
 		})
 
-		// 3. Get the domain parameter. Default to "games" if not provided.
+		// 4. Get the domain parameter. Default to "games" if not provided.
 		domain := r.URL.Query().Get("domain")
 		if domain == "" {
 			domain = "games"
 		}
 
-		// 4. Optional limit parameter. Max default to 50.
+		// 5. Optional limit parameter. Max default to 50.
 		limit := 5 // DEBUG: cut this down to 5 for now
-		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if body.Limit > 0 {
+			limit = body.Limit
+		} else if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 			if parsed, err := strconv.Atoi(limitStr); err == nil {
 				limit = parsed
 			}
@@ -137,11 +141,11 @@ func NewSearchHandler(
 			"request_id": requestID,
 		})
 
-		// 5. Build the search request.
+		// 6. Build the search request.
 		req := searchdef.SearchRequest{Query: query, Limit: limit}
 		var result *searchdef.SearchResult
 
-		// 6. Dispatch to the appropriate service.
+		// 7. Dispatch to the appropriate service.
 		service, err := searchServiceFactory.GetService(domain)
 		if err != nil {
 
@@ -171,13 +175,13 @@ func NewSearchHandler(
 			return
 		}
 
-		// 7. Construct a unified response.
+		// 8. Construct a unified response.
 		response := searchdef.SearchResponse{
 			Games: result.Games,
 			Total: len(result.Games),
 		}
 
-		// 8. Check if the current search response contains items in a user's library or wishlist
+		// 9. Check if the current search response contains items in a user's library or wishlist
 		library, err := libraryService.GetLibraryItems(r.Context(), userID)
 		if err != nil {
 			appCtx.Logger.Error("Failed to fetch items in user's library", map[string]any{
@@ -209,7 +213,7 @@ func NewSearchHandler(
 			"response": response,
 		})
 
-		// Return the search response as JSON.
+		// 10.Return the search response as JSON.
 		httputils.RespondWithJSON(w, appCtx.Logger, http.StatusOK, response)
 	}
 }

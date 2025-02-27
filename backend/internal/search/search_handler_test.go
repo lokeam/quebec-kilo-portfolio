@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/lokeam/qko-beta/internal/wishlist"
+	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
 /*
@@ -96,8 +98,9 @@ func TestSearchHandler(t *testing.T) {
 		// Create handler
 		searchHandler := NewSearchHandler(baseAppCtx, factory, libraryService, wishlistService)
 
-		// Create test request without query
-		req := httptest.NewRequest(http.MethodPost, "/search", nil)
+		// Create test request with empty JSON body
+		reqBody := strings.NewReader(`{}`)
+		req := httptest.NewRequest(http.MethodPost, "/search", reqBody)
 		req.Header.Set(httputils.XRequestIDHeader, "test-request-id")
 		recorder := httptest.NewRecorder()
 
@@ -153,10 +156,15 @@ func TestSearchHandler(t *testing.T) {
 				wishlistService,
 			)
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=dark%20souls", nil)
+			// Create test request via JSON body
+			reqBody := strings.NewReader(`{"query": "dark souls"}`)
+			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-2")
 			testResponseRecorder := httptest.NewRecorder()
+
+			// Add in the userID to the request context
+			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
 			if testResponseRecorder.Code != http.StatusInternalServerError {
@@ -186,12 +194,15 @@ func TestSearchHandler(t *testing.T) {
 			}
 			mockSearchHandler := createHandler(mockSearchService)
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search?query=darksouls", nil)
-
+			// Create test request via JSON body
+			reqBody := strings.NewReader(`{"query": "dark souls"}`)
+			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-3")
 			testResponseRecorder := httptest.NewRecorder()
+
+			// Add in the userID to the request context
+			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
 			if testResponseRecorder.Code != http.StatusOK {
@@ -264,12 +275,15 @@ func TestSearchHandler(t *testing.T) {
 			}
 			mockSearchHandler := createHandler(mockSearchService)
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls&limit=100", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search?query=darksouls&limit=100", nil)
-
+			// Create test request via JSON body
+			reqBody := strings.NewReader(`{"query": "dark souls", "limit": 100}`)
+			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-5")
 			testResponseRecorder := httptest.NewRecorder()
+
+			// Add in the userID to the request context
+			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
 			if testResponseRecorder.Code != http.StatusOK {
@@ -304,12 +318,15 @@ func TestSearchHandler(t *testing.T) {
 			}
 			mockSearchHandler := createHandler(mockSearchService)
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search?query=darksouls", nil)
-
+			// Create test request via JSON body
+			reqBody := strings.NewReader(`{"query": "dark souls"}`)
+			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
 			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-6")
 			testResponseRecorder := httptest.NewRecorder()
+
+			// Add in the userID to the request context
+			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
 			if testResponseRecorder.Code != http.StatusInternalServerError {
