@@ -24,19 +24,41 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	s.setupMiddleware(mux)
 	s.setupCORS(mux)
 
+	// Add trailing slash middleware
+	mux.Use(middleware.StripSlashes)
+
 	// Add mock authentication middleware
 	mux.Use(authMiddleware.MockAuthMiddleware(appContext))
 
 	// Initialize services
-	libraryService := library.NewGameLibraryService(appContext)
-	wishlistService := wishlist.NewGameWishlistService(appContext)
+	libraryService, err := library.NewGameLibraryService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to initialize library service", map[string]any{
+			"error": err,
+		})
+	}
+	wishlistService, err := wishlist.NewGameWishlistService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to initialize wishlist service", map[string]any{
+			"error": err,
+		})
+	}
 
 	// Initialize handlers using single App Context
 	searchServiceFactory := search.NewSearchServiceFactory(appContext)
 	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
+
+	// Initialize search services
+	searchServices := make(search.DomainSearchServices)
+	gameSearchService, err := searchServiceFactory.GetService("games")
+	if err == nil {
+		searchServices["games"] = gameSearchService
+	}
+
+	// Create search handler
 	searchHandler := search.NewSearchHandler(
 		appContext,
-		searchServiceFactory,
+		searchServices,  // Pass the map instead of the factory
 		libraryService,
 		wishlistService,
 	)
@@ -66,7 +88,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	mux.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", healthHandler)
 		r.Post("/search", searchHandler) // Use searchHandler directly
-		r.Post("/search/", searchHandler) // Handle trailing slash
 		appContext.Logger.Info("Routes registered", map[string]any{
 			"health": "/api/v1/health",
 			"search": "/api/v1/search",
