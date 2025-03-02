@@ -4,16 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/lokeam/qko-beta/config"
-	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
@@ -40,16 +36,6 @@ import (
 	- Valid search request with a search service failure
 */
 
-type mockSearchServiceFactory struct {
-    mockService SearchService
-}
-
-func (m *mockSearchServiceFactory) GetService(domain string) (SearchService, error) {
-    if domain != "games" {
-        return nil, fmt.Errorf("unsupported domain: %s", domain)
-    }
-    return m.mockService, nil
-}
 
 type mockSearchService struct {
 	searchServiceResult   *searchdef.SearchResult
@@ -77,12 +63,20 @@ func TestSearchHandler(t *testing.T) {
 	testIGDBToken := "valid-token"
 	baseAppCtx := appcontext_test.NewTestingAppContext(testIGDBToken, nil)
 
-	libraryService := library.NewGameLibraryService(baseAppCtx)
-	wishlistService := wishlist.NewGameWishlistService(baseAppCtx)
+	libraryService, err := library.NewGameLibraryService(baseAppCtx)
+	if err != nil {
+		t.Fatalf("failed to create library service: %v", err)
+	}
+	wishlistService, err := wishlist.NewGameWishlistService(baseAppCtx)
+	if err != nil {
+		t.Fatalf("failed to create wishlist service: %v", err)
+	}
 
 	createHandler := func(mockService *mockSearchService) http.HandlerFunc {
-    factory := &mockSearchServiceFactory{mockService: mockService}
-    return NewSearchHandler(baseAppCtx, factory, libraryService, wishlistService)
+    // Create a domain services map instead of using the factory
+    searchServices := make(DomainSearchServices)
+    searchServices["games"] = mockService
+    return NewSearchHandler(baseAppCtx, searchServices, libraryService, wishlistService)
 	}
 			/*
 				GIVEN an HTTP request that doesn't contain a query parameter
@@ -93,10 +87,9 @@ func TestSearchHandler(t *testing.T) {
 	t.Run("Missing Query Parameter", func(t *testing.T) {
 		// Create mock search service
 		mockSearchService := &mockSearchService{}
-		factory := &mockSearchServiceFactory{mockService: mockSearchService}
 
 		// Create handler
-		searchHandler := NewSearchHandler(baseAppCtx, factory, libraryService, wishlistService)
+		searchHandler := createHandler(mockSearchService)
 
 		// Create test request with empty JSON body
 		reqBody := strings.NewReader(`{}`)
@@ -133,28 +126,10 @@ func TestSearchHandler(t *testing.T) {
 				THEN httputils.RespondWithError produces an error response indicating that the IGDB token could not be retrieved
 			*/
 			// tokenError := errors.New("failed to retrieve token")
-			brokenAppCtx := &appcontext.AppContext{
-				Logger: baseAppCtx.Logger,
-				Config: &config.Config{
-					IGDB: &config.IGDBConfig{
-						ClientID:       "dummyID",
-						ClientSecret:   "dummySecret",
-						AuthURL:        "dummyAuthURL",
-						BaseURL:        "dummyBaseURL",
-						TokenTTL:       24 * time.Hour,
-						// Simulate an error by leaving AccessTokenKey empty:
-						AccessTokenKey: "",
-					},
-				},
-			}
+
 
 			mockSearchService := &mockSearchService{}
-			mockSearchHandler := NewSearchHandler(
-				brokenAppCtx,
-				&mockSearchServiceFactory{mockService: mockSearchService},
-				libraryService,
-				wishlistService,
-			)
+			mockSearchHandler := createHandler(mockSearchService)
 
 			// Create test request via JSON body
 			reqBody := strings.NewReader(`{"query": "dark souls"}`)
