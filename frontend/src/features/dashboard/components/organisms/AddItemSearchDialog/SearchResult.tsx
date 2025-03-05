@@ -66,7 +66,7 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
 
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
-      {showLibraryButton && (
+      { game.is_in_library && (
         <div className="absolute left-0 top-0 bottom-0 z-10">
           <div className="flex h-full items-center">
             <div className="flex items-center bg-[#1A9FFF] h-[34px] overflow-hidden transition-all duration-200 group-hover:w-[120px] w-[34px] rounded-r-md">
@@ -98,16 +98,20 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
         </div>
 
         {
-          showWishlistButton && (
+          (
             <div className="flex shrink-0 gap-1 mt-1 ml-2">
-              <Button variant="outline" onClick={handleAddToLibrary}>
-                <LibraryBig className="w-5 h-5" />
-                <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to library</span>
-              </Button>
-              <Button variant="outline" onClick={handleAddToWishlist}>
-                <IconHeart className="w-5 h-5" />
-                <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to wishlist</span>
-              </Button>
+              {showLibraryButton && (
+                <Button variant="outline" onClick={handleAddToLibrary}>
+                  <LibraryBig className="w-5 h-5" />
+                  <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to library</span>
+                </Button>
+              )}
+              {showWishlistButton && (
+                <Button variant="outline" onClick={handleAddToWishlist}>
+                  <IconHeart className="w-5 h-5" />
+                  <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to wishlist</span>
+                </Button>
+              )}
             </div>
           )
         }

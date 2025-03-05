@@ -34,6 +34,7 @@ export function AddItemSearchDialog() {
     setSearchQuery(event.target.value)
   }, []);
 
+  // Close dialog when action is taken
   const handleAction = () => {
     setIsOpen(false);
   }
