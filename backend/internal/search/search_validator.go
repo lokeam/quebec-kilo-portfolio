@@ -6,6 +6,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	validationErrors "github.com/lokeam/qko-beta/internal/shared/validation"
 )
 
 // Validation consts
@@ -16,18 +17,6 @@ const (
 	MaxResultLimit = 50
 	MaxResultOffset = 500
 )
-
-
-// ValidationError struct
-type ValidationError struct {
-	Field   string
-	Message string
-}
-
-func (e *ValidationError) Error() string {
-	return fmt.Sprintf("validation failed for %s: %s", e.Field, e.Message)
-}
-
 
 // SearchValidator struct
 type SearchValidator struct {
@@ -68,7 +57,7 @@ func (v *SearchValidator) ValidateQuery(query searchdef.SearchQuery) error {
 	// }
 
 	if len(searchQueryViolations) > 0 {
-		return &ValidationError{
+		return &validationErrors.ValidationError{
 			Field: "query",
 			Message: fmt.Sprintf("Search query validation failed: %v", searchQueryViolations),
 		}
@@ -83,7 +72,7 @@ func (v *SearchValidator) validateQueryString(query string) (string, error) {
 
 	// Check if query is at least 2 characters long
 	if length < MinQueryLength {
-		return "", &ValidationError{
+		return "", &validationErrors.ValidationError{
 			Field: "query",
 			Message: fmt.Sprintf("query must be at least %d characters", MinQueryLength),
 		}
@@ -91,7 +80,7 @@ func (v *SearchValidator) validateQueryString(query string) (string, error) {
 
 	// Check if query length is shorter than max allowed
 	if length > v.maxQueryLength {
-		return "", &ValidationError{
+		return "", &validationErrors.ValidationError{
 			Field: "query",
 			Message: fmt.Sprintf("search query must be less than %d characters", v.maxQueryLength),
 		}
@@ -100,7 +89,7 @@ func (v *SearchValidator) validateQueryString(query string) (string, error) {
 	// Sanitize to prevent SQL injection/XSS
 	sanitized, err := v.sanitizer.SanitizeSearchQuery(query)
 	if err != nil {
-		return "", &ValidationError{
+		return "", &validationErrors.ValidationError{
 			Field: "query",
 			Message: fmt.Sprintf("invalid query content: %v", err),
 		}
@@ -111,14 +100,14 @@ func (v *SearchValidator) validateQueryString(query string) (string, error) {
 
 func (v *SearchValidator) validateResultLimit(limit, offset int) error {
 	if limit < MinResultLimit || limit > v.maxResultLimit {
-		return &ValidationError{
+		return &validationErrors.ValidationError{
 			Field: "limit",
 			Message: fmt.Sprintf("result limit must be between %d and %d", MinResultLimit, v.maxResultLimit),
 		}
 	}
 
 	if offset < 0 || offset > v.maxResultOffset {
-		return &ValidationError{
+		return &validationErrors.ValidationError{
 			Field: "offset",
 			Message: fmt.Sprintf("result offset must be less than %d", v.maxResultOffset),
 		}
