@@ -44,22 +44,35 @@ var _ interfaces.Sanitizer = (*Sanitizer)(nil)
 
 // Methods
 func (s *Sanitizer) SanitizeSearchQuery(input string) (string, error) {
-	// Lock the mutex to prevent race conditions
+	sanitizedContent, err := s.performBaseSanitization(input)
+	if err != nil {
+		return "", err
+	}
+
+	// Perform additional sanitization for search queries
+	if !s.safetyPattern.MatchString(sanitizedContent) {
+		return "", &SanitizationError{
+			Message: "input contains invalid characters",
+		}
+	}
+
+	return sanitizedContent, nil
+}
+
+func (s *Sanitizer) SanitizeString(input string) (string, error) {
+	return s.performBaseSanitization(input)
+}
+
+func (s *Sanitizer) performBaseSanitization(input string) (string, error) {
+	// Lock mutex to prevent race conditions
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// Escape HTML characters
 	escaped := html.EscapeString(input)
 
-	// Sanitize content
-	sanitized := s.policy.Sanitize(escaped)
+	// Sanitize string content
+	sanitizedContent := s.policy.Sanitize(escaped)
 
-	// Validate that the sanitized pattern is safe
-	if !s.safetyPattern.MatchString(sanitized) {
-		return "", &SanitizationError{
-			Message: "input contains invalid characters",
-		}
-	}
-
-	return sanitized, nil
+	return sanitizedContent, nil
 }
