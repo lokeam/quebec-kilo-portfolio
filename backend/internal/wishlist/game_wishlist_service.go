@@ -16,10 +16,10 @@ type WishlistService interface {
 	GetWishlistItems(ctx context.Context, userID string) ([]types.Game, error)
 }
 
-func NewGameWishlistService(appContext *appcontext.AppContext) *GameWishlistService {
+func NewGameWishlistService(appContext *appcontext.AppContext) (*GameWishlistService, error) {
 	return &GameWishlistService{
 		logger: appContext.Logger,
-	}
+	}, nil
 }
 
 func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]types.Game, error) {
