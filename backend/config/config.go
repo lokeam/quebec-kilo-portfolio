@@ -21,6 +21,7 @@ type Config struct {
 	CORS   CORSConfig
 	IGDB   *IGDBConfig
 	Redis  RedisConfig
+	Postgres *PostgresConfig
 	HealthStatus string
 }
 
@@ -50,6 +51,14 @@ type IGDBConfig struct {
 type RedisConfig struct {
 	RedisTimeout time.Duration
 	RedisTTL     time.Duration
+}
+
+type PostgresConfig struct {
+	ConnectionString  string
+	MaxConnections    int
+	MaxIdleTime       int
+	MinIdleTime       time.Duration
+	MaxLifetime       time.Duration
 }
 
 func Load() (*Config, error) {
@@ -122,16 +131,31 @@ func Load() (*Config, error) {
 		RedisTTL:     5 * time.Minute,
 	}
 
+	// PostgresSQL Config
+	postgresConfig := &PostgresConfig{
+		ConnectionString:    getEnvOrDefault("DATABASE_URL", ""),
+		MaxConnections:      getEnvIntOrDefault("DATABASE_MAX_CONNECTIONS", 10),
+		MaxIdleTime:         getEnvIntOrDefault("DATABASE_MAX_IDLE_TIME", 15),
+		MinIdleTime:         time.Duration(getEnvIntOrDefault("DATABASE_MIN_IDLE_TIME", 10)) * time.Minute,
+		MaxLifetime:         time.Duration(getEnvIntOrDefault("DATABASE_MAX_LIFETIME", 15)) * time.Minute,
+	}
+
+	// Validate required PostgresSQL Settings
+	if postgresConfig.ConnectionString == "" {
+		return nil, fmt.Errorf("DATABASE_URL is required")
+	}
+
 	return &Config{
 		Server: ServerConfig{
 				Port: port,
 				Host: host,
 		},
-		Env: env,
-		Debug: debug,
-		CORS:  corsConfig,
-		IGDB:  &igdbConfig,
-		Redis: redisConfig,
+		Env:          env,
+		Debug:        debug,
+		CORS:         corsConfig,
+		IGDB:         &igdbConfig,
+		Redis:        redisConfig,
+		Postgres:     postgresConfig,
 		HealthStatus: healthStatus,
 	}, nil
 }
