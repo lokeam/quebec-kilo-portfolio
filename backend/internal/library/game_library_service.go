@@ -17,10 +17,10 @@ type LibraryService interface {
 	GetLibraryItems(ctx context.Context, userID string) ([]types.Game, error)
 }
 
-func NewGameLibraryService(appContext *appcontext.AppContext) *GameLibraryService {
+func NewGameLibraryService(appContext *appcontext.AppContext) (*GameLibraryService, error) {
 	return &GameLibraryService{
 		logger: appContext.Logger,
-	}
+	}, nil
 }
 
 func (ls *GameLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]types.Game, error) {
