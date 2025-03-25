@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 /*
@@ -43,7 +43,7 @@ func TestIGDBAdapter(t *testing.T) {
 				THEN SearchGames() returns and error indicating the IGDB API returned a non 200 status code
 			*/
 			mockAdapter := &mocks.MockIGDBAdapter{
-        SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+        SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
             return nil, fmt.Errorf("HTTP error: non-200 status code")
         },
     	}
@@ -105,7 +105,7 @@ func TestIGDBAdapter(t *testing.T) {
 
 	t.Run(`SearchGames() returns an irregular JSON response`, func(t *testing.T) {
     mockAdapter := &mocks.MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 						return nil, fmt.Errorf("failed to decode JSON response")
 				},
 		}
@@ -129,7 +129,7 @@ func TestIGDBAdapter(t *testing.T) {
 				(thus indicating that the circuit breaker is still open)
 			*/
 			mockAdapter := &mocks.MockIGDBAdapter{
-        SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+        SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
             return nil, errors.New("circuit breaker error")
         },
 			}
@@ -155,7 +155,7 @@ func TestIGDBAdapter(t *testing.T) {
 				THEN SearchGames() should return an error related to the context being cancelled/expired
 			*/
 				mockAdapter := &mocks.MockIGDBAdapter{
-					SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+					SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 							return nil, context.Canceled
 					},
 			}
@@ -179,14 +179,14 @@ func TestIGDBAdapter(t *testing.T) {
 				WHEN SearchGames() is called with a valid context, query and limit
 				THEN the method returns a slice of *igdb.Game objects containing the expected data
 			*/
-			expectedGames := []*types.Game{
+			expectedGames := []*models.Game{
         {ID: 1, Name: "Dark Souls 1"},
         {ID: 2, Name: "Dark Souls 2"},
         {ID: 3, Name: "Dark Souls 3"},
 			}
 
 			mockAdapter := &mocks.MockIGDBAdapter{
-					SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+					SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 							return expectedGames, nil
 					},
 			}

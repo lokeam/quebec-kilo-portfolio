@@ -3,7 +3,7 @@ package interfaces
 import (
 	"context"
 
-	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/lokeam/qko-beta/internal/models"
 )
 
 type IGDBAdapter interface {
@@ -11,5 +11,5 @@ type IGDBAdapter interface {
 		ctx context.Context,
 		query string,
 		limit int,
-	) ([]*types.Game, error)
+	) ([]*models.Game, error)
 }

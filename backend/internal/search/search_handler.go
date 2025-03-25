@@ -11,6 +11,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/library"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/types"
@@ -209,7 +210,7 @@ func NewSearchHandler(
 
 		// If no games found, return an empty response
 		if response.Games == nil {
-			response.Games = []types.Game{}
+			response.Games = []models.Game{}
 		}
 
 		appCtx.Logger.Info("Sending response to frontend", map[string]any{
@@ -222,7 +223,7 @@ func NewSearchHandler(
 }
 
 // Helper function to check if a game is in a list
-func containsGame(games []types.Game, gameID int64) bool {
+func containsGame(games []models.Game, gameID int64) bool {
 	for _, game := range games {
 		if game.ID == gameID {
 			return true

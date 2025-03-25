@@ -1,23 +1,5 @@
 package types
 
-type Game struct {
-    ID                int64    `json:"id"`
-    Name              string   `json:"name"`
-    Summary           string   `json:"summary,omitempty"`
-    CoverID           int64    `json:"cover,omitempty"`
-    CoverURL          string   `json:"cover_url,omitempty"`
-    FirstReleaseDate  int64    `json:"first_release_date,omitempty"`
-    Rating            float64  `json:"rating,omitempty"`
-    Platforms         []int64  `json:"platforms,omitempty"`
-    PlatformNames     []string `json:"platform_names,omitempty"`
-    Genres            []int64  `json:"genres,omitempty"`
-    GenreNames        []string `json:"genre_names,omitempty"`
-    Themes            []int64  `json:"themes,omitempty"`
-    ThemeNames        []string `json:"theme_names,omitempty"`
-    IsInLibrary       bool     `json:"is_in_library"`
-    IsInWishlist      bool     `json:"is_in_wishlist"`
-}
-
 type Cover struct {
     ID               int64  `json:"id"`
     AlphaChannel     bool   `json:"alpha_channel"`

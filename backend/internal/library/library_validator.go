@@ -6,8 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/models"
 	validationErrors "github.com/lokeam/qko-beta/internal/shared/validation"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Validation constants
@@ -75,7 +75,7 @@ func (lv *LibraryValidator) ValidateUserID(userID string) error {
 }
 
 // Validate game object for adding to library
-func (lv *LibraryValidator) ValidateGame(game types.Game) error {
+func (lv *LibraryValidator) ValidateGame(game models.Game) error {
 	// Initialize slice to collect validation errors
 	var violations []string
 

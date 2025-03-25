@@ -1,8 +1,8 @@
 package interfaces
 
-import "github.com/lokeam/qko-beta/internal/types"
+import "github.com/lokeam/qko-beta/internal/models"
 
 type LibraryValidator interface {
-	ValidateGame(game types.Game) error
+	ValidateGame(game models.Game) error
 	ValidateUserID(userID string) error
 }

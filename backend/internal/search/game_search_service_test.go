@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 /*
@@ -130,7 +130,7 @@ func TestGameSearchService(t *testing.T) {
 			testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
 
 			expectedResult := searchdef.SearchResult{
-				Games: []types.Game{
+				Games: []models.Game{
 					{
 						ID:   1,
 						Name: "Dark Souls",
@@ -171,7 +171,7 @@ func TestGameSearchService(t *testing.T) {
 			testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
 
 			// Override the adapter to simulate a successful search
-			fetchedGameResponse := []*types.Game{
+			fetchedGameResponse := []*models.Game{
 				{
 					ID:   1,
 					Name: "Dark Souls",
@@ -187,7 +187,7 @@ func TestGameSearchService(t *testing.T) {
 			}
 
 			testSearchService.adapter = &mocks.MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 					return fetchedGameResponse, nil
 				},
 			}
@@ -217,7 +217,7 @@ func TestGameSearchService(t *testing.T) {
 			testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
 
 			testSearchService.adapter = &mocks.MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 					return nil, errors.New("adapter failure")
 				},
 			}
@@ -243,7 +243,7 @@ func TestGameSearchService(t *testing.T) {
 			testLogger := testutils.NewTestLogger()
 			testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
 
-			fetchedGameResponse := []*types.Game{
+			fetchedGameResponse := []*models.Game{
 				{
 					ID:   1,
 					Name: "Dark Souls",
@@ -251,7 +251,7 @@ func TestGameSearchService(t *testing.T) {
 			}
 
 			testSearchService.adapter = &mocks.MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 					return fetchedGameResponse, nil
 				},
 			}

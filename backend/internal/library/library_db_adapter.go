@@ -5,14 +5,17 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib" // NOTE: this registers pgx with database/sql
+	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/postgres"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type LibraryDbAdapter struct {
 	client *postgres.PostgresClient
+	db     *sqlx.DB
 	logger interfaces.Logger
 }
 
@@ -25,14 +28,21 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 		return nil, fmt.Errorf("failed to create Postgres client %w", err)
 	}
 
+	// Create sqlx db from px pool
+	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
+    }
+
 	return &LibraryDbAdapter{
 		client: client,
+		db:     db,
 		logger: appContext.Logger,
 	}, nil
 }
 
 // GET
-func (la *LibraryDbAdapter) GetLibraryItems(ctx context.Context, userID string) ([]types.Game, error) {
+func (la *LibraryDbAdapter) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
 	la.logger.Debug("LibraryDbAdapter - GetUserLibraryItems called", map[string]any{
 		"userID": userID,
 	})
@@ -46,42 +56,10 @@ func (la *LibraryDbAdapter) GetLibraryItems(ctx context.Context, userID string) 
 		WHERE ul.user_id = $1
 	`
 
-	rows, err := la.client.GetPool().Query(ctx, query, userID)
+	var games []models.Game
+	err := la.db.SelectContext(ctx, &games, query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("error querying user library %w", err)
-	}
-	defer rows.Close()
-
-	var games []types.Game
-	for rows.Next() {
-		var game types.Game
-		var platforms, genres, themes []string
-
-		// Todo: Check these columns to make sure they are correct with what exists in db
-		err := rows.Scan(
-			&game.ID,
-			&game.Name,
-			&game.Summary,
-			&game.CoverURL,
-			&game.FirstReleaseDate,
-			&game.Rating,
-			&platforms,
-			&genres,
-			&themes,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning game row %w", err)
-		}
-
-		game.PlatformNames = platforms
-		game.GenreNames = genres
-		game.ThemeNames = themes
-
-		games = append(games, game)
-	}
-
-	if err := rows.Err(); err != nil{
-		return nil, fmt.Errorf("error itereating rows: %w", err)
+			return nil, fmt.Errorf("error querying user library: %w", err)
 	}
 
 	return games, nil
@@ -154,8 +132,52 @@ func (la *LibraryDbAdapter) RemoveGameFromLibrary(ctx context.Context, userID st
 	return nil
 }
 
-// Add this method to LibraryDbAdapter
-func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID string) ([]types.Game, error) {
+func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
 	// Just delegate to the existing method
 	return la.GetLibraryItems(ctx, userID)
+}
+
+func (la *LibraryDbAdapter) GetUserGame(ctx context.Context, userID string, gameID int64) (models.Game, bool, error) {
+	la.logger.Debug("LibraryDbAdapter - GetUserGame called", map[string]any{
+		"userID": userID,
+		"gameID": gameID,
+	})
+
+	query := `
+		SELECT g.id, g.name, g.summary, g.cover_url, g.first_release_date, g.rating,
+			   g.platform_names, g.genre_names, g.theme_names
+		FROM user_library ul
+		JOIN games g ON ul.game_id = g.id
+		WHERE ul.user_id = $1 AND g.id = $2
+		LIMIT 1
+	`
+
+	var game models.Game
+	var platforms, genres, themes []string
+
+	err := la.client.GetPool().QueryRow(ctx, query, userID, gameID).Scan(
+		&game.ID,
+		&game.Name,
+		&game.Summary,
+		&game.CoverURL,
+		&game.FirstReleaseDate,
+		&game.Rating,
+		&platforms,
+		&genres,
+		&themes,
+	)
+
+	if err == pgx.ErrNoRows {
+		return models.Game{}, false, nil
+	}
+
+	if err != nil {
+		return models.Game{}, false, fmt.Errorf("error querying user game: %w", err)
+	}
+
+	game.PlatformNames = platforms
+	game.GenreNames = genres
+	game.ThemeNames = themes
+
+	return game, true, nil
 }

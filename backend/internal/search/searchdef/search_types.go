@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/lokeam/qko-beta/internal/models"
 )
 
 const (
@@ -41,7 +41,7 @@ func (sq SearchQuery) ToCacheKey() string {
 // }
 // SearchResponse represents the overall search response from IGDB.
 type SearchResponse struct {
-	Games []types.Game `json:"games"`
+	Games []models.Game `json:"games"`
 	Total int    `json:"total"`
 }
 
@@ -72,7 +72,7 @@ type SearchMeta struct {
 
 // Search Result wraps the games data + metadata
 type SearchResult struct {
-	Games []types.Game     `json:"games"` // The actual game results
+	Games []models.Game     `json:"games"` // The actual game results
 	Meta  SearchMeta `json:"meta"`  // Metadata about the search
 	Error error      `json:"-"`     // Any error that occurred (not serialized to JSON)
 }
@@ -80,7 +80,7 @@ type SearchResult struct {
 // Constructor for NewSearchResult, creates empty result, uses builder pattern to create results step by step
 func NewSearchResult() *SearchResult {
 	return &SearchResult{
-		Games: make([]types.Game, 0),
+		Games: make([]models.Game, 0),
 		Meta:  SearchMeta{
 			ResultsPerPage: 20,
 		},
@@ -100,7 +100,7 @@ func (r *SearchResult) WithMeta(meta SearchMeta) *SearchResult {
 }
 
 // WithGames add games to the result if needed
-func (r * SearchResult) WithGames(games []types.Game, currentPage int, limit int) *SearchResult {
+func (r * SearchResult) WithGames(games []models.Game, currentPage int, limit int) *SearchResult {
 	r.Games = games
 	r.Meta.Total = len(games)
 

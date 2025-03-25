@@ -3,13 +3,14 @@ package igdb
 import (
 	"fmt"
 
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 func (c *IGDBClient) SearchGames(query string) ([]*types.GameDetails, error) {
     c.logger.Info("igdb client - SearchGames - query: ", map[string]any{"query": query})
 
-    var games []*types.Game
+    var games []*models.Game
     if err := c.makeRequest("games", query, &games); err != nil {
         return nil, err
     }
@@ -30,7 +31,7 @@ func (c *IGDBClient) SearchGames(query string) ([]*types.GameDetails, error) {
     return results, nil
 }
 
-func (c *IGDBClient) GetGameDetailsBySearch(games []*types.Game) ([]*types.GameDetails, error) {
+func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.GameDetails, error) {
     c.logger.Info("igdb client - GetGameDetailsBySearch called with games", map[string]any{"games": games})
 
     // Collect unique IDs for covers, genres, and platforms.

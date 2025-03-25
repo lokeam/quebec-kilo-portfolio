@@ -3,8 +3,8 @@ package mocks
 import (
 	"context"
 
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // DefaultSanitizer returns a MockSanitizer with a passing default.
@@ -31,9 +31,9 @@ func DefaultValidator() *MockValidator {
 // DefaultIGDBAdapter returns a MockIGDBAdapter with default (happy path) behavior.
 func DefaultIGDBAdapter() *MockIGDBAdapter {
 		return &MockIGDBAdapter{
-				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+				SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 						// Default: return an empty slice (or a minimal dummy value).
-						return []*types.Game{}, nil
+						return []*models.Game{}, nil
 				},
 		}
 }

@@ -8,9 +8,9 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // GameSearchService processes search requests by validating and sanitizing the query,
@@ -116,7 +116,7 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	}
 
 	// Convert adapter results.
-	convertedGames := make([]types.Game, len(games))
+	convertedGames := make([]models.Game, len(games))
 	for i, gamePtr := range games {
 		convertedGames[i] = convertIGDBGame(*gamePtr)
 	}
@@ -134,8 +134,8 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	return result, nil
 }
 
-func convertIGDBGame(g types.Game) types.Game {
-	return types.Game{
+func convertIGDBGame(g models.Game) models.Game {
+	return models.Game{
 		ID:                  int64(g.ID),
 		Name:                g.Name,
 		Summary:             g.Summary,

@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	"github.com/lokeam/qko-beta/internal/types"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
@@ -37,31 +37,31 @@ import (
 */
 
 type MockLibraryService struct {
-	GetLibraryItemsResult        []types.Game
+	GetLibraryItemsResult        []models.Game
 	GetLibraryItemsError         error
 
 	AddGameToLibraryError        error
-	MostRecentlyAddedGame        *types.Game
+	MostRecentlyAddedGame        *models.Game
 
 	DeleteGameError              error
 	MostRecentlyDeletedGameID    int64
 
-	GetGameByIDResult            types.Game
+	GetGameByIDResult            models.Game
 	GetGameByIDError             error
 
 	UpdateGameError              error
 }
 
 // Mock library service methods
-func (m *MockLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]types.Game, error) {
+func (m *MockLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
 	return m.GetLibraryItemsResult, m.GetLibraryItemsError
 }
 
-func (m *MockLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (types.Game, error) {
+func (m *MockLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error) {
 	return m.GetGameByIDResult, m.GetGameByIDError
 }
 
-func (m *MockLibraryService) AddGameToLibrary(ctx context.Context, userID string, game types.Game) error {
+func (m *MockLibraryService) AddGameToLibrary(ctx context.Context, userID string, game models.Game) error {
 	m.MostRecentlyAddedGame = &game // NOTE: I don't understand why this works
 	return m.AddGameToLibraryError
 }
@@ -71,7 +71,7 @@ func (m *MockLibraryService) DeleteGameFromLibrary(ctx context.Context, userID s
 	return m.DeleteGameError
 }
 
-func (m *MockLibraryService) UpdateGameInLibrary(ctx context.Context, userID string, game types.Game) error {
+func (m *MockLibraryService) UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error {
 	return m.UpdateGameError
 }
 
@@ -163,7 +163,7 @@ func TestLibraryHandler(t *testing.T) {
 	*/
 	t.Run(`GET - Library Items Successfully`, func(t *testing.T) {
 		// Create mock service w/ sample result
-		games := []types.Game{
+		games := []models.Game{
 			{ ID: 1, Name: "Game 1" },
 			{ ID: 2, Name: "Game 2" },
 		}

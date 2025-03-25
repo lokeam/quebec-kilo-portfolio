@@ -12,9 +12,9 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/library"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/lokeam/qko-beta/internal/wishlist"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
@@ -53,7 +53,7 @@ func (mss *mockSearchService) Search(
 }
 
 // Helper fn to create a SearchResult
-func mockSearchResultWithGames(games []types.Game) *searchdef.SearchResult {
+func mockSearchResultWithGames(games []models.Game) *searchdef.SearchResult {
 	return &searchdef.SearchResult{
 		Games: games,
 	}
@@ -163,7 +163,7 @@ func TestSearchHandler(t *testing.T) {
 			*/
 
 			// Simulate valid search result with an example game
-			games := []types.Game{{ ID: 1, Name: "Dark Souls"}}
+			games := []models.Game{{ ID: 1, Name: "Dark Souls"}}
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}
@@ -244,7 +244,7 @@ func TestSearchHandler(t *testing.T) {
 				THEN the limit used in the constructed Search request is the the provided integer instead of the default (example: 50)
 				AND the JSON success response reflects this limit with the correct number of search results
 			*/
-			games := []types.Game{{ ID: 1, Name: "Dark Souls" }}
+			games := []models.Game{{ ID: 1, Name: "Dark Souls" }}
 			mockSearchService := &mockSearchService{
 				searchServiceResult: mockSearchResultWithGames(games),
 			}

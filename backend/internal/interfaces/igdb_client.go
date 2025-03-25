@@ -1,7 +1,7 @@
 package interfaces
 
-import "github.com/lokeam/qko-beta/internal/types"
+import "github.com/lokeam/qko-beta/internal/models"
 
 type IGDBClient interface {
-	SearchGames(query string) ([]*types.Game, error)
+	SearchGames(query string) ([]*models.Game, error)
 }

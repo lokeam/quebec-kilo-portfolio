@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	"github.com/lokeam/qko-beta/internal/types"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
@@ -171,8 +171,7 @@ func NewLibraryHandler(
 				return
 			}
 
-			// Convert to types.Game
-			gameRequest := types.Game{
+			gameRequest := models.Game{
 				ID:              tempGame.ID,
 				Name:            tempGame.Name,
 				Summary:         tempGame.Summary,

@@ -5,7 +5,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
-	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/lokeam/qko-beta/internal/models"
 )
 
 type GameWishlistService struct {
@@ -13,7 +13,7 @@ type GameWishlistService struct {
 }
 
 type WishlistService interface {
-	GetWishlistItems(ctx context.Context, userID string) ([]types.Game, error)
+	GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error)
 }
 
 func NewGameWishlistService(appContext *appcontext.AppContext) (*GameWishlistService, error) {
@@ -22,7 +22,7 @@ func NewGameWishlistService(appContext *appcontext.AppContext) (*GameWishlistSer
 	}, nil
 }
 
-func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]types.Game, error) {
+func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error) {
 	// TODO: Implement, return an empty list for testing
-	return []types.Game{}, nil
+	return []models.Game{}, nil
 }

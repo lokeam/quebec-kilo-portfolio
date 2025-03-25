@@ -7,7 +7,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/igdb"
 	"github.com/lokeam/qko-beta/internal/interfaces"
-	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/sony/gobreaker"
 )
 
@@ -83,7 +83,7 @@ func NewIGDBAdapter(appContext *appcontext.AppContext) (*IGDBAdapter, error) {
 
 // SearchGames wraps the IGDB client's SearchGames method using the circuit breaker.
 // It logs the request and response, and returns an error if the circuit is open or the call fails.
-func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*types.Game, error) {
+func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*models.Game, error) {
 	a.logger.Info("IGDB Adapter - SearchGames called", map[string]any{
 		"query": query,
 		"limit": limit,
@@ -103,9 +103,9 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 	}
 
 	// Convert the IGDB Backend Response to what is expected by the Frontend
-	var games []*types.Game
+	var games []*models.Game
 	for _, details := range gameDetails {
-		games = append(games, &types.Game{
+		games = append(games, &models.Game{
 			ID:                    details.ID,
 			Name:                  details.Name,
 			Summary:               details.Summary,

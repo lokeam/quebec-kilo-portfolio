@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
-	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -81,7 +81,7 @@ func TestIGDBCacheAdapter(t *testing.T) {
 
 		testQuery := searchdef.SearchQuery{Query: "Dark Souls", Limit: 5}
 		testResult := &searchdef.SearchResult{
-			Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
+			Games: []models.Game{{ID: 1, Name: "Dark Souls"}},
 		}
 
 		expectedError := errors.New("cache error")
@@ -112,7 +112,7 @@ func TestIGDBCacheAdapter(t *testing.T) {
 
 		testQuery := searchdef.SearchQuery{Query: "Dark Souls", Limit: 5}
 		testResult := &searchdef.SearchResult{
-			Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
+			Games: []models.Game{{ID: 1, Name: "Dark Souls"}},
 		}
 
 		mockCache.On("SetCachedResults",
@@ -141,7 +141,7 @@ func TestIGDBCacheAdapter(t *testing.T) {
 
 		testQuery := searchdef.SearchQuery{Query: "Dark Souls", Limit: 5}
 		expectedResult := &searchdef.SearchResult{
-			Games: []types.Game{{ID: 1, Name: "Dark Souls"}},
+			Games: []models.Game{{ID: 1, Name: "Dark Souls"}},
 			Meta: searchdef.SearchMeta{
         CacheHit: true, // NOTE: this needs to be set in order to pass the full equality check
     	},
