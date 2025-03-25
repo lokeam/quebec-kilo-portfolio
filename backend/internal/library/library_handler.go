@@ -1,13 +1,14 @@
 package library
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/types"
@@ -26,7 +27,7 @@ type AddGameRequest struct {
 	Name       string `json:"name"`
 	Summary    string `json:"summary"`
 	CoverURL   string `json:"cover_url"`
-	ReleaseDate int64 `json:"release_date"`
+	ReleaseDate int64  `json:"release_date"`
 }
 
 func NewLibraryHandler(
@@ -60,6 +61,7 @@ func NewLibraryHandler(
 				errors.New("userID not found in request context"),
 				http.StatusUnauthorized,
 			)
+			return
 		}
 		appCtx.Logger.Info("userID found in request context", map[string]any{
 			"user_id": userID,
@@ -78,72 +80,11 @@ func NewLibraryHandler(
 				errors.New("domain not found in libraryServices"),
 				http.StatusNotFound,
 			)
+			return
 		}
 
+		// Handle different HTTP methods
 		switch r.Method {
-		case http.MethodPost:
-			appCtx.Logger.Info("POST request received", map[string]any{
-				"requestID": requestID,
-			})
-
-			// Parse request body
-			var gameRequest AddGameRequest
-			if err := json.NewDecoder(r.Body).Decode(&gameRequest); err != nil {
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("invalid request body"),
-					http.StatusBadRequest,
-				)
-				return
-			}
-
-			// Create game object from the request
-			gameObj := types.Game{
-				ID:   gameRequest.ID,
-				Name: gameRequest.Name,
-				Summary: gameRequest.Summary,
-				CoverURL: gameRequest.CoverURL,
-				FirstReleaseDate: gameRequest.ReleaseDate,
-			}
-
-			// Use service to add game to library
-			if err := service.AddGameToLibrary(r.Context(), userID, gameObj); err != nil {
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					err,
-					http.StatusInternalServerError,
-				)
-				return
-			}
-
-			// Format response to match frontend expectations
-			response := struct {
-				Success bool `json:"success"`
-				Game struct {
-					ID   int64  `json:"id"`
-					Name string `json:"name"`
-				} `json:"game"`
-			}{
-				Success: true,
-				Game: struct {
-					ID   int64  `json:"id"`
-					Name string `json:"name"`
-				}{
-					ID:   gameObj.ID,
-					Name: gameObj.Name,
-				},
-			}
-
-			httputils.RespondWithJSON(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				http.StatusOK,
-				response,
-			)
 		case http.MethodGet:
 			appCtx.Logger.Info("GET request received", map[string]any{
 				"requestID": requestID,
@@ -163,9 +104,9 @@ func NewLibraryHandler(
 			}
 
 			// Format response to game objects
-			gameResponses := make([]struct{
-				ID    int64  `json:"id"`
-				Name  string `json:"name"`
+			gameResponses := make([]struct {
+				ID   int64  `json:"id"`
+				Name string `json:"name"`
 			}, len(games))
 
 			for i, game := range games {
@@ -175,10 +116,10 @@ func NewLibraryHandler(
 
 			response := struct {
 				Success bool `json:"success"`
-				Games any `json:"games"`
+				Games   any  `json:"games"`
 			}{
 				Success: true,
-				Games: gameResponses,
+				Games:   gameResponses,
 			}
 
 			httputils.RespondWithJSON(
@@ -188,78 +129,170 @@ func NewLibraryHandler(
 				response,
 			)
 			return
+
+		case http.MethodPost:
+			appCtx.Logger.Info("POST request received", map[string]any{
+				"requestID": requestID,
+				"content_type": r.Header.Get("Content-Type"),
+			})
+
+			// Log the raw request body for debugging pissy JSON errors
+			bodyBytes, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Note: NEED TO RESET body AFTER READING
+
+			appCtx.Logger.Info("Request body received", map[string]any{
+				"requestID": requestID,
+				"body":      string(bodyBytes),
+			})
+
+			// Parse request body using a temporary struct that matches the test JSON
+			var tempGame struct {
+				ID              int64    `json:"id"`
+				Name            string   `json:"name"`
+				Summary         string   `json:"summary"`
+				CoverURL        string   `json:"cover_url"`
+				FirstReleaseDate string   `json:"first_release_date"`
+				PlatformNames   []string `json:"platform_names"`
+				GenreNames      []string `json:"genre_names"`
+				ThemeNames      []string `json:"theme_names"`
+			}
+
+			if err := json.NewDecoder(r.Body).Decode(&tempGame); err != nil {
+				// Enhanced error logging for more context
+				httputils.LogJSONError(appCtx.Logger, requestID, err, bodyBytes)
+
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("invalid request body"),
+					http.StatusBadRequest,
+				)
+				return
+			}
+
+			// Convert to types.Game
+			gameRequest := types.Game{
+				ID:              tempGame.ID,
+				Name:            tempGame.Name,
+				Summary:         tempGame.Summary,
+				CoverURL:        tempGame.CoverURL,
+				PlatformNames:   tempGame.PlatformNames,
+				GenreNames:      tempGame.GenreNames,
+				ThemeNames:      tempGame.ThemeNames,
+			}
+
+			// Use service to add game to library
+			if err := service.AddGameToLibrary(r.Context(), userID, gameRequest); err != nil {
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					err,
+					http.StatusInternalServerError,
+				)
+				return
+			}
+
+			// Format response to match frontend expectations
+			response := struct {
+				Success bool `json:"success"`
+				Game    struct {
+					ID   int64  `json:"id"`
+					Name string `json:"name"`
+				} `json:"game"`
+			}{
+				Success: true,
+				Game: struct {
+					ID   int64  `json:"id"`
+					Name string `json:"name"`
+				}{
+					ID:   gameRequest.ID,
+					Name: gameRequest.Name,
+				},
+			}
+
+			httputils.RespondWithJSON(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				http.StatusOK,
+				response,
+			)
+			return
+
 		case http.MethodDelete:
 			appCtx.Logger.Info("DELETE request received", map[string]any{
-        "requestID": requestID,
-        "path": r.URL.Path,
-    })
+				"requestID": requestID,
+				"path":      r.URL.Path,
+			})
 
-    // Extract ID parameter using Chi's URL param extraction
-    idParam := chi.URLParam(r, "id")
-    appCtx.Logger.Info("Delete request with ID param", map[string]any{
-        "idParam": idParam,
-    })
+			// Extract game ID from URL path
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) < 3 {
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("invalid path"),
+					http.StatusBadRequest,
+				)
+				return
+			}
 
-    if idParam == "" {
-        httputils.RespondWithError(
-            httputils.NewResponseWriterAdapter(w),
-            appCtx.Logger,
-            requestID,
-            errors.New("missing game ID parameter"),
-            http.StatusBadRequest,
-        )
-        return
-    }
+			// Grab last part of the path as the gameID
+			gameIDStr := parts[len(parts)-1]
 
-    gameID, err := strconv.ParseInt(idParam, 10, 64)
-    if err != nil {
-        httputils.RespondWithError(
-            httputils.NewResponseWriterAdapter(w),
-            appCtx.Logger,
-            requestID,
-            errors.New("invalid game ID"),
-            http.StatusBadRequest,
-        )
-        return
-    }
+			gameIDint64, err := strconv.ParseInt(gameIDStr, 10, 64)
+			if err != nil {
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("invalid ID: must be a number"),
+					http.StatusBadRequest,
+				)
+				return
+			}
 
-    // Use service to delete game from library
-    err = service.DeleteGameFromLibrary(r.Context(), userID, gameID)
-    if err != nil {
-        statusCode := http.StatusInternalServerError
+			// Call service to delete game from library
+			if err := service.DeleteGameFromLibrary(r.Context(), userID, gameIDint64); err != nil {
+				// Check for specific error types
+				if errors.Is(err, ErrGameNotFound) {
+					httputils.RespondWithError(
+						httputils.NewResponseWriterAdapter(w),
+						appCtx.Logger,
+						requestID,
+						err,
+						http.StatusNotFound,
+					)
+				} else {
+					httputils.RespondWithError(
+						httputils.NewResponseWriterAdapter(w),
+						appCtx.Logger,
+						requestID,
+						err,
+						http.StatusInternalServerError,
+					)
+			}
+				return
+			}
 
-        // Check specifically for not found errors
-        if errors.Is(err, ErrGameNotFound) ||
-           strings.Contains(strings.ToLower(err.Error()), "not found") {
-            statusCode = http.StatusNotFound
-        }
+			// Format response
+			response := struct {
+				Success    bool    `json:"success"`
+				ID         int64   `json:"id"`
+			}{
+				Success:   true,
+				ID:        gameIDint64,
+			}
 
-        httputils.RespondWithError(
-            httputils.NewResponseWriterAdapter(w),
-            appCtx.Logger,
-            requestID,
-            err,
-            statusCode,
-        )
-        return
-    }
-
-    // Successful deletion response
-    response := struct {
-        Success bool  `json:"success"`
-        ID      int64 `json:"id"`
-    }{
-        Success: true,
-        ID:      gameID,
-    }
-
-    httputils.RespondWithJSON(
-        httputils.NewResponseWriterAdapter(w),
-        appCtx.Logger,
-        http.StatusOK,
-        response,
-    )
-    return
+			httputils.RespondWithJSON(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				http.StatusOK,
+				response,
+			)
+			return
 
 		default:
 			httputils.RespondWithError(
@@ -269,89 +302,7 @@ func NewLibraryHandler(
 				errors.New("method not allowed"),
 				http.StatusMethodNotAllowed,
 			)
+			return
 		}
 	}
-}
-
-
-
-// Helper methods
-func handleDelete(
-	appCtx *appcontext.AppContext,
-	w http.ResponseWriter,
-	r *http.Request,
-	service LibraryService,
-	userID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("DELETE request received", map[string]any{
-		"requestID": requestID,
-		"path": r.URL.Path,
-	})
-
-	// Extract ID parameter from URL
-	idParam := chi.URLParam(r, "id")
-	appCtx.Logger.Debug("Delete request with ID param", map[string]any{
-			"idParam": idParam,
-	})
-
-	if idParam == "" {
-			httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("missing game ID parameter"),
-					http.StatusBadRequest,
-			)
-			return
-	}
-
-	gameID, err := strconv.ParseInt(idParam, 10, 64)
-	if err != nil {
-			httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("invalid game ID"),
-					http.StatusBadRequest,
-			)
-			return
-	}
-
-	// Delete game from library
-	err = service.DeleteGameFromLibrary(r.Context(), userID, gameID)
-	if err != nil {
-			statusCode := http.StatusInternalServerError
-
-			// Check specifically for "not found" errors
-			if errors.Is(err, ErrGameNotFound) ||
-				strings.Contains(strings.ToLower(err.Error()), "not found") {
-					statusCode = http.StatusNotFound
-			}
-
-			httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					err,
-					statusCode,
-			)
-			return
-	}
-
-	// Successful deletion response
-	response := struct {
-			Success bool  `json:"success"`
-			ID      int64 `json:"id"`
-	}{
-			Success: true,
-			ID:      gameID,
-	}
-
-	httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			http.StatusOK,
-			response,
-	)
 }

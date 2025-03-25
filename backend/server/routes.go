@@ -37,6 +37,15 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 			"error": err,
 		})
 	}
+
+	// Create library services map
+	libraryServices := make(library.DomainLibraryServices)
+	libraryServices["games"] = libraryService
+
+	// Create library handler
+	libraryHandler := library.NewLibraryHandler(appContext, libraryServices)
+
+
 	wishlistService, err := wishlist.NewGameWishlistService(appContext)
 	if err != nil {
 		appContext.Logger.Error("Failed to initialize wishlist service", map[string]any{
@@ -86,11 +95,23 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 	// Initialize Routes
 	mux.Route("/api/v1", func(r chi.Router) {
+		// Health
 		r.Get("/health", healthHandler)
-		r.Post("/search", searchHandler) // Use searchHandler directly
+
+		// Search
+		r.Post("/search", searchHandler)
+
+		// Library
+		r.Get("/library", libraryHandler)
+		r.Post("/library", libraryHandler)
+		r.Route("/library/games", func(r chi.Router) {
+			r.Delete("/{gameID}", libraryHandler)
+		})
+
 		appContext.Logger.Info("Routes registered", map[string]any{
 			"health": "/api/v1/health",
 			"search": "/api/v1/search",
+			"library": "/api/v1/library",
 		})
 	})
 
