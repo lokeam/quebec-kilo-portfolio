@@ -2,6 +2,7 @@ package library
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ type LibraryDbAdapter struct {
 	client   *postgres.PostgresClient
 	db       *sqlx.DB
 	logger   interfaces.Logger
-	scanner  *postgres.GameScanner
+	scanner  interfaces.GameScanner
 }
 
 func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, error) {
@@ -53,6 +54,14 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 }
 
 // GET
+// GetUserGame retrieves a game from a user's library.
+// Returns:
+// - The game if found
+// - A boolean indicating if the game was found
+// - An error, which will be:
+//   - nil if the operation was successful or the game wasn't found
+//   - ErrGameNotFound if the game doesn't exist in the user's library
+//   - Another error if a database error occurred
 func (la *LibraryDbAdapter) GetUserGame(ctx context.Context, userID string, gameID int64) (models.Game, bool, error) {
 	la.logger.Debug("LibraryDbAdapter - GetUserGame called", map[string]any{
 		"userID": userID,
@@ -72,8 +81,9 @@ func (la *LibraryDbAdapter) GetUserGame(ctx context.Context, userID string, game
 	row := la.db.QueryRowxContext(ctx, query, userID, gameID)
 	game, err := la.scanner.ScanGame(row)
 
-	if err == pgx.ErrNoRows {
-		return models.Game{}, false, nil
+	// Check if error is pgx.ErrNoRows
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Game{}, false, ErrGameNotFound
 	}
 
 	if err != nil {
