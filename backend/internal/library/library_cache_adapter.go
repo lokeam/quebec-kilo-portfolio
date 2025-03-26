@@ -21,7 +21,7 @@ func NewLibraryCacheAdapter(
 }
 
 func (lca *LibraryCacheAdapter) GetCachedLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
-	cacheKey := fmt.Sprint("library:%s", userID)
+	cacheKey := fmt.Sprintf("library:%s", userID)
 
 	var games []models.Game
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &games)
