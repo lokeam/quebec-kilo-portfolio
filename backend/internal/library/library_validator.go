@@ -80,18 +80,18 @@ func (lv *LibraryValidator) ValidateGame(game models.Game) error {
 	var violations []string
 
 	// Validate ID
-	if err := lv.validateGameID(game.ID); err != nil {
+	if err := lv.ValidateGameID(game.ID); err != nil {
 		violations = append(violations, err.Error())
 	}
 
 	// Validate Name
-	if err := lv.validateGameName(game.Name); err != nil {
+	if err := lv.ValidateGameName(game.Name); err != nil {
 		violations = append(violations, err.Error())
 	}
 
 	// Validate Summary (optional)
 	if game.Summary != "" {
-		if err := lv.validateGameSummary(game.Summary); err != nil {
+		if err := lv.ValidateGameSummary(game.Summary); err != nil {
 			violations = append(violations, err.Error())
 		}
 	}
@@ -122,7 +122,7 @@ func (lv *LibraryValidator) ValidateGame(game models.Game) error {
 
 
 // Helpers
-func (lv *LibraryValidator) validateGameID(id int64) error {
+func (lv *LibraryValidator) ValidateGameID(id int64) error {
 	if id <= 0 {
 		return &validationErrors.ValidationError{
 			Field: "id",
@@ -133,7 +133,7 @@ func (lv *LibraryValidator) validateGameID(id int64) error {
 	return nil
 }
 
-func (lv *LibraryValidator) validateGameName(name string) error {
+func (lv *LibraryValidator) ValidateGameName(name string) error {
 	if name == "" {
 		return &validationErrors.ValidationError{
 			Field: "name",
@@ -167,7 +167,7 @@ func (lv *LibraryValidator) validateGameName(name string) error {
 	return nil
 }
 
-func (lv *LibraryValidator) validateGameSummary(summary string) error {
+func (lv *LibraryValidator) ValidateGameSummary(summary string) error {
 	length := utf8.RuneCountInString(summary)
 	if length > MaxSummaryLength {
 		return &validationErrors.ValidationError{
