@@ -54,11 +54,16 @@ type RedisConfig struct {
 }
 
 type PostgresConfig struct {
-	ConnectionString  string
-	MaxConnections    int
-	MaxIdleTime       int
-	MinIdleTime       time.Duration
-	MaxLifetime       time.Duration
+	Host             string
+	Port             int
+	User             string
+	Password         string
+	Database         string
+	SSLMode          string
+	ConnectionString string
+	MaxConnections   int
+	MaxIdleTime      time.Duration
+	MaxLifetime      time.Duration
 }
 
 func Load() (*Config, error) {
@@ -133,11 +138,16 @@ func Load() (*Config, error) {
 
 	// PostgresSQL Config
 	postgresConfig := &PostgresConfig{
-		ConnectionString:    getEnvOrDefault("DATABASE_URL", ""),
-		MaxConnections:      getEnvIntOrDefault("DATABASE_MAX_CONNECTIONS", 10),
-		MaxIdleTime:         getEnvIntOrDefault("DATABASE_MAX_IDLE_TIME", 15),
-		MinIdleTime:         time.Duration(getEnvIntOrDefault("DATABASE_MIN_IDLE_TIME", 10)) * time.Minute,
-		MaxLifetime:         time.Duration(getEnvIntOrDefault("DATABASE_MAX_LIFETIME", 15)) * time.Minute,
+		Host:               getEnvOrDefault("POSTGRES_HOST", "localhost"),
+		Port:               getEnvIntOrDefault("POSTGRES_PORT", 5432),
+		User:               getEnvOrDefault("POSTGRES_USER", ""),
+		Password:           getEnvOrDefault("POSTGRES_PASSWORD", ""),
+		Database:           getEnvOrDefault("POSTGRES_DB", ""),
+		SSLMode:            getEnvOrDefault("POSTGRES_SSLMODE", "disable"),
+		ConnectionString:   os.Getenv("DATABASE_URL"),
+		MaxConnections:     getEnvIntOrDefault("DATABASE_MAX_CONNECTIONS", 10),
+		MaxIdleTime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_IDLE_TIME", 15)) * time.Second,
+		MaxLifetime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_LIFETIME", 15)) * time.Minute,
 	}
 
 	// Validate required PostgresSQL Settings
@@ -165,4 +175,15 @@ func (cfg *IGDBConfig) GetAccessTokenKey() (string, error) {
 		return "", errors.New("IGDB access token key is missing")
 	}
 	return cfg.AccessTokenKey, nil
+}
+
+// GetConnectionString builds a connection string from components or returns the existing one
+func (pc *PostgresConfig) GetConnectionString() string {
+	if pc.ConnectionString != "" {
+			return pc.ConnectionString
+	}
+
+	// Build connection string from individual components
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+			pc.User, pc.Password, pc.Host, pc.Port, pc.Database, pc.SSLMode)
 }
