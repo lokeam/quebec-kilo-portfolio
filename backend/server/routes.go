@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"time"
 
@@ -12,8 +14,10 @@ import (
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search"
+	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
 	"github.com/lokeam/qko-beta/internal/wishlist"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
@@ -36,6 +40,10 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		appContext.Logger.Error("Failed to initialize library service", map[string]any{
 			"error": err,
 		})
+
+		if appContext.Config.Env == "production" {
+			panic(fmt.Sprintf("Critical error initializing library service: %v", err))
+		}
 	}
 
 	// Create library services map
@@ -115,12 +123,39 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		})
 	})
 
+	// Add metrics middleware
+	// Add metrics endpoint with basic security
+if appContext.Config.Env == "production" {
+	// In production, require API key
+	mux.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			apiKey := r.Header.Get("X-API-Key")
+			validAPIKey := os.Getenv("METRICS_API_KEY")
+
+			if apiKey != validAPIKey {
+					http.Error(w, "Forbidden", http.StatusForbidden)
+					return
+			}
+
+			promhttp.Handler().ServeHTTP(w, r)
+	}))
+} else {
+	// In development, allow open access
+	mux.Handle("/metrics", promhttp.Handler())
+}
+	appContext.Logger.Info("Metrics endpoint registered", map[string]any{
+    "metrics": "/metrics",
+	})
+
+
 	return mux
 }
 
 func (s *Server) setupMiddleware(mux *chi.Mux) {
 	mux.Use(middleware.RequestID)  // Trace requests
 	mux.Use(middleware.RealIP)     // Get actual client IP
+
+	mux.Use(customMiddleware.MetricsMiddleware)
+
 	mux.Use(middleware.Logger)     // Request logging
 	mux.Use(middleware.Recoverer)  // Panic recovery
 	mux.Use(middleware.Timeout(60 * time.Second))

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/monitoring"
 	"github.com/redis/rueidis"
 )
 
@@ -109,15 +110,24 @@ func (c *RueidisClient) Get(ctx context.Context, key string) (string, error) {
 	cmd := c.client.B().Get().Key(key).Build()
 	result, err := c.client.Do(ctx, cmd).ToString()
 
+	duration := time.Since(start).Seconds()
+
 	if err != nil {
 		c.stats.Errors.Add(1)
 		c.logger.Error("redis get failed", map[string]any{
 				"key": key,
 				"error": err,
-				"duration": time.Since(start),
+				"duration": duration,
 		})
+		// Record error metric with duration - use Inc() for counters
+		monitoring.RedisOperations.WithLabelValues("GET", "error").Inc()
+		monitoring.RedisOperationDuration.WithLabelValues("GET", "error").Observe(duration)
 		return "", c.ConvertRueidisError(err, "GET")
 	}
+
+	// Record success metric with duration - using Inc() for counters
+	monitoring.RedisOperations.WithLabelValues("GET", "success").Inc()
+	monitoring.RedisOperationDuration.WithLabelValues("GET", "success").Observe(duration)
 
 	c.logger.Debug("redis get completed", map[string]any{
 		"key": key,
@@ -270,5 +280,44 @@ func (c *RueidisClient) GetConfig() *RueidisConfig {
 	return c.config
 }
 
+// Export client stats to Prometheus Metrics
+func (c *RueidisClient) UpdateMetrics() {
+	// Only update metrics if client is ready
+	if c.IsReady() {
+		// Get current stats
+		stats := c.GetStats()
+
+		// Update Prometheus metrics
+		monitoring.RedisOperations.WithLabelValues("total", "all").Add(float64(stats.Operations))
+		monitoring.RedisOperations.WithLabelValues("error", "all").Add(float64(stats.Errors))
+
+		// Calculate success rate (avoid division by zero)
+		if stats.Operations > 0 {
+			successRate := float64(stats.Operations-stats.Errors) / float64(stats.Operations)
+			monitoring.RedisSuccessRate.Set(successRate * 100) // as percentage
+	}
+
+		// Update uptime metric
+		monitoring.RedisUptime.Set(float64(stats.Uptime.Seconds()))
+	}
+}
+
+// Start goroutine to periodically update metrics
+func (c *RueidisClient) StartMetricsCollection() {
+	ticker := time.NewTicker(15 * time.Second)
+	go func() {
+		// Update metrics immediately on start
+		c.UpdateMetrics()
+
+		// Then update on ticker intervals
+		for range ticker.C {
+			c.UpdateMetrics()
+		}
+	}()
+
+	c.logger.Info("Redis metrics collection started", map[string]any{
+		"interval": "15s",
+	})
+}
 // Private methods
 //func (c *RueidisClient) updateStats(err error) {}

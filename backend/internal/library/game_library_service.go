@@ -3,6 +3,7 @@ package library
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -34,20 +35,26 @@ func NewGameLibraryService(appContext *appcontext.AppContext) (*GameLibraryServi
 	// Create and initialize the database adapter
 	dbAdapter, err := NewLibraryDbAdapter(appContext)
 	if err != nil {
-		return nil, err
+			appContext.Logger.Error("Failed to create dbAdapter", map[string]any{"error": err})
+			return nil, err
 	}
+	appContext.Logger.Info("dbAdapter created successfully", nil)
 
 	// Create sanitizer to feed into validator
 	sanitizer, err := security.NewSanitizer()
 	if err != nil {
-		return nil, err
+			appContext.Logger.Error("Failed to create sanitizer", map[string]any{"error": err})
+			return nil, err
 	}
+	appContext.Logger.Info("sanitizer created successfully", nil)
 
 	// Create validator
 	validator, err := NewLibraryValidator(sanitizer)
 	if err != nil {
-		return nil, err
+			appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
+			return nil, err
 	}
+	appContext.Logger.Info("validator created successfully", nil)
 
 	// Create cache wrapper to handle Redis caching
 	cacheWrapper, err := cache.NewCacheWrapper(
@@ -66,12 +73,23 @@ func NewGameLibraryService(appContext *appcontext.AppContext) (*GameLibraryServi
 		return nil, err
 	}
 
+	// Sanity check that all dependencies are initialized
+	appContext.Logger.Info("GameLibraryService components initialized",
+		map[string]any{
+			"dbAdapter": dbAdapter != nil,
+			"validator": validator != nil,
+			"cacheWrapper": libraryCacheAdapter != nil,
+		},
+	)
+
+
 	return &GameLibraryService{
 		dbAdapter:    dbAdapter,
 		validator:    validator,
 		logger:       appContext.Logger,
 		config:       appContext.Config,
 		cacheWrapper: libraryCacheAdapter,
+		sanitizer:    sanitizer,
 	}, nil
 }
 
@@ -138,23 +156,50 @@ func (ls *GameLibraryService) GetUserGame(ctx context.Context, userID string, ga
 }
 
 // POST
+// POST
 func (ls *GameLibraryService) AddGameToLibrary(ctx context.Context, userID string, game models.Game) error {
-	// Validate inputs
+	// Validate inputs and recreate validator if needed
+	if ls.validator == nil {
+			ls.logger.Error("Validator is nil, attempting to recreate", nil)
+
+			// Recreate sanitizer if needed
+			var sanitizer interfaces.Sanitizer
+			var err error
+			if ls.sanitizer == nil {
+					sanitizer, err = security.NewSanitizer()
+					if err != nil {
+							return fmt.Errorf("failed to create sanitizer: %w", err)
+					}
+					ls.sanitizer = sanitizer
+			} else {
+					sanitizer = ls.sanitizer
+			}
+
+			// Recreate validator
+			validator, err := NewLibraryValidator(sanitizer)
+			if err != nil {
+					return fmt.Errorf("failed to create validator: %w", err)
+			}
+			ls.validator = validator
+			ls.logger.Info("Validator recreated successfully", nil)
+	}
+
+	// Continue with validation
 	if err := ls.validator.ValidateUserID(userID); err != nil {
-		return err
+			return err
 	}
 	if err := ls.validator.ValidateGameID(game.ID); err != nil {
-		 return err
+			return err
 	}
 
 	// Add to database
 	if err := ls.dbAdapter.AddGameToLibrary(ctx, userID, game.ID); err != nil {
-		return err
+			return err
 	}
 
 	// Invalidate cache
 	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
-		ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+			ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
 	}
 
 	return nil

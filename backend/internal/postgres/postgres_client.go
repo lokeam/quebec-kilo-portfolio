@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
+	"github.com/lokeam/qko-beta/internal/monitoring"
 )
 
 type PostgresClient struct {
@@ -76,6 +77,8 @@ func NewPostgresClient(appContext *appcontext.AppContext) (*PostgresClient, erro
 			logger.Error("Failed to create connection pool", map[string]any{
 				"error": err.Error(),
 			})
+			// Close pool we just created to prevent memory leaks
+			newPool.Close()
 			return fmt.Errorf("unable to create connection pool: %w", err)
 		}
 		logger.Debug("Connection pool created, testing with ping", nil)
@@ -103,7 +106,30 @@ func NewPostgresClient(appContext *appcontext.AppContext) (*PostgresClient, erro
 
 	client.pool = pool
 	logger.Info("Successfully connected to PostgreSQL", nil)
+
+	// Start collecting metrics from NewPostgresClient after successfully connecting
+	client.StartMetricsCollection()
+
 	return client, nil
+}
+
+func (pc *PostgresClient) UpdateMetrics() {
+	if pc.pool != nil {
+		stats := pc.pool.Stat()
+		monitoring.DBConnectionsOpen.Set(float64(stats.AcquiredConns()))
+		monitoring.DBConnectionsMax.Set(float64(stats.MaxConns()))
+	}
+}
+
+// Go routine to periodically update metrics
+func (pc *PostgresClient) StartMetricsCollection() {
+	ticker := time.NewTicker(1 * time.Minute)
+	go func() {
+		// NOTE: use range when selecting on a single channel
+		for range ticker.C {
+			pc.UpdateMetrics()
+		}
+	}()
 }
 
 // Close the db connection pool
