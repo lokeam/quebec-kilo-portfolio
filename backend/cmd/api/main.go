@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/lokeam/qko-beta/cmd/resourceinitializer"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -31,20 +32,20 @@ func main() {
 	defer cancel()
 
 	// 2. Sort out the runtime environment for logging configuration
-	env := os.Getenv("ENV")
-	var logEnv logger.Environment
-	switch env {
+	logEnv := os.Getenv("ENV")
+	var loggerEnvironment logger.Environment
+	switch logEnv {
 	case "prod":
-			logEnv = logger.EnvProd
+		loggerEnvironment = logger.EnvProd
 	case "dev":
-			logEnv = logger.EnvDev
+		loggerEnvironment = logger.EnvDev
 	default:
-			logEnv = logger.EnvDev // Default to development
+		loggerEnvironment = logger.EnvDev // Default to development
 	}
 
 	// 3. Initialize logging (Zap + slog)
 	log, err := logger.NewLogger(
-		logger.WithEnv(logEnv),
+		logger.WithEnv(loggerEnvironment),
 		logger.WithAlertLevel(logger.LevelInfo),
 	)
 	if err != nil {
@@ -53,7 +54,25 @@ func main() {
 	}
 	defer log.Cleanup()
 
-	env = os.Getenv("API_ENV")
+	// 3.5 Initialize Sentry
+	err = sentry.Init(sentry.ClientOptions{
+		Dsn: os.Getenv("SENTRY_BACKEND_DSN"),
+		Environment: os.Getenv("SENTRY_ENVIRONMENT"),
+		// Set traces sample rate to capture transactions for performance monitoring
+		TracesSampleRate: 0.2,
+		// Use the same environment as your app
+		Release: os.Getenv("APP_VERSION"), // NOTE:Consider adding a version env var?
+	})
+	if err != nil {
+		log.Error("Failed to initialize Sentry", map[string]any{
+			"error": err.Error(),
+		})
+		// Don't exit - continue without Sentry rather than crashing the app
+	} else {
+		log.Info("Sentry initialized successfully", nil)
+		// Flush buffered events before the program terminates
+		defer sentry.Flush(2 * time.Second)
+	}
 
 	// 4. Load app configuration
 	cfg, err := config.Load()

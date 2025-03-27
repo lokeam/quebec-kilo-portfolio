@@ -123,25 +123,24 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		})
 	})
 
-	// Add metrics middleware
 	// Add metrics endpoint with basic security
-if appContext.Config.Env == "production" {
-	// In production, require API key
-	mux.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			apiKey := r.Header.Get("X-API-Key")
-			validAPIKey := os.Getenv("METRICS_API_KEY")
+	if appContext.Config.Env == "production" {
+		// In production, require API key
+		mux.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				apiKey := r.Header.Get("X-API-Key")
+				validAPIKey := os.Getenv("METRICS_API_KEY")
 
-			if apiKey != validAPIKey {
-					http.Error(w, "Forbidden", http.StatusForbidden)
-					return
-			}
+				if apiKey != validAPIKey {
+						http.Error(w, "Forbidden", http.StatusForbidden)
+						return
+				}
 
-			promhttp.Handler().ServeHTTP(w, r)
-	}))
-} else {
-	// In development, allow open access
-	mux.Handle("/metrics", promhttp.Handler())
-}
+				promhttp.Handler().ServeHTTP(w, r)
+		}))
+	} else {
+		// In development, allow open access
+		mux.Handle("/metrics", promhttp.Handler())
+	}
 	appContext.Logger.Info("Metrics endpoint registered", map[string]any{
     "metrics": "/metrics",
 	})
@@ -154,6 +153,10 @@ func (s *Server) setupMiddleware(mux *chi.Mux) {
 	mux.Use(middleware.RequestID)  // Trace requests
 	mux.Use(middleware.RealIP)     // Get actual client IP
 
+	// Sentry Middleware
+	mux.Use(customMiddleware.SentryMiddleware)
+
+	// Prometheus Middleware
 	mux.Use(customMiddleware.MetricsMiddleware)
 
 	mux.Use(middleware.Logger)     // Request logging
