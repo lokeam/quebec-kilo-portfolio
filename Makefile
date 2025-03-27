@@ -1,5 +1,5 @@
 # QKO BETA API - Development Operations (Containerized Setup)
-# Version: 2.6.0
+# Version: 2.7.0
 #
 # This Makefile leverages Docker Compose to build, run, and manage
 # the following containerized services:
@@ -10,6 +10,7 @@
 #   - Mailhog
 #   - Prometheus (Metrics collection)
 #   - Grafana (Metrics visualization)
+#   - Sentry (Backend Error tracking)
 #
 # Best practices used:
 #   - All services run in containers on a shared private network.
@@ -19,7 +20,7 @@
 #   - Metrics are collected and visualized for monitoring system health.
 #
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down help
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -291,6 +292,62 @@ logs-grafana:
 	docker compose logs grafana
 
 # -----------------------------------------
+# Sentry Integration
+# -----------------------------------------
+
+# ---------------------------------------------------------------------------
+# Verify-Sentry: Verify Backend Sentry configuration
+#
+# Checks if the SENTRY_BACKEND_DSN environment variable is set, which is required for Sentry to work.
+#
+# Usage: make verify-sentry
+# ---------------------------------------------------------------------------
+verify-sentry:
+	@echo "$(BLUE)Verifying Sentry configuration...$(RESET)"
+	@if [ -z "$$SENTRY_BACKEND_DSN" ]; then \
+		echo "$(RED)Error: SENTRY_BACKEND_DSN environment variable is not set$(RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Sentry configuration verified.$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Run-With-Sentry: Run with backend sentry enabled
+#
+# Runs API locally (not in Docker) with Sentry enabled, useful for testing Sentry integration during development.
+#
+# Usage: make run-with-sentry
+# ---------------------------------------------------------------------------
+run-with-sentry: verify-sentry
+	@echo "$(BLUE)Running with Sentry enabled...$(RESET)"
+	SENTRY_BACKEND_DSN=$(SENTRY_BACKEND_DSN) SENTRY_ENVIRONMENT=development go run ./cmd/api/main.go
+
+# ---------------------------------------------------------------------------
+# Test-Sentry: Test integration by triggering a test error
+#
+# Sends a test error to Sentry by making a request to a test endpoint, allowing verification that errors are being captured correctly.
+#
+# Usage: make test-sentry
+# ---------------------------------------------------------------------------
+test-sentry: verify-sentry
+	@echo "$(BLUE)Sending test error to Sentry...$(RESET)"
+	@curl -X GET http://api.localhost/api/v1/test-sentry || echo "\n$(GREEN)Test error sent to Sentry$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Dev-With-Sentry: Start development environment with Sentry enabled
+#
+# Starts development environment with Sentry enabled, ensuring that the Sentry environment variables are set.
+#
+# Usage: make dev-with-sentry
+# ---------------------------------------------------------------------------
+dev-with-sentry: CURRENT_ENV=development
+dev-with-sentry: check-docker check-env-files verify-sentry
+	@echo "$(BLUE)Starting development environment with Sentry enabled...$(RESET)"
+	docker compose --env-file .env.dev up --build -d
+	@sleep 5
+	@$(MAKE) health
+	@echo "$(GREEN)Development environment with Sentry started$(RESET)"
+
+# -----------------------------------------
 # Troubleshooting
 # -----------------------------------------
 troubleshoot-frontend:
@@ -365,3 +422,8 @@ help:
 	@echo " make troubleshoot-redis    - Troubleshoot Redis"
 	@echo " make troubleshoot-prometheus  - Troubleshoot Prometheus"
 	@echo " make troubleshoot-grafana     - Troubleshoot Grafana"
+	@echo "\n$(BLUE)Sentry:$(RESET)"
+	@echo " make verify-sentry      - Verify Sentry configuration"
+	@echo " make run-with-sentry    - Run the API locally with Sentry enabled"
+	@echo " make test-sentry        - Test Sentry integration by triggering a test error"
+	@echo " make dev-with-sentry    - Start development environment with Sentry enabled"
