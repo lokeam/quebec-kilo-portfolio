@@ -25,6 +25,11 @@ frontend/yarn-debug.log*
 frontend/yarn-error.log*
 
 #==========================================
+# Database
+#==========================================
+docs/technical/database.md
+
+#==========================================
 # Environment & Configuration
 #==========================================
 .env

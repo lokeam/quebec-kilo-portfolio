@@ -1,0 +1,11 @@
+# Development-only configuration that extends the main docker-compose.yml
+# This file is automatically loaded when running docker compose commands
+# and should NOT be used in production environments.
+
+services:
+  postgres:
+    # No port mapping to avoid conflicts
+    # No Traefik labels - keep PostgreSQL isolated on backend network
+    environment:
+      - POSTGRES_LOG_STATEMENT=all  # Example development-specific setting
+    # No additional networks - keep PostgreSQL only on backend network

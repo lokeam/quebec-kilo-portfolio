@@ -70,6 +70,20 @@ See [Architecture Documentation](docs/architecture.md)
 
 ### Environment Setup
 
+## Database
+This project uses PostgreSQL for data persistence. The database is configured for security and performance in both development and production environments.
+
+For detailed information about:
+- Database configuration
+- Development environment setup
+- Access methods
+- Migration procedures
+
+See [database.md](docs/technical/database.md) (for team members only - not included in public repositories).
+
+Quick development access:
+- Command line: `docker compose exec postgres psql -U postgres -d qkoapi`
+
 ## Redis Setup & Configuration
 See [Redis Configuration](docs/technical/redis.md) for more information.
 
