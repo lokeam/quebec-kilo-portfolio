@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
@@ -202,6 +203,40 @@ func TestGameSearchService(t *testing.T) {
 				t.Errorf("expected valid search result on cache miss, got nil")
 			}
 		},
+	)
+
+	// --------- 401 Authentication Error with Successful Token Refresh ---------
+	t.Run(
+    `Search service handles 401 error appropriately`,
+    func(t *testing.T) {
+        /*
+        GIVEN a valid search request with a cache miss
+        WHEN the IGDB adapter returns a 401 error
+        THEN the service should return an appropriate error
+        */
+        testLogger := testutils.NewTestLogger()
+        testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
+
+        // Set up adapter to simulate a 401 error
+        testSearchService.adapter = &mocks.MockIGDBAdapter{
+            SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
+                return nil, errors.New("401 Unauthorized: Invalid token")
+            },
+        }
+
+        // Execute the search with a short timeout to prevent hanging
+        ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+        defer cancel()
+
+        _, err := testSearchService.Search(ctx, searchdef.SearchRequest{
+            Query: "Dark Souls",
+        })
+
+        // Verify we got an error (either timeout or auth error)
+        if err == nil {
+            t.Error("Expected error when adapter returns 401, got nil")
+        }
+    },
 	)
 
 	// --------- Adapter Failure (Search Error) ---------

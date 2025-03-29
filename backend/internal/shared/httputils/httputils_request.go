@@ -19,10 +19,12 @@ const (
 type contextKey string
 
 func GetRequestID(r *http.Request) string {
-	if id, ok := r.Context().Value(authMiddleware.UserIDKey).(string); ok {
-		return id
+	// First check if request ID is in context
+	if id, ok := r.Context().Value(RequestIDKey).(string); ok {
+			return id
 	}
 
+	// Fall back to header
 	return r.Header.Get(XRequestIDHeader)
 }
 

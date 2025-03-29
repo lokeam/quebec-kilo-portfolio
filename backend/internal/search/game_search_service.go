@@ -2,6 +2,8 @@ package search
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lokeam/qko-beta/config"
@@ -11,6 +13,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/shared/worker"
 )
 
 // GameSearchService processes search requests by validating and sanitizing the query,
@@ -22,6 +25,7 @@ type GameSearchService struct {
 	validator       interfaces.SearchValidator
 	sanitizer       interfaces.Sanitizer
 	cacheWrapper    interfaces.IGDBCacheWrapper  // Only handles caching.
+	appContext      *appcontext.AppContext
 }
 
 type SearchService interface {
@@ -75,6 +79,7 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 		validator:    validator,
 		sanitizer:    sanitizer,
 		cacheWrapper: igdbCacheAdapter,
+		appContext:   appContext,
 	}, nil
 }
 
@@ -108,10 +113,14 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	}
 
 	s.logger.Debug("Cache miss; performing IGDB search", map[string]any{"query": req.Query, "limit": req.Limit})
-	// 4. If cache miss, fetch fresh data using the adapter.
-	games, err := s.adapter.SearchGames(ctx, req.Query, req.Limit)
+
+	// 4. If cache miss, fetch data using adapter with retry for auth errors
+	games, err := s.searchWithTokenRefresh(
+		ctx,
+		req.Query,
+		req.Limit,
+	)
 	if err != nil {
-		s.logger.Error("IGDB adapter error", map[string]any{"error": err})
 		return nil, err
 	}
 
@@ -146,4 +155,87 @@ func convertIGDBGame(g models.Game) models.Game {
 		GenreNames:          g.GenreNames,
 		ThemeNames:          g.ThemeNames,
 	}
+}
+
+// Attempts to search IGDB and automatically refreshes the token if a 401 error occurs
+func (s *GameSearchService) searchWithTokenRefresh(
+	ctx context.Context,
+	query string,
+	limit int,
+) ([]*models.Game, error) {
+	// Attempt to search IGDB
+	games, err := s.adapter.SearchGames(ctx, query, limit)
+
+	// If we get an error, check if it is related to auth (401)
+	if err != nil && IAuthError(err) {
+		s.logger.Warn("Received authentication error from IGDB, attempting token refresh", map[string]any{
+			"error": err,
+		})
+
+		// Attempt to refresh token
+		if refreshErr := s.refreshToken(ctx); refreshErr != nil {
+			s.logger.Error("Failed to refresh token", map[string]any{
+				"error": refreshErr,
+			})
+			return nil, fmt.Errorf("failed to refresh token: %w", refreshErr)
+		}
+
+		s.logger.Info("Token refreshed successfully, retrying search request", nil)
+
+		// Retry the search with the new token
+		return s.adapter.SearchGames(ctx, query, limit)
+	}
+
+	return games, err
+}
+
+
+// TODO: Move this to error handling package
+func IAuthError(err error) bool {
+	// Check for specific error types or messages that indicate auth failure
+	if err == nil {
+			return false
+	}
+
+	// Look for 401 in the error message
+	return strings.Contains(err.Error(), "401") ||
+				 strings.Contains(strings.ToLower(err.Error()), "unauthorized") ||
+				 strings.Contains(strings.ToLower(err.Error()), "authentication")
+}
+
+// Trigger a token refresh using existing worker jobs
+func (s *GameSearchService) refreshToken(ctx context.Context) error {
+	// Get config values
+	clientID := s.config.IGDB.ClientID
+	clientSecret := s.config.IGDB.ClientSecret
+	authURL := s.config.IGDB.AuthURL
+	redisKey := s.config.IGDB.AccessTokenKey
+
+	// Get the token via retry logic
+	token, err := worker.GetTwitchTokenWithRetry(
+		ctx,
+		clientID,
+		clientSecret,
+		authURL,
+		s.logger,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to refresh token: %w", err)
+	}
+
+	// Save the token with refresh logic
+	if err := worker.UpdateTwitchTokenJob(
+		ctx,
+		redisKey,
+		s.appContext.RedisClient,
+		s.appContext.MemCache,
+		*token,
+		s.logger,
+	); err != nil {
+		return fmt.Errorf("failed to save refreshed token: %w", err)
+	}
+
+	s.logger.Info("Successfully refreshed and saved Twitch token", nil)
+
+	return nil
 }

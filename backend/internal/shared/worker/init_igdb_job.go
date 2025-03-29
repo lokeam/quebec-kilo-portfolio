@@ -36,7 +36,7 @@ func InitIGDBJob(
 	}
 
 	// Get Twitch token with retries
-	tokenInfo, err := getTwitchTokenWithRetry(ctx, clientID, clientSecret, authURL, log)
+	tokenInfo, err := GetTwitchTokenWithRetry(ctx, clientID, clientSecret, authURL, log)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func waitForRedisConnection(ctx context.Context, client redisclient.RedisClient,
 	}
 }
 
-func getTwitchTokenWithRetry(ctx context.Context, clientID, clientSecret, authURL string, log interfaces.Logger) (*token.TokenInfo, error) {
+func GetTwitchTokenWithRetry(ctx context.Context, clientID, clientSecret, authURL string, log interfaces.Logger) (*token.TokenInfo, error) {
 	for {
 		twitchTokenResponse, err := twitch.RefreshToken(
 			ctx,
