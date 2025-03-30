@@ -128,7 +128,7 @@ func (la *LibraryDbAdapter) UpdateGameInLibrary(ctx context.Context, game models
 		"gameID": game.ID,
 	})
 
-	return la.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		query := `
 			UPDATE games
 			SET name = :name,
@@ -169,7 +169,7 @@ func (la *LibraryDbAdapter) AddGameToLibrary(ctx context.Context, userID string,
 		"gameID": gameID,
 	})
 
-	return la.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		// First check if game exists in table, if not add it
 		var gameExists bool
 		err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)", gameID).Scan(&gameExists)
@@ -209,7 +209,7 @@ func (la *LibraryDbAdapter) RemoveGameFromLibrary(ctx context.Context, userID st
 		"gameID": gameID,
 	})
 
-	return la.WithTransaction(ctx, func(tx *sqlx.Tx) error {
+	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 			DELETE FROM user_library
 			WHERE user_id = $1 AND game_id = $2
@@ -220,37 +220,6 @@ func (la *LibraryDbAdapter) RemoveGameFromLibrary(ctx context.Context, userID st
 
 		return nil
 	})
-}
-
-// Helper fn to support transactions
-func (la *LibraryDbAdapter) WithTransaction(ctx context.Context, fn func(*sqlx.Tx) error) error {
-	// Start a transaction
-	tx, err := la.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-
-	// Defer a rollback in the event anything catches fire
-	defer func() {
-		if panicValue := recover(); panicValue != nil {
-			tx.Rollback()
-			panic(panicValue) // re-throw panic after rollback so that it may be handled further up callstack
-		}
-	}()
-
-	// Do the thing
-	err = fn(tx)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("error committing transaction: %w", err)
-	}
-
-	return nil
 }
 
 // Helper fn to determine if game exists in user library
