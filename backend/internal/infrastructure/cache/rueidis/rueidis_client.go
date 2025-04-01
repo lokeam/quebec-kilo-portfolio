@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/interfaces"
+	interfaces "github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/monitoring"
 	"github.com/redis/rueidis"
 )

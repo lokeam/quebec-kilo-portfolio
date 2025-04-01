@@ -4,7 +4,7 @@ import (
 	"github.com/lokeam/qko-beta/config"
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
 	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
-	"github.com/lokeam/qko-beta/internal/interfaces"
+	interfaces "github.com/lokeam/qko-beta/internal/interfaces"
 	twitch "github.com/lokeam/qko-beta/internal/shared/twitch"
 )
 
