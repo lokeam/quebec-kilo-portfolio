@@ -280,14 +280,11 @@ func TestGamePhysicalService(t *testing.T) {
 		service.cacheWrapper = mockCache
 
 		// WHEN
-		createdLocation, err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
+		err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
 
 		// THEN
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
-		}
-		if createdLocation == nil {
-			t.Error("Expected created location, got nil")
 		}
 		if !dbAddCalled {
 			t.Error("Expected database add to be called")
@@ -325,7 +322,7 @@ func TestGamePhysicalService(t *testing.T) {
 		service.dbAdapter = mockDb
 
 		// WHEN
-		_, err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
+		err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
 
 		// THEN
 		if err == nil {

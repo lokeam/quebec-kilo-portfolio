@@ -23,7 +23,7 @@ type GamePhysicalService struct {
 type PhysicalService interface {
 	GetPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
 	AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) error
-	DeletePhysicalLocation(ctx context.Context, userID string, locationID int64) error
+	DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) error
 }
 
@@ -168,6 +168,17 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 
 // POST
 func (gps *GamePhysicalService) AddPhysicalLocation(
+	ctx context.Context,
+	userID string,
+	location models.PhysicalLocation,
+) error {
+	// Call the existing implementation and discard the first return value
+	_, err := gps.addPhysicalLocationImpl(ctx, userID, location)
+	return err
+}
+
+// Rename the original implementation to a private method
+func (gps *GamePhysicalService) addPhysicalLocationImpl(
 	ctx context.Context,
 	userID string,
 	location models.PhysicalLocation,

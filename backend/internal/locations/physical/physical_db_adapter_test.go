@@ -45,11 +45,6 @@ import (
 		- Handles db errors
 */
 
-var (
-	ErrLocationNotFound = errors.New("physical location not found")
-	ErrDatabaseError = errors.New("database error")
-)
-
 func TestPhysicalDbAdapter(t *testing.T) {
 	// Set up base app context for testing
 	baseAppCtx := appcontext_test.NewTestingAppContext("test-token", nil)

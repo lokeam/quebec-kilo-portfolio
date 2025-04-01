@@ -13,6 +13,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
+	"github.com/lokeam/qko-beta/internal/locations/physical"
 	"github.com/lokeam/qko-beta/internal/search"
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
 	"github.com/lokeam/qko-beta/internal/wishlist"
@@ -46,12 +47,30 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		}
 	}
 
+	// Initialize physical services
+	physicalService, err := physical.NewGamePhysicalService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to initialized physical service", map[string]any{
+			"error": err,
+		})
+
+		if appContext.Config.Env == "production" {
+			panic(fmt.Sprintf("Critical error initializing physical service: %v", err))
+		}
+	}
+
+
 	// Create library services map
 	libraryServices := make(library.DomainLibraryServices)
 	libraryServices["games"] = libraryService
 
 	// Create library handler
 	libraryHandler := library.NewLibraryHandler(appContext, libraryServices)
+	// TODO: add error handling
+
+
+	// Create physical handler
+	physicalHandler := physical.NewPhysicalLocationHandler(appContext, physicalService)
 
 
 	wishlistService, err := wishlist.NewGameWishlistService(appContext)
@@ -110,16 +129,28 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		r.Post("/search", searchHandler)
 
 		// Library
+		// TODO: Refactor this to use the physical location pattern below
 		r.Get("/library", libraryHandler)
 		r.Post("/library", libraryHandler)
 		r.Route("/library/games", func(r chi.Router) {
 			r.Delete("/{gameID}", libraryHandler)
 		})
 
+		// Physical Locations
+		r.Route("/locations/physical", func(r chi.Router) {
+			r.Get("/", physicalHandler)
+			r.Post("/", physicalHandler)
+			r.Get("/{id}", physicalHandler)
+			r.Put("/{id}", physicalHandler)
+			r.Delete("/{id}", physicalHandler)
+		})
+
+
 		appContext.Logger.Info("Routes registered", map[string]any{
 			"health": "/api/v1/health",
 			"search": "/api/v1/search",
 			"library": "/api/v1/library",
+			"physical": "/api/v1/locations/physical",
 		})
 	})
 
