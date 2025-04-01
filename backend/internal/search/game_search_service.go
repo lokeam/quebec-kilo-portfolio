@@ -189,7 +189,6 @@ func (s *GameSearchService) searchWithTokenRefresh(
 	return games, err
 }
 
-
 // TODO: Move this to error handling package
 func IAuthError(err error) bool {
 	// Check for specific error types or messages that indicate auth failure
