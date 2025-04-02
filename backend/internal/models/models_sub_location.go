@@ -2,6 +2,25 @@ package models
 
 import "time"
 
+var SublocationBgColor = struct {
+	Red          string
+	Green        string
+	Blue         string
+	Orange       string
+	Gold         string
+	Purple       string
+	Brown        string
+	Gray         string
+}{
+	Red:          "red",
+	Green:        "green",
+	Blue:         "blue",
+	Orange:       "orange",
+	Gold:         "gold",
+	Purple:       "purple",
+	Brown:        "brown",
+	Gray:         "gray",
+}
 var SublocationType = struct {
 	Shelf    string
 	Console  string
@@ -33,15 +52,24 @@ func IsValidSublocationType(locationType string) bool {
 	}
 }
 
+func IsValidSublocationBgColor(color string) bool {
+	switch color {
+	case SublocationBgColor.Red, SublocationBgColor.Green,
+	     SublocationBgColor.Blue, SublocationBgColor.Orange,
+			 SublocationBgColor.Gold, SublocationBgColor.Purple,
+			 SublocationBgColor.Brown, SublocationBgColor.Gray:
+		return true
+	}
+	return false
+}
+
 type Sublocation struct {
 	ID                 string      `json:"id" db:"id"`
 	UserID             string      `json:"user_id" db:"user_id"`
 	Name               string      `json:"name" db:"name"`
-	Label              string      `json:"label" db:"label"` // TODO: determine if this is worthwhile in UAT
-	Description        string      `json:"description" db:"description"` // TODO: determine if this is worthwhile in UAT
 	LocationType       string      `json:"location_type" db:"location_type"`
+	BgColor            string      `json:"bg_color" db:"bg_color"`
 	Capacity           int         `json:"capacity" db:"capacity"`
-	IsAccessible       bool        `json:"is_accessible" db:"is_accessible"`
 	CreatedAt          time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at" db:"updated_at"`
 

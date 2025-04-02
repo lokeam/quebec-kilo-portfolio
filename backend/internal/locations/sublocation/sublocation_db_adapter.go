@@ -61,7 +61,7 @@ func (sa *SublocationDbAdapter) GetSublocation(ctx context.Context, userID strin
 	})
 
 	query := `
-		SELECT id, user_id, name, label, description, location_type, capacity, is_accessible, created_at, updated_at
+		SELECT id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
 		FROM sub_locations
 		WHERE id = $1 AND user_id = $2
 	`
@@ -101,7 +101,7 @@ func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID 
 	})
 
 	query := `
-		SELECT id, user_id, name, label, description, location_type, capacity, is_accessible, created_at, updated_at
+		SELECT id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
 		FROM sub_locations
 		WHERE user_id = $1
 		ORDER BY name
@@ -175,20 +175,18 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 
 	query := `
 		UPDATE sub_locations
-		SET name = $1, label = $2, description = $3, location_type = $4, capacity = $5, is_accessible = $6, updated_at = $7
-		WHERE id = $8 AND user_id = $9
-	`
+		SET name = $1, location_type = $2, bg_color = $3, capacity = $4, updated_at = $5
+		WHERE id = $6 AND user_id = $7
+  `
 
 	now := time.Now()
 	result, err := sa.db.ExecContext(
 		ctx,
 		query,
 		sublocation.Name,
-		sublocation.Label,
-		sublocation.Description,
 		sublocation.LocationType,
+		sublocation.BgColor,
 		sublocation.Capacity,
-		sublocation.IsAccessible,
 		now,
 		sublocation.ID,
 		userID,
@@ -232,10 +230,10 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 	sublocation.UpdatedAt = now
 
 	query := `
-		INSERT INTO sub_locations (id, user_id, name, label, description, location_type, capacity, is_accessible, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, user_id, name, label, description, location_type, capacity, is_accessible, created_at, updated_at
-	`
+		INSERT INTO sub_locations (id, user_id, name, location_type, bg_color, capacity, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
+  `
 
 	err := sa.db.QueryRowxContext(
 		ctx,
@@ -243,11 +241,9 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 		sublocation.ID,
 		userID,
 		sublocation.Name,
-		sublocation.Label,
-		sublocation.Description,
 		sublocation.LocationType,
+		sublocation.BgColor,
 		sublocation.Capacity,
-		sublocation.IsAccessible,
 		sublocation.CreatedAt,
 		sublocation.UpdatedAt,
 	).StructScan(&sublocation)

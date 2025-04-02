@@ -85,8 +85,8 @@ func TestSublocationDbAdapter(t *testing.T) {
     now := time.Now()
 
     // Set up mock expectations for sublocation query
-    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "description", "location_type", "capacity", "is_accessible", "created_at", "updated_at"}).
-        AddRow(sublocationID, userID, "Test Sublocation", "Shelf", "A test shelf", "shelf", 20, true, now, now)
+    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "location_type", "bg_color", "capacity", "created_at", "updated_at"}).
+        AddRow(sublocationID, userID, "Test Sublocation", "shelf", "blue", 20, now, now)
 
     mock.ExpectQuery("SELECT (.+) FROM sub_locations").
         WithArgs(sublocationID, userID).
@@ -231,9 +231,9 @@ func TestSublocationDbAdapter(t *testing.T) {
     now := time.Now()
 
     // Set up mock expectations for sublocations query
-    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "description", "location_type", "capacity", "is_accessible", "created_at", "updated_at"}).
-        AddRow("subloc-1", userID, "Sublocation 1", "Shelf", "Description 1", "shelf", 20, true, now, now).
-        AddRow("subloc-2", userID, "Sublocation 2", "Cabinet", "Description 2", "cabinet", 30, true, now, now)
+    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "location_type", "bg_color", "capacity", "created_at", "updated_at"}).
+        AddRow("subloc-1", userID, "Sublocation 1", "shelf", "red", 20, now, now).
+        AddRow("subloc-2", userID, "Sublocation 2", "cabinet", "blue", 30, now, now)
 
     mock.ExpectQuery("SELECT (.+) FROM sub_locations").
         WithArgs(userID).
@@ -309,21 +309,21 @@ func TestSublocationDbAdapter(t *testing.T) {
 
     userID := "test-user-id"
     sublocationID := "test-subloc-id"
+		now := time.Now()
 
     updateSublocation := models.Sublocation{
         ID:           sublocationID,
         UserID:       userID,
         Name:         "Updated Sublocation",
-        Label:        "Updated Label",
-        Description:  "Updated description",
         LocationType: "cabinet",
+				BgColor:      "green",
         Capacity:     40,
-        IsAccessible: false,
+				UpdatedAt:    now,
     }
 
     // Set up mock expectations
     mock.ExpectExec("UPDATE sub_locations").
-        WithArgs("Updated Sublocation", "Updated Label", "Updated description", "cabinet", 40, false, sqlmock.AnyArg(), sublocationID, userID).
+        WithArgs("Updated Sublocation", "cabinet", "green", 40, sqlmock.AnyArg(), sublocationID, userID).
         WillReturnResult(sqlmock.NewResult(0, 1))
 
     // Execute
@@ -359,16 +359,14 @@ func TestSublocationDbAdapter(t *testing.T) {
         ID:           sublocationID,
         UserID:       userID,
         Name:         "Updated Sublocation",
-        Label:        "Updated Label",
-        Description:  "Updated description",
         LocationType: "cabinet",
+				BgColor:      "purple",
         Capacity:     40,
-        IsAccessible: false,
     }
 
     // Set up mock expectations - no rows affected
     mock.ExpectExec("UPDATE sub_locations").
-        WithArgs("Updated Sublocation", "Updated Label", "Updated description", "cabinet", 40, false, sqlmock.AnyArg(), sublocationID, userID).
+        WithArgs("Updated Sublocation", "cabinet", "purple", 40, sqlmock.AnyArg(), sublocationID, userID).
         WillReturnResult(sqlmock.NewResult(0, 0))
 
     // Execute
@@ -402,22 +400,20 @@ func TestSublocationDbAdapter(t *testing.T) {
     now := time.Now()
 
     newSublocation := models.Sublocation{
-        ID:           sublocationID,
-        Name:         "New Sublocation",
-        Label:        "Cabinet",
-        Description:  "A new cabinet",
-        LocationType: "cabinet",
-        Capacity:     30,
-        IsAccessible: true,
-    }
+			ID:           sublocationID,
+			Name:         "New Sublocation",
+			LocationType: "cabinet",
+			BgColor:      "orange",
+			Capacity:     30,
+		}
 
     // Set up mock expectations
-    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "description", "location_type", "capacity", "is_accessible", "created_at", "updated_at"}).
-        AddRow(sublocationID, userID, "New Sublocation", "Cabinet", "A new cabinet", "cabinet", 30, true, now, now)
+    rows := sqlmock.NewRows([]string{"id", "user_id", "name", "location_type", "bg_color", "capacity", "created_at", "updated_at"}).
+      AddRow(sublocationID, userID, "New Sublocation", "cabinet", "orange", 30, now, now)
 
-    mock.ExpectQuery("INSERT INTO sub_locations").
-        WithArgs(sqlmock.AnyArg(), userID, "New Sublocation", "Cabinet", "A new cabinet", "cabinet", 30, true, sqlmock.AnyArg(), sqlmock.AnyArg()).
-        WillReturnRows(rows)
+		mock.ExpectQuery("INSERT INTO sub_locations").
+			WithArgs(sqlmock.AnyArg(), userID, "New Sublocation", "cabinet", "orange", 30, sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnRows(rows)
 
     // Execute
     result, err := adapter.AddSublocation(context.Background(), userID, newSublocation)
