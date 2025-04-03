@@ -14,6 +14,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/locations/physical"
+	"github.com/lokeam/qko-beta/internal/locations/sublocation"
 	"github.com/lokeam/qko-beta/internal/search"
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
 	"github.com/lokeam/qko-beta/internal/wishlist"
@@ -59,6 +60,18 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		}
 	}
 
+	// Initialize sublocation services
+	sublocationService, err := sublocation.NewGameSublocationService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to initialized sublocation service", map[string]any{
+			"error": err,
+		})
+
+		if appContext.Config.Env == "production" {
+			panic(fmt.Sprintf("Critical error initializing sublocation service: %v", err))
+		}
+	}
+
 
 	// Create library services map
 	libraryServices := make(library.DomainLibraryServices)
@@ -71,6 +84,12 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 	// Create physical handler
 	physicalHandler := physical.NewPhysicalLocationHandler(appContext, physicalService)
+	// TODO: add error handling
+
+
+	// Create sublocation handler
+	sublocationHandler := sublocation.NewSublocationHandler(appContext, sublocationService)
+	// TODO: add error handling
 
 
 	wishlistService, err := wishlist.NewGameWishlistService(appContext)
@@ -145,12 +164,22 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 			r.Delete("/{id}", physicalHandler)
 		})
 
+		// Sublocations
+		r.Route("/locations/sublocations", func(r chi.Router) {
+			r.Get("/", sublocationHandler)
+			r.Post("/", sublocationHandler)
+			r.Get("/{id}", sublocationHandler)
+			r.Put("/{id}", sublocationHandler)
+			r.Delete("/{id}", sublocationHandler)
+		})
+
 
 		appContext.Logger.Info("Routes registered", map[string]any{
 			"health": "/api/v1/health",
 			"search": "/api/v1/search",
 			"library": "/api/v1/library",
 			"physical": "/api/v1/locations/physical",
+			"sublocations": "/api/v1/locations/sublocations",
 		})
 	})
 

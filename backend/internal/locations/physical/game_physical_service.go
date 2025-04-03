@@ -70,7 +70,7 @@ func NewGamePhysicalService(appContext *appcontext.AppContext) (*GamePhysicalSer
 	}
 
 	// Sanity check that all dependencies are intialized
-	appContext.Logger.Info("GamePhysicalService components initializd", map[string]any{
+	appContext.Logger.Info("GamePhysicalService components initialized", map[string]any{
 		"dbAdapter": dbAdapter != nil,
 		"validator": validator != nil,
 		"cacheWrapper": physicalCacheAdapter != nil,

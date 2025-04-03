@@ -22,6 +22,7 @@ type GameSublocationService struct {
 
 type SublocationService interface {
 	GetSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
+	GetSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error)
 	AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
 	DeleteSublocation(ctx context.Context, userID string, sublocationID string) error
 	UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
