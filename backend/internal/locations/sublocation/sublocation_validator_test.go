@@ -389,7 +389,7 @@ func TestSublocationValidator(t *testing.T) {
 			Capacity:     -10, // Negative capacity
 		}
 
-		validatedSublocation, testErr := testValidator.ValidateSublocation(&testSublocation)
+		validatedSublocation, testErr := testValidator.ValidateSublocation(testSublocation)
 
 		if testErr == nil {
 			t.Errorf("expected an error for sublocation with multiple issues, but got nil")
@@ -431,7 +431,7 @@ func TestSublocationValidator(t *testing.T) {
 			Capacity:     50,
 		}
 
-		validatedSublocation, testErr := testValidator.ValidateSublocation(&testSublocation)
+		validatedSublocation, testErr := testValidator.ValidateSublocation(testSublocation)
 
 		if testErr != nil {
 			t.Errorf("expected no error for valid sublocation, but got %v", testErr)

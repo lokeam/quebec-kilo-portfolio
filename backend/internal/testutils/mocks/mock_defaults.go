@@ -55,6 +55,7 @@ func DefaultCacheWrapper() *MockCacheWrapper {
 		}
 }
 
+// ---------- Physical ----------
 func DefaultPhysicalValidator() *MockPhysicalValidator {
 	return &MockPhysicalValidator{
 		ValidatePhysicalLocationFunc: func(location models.PhysicalLocation) (models.PhysicalLocation, error) {
@@ -65,7 +66,10 @@ func DefaultPhysicalValidator() *MockPhysicalValidator {
 
 func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {
 	return &MockPhysicalDbAdapter{
-		GetPhysicalLocationsFunc: func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+		GetPhysicalLocationsFunc: func(
+			ctx context.Context,
+			userID string,
+		) ([]models.PhysicalLocation, error) {
 			return []models.PhysicalLocation{
 				{
 					ID:             "location-1",
@@ -131,6 +135,129 @@ func DefaultPhysicalCacheWrapper() *MockPhysicalCacheWrapper {
 			return nil
 		},
 		InvalidateLocationCacheFunc: func(ctx context.Context, userID, locationID string) error {
+			return nil
+		},
+	}
+}
+
+// ---------- Sublocation ----------
+func DefaultSublocationValidator() *MockSublocationValidator {
+	return &MockSublocationValidator{
+		ValidateSublocationFunc: func(sublocation models.Sublocation) (models.Sublocation, error) {
+			return sublocation, nil
+		},
+	}
+}
+
+func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
+	return &MockSublocationDbAdapter{
+		GetSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			sublocationID string,
+		) (models.Sublocation, error) {
+			return models.Sublocation{
+				ID:           "sublocation-1",
+				UserID:       userID,
+				Name:         "Sublocation 1",
+				LocationType: "house",
+				BgColor:      "red",
+				Capacity:     10,
+				CreatedAt:    time.Now(),
+				UpdatedAt:    time.Now(),
+			}, nil
+		},
+		GetSublocationsFunc: func(
+			ctx context.Context,
+			userID string,
+		) ([]models.Sublocation, error) {
+			return []models.Sublocation{
+				{
+					ID:           "sublocation-1",
+					UserID:       userID,
+					Name:         "Sublocation 1",
+					LocationType: "house",
+					BgColor:      "red",
+					Capacity:     10,
+					CreatedAt:    time.Now(),
+					UpdatedAt:    time.Now(),
+				},
+				{
+					ID:           "sublocation-2",
+					UserID:       userID,
+					Name:         "Sublocation 2",
+					LocationType: "apartment",
+					BgColor:      "blue",
+					Capacity:     10,
+					CreatedAt:    time.Now(),
+					UpdatedAt:    time.Now(),
+				},
+			}, nil
+		},
+		AddSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			sublocation models.Sublocation,
+		) (models.Sublocation, error) {
+			return sublocation, nil
+		},
+		UpdateSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			sublocation models.Sublocation,
+		) error {
+			return nil
+		},
+		DeleteSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			sublocationID string,
+		) error {
+			return nil
+		},
+	}
+}
+
+func DefaultSublocationCacheWrapper() *MockSublocationCacheWrapper {
+	return &MockSublocationCacheWrapper{
+		GetCachedSublocationsFunc: func(
+			ctx context.Context,
+			userID string,
+		) ([]models.Sublocation, error) {
+			return nil, errors.New("cache miss")
+		},
+		SetCachedSublocationsFunc: func(
+			ctx context.Context,
+			userID string,
+			locations []models.Sublocation,
+		) error {
+			return nil
+		},
+		GetSingleCachedSublocationFunc: func(
+			ctx context.Context,
+			userID,
+			sublocationID string,
+		) (*models.Sublocation, bool, error) {
+			return nil, false, errors.New("cache miss")
+		},
+		SetSingleCachedSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			sublocation models.Sublocation,
+		) error {
+			return nil
+		},
+		InvalidateUserCacheFunc: func(
+			ctx context.Context,
+			userID string,
+		) error {
+			return nil
+		},
+		InvalidateSublocationCacheFunc: func(
+			ctx context.Context,
+			userID,
+			sublocationID string,
+		) error {
 			return nil
 		},
 	}

@@ -43,7 +43,9 @@ func NewSublocationValidator(sanitizer interfaces.Sanitizer) (*SublocationValida
 }
 
 // Validation Sublocation validates a sublocation model
-func (v *SublocationValidator) ValidateSublocation(sublocation *models.Sublocation) (models.Sublocation, error) {
+func (v *SublocationValidator) ValidateSublocation(
+	sublocation models.Sublocation,
+) (models.Sublocation, error) {
 	var validatedSublocation models.Sublocation
 	var violations []string
 
