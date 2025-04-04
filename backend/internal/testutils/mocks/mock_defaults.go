@@ -262,3 +262,124 @@ func DefaultSublocationCacheWrapper() *MockSublocationCacheWrapper {
 		},
 	}
 }
+
+
+// ---------- Digital ----------
+func DefaultDigitalValidator() *MockDigitalValidator {
+	return &MockDigitalValidator{
+		ValidateDigitalLocationFunc: func(digitalLocation models.DigitalLocation) (models.DigitalLocation, error) {
+			return digitalLocation, nil
+		},
+	}
+}
+
+func DefaultDigitalDbAdapter() *MockDigitalDbAdapter {
+	return &MockDigitalDbAdapter{
+		GetDigitalLocationFunc: func(
+			ctx context.Context,
+			userID,
+			digitalLocationID string,
+		) (models.DigitalLocation, error) {
+			return models.DigitalLocation{
+				ID: digitalLocationID,
+				UserID: userID,
+				Name: "Digital Location 1",
+				IsActive: true,
+				URL: "https://example.com",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}, nil
+		},
+		GetDigitalLocationsFunc: func(
+			ctx context.Context,
+			userID string,
+		) ([]models.DigitalLocation, error) {
+			return []models.DigitalLocation{
+				{
+					ID: "digital-location-1",
+					UserID: userID,
+					Name: "Digital Location 1",
+					IsActive: true,
+					URL: "https://example.com",
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+				{
+					ID: "digital-location-2",
+					UserID: userID,
+					Name: "Digital Location 2",
+					IsActive: true,
+					URL: "https://example.com",
+					CreatedAt: time.Now(),
+					UpdatedAt: time.Now(),
+				},
+			}, nil
+		},
+		AddDigitalLocationFunc: func(
+			ctx context.Context,
+			userID string,
+			digitalLocation models.DigitalLocation,
+		) (models.DigitalLocation, error) {
+			return digitalLocation, nil
+		},
+		UpdateDigitalLocationFunc: func(
+			ctx context.Context,
+			userID string,
+			digitalLocation models.DigitalLocation,
+		) error {
+			return nil
+		},
+		DeleteDigitalLocationFunc: func(
+			ctx context.Context,
+			userID string,
+			digitalLocationID string,
+		) error {
+			return nil
+		},
+	}
+}
+
+func DefaultDigitalCacheWrapper() *MockDigitalCacheWrapper {
+	return &MockDigitalCacheWrapper{
+		GetCachedDigitalLocationsFunc: func(
+			ctx context.Context,
+			userID string,
+		) ([]models.DigitalLocation, error) {
+			return nil, errors.New("cache miss")
+		},
+		SetCachedDigitalLocationsFunc: func(
+			ctx context.Context,
+			userID string,
+			locations []models.DigitalLocation,
+		) error {
+			return nil
+		},
+		GetSingleCachedDigitalLocationFunc: func(
+			ctx context.Context,
+			userID,
+			digitalLocationID string,
+		) (*models.DigitalLocation, bool, error) {
+			return nil, false, errors.New("cache miss")
+		},
+		SetSingleCachedDigitalLocationFunc: func(
+			ctx context.Context,
+			userID string,
+			location models.DigitalLocation,
+		) error {
+			return nil
+		},
+		InvalidateUserCacheFunc: func(
+			ctx context.Context,
+			userID string,
+		) error {
+			return nil
+		},
+		InvalidateDigitalLocationCacheFunc: func(
+			ctx context.Context,
+			userID,
+			digitalLocationID string,
+		) error {
+			return nil
+		},
+	}
+}

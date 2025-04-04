@@ -12,5 +12,5 @@ type DigitalCacheWrapper interface {
 	GetSingleCachedDigitalLocation(ctx context.Context, userID string, locationID string) (*models.DigitalLocation, bool, error)
 	SetSingleCachedDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
 	InvalidateUserCache(ctx context.Context, userID string) error
-	InvalidateLocationCache(ctx context.Context, userID string, locationID string) error
+	InvalidateDigitalLocationCache(ctx context.Context, userID string, locationID string) error
 }

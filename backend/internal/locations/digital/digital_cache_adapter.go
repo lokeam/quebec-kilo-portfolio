@@ -87,7 +87,7 @@ func (dca *DigitalCacheAdapter) InvalidateUserCache(
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
 }
 
-func (dca *DigitalCacheAdapter) InvalidateLocationCache(
+func (dca *DigitalCacheAdapter) InvalidateDigitalLocationCache(
 	ctx context.Context,
 	userID string,
 	locationID string,

@@ -420,7 +420,7 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		adapter := createAdapter(mockCache)
 
 		// WHEN
-		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
+		err := adapter.InvalidateDigitalLocationCache(context.Background(), testUserID, testLocationID)
 
 		// THEN
 		if err != nil {
@@ -442,7 +442,7 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		adapter := createAdapter(mockCache)
 
 		// WHEN
-		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
+		err := adapter.InvalidateDigitalLocationCache(context.Background(), testUserID, testLocationID)
 
 		// THEN
 		if err != testError {
