@@ -19,11 +19,13 @@ type GameDigitalService struct {
 	sanitizer    interfaces.Sanitizer
 	validator    interfaces.DigitalValidator
 }
+
 type DigitalService interface {
 	GetDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error)
+	GetDigitalLocation(ctx context.Context, userID, locationID string) (*models.DigitalLocation, error)
 	AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
-	DeleteDigitalLocation(ctx context.Context, userID string, locationID string) error
 	UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
+	DeleteDigitalLocation(ctx context.Context, userID, locationID string) error
 }
 
 func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalService, error) {

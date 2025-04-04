@@ -13,6 +13,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
+	"github.com/lokeam/qko-beta/internal/locations/digital"
 	"github.com/lokeam/qko-beta/internal/locations/physical"
 	"github.com/lokeam/qko-beta/internal/locations/sublocation"
 	"github.com/lokeam/qko-beta/internal/search"
@@ -72,6 +73,18 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 		}
 	}
 
+	// Initialize digital location services
+	digitalService, err := digital.NewGameDigitalService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to initialized digital service", map[string]any{
+			"error": err,
+		})
+	}
+
+	if appContext.Config.Env == "production" {
+		panic(fmt.Sprintf("Critical error initialized digital service: %v", err))
+	}
+
 
 	// Create library services map
 	libraryServices := make(library.DomainLibraryServices)
@@ -89,6 +102,10 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 	// Create sublocation handler
 	sublocationHandler := sublocation.NewSublocationHandler(appContext, sublocationService)
+	// TODO: add error handling
+
+	// Create digital location handler
+	digitalHandler := digital.NewDigitalLocationHandler(appContext, digitalService)
 	// TODO: add error handling
 
 
@@ -173,13 +190,22 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 			r.Delete("/{id}", sublocationHandler)
 		})
 
+		// Digital Locations
+		r.Route("/locations/digital", func(r chi.Router) {
+			r.Get("/", digitalHandler)
+			r.Post("/", digitalHandler)
+			r.Get("/{id}", digitalHandler)
+			r.Put("/{id}", digitalHandler)
+			r.Delete("/{id}", digitalHandler)
+		})
 
 		appContext.Logger.Info("Routes registered", map[string]any{
-			"health": "/api/v1/health",
-			"search": "/api/v1/search",
-			"library": "/api/v1/library",
-			"physical": "/api/v1/locations/physical",
-			"sublocations": "/api/v1/locations/sublocations",
+			"health":         "/api/v1/health",
+			"search":         "/api/v1/search",
+			"library":        "/api/v1/library",
+			"physical":       "/api/v1/locations/physical",
+			"sublocations":   "/api/v1/locations/sublocations",
+			"digital":        "/api/v1/locations/digital",
 		})
 	})
 
