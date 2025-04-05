@@ -125,7 +125,7 @@ export function MediaStoragePageAccordion({
                     <DrawerContainer
                       open={open}
                       onOpenChange={setOpen}
-                      triggerText="Add Sublocation"
+                      triggerAddLocation="Add Sublocation"
                       title="SubLocation (Unit Storage)"
                       description="Where in your physical location do you keep your games?"
                     >

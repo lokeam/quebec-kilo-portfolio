@@ -81,7 +81,7 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
           onOpenChange={setIsDrawerOpen}
           title={""}
           description={""}
-          triggerText=""  // Empty because we're controlling open state externally
+          triggerTextAdd=""  // Empty because we're controlling open state externally
         >
           <MonthlySpendingItemDetails
             item={selectedItem}

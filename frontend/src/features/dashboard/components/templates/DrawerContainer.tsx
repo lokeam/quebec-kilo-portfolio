@@ -43,7 +43,8 @@ import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosit
 
 interface DrawerContainerProps {
 // Trigger props
-  triggerText?: ReactNode;
+  triggerAddLocation?: ReactNode;
+  triggerEditLocation?: ReactNode;
   triggerVariant?: 'default' | 'outline' | 'secondary' | 'ghost';
 
   // Drawer content props
@@ -110,7 +111,9 @@ const MemoizedDrawerFooter = memo(function DrawerFooter() {
  * This avoids TypeScript conflicts with component props
  */
 export function DrawerContainer({
-  triggerText,
+  triggerAddLocation,
+  triggerEditLocation,
+
   triggerVariant = 'default',
   title,
   description,
@@ -139,13 +142,23 @@ export function DrawerContainer({
       modal={true} /* <-- This is the default value, but we're explicitly setting it here to handle focus management properly */
       aria-modal="true"
     >
-      {triggerText && (
+      {/* Add Location Trigger */}
+      {triggerAddLocation && (
         <DrawerTrigger asChild>
           <Button
             variant={triggerVariant}
             data-testid="drawer-trigger"
           >
-            {triggerText}
+            {triggerAddLocation}
+          </Button>
+        </DrawerTrigger>
+      )}
+
+      {/* Edit Location Trigger */}
+      {triggerEditLocation && (
+        <DrawerTrigger asChild>
+          <Button variant={triggerVariant} data-testid="drawer-trigger">
+            {triggerEditLocation}
           </Button>
         </DrawerTrigger>
       )}
