@@ -4,10 +4,15 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Pencil, Trash2, MapPin, Home } from 'lucide-react';
+import { Pencil, Trash2, MapPin } from 'lucide-react';
+
+// Hooks
+import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
+
+// Components
+import { getLocationTypeIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
 
 import {
   Select,
@@ -24,7 +29,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/shared/components/ui/dialog";
 
 import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
@@ -41,6 +45,7 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<string | null>(null);
+  const domainMaps = useDomainMaps();
 
   const queryClient = useQueryClient();
 
@@ -118,16 +123,14 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
       [PhysicalLocationType.HOUSE]: 'House',
       [PhysicalLocationType.APARTMENT]: 'Apartment',
       [PhysicalLocationType.OFFICE]: 'Office',
-      [PhysicalLocationType.STORAGE]: 'Storage',
-      [PhysicalLocationType.VEHICLE]: 'Vehicle',
+      [PhysicalLocationType.WAREHOUSE]: 'Warehouse',
     };
     return typeMap[type] || type;
   };
 
   // Get location type icon
-  const getLocationTypeIcon = (type: PhysicalLocationType) => {
-    // You can replace this with your actual icon components
-    return <Home className="h-4 w-4 mr-2" />;
+  const renderLocationIcon = (type: PhysicalLocationType) => {
+    return getLocationTypeIcon(type, domainMaps);
   };
 
   return (
@@ -158,7 +161,7 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
                     {Object.values(PhysicalLocationType).map((type) => (
                       <SelectItem key={type} value={type}>
                         <div className="flex items-center">
-                          {getLocationTypeIcon(type as PhysicalLocationType)}
+                          {renderLocationIcon(type as PhysicalLocationType)}
                           {getLocationTypeDisplay(type as PhysicalLocationType)}
                         </div>
                       </SelectItem>
@@ -202,7 +205,7 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
                       <div>
                         <CardTitle>{location.name}</CardTitle>
                         <CardDescription className="flex items-center mt-1">
-                          {getLocationTypeIcon(location.locationType)}
+                          {renderLocationIcon(location.locationType)}
                           {getLocationTypeDisplay(location.locationType)}
                         </CardDescription>
                       </div>

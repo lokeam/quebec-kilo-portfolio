@@ -18,6 +18,7 @@ import { MediaPageSublocationForm } from '@/features/dashboard/components/organi
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
+import { getLocationIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
 
 // Type
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
@@ -50,7 +51,7 @@ export function MediaStoragePageAccordion({
 }: MediaStoragePageAccordionProps) {
   const [activeCard, setActiveCard] = useState<LocationCardData | null>(null);
   const [open, setOpen] = useState<boolean>(false);
-  const { games, location: locationIcons } = useDomainMaps();
+  const domainMaps = useDomainMaps();
 
   const handleSetActive = (card: LocationCardData) => {
     setActiveCard(card);
@@ -68,17 +69,17 @@ export function MediaStoragePageAccordion({
   }
 
   // Helper function to get the appropriate icon component
-  const getLocationIcon = (location: PhysicalLocation | DigitalLocation) => {
-    if (type === 'physical') {
-      const physicalLocation = location as PhysicalLocation;
-      const IconComponent = locationIcons[physicalLocation.locationType];
-      return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
-    } else {
-      const digitalLocation = location as DigitalLocation;
-      const LogoComponent = games[digitalLocation.label];
-      return LogoComponent ? <LogoComponent className="h-4 w-4" /> : null;
-    }
-  }
+  // const getLocationIcon = (location: PhysicalLocation | DigitalLocation) => {
+  //   if (type === 'physical') {
+  //     const physicalLocation = location as PhysicalLocation;
+  //     const IconComponent = locationIcons[physicalLocation.locationType];
+  //     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
+  //   } else {
+  //     const digitalLocation = location as DigitalLocation;
+  //     const LogoComponent = games[digitalLocation.label];
+  //     return LogoComponent ? <LogoComponent className="h-4 w-4" /> : null;
+  //   }
+  // }
 
   return (
     <div className="flex flex-col gap-4 border rounded-md p-4 mb-10">
@@ -97,7 +98,7 @@ export function MediaStoragePageAccordion({
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8 bg-muted flex items-center justify-center">
                   <div className="flex items-center justify-center w-full h-full">
-                    {getLocationIcon(location)}
+                    {getLocationIcon(location, type, domainMaps)}
                   </div>
                 </Avatar>
                 <div className="flex flex-col items-start">
