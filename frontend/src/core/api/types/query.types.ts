@@ -15,18 +15,11 @@ export type EnhancedQueryOptions<ResponseData> = Omit<
 
 /**
  * Enhanced Mutation Options for TanStack Query
- * @template ResponseData The type of data RETURNED from API endpoint
- * @template RequestData The type of data SENT to API endpoint
- * Example: EnhancedMutationOptions<User, CreateUserRequest>
+ * @template TData The type of data RETURNED from API endpoint
+ * @template TVariables The type of data SENT to API endpoint
  */
-export type EnhancedMutationOptions<
-  ResponseData,       // Example: User
-  RequestData         // Example: CreateUserRequest
-> = Omit<
-  UseMutationOptions<
-  ApiResponse<ResponseData>,   // Example: { data: User, metadata: {...} }
-  AxiosError<ApiError>,        // Example: { status: 400, message: 'Bad Request', ... }
-  RequestData                  // Example: { name: 'John Doe', email: 'john.doe@example.com', ... }
->,
-  'mutationFn'
+export type EnhancedMutationOptions<TData, TVariables> = UseMutationOptions<
+  ApiResponse<TData>,
+  AxiosError<ApiError>,
+  TVariables
 >;

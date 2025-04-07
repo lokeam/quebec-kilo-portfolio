@@ -19,6 +19,17 @@ interface CustomAxiosInstance {
     url: string,
     config?: AxiosRequestConfig<D>
   ): Promise<R>;
+
+  put<T = unknown, R = T, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<R>;
+
+  delete<T = unknown, R = T, D = unknown>(
+    url: string,
+    config?: AxiosRequestConfig<D>
+  ): Promise<R>;
 }
 
 /**
@@ -92,6 +103,6 @@ axiosInstance.interceptors.response.use(
   handleAxiosError // Use same error handler
 );
 
-// We need to trick TypeScript into accepthing this modified behavior
+// We need to trick TypeScript into accepting this modified behavior
 const typedAxiosInstance: CustomAxiosInstance = axiosInstance as unknown as CustomAxiosInstance;
 export { typedAxiosInstance as axiosInstance };

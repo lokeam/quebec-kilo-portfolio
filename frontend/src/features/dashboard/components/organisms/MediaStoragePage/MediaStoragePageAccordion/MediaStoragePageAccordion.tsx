@@ -68,19 +68,6 @@ export function MediaStoragePageAccordion({
     return locationStats?.total ?? 0;
   }
 
-  // Helper function to get the appropriate icon component
-  // const getLocationIcon = (location: PhysicalLocation | DigitalLocation) => {
-  //   if (type === 'physical') {
-  //     const physicalLocation = location as PhysicalLocation;
-  //     const IconComponent = locationIcons[physicalLocation.locationType];
-  //     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
-  //   } else {
-  //     const digitalLocation = location as DigitalLocation;
-  //     const LogoComponent = games[digitalLocation.label];
-  //     return LogoComponent ? <LogoComponent className="h-4 w-4" /> : null;
-  //   }
-  // }
-
   return (
     <div className="flex flex-col gap-4 border rounded-md p-4 mb-10">
       <div className="space-y-2">

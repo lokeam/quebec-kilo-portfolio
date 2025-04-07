@@ -1,7 +1,9 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
 import { useAuth0 } from '@auth0/auth0-react';
 import type { EnhancedMutationOptions } from '../types/query.types';
 import type { ApiResponse } from '../types/api.types';
+import { AxiosError } from 'axios';
+import type { ApiError } from '../types/api.types';
 
 /**
  * Hook for sending data to the backend (create, update, delete operations).
@@ -69,11 +71,27 @@ export function useBackendMutation<ResponseData, RequestData = unknown>(
 ) {
   const { getAccessTokenSilently } = useAuth0();
 
-  return useMutation({
+  const mutation = useMutation({
     ...options,
     mutationFn: async (data: RequestData) => {
       const token = await getAccessTokenSilently();
       return mutationFn(data, token);
     },
   });
+
+  // Return a wrapped version with properly typed mutate function
+  return {
+    ...mutation,
+    mutate: (
+      data: RequestData,
+      mutateOptions?: UseMutationOptions<
+        ApiResponse<ResponseData>,
+        AxiosError<ApiError>,
+        RequestData,
+        unknown
+      >
+    ) => {
+      return mutation.mutate(data, mutateOptions);
+    }
+  };
 }
