@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
@@ -36,8 +37,9 @@ import { z } from "zod"
 // Icons
 import { House, Building, Building2, Warehouse } from 'lucide-react';
 import { IconCar } from '@tabler/icons-react';
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
 
-export const FormSchema = z.object({
+export const PhysicalLocationFormSchema = z.object({
   locationName: z
     .string({
       required_error: "Please enter a location name",
@@ -62,14 +64,27 @@ export const FormSchema = z.object({
     }).default({ enabled: false, value: undefined }),
 });
 
+interface PhysicalLocationData {
+  id: string;
+  name: string;
+  locationType: string;
+  bgColor?: string;
+  mapCoordinates?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 interface MediaPageLocationFormProps {
-  onSuccess?: (data: z.infer<typeof FormSchema>) => void;
-  defaultValues?: z.infer<typeof FormSchema>;
+  onSuccess?: (data: z.infer<typeof PhysicalLocationFormSchema>) => void;
+  defaultValues?: z.infer<typeof PhysicalLocationFormSchema>;
   buttonText?: string;
+  locationData?: PhysicalLocationData; // NOTE: for editing existing information
+  isEditing?: boolean;
+  onDelete?: (id: string) => void;
 }
 
 export function MediaPageLocationForm({
-  buttonText = "Submit",
+  buttonText = "Add Location",
   onSuccess,
   defaultValues = {
     locationName: '',
@@ -78,25 +93,65 @@ export function MediaPageLocationForm({
       enabled: false,
       value: '' // Ensure value is never undefined
     }
-  }
+  },
+  locationData,
+  isEditing = false,
+  onDelete,
 }: MediaPageLocationFormProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   /* Specific form components creates their own useForm hook instances */
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues
+  const form = useForm<z.infer<typeof PhysicalLocationFormSchema>>({
+    resolver: zodResolver(PhysicalLocationFormSchema),
+    defaultValues: isEditing && locationData
+      ? {
+        locationName: locationData.name || '',
+        locationType: locationData.locationType || '',
+        coordinates: {
+          enabled: !!locationData.mapCoordinates,
+          value: locationData.mapCoordinates || ''
+        }
+      }
+      : defaultValues
   });
 
-  const handleSubmit = (data: z.infer<typeof FormSchema>) => {
-    toast(`Form submitted with the following data: ${JSON.stringify(data)}`, {
+  // If location data changes AND we are editing, update form values
+  useEffect(() => {
+    if (isEditing && locationData) {
+      form.reset({
+        locationName: locationData.name || '',
+        locationType: locationData.locationType || '',
+        coordinates: {
+          enabled: !!locationData.mapCoordinates,
+          value: locationData.mapCoordinates || ''
+        }
+      });
+    }
+  }, [form, isEditing, locationData]);
+
+  const handleSubmit = (data: z.infer<typeof PhysicalLocationFormSchema>) => {
+    onSuccess?.(data);
+
+    toast(isEditing ? "Location updated successfully" : "New location created successfully", {
       className: 'bg-green-500 text-white',
       duration: 2500,
     });
-    onSuccess?.(data);
+
+    // NOTE: for use in transforming data for API
+    if (isEditing && locationData) {
+      // Example: Call API directly if needed
+      // updateLocation({
+      //   id: locationData.id,
+      //   name: data.locationName,
+      //   locationType: data.locationType,
+      //   mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
+      // });
+    }
   };
 
   return (
+  <>
     <FormContainer form={form} onSubmit={handleSubmit}>
-
       {/* Location Name */}
       <FormField
         control={form.control}
@@ -221,7 +276,55 @@ export function MediaPageLocationForm({
         )}
       />
 
-      <Button type="submit" className="w-full">{buttonText}</Button>
+      {/* Form actions */}
+      <div className="flex justify-between w-full mt-6">
+        <Button type="submit" className={isEditing && onDelete ? "flex-1" : "w-full"}>
+          {isEditing ? "Update Location" : buttonText}
+        </Button>
+
+        {isEditing && onDelete && locationData && (
+          <Button
+            type="button"
+            variant="destructive"
+            className="ml-2"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete
+          </Button>
+        )}
+      </div>
     </FormContainer>
-  )
+
+    {/* Delete confirmation dialog */}
+    {isEditing && onDelete && locationData && (
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this location? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                onDelete(locationData.id);
+                setDeleteDialogOpen(false);
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )}
+  </>
+  );
 }

@@ -1,4 +1,6 @@
 
+import { useEffect, useState } from 'react';
+
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
 
@@ -21,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
 
 // Icons
 import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
@@ -38,7 +48,7 @@ import { toast } from 'sonner';
 // Zod
 import { z } from 'zod';
 
-export const FormSchema = z.object({
+export const SublocationFormSchema = z.object({
   locationName: z
     .string({
       required_error: "Please enter a location name",
@@ -54,12 +64,36 @@ export const FormSchema = z.object({
     .string({
       required_error: "Please select a background color",
     }),
+  coordinates: z.object({
+    enabled: z.boolean().default(false),
+    value: z.string().optional().superRefine((val, ctx) => {
+      if (val === undefined && (ctx as z.RefinementCtx & { parent: { enabled: boolean } }).parent.enabled) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Coordinates are required when enabled",
+        });
+      }
+    }),
+  }).default({ enabled: false, value: undefined }),
 });
 
+interface LocationData {
+  id: string;
+  name: string;
+  locationType: string;
+  bgColor?: string;
+  mapCoordinates?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 interface MediaPageSublocationFormProps {
-  onSuccess?: (data: z.infer<typeof FormSchema>) => void;
-  defaultValues?: z.infer<typeof FormSchema>;
+  onSuccess?: (data: z.infer<typeof SublocationFormSchema>) => void;
+  defaultValues?: z.infer<typeof SublocationFormSchema>;
   buttonText?: string;
+  sublocationData?: LocationData; // For editing existing sublocation
+  isEditing?: boolean;   // To indicate edit mode
+  onDelete?: (id: string) => void;
 }
 
 export function MediaPageSublocationForm({
@@ -68,142 +102,231 @@ export function MediaPageSublocationForm({
     locationName: '',
     locationType: '',
     bgColor: '',
+    coordinates: {
+      enabled: false,
+      value: '' // Ensure value is never undefined
+    }
   },
-  buttonText = "Submit",
+  buttonText = "Add Sublocation",
+  sublocationData,
+  isEditing = false,
+  onDelete
 }: MediaPageSublocationFormProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   /* Specific form components creates their own useForm hook instances */
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues
+  const form = useForm<z.infer<typeof SublocationFormSchema>>({
+    resolver: zodResolver(SublocationFormSchema),
+    defaultValues: isEditing && sublocationData
+      ? {
+          locationName: sublocationData.name,
+          locationType: sublocationData.locationType,
+          bgColor: sublocationData.bgColor || '',
+        }
+      : defaultValues
   });
 
-  const handleSubmit = (data: z.infer<typeof FormSchema>) => {
-    toast(`Form submitted with the following data: ${JSON.stringify(data)}`, {
+  // If sublocationData changes and we're in edit mode, update form values
+  useEffect(() => {
+    if (isEditing && sublocationData) {
+      form.reset({
+        locationName: sublocationData.name || '',
+        locationType: sublocationData.locationType || '',
+        bgColor: sublocationData.bgColor || '',
+      });
+    }
+  }, [form, isEditing, sublocationData]);
+
+  const handleSubmit = (data: z.infer<typeof SublocationFormSchema>) => {
+    // Transform form data back to API format if needed
+    onSuccess?.(data);
+
+    // Show success message
+    toast(isEditing ? "Sublocation updated successfully" : "New sublocation created successfully", {
       className: 'bg-green-500 text-white',
       duration: 2500,
     });
-    onSuccess?.(data);
+
+    // NOTE: for use in transforming data for API
+    if (isEditing && sublocationData) {
+      // Example: Call API directly if needed
+      // updateSublocation({
+      //   id: sublocationData.id,
+      //   name: data.locationName,
+      //   type: data.locationType,
+      //   bgColor: data.bgColor,
+      // });
+    }
   };
 
   return (
-    <FormContainer form={form} onSubmit={handleSubmit}>
+    <>
+      <FormContainer form={form} onSubmit={handleSubmit}>
 
-      {/* Location Name */}
-      <FormField
-        control={form.control}
-        name="locationName"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Sublocation Name</FormLabel>
-            <FormControl>
-              <Input placeholder="Example: Study bookcase" {...field} />
-            </FormControl>
-            <FormDescription>
-              What shall we call this area?
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Location Type */}
-      <FormField
-        control={form.control}
-        name="locationType"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Storage Unit Type</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+        {/* Location Name */}
+        <FormField
+          control={form.control}
+          name="locationName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sublocation Name</FormLabel>
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Where are you keeping your media?" />
-                </SelectTrigger>
+                <Input placeholder="Example: Study bookcase" {...field} />
               </FormControl>
+              <FormDescription>
+                What shall we call this area?
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-              <SelectContent>
-                <SelectItem value="shelf">
-                  <div className="flex items-center gap-2">
-                    <BookshelfIcon size={20} color='#fff' className='mr-2'/>
-                    <span>Shelf / Shelving unit</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="console">
-                  <div className="flex items-center gap-2">
-                    <MediaConsoleIcon size={20} color='#fff' className='mr-2'/>
-                    <span>Media console</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="cabinet">
-                  <div className="flex items-center gap-2">
-                    <CabinetIcon size={20} color='#fff' className='mr-2'/>
-                    <span>Cabinet</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="closet">
-                  <div className="flex items-center gap-2">
-                    <ClosetIcon size={20} color='#fff' className='mr-2'/>
-                    <span>Closet</span>
-                  </div>
+        {/* Location Type */}
+        <FormField
+          control={form.control}
+          name="locationType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Storage Unit Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Where are you keeping your media?" />
+                  </SelectTrigger>
+                </FormControl>
+
+                <SelectContent>
+                  <SelectItem value="shelf">
+                    <div className="flex items-center gap-2">
+                      <BookshelfIcon size={20} color='#fff' className='mr-2'/>
+                      <span>Shelf / Shelving unit</span>
+                    </div>
                   </SelectItem>
-                <SelectItem value="drawer">
-                  <div className="flex items-center gap-2">
-                    <DrawerIcon size={20} color='#fff' className='mr-2'/>
-                    <span>Drawer</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="box">
-                  <div className="flex items-center gap-2">
-                    <Package size={20} color='#fff' className='mr-2'/>
-                    <span>Storage container</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              What kind of furniture or storage unit is this?
-            </FormDescription>
+                  <SelectItem value="console">
+                    <div className="flex items-center gap-2">
+                      <MediaConsoleIcon size={20} color='#fff' className='mr-2'/>
+                      <span>Media console</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="cabinet">
+                    <div className="flex items-center gap-2">
+                      <CabinetIcon size={20} color='#fff' className='mr-2'/>
+                      <span>Cabinet</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="closet">
+                    <div className="flex items-center gap-2">
+                      <ClosetIcon size={20} color='#fff' className='mr-2'/>
+                      <span>Closet</span>
+                    </div>
+                    </SelectItem>
+                  <SelectItem value="drawer">
+                    <div className="flex items-center gap-2">
+                      <DrawerIcon size={20} color='#fff' className='mr-2'/>
+                      <span>Drawer</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="box">
+                    <div className="flex items-center gap-2">
+                      <Package size={20} color='#fff' className='mr-2'/>
+                      <span>Storage container</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                What kind of furniture or storage unit is this?
+              </FormDescription>
 
-            <FormMessage />
-          </FormItem>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Icon BG Color */}
+        <FormField
+          control={form.control}
+          name="bgColor"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Icon Background Color</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a background color for your icon" />
+                  </SelectTrigger>
+                </FormControl>
+
+                <SelectContent>
+                  <SelectItem value="red">Red</SelectItem>
+                  <SelectItem value="blue">Blue</SelectItem>
+                  <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="purple">Purple</SelectItem>
+                  <SelectItem value="orange">Orange</SelectItem>
+                  <SelectItem value="yellow">Yellow</SelectItem>
+                  <SelectItem value="gray">Gray</SelectItem>
+                  <SelectItem value="white">White</SelectItem>
+                  <SelectItem value="black">Black</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Customize the background color of your storage unit icon.
+              </FormDescription>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Form actions */}
+        <div className="flex justify-between w-full mt-6">
+        <Button type="submit" className={isEditing && onDelete ? "flex-1" : "w-full"}>
+          {isEditing ? "Update Sublocation" : buttonText}
+        </Button>
+
+        {isEditing && onDelete && sublocationData && (
+          <Button
+            type="button"
+            variant="destructive"
+            className="ml-2"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete
+          </Button>
         )}
-      />
+        </div>
+      </FormContainer>
 
-      {/* Icon BG Color */}
-      <FormField
-        control={form.control}
-        name="bgColor"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Icon Background Color</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a background color for your icon" />
-                </SelectTrigger>
-              </FormControl>
-
-              <SelectContent>
-                <SelectItem value="red">Red</SelectItem>
-                <SelectItem value="blue">Blue</SelectItem>
-                <SelectItem value="green">Green</SelectItem>
-                <SelectItem value="purple">Purple</SelectItem>
-                <SelectItem value="orange">Orange</SelectItem>
-                <SelectItem value="yellow">Yellow</SelectItem>
-                <SelectItem value="gray">Gray</SelectItem>
-                <SelectItem value="white">White</SelectItem>
-                <SelectItem value="black">Black</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Customize the background color of your storage unit icon.
-            </FormDescription>
-
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <Button type="submit" className="w-full">{buttonText}</Button>
-    </FormContainer>
+      {/* Delete Confirmation Dialog */}
+      {isEditing && onDelete && sublocationData && (
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this sublocation? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  onDelete(sublocationData.id);
+                  setDeleteDialogOpen(false);
+                }}
+              >
+                Delete
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }

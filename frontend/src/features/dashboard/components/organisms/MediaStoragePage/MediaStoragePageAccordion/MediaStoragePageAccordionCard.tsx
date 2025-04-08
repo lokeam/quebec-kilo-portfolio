@@ -23,6 +23,7 @@ import type { GameItem } from '@/features/dashboard/lib/types/media-storage/item
 import { IconCloudDataConnection } from '@tabler/icons-react';
 
 export interface LocationCardData {
+  id: string;
   name: string;
   description: string;
   locationType: string;
