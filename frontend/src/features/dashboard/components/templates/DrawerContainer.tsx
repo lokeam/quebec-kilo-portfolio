@@ -1,4 +1,4 @@
-import { type ReactNode, memo } from 'react';
+import { type ReactNode, memo, useRef, useEffect } from 'react';
 
 // Shadcn UI components
 import { Button } from '@/shared/components/ui/button';
@@ -132,6 +132,18 @@ export function DrawerContainer({
     desktopBreakpoint,
     className,
   });
+
+  // Create ref for close button
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open && closeButtonRef.current) {
+      // Wait for drawer to open before focusing on close button
+      setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
 
   return (
     <Drawer
