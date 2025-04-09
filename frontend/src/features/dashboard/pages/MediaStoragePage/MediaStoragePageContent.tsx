@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer' ;
-import { MediaPageLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageLocationForm/MediaPageLocationForm';
-import { MediaPageLocationEditForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageLocationEditForm/MediaPageLocationEditForm';
+import { PhysicalLocationFormSingle } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationFormSingle/PhysicalLocationFormSingle';
+import { PhysicalLocationDrawerList } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationDrawerList/PhysicalLocationDrawerList';
 import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordion';
 
 // Mock Data
@@ -34,7 +34,7 @@ export function MediaStoragePageContent() {
             title="Physical Location"
             description="Tell us about where your games are stored."
           >
-            <MediaPageLocationForm onSuccess={() => setAddLocationOpen(false)} />
+            <PhysicalLocationFormSingle onSuccess={() => setAddLocationOpen(false)} />
           </DrawerContainer>
 
           {/* Edit Physical Location Button */}
@@ -45,9 +45,13 @@ export function MediaStoragePageContent() {
             title="Edit Locations"
             description="Edit your physical locations and sublocations"
           >
-            <MediaPageLocationEditForm
+            {/* <PhysicalLocationFormList
               locationData={physicalLocations}
               onSuccess={() => setEditLocationOpen(false)}
+            /> */}
+            <PhysicalLocationDrawerList
+              onSuccess={() => setEditLocationOpen(false)}
+              locationData={physicalLocations}
             />
           </DrawerContainer>
         </div>

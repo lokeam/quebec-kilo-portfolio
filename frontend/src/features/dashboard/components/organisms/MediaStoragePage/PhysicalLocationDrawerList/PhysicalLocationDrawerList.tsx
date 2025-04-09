@@ -1,37 +1,15 @@
-// MediaPageLocationEditForm.tsx
 import { useState, useCallback } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/shared/components/ui/card';
-import { Input } from '@/shared/components/ui/input';
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Trash2, MapPin } from 'lucide-react';
 
 // Components
-import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
+import { PhysicalLocationFormSingle } from '../PhysicalLocationFormSingle/PhysicalLocationFormSingle';
 import { getLocationTypeIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
-import { useLocationUpdate, useLocationDelete } from '@/core/api/hooks/useLocationActions';
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
-
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/shared/components/ui/form";
+import { useLocationDelete } from '@/core/api/hooks/useLocationManager';
 
 import {
   Dialog,
@@ -45,28 +23,12 @@ import {
 import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
 
-// Form schema
-const LocationEditFormSchema = z.object({
-  name: z
-    .string()
-    .min(3, { message: "Location name must be at least 3 characters" }),
-  locationType: z
-    .nativeEnum(PhysicalLocationType, {
-      required_error: "Please select a location type"
-    }),
-  mapCoordinates: z
-    .string()
-    .optional(),
-});
-
-type LocationFormValues = z.infer<typeof LocationEditFormSchema>;
-
-interface MediaPageLocationEditFormProps {
+interface PhysicalLocationDrawerListProps {
   locationData: PhysicalLocation[];
   onSuccess: () => void;
 }
 
-export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPageLocationEditFormProps) {
+export function PhysicalLocationDrawerList({ locationData, onSuccess }: PhysicalLocationDrawerListProps) {
   // State
   const [selectedLocation, setSelectedLocation] = useState<PhysicalLocation | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -76,23 +38,7 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
   // Hooks
   const domainMaps = useDomainMaps();
 
-  // Form setup
-  const form = useForm<LocationFormValues>({
-    resolver: zodResolver(LocationEditFormSchema),
-    defaultValues: {
-      name: "",
-      locationType: undefined,
-      mapCoordinates: "",
-    }
-  });
-
   // Custom action hooks with success callbacks
-  const { updateLocation, isUpdating } = useLocationUpdate(() => {
-    setIsEditing(false);
-    setSelectedLocation(null);
-    onSuccess();
-  });
-
   const { deleteLocation, isDeleting } = useLocationDelete(() => {
     setDeleteConfirmOpen(false);
     setLocationToDelete(null);
@@ -102,29 +48,19 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
   // Event handlers
   const handleEditClick = useCallback((location: PhysicalLocation) => {
     setSelectedLocation(location);
-    form.reset({
-      name: location.name,
-      locationType: location.locationType,
-      mapCoordinates: location.mapCoordinates,
-    });
     setIsEditing(true);
-  }, [form]);
+  }, []);
 
   const handleDeleteClick = useCallback((locationId: string) => {
     setLocationToDelete(locationId);
     setDeleteConfirmOpen(true);
   }, []);
 
-  const handleSubmit = useCallback((data: LocationFormValues) => {
-    if (!selectedLocation) return;
-
-    updateLocation({
-      id: selectedLocation.id,
-      name: data.name,
-      locationType: data.locationType,
-      mapCoordinates: data.mapCoordinates,
-    });
-  }, [selectedLocation, updateLocation]);
+  const handleEditSuccess = useCallback(() => {
+    setIsEditing(false);
+    setSelectedLocation(null);
+    onSuccess();
+  }, [onSuccess]);
 
   const handleConfirmDelete = useCallback(() => {
     if (locationToDelete) {
@@ -134,6 +70,7 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
+    setSelectedLocation(null);
   }, []);
 
   // UI helpers
@@ -152,88 +89,25 @@ export function MediaPageLocationEditForm({ locationData, onSuccess }: MediaPage
   }, [domainMaps]);
 
   return (
-    <div className="px-4">
+    <div className="">
       {isEditing && selectedLocation ? (
-        // Edit form with Zod validation
-        <FormContainer form={form} onSubmit={handleSubmit}>
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location Name</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        // Use PhysicalLocationFormSingle for editing
+        <div>
+          <Button
+            variant="ghost"
+            onClick={handleCancelEdit}
+            className="mb-4"
+          >
+            ← Back to locations
+          </Button>
 
-          <FormField
-            control={form.control}
-            name="locationType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location Type</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select location type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(PhysicalLocationType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        <div className="flex items-center">
-                          {renderLocationIcon(type as PhysicalLocationType)}
-                          {getLocationTypeDisplay(type as PhysicalLocationType)}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+          <PhysicalLocationFormSingle
+            locationData={selectedLocation}
+            isEditing={true}
+            onSuccess={handleEditSuccess}
+            onDelete={(id) => deleteLocation(id)}
           />
-
-          <FormField
-            control={form.control}
-            name="mapCoordinates"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Map Coordinates</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormDescription>
-                  Optional location coordinates
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button
-              variant="outline"
-              type="button"
-              onClick={handleCancelEdit}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isUpdating}
-            >
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </FormContainer>
+        </div>
       ) : (
         // List of locations
         <div className="space-y-4 pb-4">

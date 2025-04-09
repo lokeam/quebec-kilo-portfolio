@@ -23,7 +23,7 @@ export function FormContainer<T extends z.ZodType>({
   return (
     /* Pass all useForm hook props to Shadcn Form component */
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 p-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-4">
         {children}
       </form>
     </Form>

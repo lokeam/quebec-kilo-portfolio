@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
@@ -29,7 +29,6 @@ import {
 // Hooks
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { toast } from "sonner"
 
 // Zod
 import { z } from "zod"
@@ -38,6 +37,7 @@ import { z } from "zod"
 import { House, Building, Building2, Warehouse } from 'lucide-react';
 import { IconCar } from '@tabler/icons-react';
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
+import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 export const PhysicalLocationFormSchema = z.object({
   locationName: z
@@ -74,7 +74,7 @@ interface PhysicalLocationData {
   updatedAt?: Date;
 }
 
-interface MediaPageLocationFormProps {
+interface PhysicalLocationFormSingleProps {
   onSuccess?: (data: z.infer<typeof PhysicalLocationFormSchema>) => void;
   defaultValues?: z.infer<typeof PhysicalLocationFormSchema>;
   buttonText?: string;
@@ -83,7 +83,7 @@ interface MediaPageLocationFormProps {
   onDelete?: (id: string) => void;
 }
 
-export function MediaPageLocationForm({
+export function PhysicalLocationFormSingle({
   buttonText = "Add Location",
   onSuccess,
   defaultValues = {
@@ -97,8 +97,16 @@ export function MediaPageLocationForm({
   locationData,
   isEditing = false,
   onDelete,
-}: MediaPageLocationFormProps) {
+}: PhysicalLocationFormSingleProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // NOTE: do I need to setup router to setup router in order to move user to a new location?
+  //const router = useRouter();
+
+  // Setup location manager hook with proper type
+  const locationManager = useLocationManager({
+    type: 'physical'
+  });
 
   /* Specific form components creates their own useForm hook instances */
   const form = useForm<z.infer<typeof PhysicalLocationFormSchema>>({
@@ -129,25 +137,28 @@ export function MediaPageLocationForm({
     }
   }, [form, isEditing, locationData]);
 
-  const handleSubmit = (data: z.infer<typeof PhysicalLocationFormSchema>) => {
-    onSuccess?.(data);
+  const handleSubmit = useCallback((data: z.infer<typeof PhysicalLocationFormSchema>) => {
+    // Transform form data to match API expectations
+    const locationPayload = {
+      id: isEditing && locationData ? locationData.id : undefined,
+      name: data.locationName,
+      locationType: data.locationType,
+      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
+    };
 
-    toast(isEditing ? "Location updated successfully" : "New location created successfully", {
-      className: 'bg-green-500 text-white',
-      duration: 2500,
-    });
-
-    // NOTE: for use in transforming data for API
     if (isEditing && locationData) {
-      // Example: Call API directly if needed
-      // updateLocation({
-      //   id: locationData.id,
-      //   name: data.locationName,
-      //   locationType: data.locationType,
-      //   mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
-      // });
+      locationManager.update(locationPayload);
+    } else {
+      locationManager.create(locationPayload);
     }
-  };
+
+    // Note: Don't use toast here as hooks in useLocationManager handle that
+  }, [isEditing, locationData, locationManager]);
+
+  const handleDelete = useCallback((id: string) => {
+    locationManager.delete(id);
+    setDeleteDialogOpen(false);
+  }, [locationManager]);
 
   return (
   <>
@@ -278,8 +289,19 @@ export function MediaPageLocationForm({
 
       {/* Form actions */}
       <div className="flex justify-between w-full mt-6">
-        <Button type="submit" className={isEditing && onDelete ? "flex-1" : "w-full"}>
-          {isEditing ? "Update Location" : buttonText}
+        <Button
+          type="submit"
+          className={isEditing && onDelete ? "flex-1" : "w-full"}
+          disabled={locationManager.isCreating || locationManager.isUpdating}
+        >
+          {(locationManager.isCreating || locationManager.isUpdating) ? (
+            <>
+              <span className="animate-spin mr-2">⊚</span>
+              {isEditing ? "Updating..." : "Creating..."}
+            </>
+          ) : (
+            isEditing ? "Update Location" : buttonText
+          )}
         </Button>
 
         {isEditing && onDelete && locationData && (
@@ -288,8 +310,9 @@ export function MediaPageLocationForm({
             variant="destructive"
             className="ml-2"
             onClick={() => setDeleteDialogOpen(true)}
+            disabled={locationManager.isDeleting}
           >
-            Delete
+            {locationManager.isDeleting ? "Deleting..." : "Delete"}
           </Button>
         )}
       </div>
@@ -309,17 +332,23 @@ export function MediaPageLocationForm({
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={locationManager.isDeleting}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
-                onDelete(locationData.id);
-                setDeleteDialogOpen(false);
-              }}
+              onClick={() => handleDelete(locationData.id)}
+              disabled={locationManager.isDeleting}
             >
-              Delete
+              {locationManager.isDeleting ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

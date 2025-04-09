@@ -3,15 +3,17 @@ export const API_ROUTES = Object.freeze({
     GAMES: '/api/v1/search',
   },
   LOCATIONS: {
-    BASE: 'api/v1locations/physical',
-    BY_ID: (id: string) => `api/v1/locations/physical/${id}`
+    BASE: '/api/v1/locations',
+    BY_ID: (id: string) => `/api/v1/locations/${id}`,
+    CREATE: '/api/v1/locations',
   },
   SUBLOCATION: {
-    BASE: 'api/v1locations/physical',
-    BY_ID: (id: string) => `api/v1/locations/sublocations/${id}`
+    BASE: '/api/v1/sublocations',
+    BY_ID: (id: string) => `/api/v1/sublocations/${id}`,
+    CREATE: '/api/v1/sublocations',
   },
   DIGITAL: {
-    BASE: 'api/v1locations/physical',
+    BASE: 'api/v1/locations/physical',
     BY_ID: (id: string) => `api/v1/locations/digital/${id}`
   },
 });

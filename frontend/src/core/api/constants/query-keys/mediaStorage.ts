@@ -88,6 +88,13 @@ export const mediaStorageKeys = Object.freeze({
      * @param locationId - The parent location ID
      */
     byLocation: (locationId: string): MediaStorageKey =>
-      ['mediaStorage', { type: 'sublocation', parentId: locationId }]
+      ['mediaStorage', { type: 'sublocation', parentId: locationId }],
+
+    /**
+     * Generates a query key for a specific sublocation by ID
+     * @param id - The sublocation ID
+     */
+    byId: (id: string): MediaStorageKey =>
+      ['mediaStorage', { type: 'sublocation', id }]
   }
 });

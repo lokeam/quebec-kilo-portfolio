@@ -47,6 +47,9 @@ export interface PhysicalLocation extends BaseLocation {
 
   /** List of storage subdivisions within this location */
   subLocations?: SubLocation[];
+
+  /** Parent location ID */
+  parentLocationId?: string;
 }
 
 /**

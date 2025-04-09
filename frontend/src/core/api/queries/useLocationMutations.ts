@@ -6,7 +6,7 @@ import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-stor
 import { logger } from '@/core/utils/logger/logger';
 import { mediaStorageKeys } from '../constants/query-keys/mediaStorage';
 
-interface LocationResponse {
+export interface LocationResponse {
   success: boolean;
   location: PhysicalLocation;
 }
@@ -14,6 +14,46 @@ interface LocationResponse {
 interface DeleteLocationResponse {
   success: boolean;
   id: string;
+}
+
+export function useCreateLocationMutation(onSuccess?: () => void) {
+  const queryClient = useQueryClient();
+
+  return useBackendMutation<LocationResponse, Partial<PhysicalLocation>>(
+    async (locationData, token) => {
+      return axiosInstance.post(
+        API_ROUTES.LOCATIONS.CREATE,
+        locationData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    },
+    {
+      onSuccess: (data) => {
+        // Invalidate all location data
+        queryClient.invalidateQueries({
+          queryKey: mediaStorageKeys.all,
+        });
+
+        // Invalidate specific location
+        if (data?.data?.location?.id) {
+          queryClient.invalidateQueries({
+            queryKey: mediaStorageKeys.locations.byId(data.data.location.id),
+          });
+        }
+
+        // Call onSuccess callback if provided
+        onSuccess?.();
+      },
+      onError: (error) => {
+        // Add error handling
+        logger.error('Failed to create location:', error);
+      }
+    }
+  );
 }
 
 export function useUpdateLocationMutation() {
