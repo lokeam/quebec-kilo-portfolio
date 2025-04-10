@@ -20,7 +20,7 @@ const (
 )
 
 // Valid location types
-var ValidLocationTypes = []string{"Home", "Work", "School", "Gym", "Restaurant", "Store", "Other"}
+var ValidLocationTypes = []string{"house", "apartment", "office", "warehouse"}
 
 // PhysicalValidator struct
 type PhysicalValidator struct {

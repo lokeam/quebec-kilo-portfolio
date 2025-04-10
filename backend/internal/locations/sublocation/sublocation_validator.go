@@ -18,7 +18,7 @@ const (
 )
 
 // Valid sublocation types
-var ValidSublocationTypes = []string{"shelf", "cabinet", "drawer", "box", "display", "other"}
+var ValidSublocationTypes = []string{"shelf", "console", "cabinet", "drawer", "box", "closet"}
 
 // Valid background colors
 var ValidBgColors = []string{

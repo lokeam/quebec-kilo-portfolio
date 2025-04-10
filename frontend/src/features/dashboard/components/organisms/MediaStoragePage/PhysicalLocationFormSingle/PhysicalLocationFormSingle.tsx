@@ -39,6 +39,9 @@ import { IconCar } from '@tabler/icons-react';
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
 import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
+// Utils
+import { validateCoordinateFormat, parseCoordinates } from '@/features/dashboard/lib/utils/validateCoordinates';
+
 export const PhysicalLocationFormSchema = z.object({
   locationName: z
     .string({
@@ -54,11 +57,27 @@ export const PhysicalLocationFormSchema = z.object({
     coordinates: z.object({
       enabled: z.boolean().default(false),
       value: z.string().optional().superRefine((val, ctx) => {
-        if (val === undefined && (ctx as z.RefinementCtx & { parent: { enabled: boolean } }).parent.enabled) {
+        // Check if ctx.path exists and has parent context
+        const parentEnabled = ctx.path && ctx.path.length > 1 ?
+          ((ctx as z.RefinementCtx & { data?: { enabled: boolean } }).data?.enabled || false) : false;
+
+        if (val === undefined && parentEnabled) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: "Coordinates are required when enabled",
           });
+          return;
+        }
+
+        if (val && parentEnabled) {
+          // Validate coordinate format
+          const isValidFormat = validateCoordinateFormat(val);
+          if (!isValidFormat) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Coordinates must be in the format 'latitude,longitude' with valid decimal values",
+            });
+          }
         }
       }),
     }).default({ enabled: false, value: undefined }),
@@ -266,20 +285,41 @@ export function PhysicalLocationFormSingle({
                 />
               </FormControl>
             </div>
+
             {field.value?.enabled && (
               <FormItem>
                 <FormControl>
                   <Input
-                    placeholder="Enter coordiantes"
+                    placeholder="Enter latitude and logitude coordinates or paste a GoogleMaps URL"
                     value={field.value.value ?? ''}
                     onChange={(event) => {
+                      const input = event.target.value;
+
+                      // Update with user input for immediate feedback
                       field.onChange({
                         enabled: true,
                         value: event.target.value || '' // Ensure value is never undefined
                       });
+
+                      // Attempt to parse coordinates or Google Maps URL
+                      const parsedCoordinates = parseCoordinates(input);
+
+                      // If parsing successful, update with formatted coordinates
+                      if (parsedCoordinates && parsedCoordinates !== input) {
+                        // Use timeout to allow original input to register and give ui feedback that something happened
+                        setTimeout(() => {
+                          field.onChange({
+                            enabled: true,
+                            value: parsedCoordinates
+                          });
+                        }, 300);
+                      }
                     }}
                   />
                 </FormControl>
+                <FormDescription className="text-xs">
+                  Format: latitude, longitude (e.g., 40.69007948941017, -74.04439419553563) or paste a Google Maps URL
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
