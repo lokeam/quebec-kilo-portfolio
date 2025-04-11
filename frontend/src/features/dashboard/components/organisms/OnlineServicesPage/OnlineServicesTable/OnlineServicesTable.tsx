@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -11,16 +11,17 @@ import {
 import { Checkbox } from "@/shared/components/ui/checkbox"
 import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services'
+import { Button } from '@/shared/components/ui/button'
+import { IconTrash } from '@tabler/icons-react'
 
 interface OnlineServicesTableProps {
   services: OnlineService[]
 }
 
+
 const TableHeaderRow: React.FC = () => (
   <TableRow>
-    <TableHead className="w-[50px]">
-      <Checkbox />
-    </TableHead>
+    <TableHead className="w-[50px]" />
     <TableHead>Service</TableHead>
     <TableHead>Active</TableHead>
     <TableHead>Billing Cycle</TableHead>
@@ -31,15 +32,73 @@ const TableHeaderRow: React.FC = () => (
 )
 
 export function OnlineServicesTable({ services }: OnlineServicesTableProps) {
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+
+  // Handle select all checkbox
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(services.map(service => service.id));
+    } else {
+      setSelectedRows([]);
+    }
+  }
+
+
+  // Handle individual row selection
+  const handleRowSelection = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedRows(prev => [...prev, id]);
+    } else {
+      setSelectedRows(prev => prev.filter(rowId => rowId !== id));
+    }
+  }
+
+  const handleDeleteSelectedRows = () => {
+    // TODO: Wire up delete logic
+    console.log('Deleting rows: ', selectedRows);
+    setSelectedRows([]);
+  }
+
+  // Calculate if all rows are selected
+  const allSelected = services.length > 0 && selectedRows.length === services.length;
+
   return (
     <div className="w-full">
       <Table>
         <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={handleSelectAll}
+                aria-label="Select all"
+              />
+            </TableHead>
+            <TableHead colSpan={6}>
+              {selectedRows.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelectedRows}
+                  className="flex items-center gap-2"
+                >
+                  <IconTrash size={16} />
+                  Delete Selected ({selectedRows.length})
+                </Button>
+              )}
+            </TableHead>
+          </TableRow>
           <TableHeaderRow />
         </TableHeader>
         <TableBody>
           {services.map((service, index) => (
-            <OnlineServicesTableRow key={service.name} service={service} index={index} />
+            <OnlineServicesTableRow
+              key={service.name}
+              service={service}
+              index={index}
+              isSelected={selectedRows.includes(service.id)}
+              onSelectionChange={(checked) => handleRowSelection(service.id, checked)}
+            />
           ))}
         </TableBody>
       </Table>

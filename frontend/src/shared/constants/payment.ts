@@ -162,3 +162,18 @@ export const BILLING_CYCLES = {
 } as const;
 
 export type BillingCycle = typeof BILLING_CYCLES[keyof typeof BILLING_CYCLES];
+
+// Define a proper type for payment methods to use in return type
+type ValidPaymentMethod = "Alipay" | "Amex" | "Code" | "Diners" | "Discover" |
+  "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" |
+  "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
+
+// Fixed function with proper return type
+export function validatePaymentMethod(method: string | undefined): ValidPaymentMethod {
+  const validMethods = ["Alipay", "Amex", "Code", "Diners", "Discover", "Elo", "Generic",
+    "Hiper", "Hipercard", "Jcb", "Maestro", "Mastercard", "Mir", "Paypal", "Unionpay", "Visa"];
+
+  return validMethods.includes(method || '')
+    ? (method as ValidPaymentMethod)
+    : 'Generic';
+}

@@ -1,28 +1,46 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
+
+// Custom Components
+import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
+import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
 
 // Shadcn Components
+import { Button } from '@/shared/components/ui/button';
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Switch } from "@/shared/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+  DialogHeader,
+  DialogDescription
+} from '@/shared/components/ui/dialog';
+import { toast } from 'sonner';
 
 // Icons
-import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
-import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
 import { Monitor } from 'lucide-react';
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { PaymentMethod } from '@/shared/constants/payment';
 
 // Hooks
-import { toast } from 'sonner';
 import { useOnlineServicesToggleActive, useOnlineServicesIsActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { isServiceFree } from '@/features/dashboard/lib/utils/online-service-status';
+
+// Utils
+import { cn } from '@/shared/components/ui/utils';
+import { validatePaymentMethod } from '@/shared/constants/payment';
 
 interface OnlineServicesTableRowProps {
   service: OnlineService;
   index: number
+  isSelected?: boolean;
+  onSelectionChange?: (checked: boolean) => void;
+  onDelete?: (id: string) => void;
 };
 
 const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) => {
@@ -32,7 +50,15 @@ const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) 
   });
 };
 
-function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProps) {
+function OnlineServicesTableRowComponent({
+  service,
+  isSelected = false,
+  onSelectionChange,
+  onDelete
+}: OnlineServicesTableRowProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const hasValidLogo = Boolean(service.logo);
   const paymentDate = service.billing?.renewalDate ? `${service.billing.renewalDate.month} ${service.billing.renewalDate.day}` : '--';
   const isFree = isServiceFree({ billing: service.billing } as OnlineService);
@@ -46,64 +72,172 @@ function OnlineServicesTableRowComponent({ service }: OnlineServicesTableRowProp
     createToggleActiveOnlineServiceToast(service.label, isChecked);
   }, [service.name, service.label, toggleActiveOnlineService]);
 
+  const handleCheckboxChange = useCallback((checked: boolean) => {
+    onSelectionChange?.(checked);
+  }, [onSelectionChange]);
+
+  const handleEditService = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row onClick from firing
+    console.log('Edit service:', service.name);
+    // Implement edit functionality
+  }, [service.name]);
+
+  const handleDeleteService = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row onClick from firing
+    console.log('Delete service:', service.name);
+    setDeleteDialogOpen(true);
+  }, [service.name]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!service.id || !onDelete) return;
+
+    setIsDeleting(true);
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      onDelete(service.id);
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }, 500);
+
+    // TODO: Wire up to tanstack query mutation
+  }, [service.id, onDelete]);
+
   return (
-    <TableRow className="h-[72px]">
-      <TableCell>
-        <Checkbox />
-      </TableCell>
-      <TableCell>
-        <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
-          {hasValidLogo ? (
-              <SVGLogo
-                domain="games"
-                name={service.logo as LogoName<'games'>}
-                className="h-8 w-8"
-              />
+    <>
+      <TableRow
+        className={cn(
+          "h-[72px] relative group hover:border-",
+          isSelected && "bg-muted/50",
+          "transition-all duration-200",
+          "hover:ring-1 hover:ring-white/20 hover:ring-inset",
+          "hover:shadow-[0_0_4px_0_rgba(95,99,104,0.6),0_0_6px_2px_rgba(95,99,104,0.6)]",
+        )}
+      >
+        <TableCell>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={handleCheckboxChange}
+          />
+        </TableCell>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
+            {hasValidLogo ? (
+                <SVGLogo
+                  domain="games"
+                  name={service.logo as LogoName<'games'>}
+                  className="h-8 w-8"
+                />
+              ) : (
+                <Monitor className="h-8 w-8 text-slate-500" />
+              )}
+            </div>
+            <div className="flex flex-col">
+              <span className="font-medium">{service.label}</span>
+              <span className="text-sm text-muted-foreground">
+                {service.tier?.currentTier || "Standard subscription"}
+              </span>
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Switch
+            checked={isActive}
+            onCheckedChange={handleToggleActiveOnlineService}
+          />
+        </TableCell>
+        <TableCell>
+          {
+            isFree ? (
+              <span>--</span>
             ) : (
-              <Monitor className="h-8 w-8 text-slate-500" />
+              <span>{service.billing?.cycle}</span>
+            )
+          }
+        </TableCell>
+        <TableCell>{service.billing?.fees.monthly}</TableCell>
+        <TableCell>
+          <PaymentIcon
+            type={validatePaymentMethod(
+              typeof service.billing?.paymentMethod === 'string'
+                ? service.billing.paymentMethod
+                : service.billing?.paymentMethod?.id
             )}
+            format="flatRounded"
+          />
+        </TableCell>
+        <TableCell>
+          {
+            isFree ? (
+              <span>--</span>
+            ) : (
+              <span>{paymentDate}</span>
+            )
+          }
+        </TableCell>
+        <TableCell>
+          <div className={cn(
+            "flex items-center gap-2 transition-opacity duration-200",
+            "opacity-0 group-hover:opacity-100",
+            isSelected && "opacity-100"
+          )}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 w-10 p-0"
+              onClick={handleEditService}
+            >
+              <IconEdit className="h-16 w-16" />
+              <span className="sr-only">Edit {service.label}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
+              onClick={handleDeleteService}
+            >
+              <IconTrash className="h-16 w-16" />
+              <span className="sr-only">Delete {service.label}</span>
+            </Button>
           </div>
-          <div className="flex flex-col">
-            <span className="font-medium">{service.label}</span>
-            <span className="text-sm text-muted-foreground">
-              {service.tier?.currentTier || "Standard subscription"}
-            </span>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell>
-        <Switch
-          checked={isActive}
-          onCheckedChange={handleToggleActiveOnlineService}
-        />
-      </TableCell>
-      <TableCell>
-        {
-          isFree ? (
-            <span>--</span>
-          ) : (
-            <span>{service.billing?.cycle}</span>
-          )
-        }
-      </TableCell>
-      <TableCell>{service.billing?.fees.monthly}</TableCell>
-      <TableCell>
-        <PaymentIcon
-          type={(service.billing?.paymentMethod || 'Generic') as PaymentMethod}
-          format="flatRounded"
-        />
-      </TableCell>
-      <TableCell>
-        {
-          isFree ? (
-            <span>--</span>
-          ) : (
-            <span>{paymentDate}</span>
-          )
-        }
-      </TableCell>
-    </TableRow>
+        </TableCell>
+      </TableRow>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {service.label}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this service? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -120,7 +254,8 @@ export const OnlineServicesTableRow = memo(
       prevProps.service.billing?.fees.monthly === nextProps.service.billing?.fees.monthly &&
       prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
       prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
-      prevProps.service.status === nextProps.service.status
+      prevProps.service.status === nextProps.service.status &&
+      prevProps.isSelected === nextProps.isSelected
     );
   }
 );

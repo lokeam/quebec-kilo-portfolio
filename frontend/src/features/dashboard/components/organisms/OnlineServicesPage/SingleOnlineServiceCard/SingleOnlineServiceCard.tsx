@@ -1,32 +1,60 @@
-import { memo } from 'react';
-import { Card } from "@/shared/components/ui/card"
-import { Power } from 'lucide-react'
-import { IconCloudDataConnection, IconCalendarDollar } from '@tabler/icons-react';
+import { memo, useCallback, useState } from 'react';
+
+// Custom Components
 import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
-import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
 import { Badge } from "@/shared/components/ui/badge";
+import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+
+// Shadcn Components
+import { Card } from "@/shared/components/ui/card"
+import { Button } from '@/shared/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+  DialogHeader,
+  DialogDescription
+} from '@/shared/components/ui/dialog';
+
+// Icons
+import { Power } from 'lucide-react'
+import { IconCloudDataConnection, IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
+
+// Utils
 import {
   isServiceFree,
   formatCurrency,
   isRenewalMonth,
 } from '@/features/dashboard/lib/utils/online-service-status';
+
+// Types
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+
+// Constants
 import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
+import { cn } from '@/shared/components/ui/utils';
 
 interface SingleOnlineServiceCardProps extends OnlineService {
   isWatchedByResizeObserver?: boolean;
   onClick?: () => void;
+  onDelete?: (id: string) => void;
 }
 
 export const SingleOnlineServiceCard = memo(({
+  id,
   label,
   logo,
   status,
   billing,
   tier,
   isWatchedByResizeObserver,
-  onClick
+  onClick,
+  onDelete
 }: SingleOnlineServiceCardProps) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const currentTierDetails = tier?.availableTiers?.find(t =>
     t?.name?.toLowerCase() === tier?.currentTier?.toLowerCase()
   );
@@ -37,77 +65,173 @@ export const SingleOnlineServiceCard = memo(({
     !isFree &&
     isRenewalMonth({ billing } as OnlineService);
 
+  const handleEditService = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card onClick from firing
+    console.log('Edit service:', label);
+    // Implement edit functionality
+  }, [label]);
+
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card onClick from firing
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!id || !onDelete) return;
+
+    setIsDeleting(true);
+
+    // Simulate API call with timeout
+    setTimeout(() => {
+      onDelete(id);
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+    }, 500);
+
+    // TODO: Wire up to tanstack query mutation
+  }, [id, onDelete]);
+
   return (
-    <Card
-      className="flex relative cursor-pointer w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800"
-      {...(isWatchedByResizeObserver ? { 'data-card-sentinel': true } : {})}
-      onClick={onClick}
-    >
-      <div className="flex items-center justify-between min-w-0 w-full">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
-            {hasValidLogo ? (
-              <SVGLogo
-                domain="games"
-                name={logo as LogoName<'games'>}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <IconCloudDataConnection className="w-full h-full" />
-            )}
-          </div>
-          <div className="flex flex-col">
-            <span
-              className="font-medium text-sm text-white truncate overflow-hidden"
-              style={{
-                maxWidth: 'var(--label-max-width)',
-                display: 'block',
-              }}
-            >
-              {label}
-            </span>
-            {!isFree && currentTierDetails && (
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">
-                {currentTierDetails.name}
-                </span>
-                {tier.maxDevices && (
+    <>
+      <Card
+        className={cn(
+          "flex relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
+          "transition-all duration-200",
+          "hover:ring-1 hover:ring-white/20 hover:ring-inset",
+          "hover:shadow-[0_0_4px_0_rgba(95,99,104,0.6),0_0_6px_2px_rgba(95,99,104,0.6)]",
+          isWatchedByResizeObserver && 'data-card-sentinel'
+        )}
+        onClick={onClick}
+      >
+        <div className="flex items-center justify-between min-w-0 w-full">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
+              {hasValidLogo ? (
+                <SVGLogo
+                  domain="games"
+                  name={logo as LogoName<'games'>}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <IconCloudDataConnection className="w-full h-full" />
+              )}
+            </div>
+            <div className="flex flex-col">
+              <span
+                className="font-medium text-sm text-white truncate overflow-hidden"
+                style={{
+                  maxWidth: 'var(--label-max-width)',
+                  display: 'block',
+                }}
+              >
+                {label}
+              </span>
+              {!isFree && currentTierDetails && (
+                <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground">
-                    Up to {tier.maxDevices} devices
+                  {currentTierDetails.name}
                   </span>
-                )}
-              </div>
-            )}
+                  {tier.maxDevices && (
+                    <span className="text-xs text-muted-foreground">
+                      Up to {tier.maxDevices} devices
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="relative w-32">
+            {/* Show on no hover */}
+            <div className="absolute inset-0 flex items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
+              {isFree ? (
+                  <span className="font-medium text-white">
+                    FREE
+                  </span>
+                ) : (
+                <>
+                  <span className="font-medium text-white">
+                    {formatCurrency(billing?.fees?.monthly || '0')}
+                  </span>
+                  <span className="text-muted-foreground text-xs">/ 1 mo</span>
+                </>
+              )}
+              {status === SERVICE_STATUS_CODES.ACTIVE && (
+                <Power className="h-5 w-5 ml-1 text-emerald-500" />
+              )}
+              {showRenewalBadge && (
+                <Badge
+                  variant="default"
+                  className="ml-1 bg-red-900 absolute top-3 right-2"
+                >
+                  <IconCalendarDollar className="h-5 w-5 ml-1 text-white" />
+                  <span className="ml-1">Renews this month</span>
+                </Badge>
+              )}
+            </div>
+
+            {/* Show on hover */}
+            <div className={cn(
+              "flex items-center gap-2 transition-opacity duration-200 opacity-0 group-hover:opacity-100 invisible group-hover:visible",
+            )}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 w-10 p-0"
+                onClick={handleEditService}
+              >
+                <IconEdit className="h-5 w-5" />
+                <span className="sr-only">Edit {label}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
+                onClick={handleDeleteClick}
+              >
+                <IconTrash className="h-5 w-5" />
+                <span className="sr-only">Delete {label}</span>
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-sm shrink-0">
-          {isFree ? (
-              <span className="font-medium text-white">
-                FREE
-              </span>
-            ) : (
-            <>
-              <span className="font-medium text-white">
-                {formatCurrency(billing.fees.monthly)}
-              </span>
-              <span className="text-muted-foreground text-xs">/ 1 mo</span>
-            </>
-          )}
-          {status === SERVICE_STATUS_CODES.ACTIVE && (
-            <Power className="h-5 w-5 ml-1 text-emerald-500" />
-          )}
-          {showRenewalBadge && (
-            <Badge
-              variant="default"
-              className="ml-1 bg-red-900 absolute top-3 right-2"
+      </Card>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {label}</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this service? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
             >
-              <IconCalendarDollar className="h-5 w-5 ml-1 text-white" />
-              <span className="ml-1">Renews this month</span>
-            </Badge>
-          )}
-        </div>
-      </div>
-    </Card>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 });
 

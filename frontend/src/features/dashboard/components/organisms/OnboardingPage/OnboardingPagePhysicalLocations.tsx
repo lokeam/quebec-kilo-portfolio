@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { OnlineServicesPageErrorFallback } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageErrorFallback';
 import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSkeleton'
-import { MediaPageLocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageLocationForm/MediaPageLocationForm';
+import { MediaPageLocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationFormSingle/PhysicalLocationFormSingle';
 
 // Hooks
 import { useNavigate } from 'react-router-dom';

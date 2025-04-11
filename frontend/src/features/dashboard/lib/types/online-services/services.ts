@@ -1,5 +1,4 @@
 import type { BaseOnlineService } from '@/features/dashboard/lib/types/online-services/base';
-import type { BillingDetails } from '@/shared/types/billing';
 import type { ServiceType } from '@/shared/constants/service.constants';
 import type { TierConfiguration } from '@/features/dashboard/lib/types/online-services/tiers';
 import type { ViewMode } from '@/features/dashboard/pages/OnlineServices/useViewMode';
@@ -13,14 +12,34 @@ export interface OnlineService extends BaseOnlineService {
   type: ServiceType;
 
   /** Billing configuration and payment details */
-  billing: BillingDetails;
+  billing?: OnlineServiceBilling;
 
   /** Service tier information and available upgrades */
   tier: TierConfiguration;
 
   /** List of features provided by the service */
   features: string[];
-};
+}
+
+interface OnlineServiceBilling {
+  cycle: string;
+  fees: {
+    monthly: string;
+    // other fee properties
+  };
+  renewalDate?: {
+    month: string;
+    day: number;
+  };
+  // Make paymentMethod accept either string or PaymentMethod object
+  paymentMethod: string | PaymentMethodData;
+}
+
+interface PaymentMethodData {
+  id: string;
+  displayName: string;
+  // other properties...
+}
 
 /**
  * API response state for online services data.

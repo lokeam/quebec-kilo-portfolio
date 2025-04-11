@@ -104,7 +104,6 @@ interface PhysicalLocationFormSingleProps {
 
 export function PhysicalLocationFormSingle({
   buttonText = "Add Location",
-  onSuccess,
   defaultValues = {
     locationName: '',
     locationType: '',
