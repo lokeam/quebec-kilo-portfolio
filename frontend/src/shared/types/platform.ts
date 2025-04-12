@@ -1,4 +1,3 @@
-
 /**
  * High-level categories for gaming platforms
  * Used for broad classification and filtering
@@ -11,12 +10,7 @@
  * };
  * ```
  */
-export type PlatformCategory =
-  | 'Android'
-  | 'Console'
-  | 'iOS'
-  | 'Mobile'
-  | 'PC';
+export type PlatformCategory = 'PC' | 'Console' | 'Mobile';
 
 /**
  * Specific platform models across different manufacturers

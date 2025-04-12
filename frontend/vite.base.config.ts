@@ -20,10 +20,21 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://api.localhost', // backend server
-        changeOrigin: true, // change origin of host header to target url
-        rewrite: (path) => path.replace(/^\/api/, '') // Remove the /api prefix
-
+        target: 'http://api.localhost',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        }
       }
     }
   },

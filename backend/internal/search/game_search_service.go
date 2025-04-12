@@ -87,6 +87,12 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 // then first checks the cache. If the cache misses, it fetches fresh data,
 // caches it, and returns the result.
 func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error) {
+	// Add logging
+	s.logger.Debug("Making IGDB request", map[string]any{
+		"query": req.Query,
+		"limit": req.Limit,
+})
+
 	// 1. Sanitize the query.
 	sanitized, err := s.sanitizer.SanitizeSearchQuery(req.Query)
 	if err != nil {

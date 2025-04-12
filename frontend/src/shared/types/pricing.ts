@@ -1,25 +1,15 @@
 /**
- * Represents pricing information for a purchasable item
- * @interface Price
+ * Represents pricing information for a game or item
  */
 export interface Price {
-  /** Original/base price of the item in the store's currency */
-  readonly original: number;
-
-  /**
-   * Current discounted price, if available
-   * @remarks Will be null or undefined if no discount is active
-   */
-  readonly discounted?: number | null;
-
-  /**
-   * Percentage of the current discount
-   * @remarks Will be null or undefined if no discount is active
-   */
-  readonly discountPercentage?: number | null;
-
-  /** Name of the vendor/store offering the item */
-  readonly vendor: string;
+  /** Original price before any discounts */
+  original: number;
+  /** Current discounted price */
+  discounted: number;
+  /** Discount percentage (0-100) */
+  discountPercentage: number;
+  /** Name of the vendor/store offering the price */
+  vendor: string;
 }
 
 /**

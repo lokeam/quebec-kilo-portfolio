@@ -1,6 +1,6 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
-import type { SearchResponse, WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
-import { API_ROUTES } from '@/core/api/constants/routes';
+import type { SearchResponse } from '@/core/api/types/search.types';
+import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
 
 // Debug
 import { logger } from '@/core/utils/logger/logger';
@@ -30,7 +30,7 @@ export const searchMediaItems = async (query: string): Promise<WishlistItem[]> =
 
   try {
     const response = await axiosInstance.post<SearchResponse>(
-      '/api/v1/search',
+      '/v1/search',
       { query }
     ) as unknown as SearchResponse;
 

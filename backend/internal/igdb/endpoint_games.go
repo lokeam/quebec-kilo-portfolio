@@ -7,7 +7,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
-func (c *IGDBClient) SearchGames(query string) ([]*types.GameDetails, error) {
+func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
     c.logger.Info("igdb client - SearchGames - query: ", map[string]any{"query": query})
 
     var games []*models.Game
@@ -28,7 +28,22 @@ func (c *IGDBClient) SearchGames(query string) ([]*types.GameDetails, error) {
 
     c.logger.Debug("igdb client - SearchGames - results with details: ", map[string]any{"results": results})
 
-    return results, nil
+    // Convert GameDetails back to Game
+    convertedGames := make([]*models.Game, len(results))
+    for i, detail := range results {
+        convertedGames[i] = &models.Game{
+            ID:              detail.ID,
+            Name:            detail.Name,
+            Summary:         detail.Summary,
+            CoverURL:        detail.CoverURL,
+            Rating:          detail.Rating,
+            PlatformNames:   detail.PlatformNames,
+            GenreNames:      detail.GenreNames,
+            ThemeNames:      detail.ThemeNames,
+        }
+    }
+
+    return convertedGames, nil
 }
 
 func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.GameDetails, error) {

@@ -39,7 +39,7 @@ interface CustomAxiosInstance {
  * @see https://axios-http.com/docs/config_defaults
  */
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://api.localhost',
+  baseURL: '/api', // This will proxy through Vite's dev server
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
