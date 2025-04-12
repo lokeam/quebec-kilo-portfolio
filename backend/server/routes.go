@@ -108,6 +108,9 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	digitalHandler := digital.NewDigitalLocationHandler(appContext, digitalService)
 	// TODO: add error handling
 
+	// Create digital services catalog handler
+	digitalServicesCatalogHandler := digital.NewDigitalServicesCatalogHandler(appContext)
+
 
 	wishlistService, err := wishlist.NewGameWishlistService(appContext)
 	if err != nil {
@@ -174,6 +177,10 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 		// Physical Locations
 		r.Route("/locations/physical", func(r chi.Router) {
+			appContext.Logger.Info("Registering physical location routes", map[string]any{
+        "path": "/api/v1/locations/physical",
+			})
+
 			r.Get("/", physicalHandler)
 			r.Post("/", physicalHandler)
 			r.Get("/{id}", physicalHandler)
@@ -197,6 +204,9 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 			r.Get("/{id}", digitalHandler)
 			r.Put("/{id}", digitalHandler)
 			r.Delete("/{id}", digitalHandler)
+
+			// Services Catalog
+			r.Get("/services/catalog", digitalServicesCatalogHandler)
 		})
 
 		appContext.Logger.Info("Routes registered", map[string]any{
