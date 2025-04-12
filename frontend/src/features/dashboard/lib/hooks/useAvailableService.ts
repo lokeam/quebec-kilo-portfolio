@@ -1,8 +1,6 @@
-import { useState, useEffect } from 'react';
-import { onlineServicesPageMockData } from '@/features/dashboard/pages/OnlineServices/onlineServicesPage.mockdata';
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { ServiceTierName } from '../types/online-services/tiers';
-
+import { useDigitalServicesCatalog } from '@/core/api/queries/useDigitalServicesCatalog';
+import type { OnlineService } from '../types/online-services/services';
+import { useMemo } from 'react';
 
 export interface UseAvailableServicesResult {
   availableServices: OnlineService[];
@@ -11,45 +9,51 @@ export interface UseAvailableServicesResult {
 }
 
 export function useAvailableServices(searchQuery: string): UseAvailableServicesResult {
-  const [availableServices, setAvailableServices] = useState<OnlineService[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+  // Get the full list from cache (single API call)
+  const { data = [], isLoading, error } = useDigitalServicesCatalog();
 
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-
-    const timeoutId = setTimeout(() => {
-      try {
-        const services = onlineServicesPageMockData.services.map(service => ({
-          ...service,
-          tier: {
-            currentTier: (service.tier.name || 'free') as ServiceTierName,
-            availableTiers: [{
-              id: '1',
-              name: service.tier.name || 'free',
-              features: service.tier.features,
-              isDefault: true
-            }],
-          }
-        })) as OnlineService[];
-
-        const filtered = searchQuery.trim()
-          ? services.filter((service) =>
-              service.label.toLowerCase().includes(searchQuery.toLowerCase())
-            )
-          : services;
-
-        setAvailableServices(filtered);
-        setIsLoading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('An error occurred'));
-        setIsLoading(false);
+  // Filter the data locally using useMemo for performance
+  const availableServices = useMemo(() => {
+    const services = data.map(service => ({
+      id: service.id,
+      name: service.name,
+      label: service.name,
+      logo: service.logo,
+      url: '#',
+      type: 'subscription',
+      status: 'active',
+      features: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      tier: {
+        currentTier: 'free',
+        availableTiers: [{
+          id: '1',
+          name: 'free',
+          features: [],
+          isDefault: true
+        }]
+      },
+      billing: {
+        cycle: 'NA',
+        fees: { monthly: '0' },
+        paymentMethod: 'Generic'
       }
-    }, 500);
+    })) as OnlineService[];
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+    // Local filtering
+    if (!searchQuery.trim()) return services;
 
-  return { availableServices, isLoading, error };
+    const lowercaseQuery = searchQuery.toLowerCase();
+    return services.filter(service =>
+      service.name.toLowerCase().includes(lowercaseQuery) ||
+      service.label.toLowerCase().includes(lowercaseQuery)
+    );
+  }, [data, searchQuery]);
+
+  return {
+    availableServices,
+    isLoading,
+    error: error as Error | null
+  };
 }

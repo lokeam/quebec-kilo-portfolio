@@ -3,6 +3,9 @@ import { useAuth0 } from '@auth0/auth0-react';
 import type { BackendQueryOptions } from '@/core/api/types/api.types';
 import { AxiosError } from 'axios';
 
+// Mock token for development when Auth0 is not configured
+const MOCK_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+
 /**
  * Custom hook for making authenticated backend queries.
  * Wraps TanStack Query with Auth0 authentication + error handling.
@@ -64,19 +67,29 @@ import { AxiosError } from 'axios';
 export function useBackendQuery<ResponseData>(
   queryOptions: BackendQueryOptions<ResponseData>
 ) {
+  // We're not using Auth0 for now, but keep the import for future use
   const { getAccessTokenSilently } = useAuth0();
+
+  // Create a mock token getter function
+  const getMockToken = async () => {
+    console.log("Using mock token instead of Auth0");
+    return MOCK_AUTH_TOKEN;
+  };
 
   return useQuery<ResponseData, Error>({
     networkMode: 'online',
     retryOnMount: true,
     refetchOnReconnect: true,
     ...queryOptions,
-    /* Note: wraps user's queryFn to inject Auth0's token getter */
-    queryFn: () => queryOptions.queryFn(getAccessTokenSilently),
+    /* Use mock token getter instead of Auth0's getAccessTokenSilently */
+    queryFn: () => queryOptions.queryFn(getMockToken),
     throwOnError: (error: Error) => {
       if (error instanceof AxiosError && error.response?.status === 401) {
-        window.location.href = '/login';
+        console.error("401 Unauthorized error - would normally redirect to login");
+        // Don't actually redirect for now since we're using a mock token
+        // window.location.href = '/login';
       }
+      console.error("Query error:", error);
       return false;
     }
   });

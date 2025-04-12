@@ -1,303 +1,484 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-// RHF
-import { useForm } from 'react-hook-form';
-
-// Zod Validation
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+// Components
+import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
 
 // Shadcn UI Components
+// import { Input } from "@/shared/components/ui/input"
+// import { Switch } from "@/shared/components/ui/switch"
+
+import { Button } from "@/shared/components/ui/button";
+
 import {
-  Form,
   FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/shared/components/ui/form';
-import { Input } from '@/shared/components/ui/input';
-import { Label } from '@/shared/components/ui/label';
+} from "@/shared/components/ui/form"
+
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/components/ui/select';
-import { Button } from '@/shared/components/ui/button';
+} from "@/shared/components/ui/select"
+
 import { Calendar } from '@/shared/components/ui/calendar';
+
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
+  PopoverTrigger
 } from '@/shared/components/ui/popover';
-import { Textarea } from '@/shared/components/ui/textarea';
-import { CalendarIcon, ChevronDown } from 'lucide-react';
+
+// Hooks
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+
+// Zod
+import { z } from "zod"
+
+// Icons
+import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
+import { useLocationManager } from '@/core/api/hooks/useLocationManager';
+import { CalendarIcon } from 'lucide-react';
+
 import { format } from 'date-fns';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/shared/components/ui/dropdown-menu';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/shared/components/ui/collapsible';
 import { cn } from '@/shared/components/ui/utils';
+import { Input } from "@/shared/components/ui/input";
+import { DebouncedResponsiveCombobox } from '@/shared/components/ui/DebouncedResponsiveCombobox/DebouncedResponsiveCombobox';
+import { PAYMENT_METHODS } from '@/shared/constants/payment';
+import { BILLING_CYCLES } from '@/features/dashboard/lib/types/spend-tracking/constants';
 
-import { CARD_PARENT_CLASS } from '@/features/dashboard/lib/constantsstyle.constants';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { SelectableItem } from '@/shared/components/ui/DebouncedResponsiveCombobox/DebouncedResponsiveCombobox';
 
-// Form Schema
-const formSchema = z.object({
 
+// Utils
+import { ServiceCombobox } from '../../ServiceCombobox/ServiceCombobox';
+
+export const OnlineServiceFormSchema = z.object({
+  service: z.custom<OnlineService | null>()
+    .refine((service) => service !== null, {
+      message: "Please select a service"
+    }),
+  expenseType: z.string().optional().refine(
+    (val) => !val || ['1 month', '3 months', '6 months', '1 year'].includes(val),
+    "Please select a valid expense type"
+  ),
+  cost: z.number()
+    .min(0, "Cost must be at least 0")
+    .default(0),
+  billingPeriod: z.string().optional(),
+  nextPaymentDate: z.date()
+    .optional()
+    .refine((date) => {
+      if (!date) return true;
+      return date >= new Date();
+    }, "Payment date must be in the future"),
+  paymentMethod: z.custom<SelectableItem>()
+    .optional()
+    .refine((method) => !method || (method.id && method.displayName), {
+      message: "Please select a valid payment method"
+    })
 });
 
+const validateFormProgress = (formState: {
+  service: OnlineService | null;
+  expenseType?: string;
+  cost?: number;
+  billingPeriod?: string;
+  nextPaymentDate?: Date;
+  paymentMethod?: SelectableItem;
+}): boolean => {
+  const {
+    service,
+    expenseType,
+    cost,
+    billingPeriod,
+    nextPaymentDate,
+    paymentMethod,
+  } = formState;
 
-export function OnlineServiceForm() {
-  const [date, setDate] = useState<Date>()
-  const [selectedColor, setSelectedColor] = useState<string>("")
-  const [isOpen, setIsOpen] = useState(false)
+  // First check if service exists
+  if (!service) return false;
 
-  const colors = [
-    "Red",
-    "Blue",
-    "Green",
-    "Yellow",
-    "Purple",
-    "Orange",
-    "Pink",
-    "Brown",
-    "Gray",
-    "Black",
-  ];
+  // For free services, only require service selection
+  if (service?.billing?.cycle === 'NA') {
+    return true;
+  }
 
-  // Define form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      serviceName: '',
-      color: '',
-      serviceURL: '',
-      cost: 0.00,
-      subscriptionType: 'recurring',
-      period: 'month',
-      nextPayment: new Date(),
-    },
-  });
+  // For paid services, validate required fields
+  if (!expenseType) return false;
+  if (typeof cost !== 'number' || cost <= 0) return false;
+  if (!nextPaymentDate) return false;
 
-  // Submit Handler
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something w/ form values
-    console.log(`form values: ${JSON.stringify(values)}`);
-  };
+  // Set billingPeriod to expenseType if not set
+  const effectiveBillingPeriod = billingPeriod || expenseType;
+  if (!effectiveBillingPeriod) return false;
 
-  return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
+  // Check payment method last
+  if (!paymentMethod?.id) return false;
 
-        <div className="w-full max-w-2xl mx-auto p-6 space-y-8">
-          {/* Title */}
-          <div className="flex items-center gap-2 mb-6">
-            <Button variant="ghost" className="w-8 h-8 p-0">
-              <ChevronDown className="h-4 w-4" />
-            </Button>
-            <h1 className="text-xl font-semibold">New subscription</h1>
-          </div>
-
-          <div className="space-y-6">
-            {/* General Section */}
-            <div className={CARD_PARENT_CLASS}>
-              <h2 className="text-base font-medium mb-4">General</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Online Service Name <span className="text-red-500">*</span></Label>
-                  <Input id="serviceName" placeholder="Enter Online Service Name" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Color</Label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-[42px] p-2">
-                        <div
-                          className={cn(
-                            "h-full w-full rounded",
-                            selectedColor ? "bg-" + selectedColor.toLowerCase() + "-500" : "bg-gray-200"
-                          )}
-                        />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {colors.map((color) => (
-                        <DropdownMenuItem
-                          key={color}
-                          onClick={() => setSelectedColor(color)}
-                          className="flex items-center gap-2"
-                        >
-                          <div className={`w-4 h-4 rounded bg-${color.toLowerCase()}-500`} />
-                          {color}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website</Label>
-                  <Input id="serviceURL" defaultValue="https://adobe.com" />
-                </div>
-              </div>
-            </div>
-
-            {/* Expense Section */}
-            <div className={CARD_PARENT_CLASS}>
-              <h2 className="text-base font-medium mb-4">Expense</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cost">Cost *</Label>
-                  <div className="flex">
-                    <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-gray-50">
-                      <span className="text-sm text-gray-500">$</span>
-                    </div>
-                    <Input id="cost" defaultValue={0.00} className="rounded-l-none" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expense-type">Subscription Type *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="recurring">Recurring</SelectItem>
-                      <SelectItem value="one-time">Free</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Section */}
-            <div className={CARD_PARENT_CLASS}>
-              <h2 className="text-base font-medium mb-4">Billing</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Period</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" defaultValue="1" className="w-20" />
-                    <Select defaultValue="month">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="month">Month</SelectItem>
-                        <SelectItem value="3months">3 Months</SelectItem>
-                        <SelectItem value="year">Year</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Next Payment</Label>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                    onClick={() => setDate(new Date())}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Payment Method</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a Payment Method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="credit-card">Credit Card</SelectItem>
-                      <SelectItem value="debit-card">Debit Card</SelectItem>
-                      <SelectItem value="paypal">PayPal</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="link" className="h-auto p-0 text-xs">
-                    Edit Payment Methods in settings
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <Label>Notes</Label>
-                  <Textarea placeholder="Add any additional notes here..." className="min-h-[100px]" />
-                </div>
-              </div>
-              </div>
-            </div>
-
-            {/* Reminders Section */}
-            <div className={CARD_PARENT_CLASS}>
-              <h2 className="text-base font-medium mb-4">Reminders</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Set up to 3 reminders - you must enter a next payment date
-              </p>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Reminder 1</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="1-day">1 day before</SelectItem>
-                      <SelectItem value="3-days">3 days before</SelectItem>
-                      <SelectItem value="1-week">1 week before</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Reminder 2</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="1-day">1 day before</SelectItem>
-                      <SelectItem value="3-days">3 days before</SelectItem>
-                      <SelectItem value="1-week">1 week before</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Reminder 3</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="1-day">1 day before</SelectItem>
-                      <SelectItem value="3-days">3 days before</SelectItem>
-                      <SelectItem value="1-week">1 week before</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <Button className="w-full text-white hover:bg-black/90">
-              Add Subscription
-            </Button>
-          </div>
-        </div>
-
-      </form>
-    </Form>
-  )
+  return true;
 }
 
+interface OnlineServiceData {
+  id: string;
+  service: OnlineService | null;
+  expenseType?: string;
+  cost?: number;
+  billingPeriod?: string;
+  nextPaymentDate?: Date;
+  paymentMethod?: SelectableItem;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+interface OnlineServiceFormProps {
+  onSuccess?: (data: z.infer<typeof OnlineServiceFormSchema>) => void;
+  defaultValues?: {
+    service: OnlineService | null;
+    expenseType?: string;
+    cost?: number;
+    billingPeriod?: string;
+    nextPaymentDate?: Date;
+    paymentMethod?: SelectableItem;
+  };
+  buttonText?: string;
+  serviceData?: OnlineServiceData;
+  isEditing?: boolean;
+  onDelete?: (id: string) => void;
+}
+
+export function OnlineServiceForm({
+  buttonText = "Add Service",
+  defaultValues = {
+    service: null,
+    expenseType: undefined,
+    cost: 0,
+    billingPeriod: undefined,
+    nextPaymentDate: undefined,
+    paymentMethod: undefined,
+  },
+  serviceData,
+  isEditing = false,
+  onDelete,
+}: OnlineServiceFormProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Setup location manager hook with proper type
+  const locationManager = useLocationManager({
+    type: 'digital'
+  });
+
+  /* Specific form components creates their own useForm hook instances */
+  const form = useForm<{
+    service: OnlineService | null;
+    expenseType?: string;
+    cost: number;
+    billingPeriod?: string;
+    nextPaymentDate?: Date;
+    paymentMethod?: SelectableItem;
+  }>({
+    resolver: zodResolver(OnlineServiceFormSchema),
+    defaultValues: isEditing && serviceData
+      ? {
+        service: serviceData.service || null,
+        expenseType: serviceData.expenseType,
+        cost: serviceData.cost || 0,
+        billingPeriod: serviceData.billingPeriod,
+        nextPaymentDate: serviceData.nextPaymentDate,
+        paymentMethod: serviceData.paymentMethod,
+      }
+      : defaultValues
+  });
+
+  const { watch, formState: {
+    isValid,
+    errors,
+  }} = form;
+
+  const selectedService = watch('service');
+  const expenseType = watch('expenseType');
+  const cost = watch('cost');
+
+  const isFreePlan =
+    !selectedService?.billing?.cycle
+    || selectedService?.billing?.cycle === BILLING_CYCLES.NA;
+
+  const shouldShowExpenseSection = !!selectedService;
+  const shouldShowCostSection = isFreePlan ? false : !!expenseType;
+  const shouldShowBillingSection = isFreePlan ? false : !!cost;
+
+  // If service data changes AND we are editing, update form values
+  useEffect(() => {
+    if (isEditing && serviceData) {
+      form.reset({
+        service: serviceData.service || null,
+        expenseType: serviceData.expenseType,
+        cost: serviceData.cost || 0,
+        billingPeriod: serviceData.billingPeriod,
+        nextPaymentDate: serviceData.nextPaymentDate,
+        paymentMethod: serviceData.paymentMethod,
+      });
+    }
+  }, [form, isEditing, serviceData]);
+
+  const isFormValid = isValid && validateFormProgress({
+    service: watch('service'),
+    expenseType: watch('expenseType'),
+    cost: watch('cost'),
+    billingPeriod: watch('billingPeriod'),
+    nextPaymentDate: watch('nextPaymentDate'),
+    paymentMethod: watch('paymentMethod'),
+  });
+
+  const handleSubmit = useCallback((data: z.infer<typeof OnlineServiceFormSchema>) => {
+    // Transform form data to match API expectations
+    const servicePayload = {
+      id: isEditing && serviceData ? serviceData.id : undefined,
+      name: data.service?.name || 'Unknown Service',
+      parentId: null,
+      type: 'digital',
+      parentLocationId: 'root',
+      metadata: {
+        service: data.service,
+        expenseType: data.expenseType,
+        cost: data.cost,
+        billingPeriod: data.billingPeriod,
+        nextPaymentDate: data.nextPaymentDate,
+        paymentMethod: data.paymentMethod,
+      }
+    };
+
+    if (isEditing && serviceData) {
+      locationManager.update(servicePayload);
+    } else {
+      locationManager.create(servicePayload);
+    }
+
+    // Note: Don't use toast here as hooks in useLocationManager handle that
+  }, [isEditing, serviceData, locationManager]);
+
+  const handleDelete = useCallback((id: string) => {
+    locationManager.delete(id);
+    setDeleteDialogOpen(false);
+  }, [locationManager]);
+
+  return (
+    <>
+      <FormContainer form={form} onSubmit={handleSubmit}>
+        {/* Service Selection */}
+        <FormField
+          control={form.control}
+          name="service"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Service name <span className="text-red-500">*</span></FormLabel>
+              <ServiceCombobox
+                onServiceSelect={(service: OnlineService) => {
+                  field.onChange(service);
+                  form.trigger('service'); // Trigger custom validation when valid
+                }}
+                placeholder="Search for a service..."
+                emptyMessage="No services found."
+              />
+              <FormMessage>{errors.service?.message}</FormMessage>
+            </FormItem>
+          )}
+        />
+
+        {/* Expense Section - Only show for paid services */}
+        <FormField
+          control={form.control}
+          name="expenseType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1 month">Monthly</SelectItem>
+                  <SelectItem value="3 months">Quarterly</SelectItem>
+                  <SelectItem value="6 months">Bi-Annually</SelectItem>
+                  <SelectItem value="1 year">Annually</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                How often do you pay to use this service?
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+
+        {/* Cost Section - Only show for paid services */}
+        <FormField
+          control={form.control}
+          name="cost"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cost</FormLabel>
+              <div className="flex">
+                <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-transparent">
+                  <span className="text-sm text-gray-500">$</span>
+                </div>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="rounded-l-none"
+                    value={field.value || ''}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      field.onChange(value === '' ? 0 : parseFloat(value));
+                    }}
+                    onBlur={field.onBlur}
+                  />
+                </FormControl>
+              </div>
+              <FormDescription>
+                Approximately how much is each payment?
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+
+        {/* Billing Section - Only show for paid services */}
+        <FormField
+          control={form.control}
+          name="nextPaymentDate"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Around what date is your next payment due?</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) =>
+                      date < new Date()
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Payment Method Section - Only show for paid services */}
+        <FormField
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>How do you pay for this service?</FormLabel>
+              <DebouncedResponsiveCombobox
+                onSelect={(method: SelectableItem) => {
+                  field.onChange(method);
+                  form.trigger('paymentMethod');
+                }}
+                items={Object.values(PAYMENT_METHODS)}
+                placeholder="Select a Payment Method"
+                emptyMessage="No payment methods found."
+              />
+              <FormMessage>{errors.paymentMethod?.message?.toString()}</FormMessage>
+            </FormItem>
+          )}
+        />
+
+        {/* Submit Button */}
+        <div className="flex justify-between w-full mt-6">
+          <Button
+            type="submit"
+            className={isEditing && onDelete ? "flex-1" : "w-full"}
+            disabled={!isFormValid || locationManager.isCreating || locationManager.isUpdating}
+          >
+            {(locationManager.isCreating || locationManager.isUpdating) ? (
+              <>
+                <span className="animate-spin mr-2">⊚</span>
+                {isEditing ? "Updating..." : "Creating..."}
+              </>
+            ) : (
+              isEditing ? "Update Service" : buttonText
+            )}
+          </Button>
+
+          {isEditing && onDelete && serviceData && (
+            <Button
+              type="button"
+              variant="destructive"
+              className="ml-2"
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={locationManager.isDeleting}
+            >
+              {locationManager.isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+        </div>
+
+        {/* Delete Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this service? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={locationManager.isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDelete(serviceData?.id || '')}
+                disabled={locationManager.isDeleting}
+              >
+                {locationManager.isDeleting ? (
+                  <>
+                    <span className="animate-spin mr-2">⊚</span>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </FormContainer>
+    </>
+  );
+}
