@@ -120,6 +120,31 @@
     }
   }
 
+  /* Command Menu Scrollbar */
+  .max-h-\[300px\],
+  .command-scroll-area {
+    /* Standard Properties */
+    scrollbar-color: #086fe8 hsl(var(--background));
+    scrollbar-width: thin;
+  }
+
+  .max-h-\[300px\]::-webkit-scrollbar,
+  .command-scroll-area::-webkit-scrollbar {
+    width: 6px;
+    background-color: hsl(var(--background));
+  }
+
+  .max-h-\[300px\]::-webkit-scrollbar-track,
+  .command-scroll-area::-webkit-scrollbar-track {
+    background-color: hsl(var(--background));
+  }
+
+  .max-h-\[300px\]::-webkit-scrollbar-thumb,
+  .command-scroll-area::-webkit-scrollbar-thumb {
+    background-color: #086fe8;
+    border-radius: 3px;
+  }
+
   /* Shadcn popover */
   /* Command Menu List Animation */
   [cmdk-list] {

@@ -16,34 +16,14 @@ import {
 } from "@/shared/components/ui/popover"
 import { useDigitalServicesCatalog } from "@/core/api/queries/useDigitalServicesCatalog"
 import type { DigitalServiceItem } from "@/core/api/services/digitalServices.service"
-
-// Fallback data in case the API fails
-const FALLBACK_SERVICES: DigitalServiceItem[] = [
-  { id: 'amazonluna', name: 'Amazon Luna', logo: 'amazon' },
-  { id: 'applearcade', name: 'Apple Arcade', logo: 'apple' },
-  { id: 'blizzard', name: 'Blizzard Battle.net', logo: 'blizzard' },
-  { id: 'ea', name: 'EA Play', logo: 'ea' },
-  { id: 'epicgames', name: 'Epic Games', logo: 'epicgames' },
-  { id: 'fanatical', name: 'Fanatical', logo: 'fanatical' },
-  { id: 'gog', name: 'GOG', logo: 'gog' },
-  { id: 'googleplaypass', name: 'Google Play Pass', logo: 'google' },
-  { id: 'greenmangaming', name: 'Green Man Gaming', logo: 'greenmangaming' },
-  { id: 'humblebundle', name: 'Humble Bundle', logo: 'humblebundle' },
-  { id: 'itchio', name: 'itch.io', logo: 'itchio' },
-  { id: 'meta', name: 'Meta', logo: 'meta' },
-  { id: 'netflix', name: 'Netflix', logo: 'netflix' },
-  { id: 'nintendo', name: 'Nintendo', logo: 'nintendo' },
-  { id: 'nvidia', name: 'NVIDIA', logo: 'nvidia' },
-  { id: 'primegaming', name: 'Prime Gaming', logo: 'prime' },
-  { id: 'playstation', name: 'PlayStation Network', logo: 'ps' },
-  { id: 'shadow', name: 'Shadow', logo: 'shadow' },
-  { id: 'ubisoft', name: 'Ubisoft', logo: 'ubisoft' },
-  { id: 'xboxlive', name: 'Xbox Live', logo: 'xbox' },
-  { id: 'xboxgamepass', name: 'Xbox Game Pass', logo: 'xbox' }
-];
+import { FALLBACK_SERVICES } from "@/core/api/services/digitalServices.service"
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services'
+import type { ServiceType } from '@/shared/constants/service.constants'
+import type { ServiceTierName } from '@/features/dashboard/lib/types/online-services/tiers'
+import { BILLING_CYCLES } from '@/shared/constants/payment'
 
 interface ServiceComboboxProps {
-  onServiceSelect: (service: DigitalServiceItem) => void;
+  onServiceSelect: (service: OnlineService) => void;
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
@@ -59,7 +39,7 @@ export function ServiceCombobox({
   const [searchQuery, setSearchQuery] = useState("")
 
   // Use TanStack Query to fetch services with fallback
-  const { data: apiServices = [], isLoading, isError } = useDigitalServicesCatalog();
+  const { data: apiServices = [], isLoading } = useDigitalServicesCatalog();
 
   // Use fallback data if API returns empty array
   const services = apiServices.length > 0 ? apiServices : FALLBACK_SERVICES;
@@ -77,9 +57,41 @@ export function ServiceCombobox({
   }, [searchQuery, services]);
 
   const handleSelect = useCallback((service: DigitalServiceItem) => {
+    console.log('Original Service:', service);
     setSelectedService(service);
     setOpen(false);
-    onServiceSelect(service);
+    // Transform DigitalServiceItem into OnlineService
+    const onlineService: OnlineService = {
+      id: service.id,
+      name: service.name,
+      label: service.name,
+      logo: service.logo,
+      type: service.isSubscriptionService ? 'subscription' : 'online' as ServiceType,
+      isSubscriptionService: service.isSubscriptionService || false,
+      status: 'active',
+      url: '#',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      features: [],
+      tier: {
+        currentTier: 'standard' as ServiceTierName,
+        availableTiers: [{
+          name: 'standard' as ServiceTierName,
+          features: [],
+          id: 'standard',
+          isDefault: true
+        }]
+      },
+      billing: service.isSubscriptionService ? {
+        cycle: BILLING_CYCLES.MONTHLY,
+        fees: {
+          monthly: '0'
+        },
+        paymentMethod: 'Generic'
+      } : undefined
+    };
+    console.log('Transformed Service:', onlineService);
+    onServiceSelect(onlineService);
   }, [onServiceSelect]);
 
   return (
@@ -100,14 +112,14 @@ export function ServiceCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-full p-0"
+        className="w-[300px] p-0"
         align="start"
         side="bottom"
         sideOffset={5}
         sticky="always"
         avoidCollisions={false}
       >
-        <Command className="overflow-hidden">
+        <Command className="overflow-visible">
           <CommandInput
             placeholder={placeholder}
             value={searchQuery}
@@ -116,14 +128,19 @@ export function ServiceCombobox({
               setSearchQuery(value);
             }}
           />
-          <div className="max-h-[300px] overflow-y-auto">
-            {isLoading ? (
-              <CommandEmpty className="text-sm text-gray-500 text-center p-2">Loading services...</CommandEmpty>
-            ) : filteredServices.length === 0 ? (
-              <CommandEmpty>{emptyMessage}</CommandEmpty>
-            ) : (
-              <CommandGroup>
-                {filteredServices.map((service) => (
+          <div
+            className="max-h-[300px] overflow-y-auto"
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            <CommandGroup className="overflow-visible">
+              {isLoading ? (
+                <CommandEmpty className="text-sm text-gray-500 text-center p-2">Loading services...</CommandEmpty>
+              ) : filteredServices.length === 0 ? (
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
+              ) : (
+                filteredServices.map((service: DigitalServiceItem) => (
                   <CommandItem
                     key={service.id}
                     value={service.name}
@@ -140,9 +157,9 @@ export function ServiceCombobox({
                     />
                     {service.name}
                   </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+                ))
+              )}
+            </CommandGroup>
           </div>
         </Command>
       </PopoverContent>

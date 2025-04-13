@@ -19,19 +19,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/shared/components/ui/popover"
-import { useDebounce } from "@/shared/hooks/useDebounce"
 import { useMediaQuery } from "@/shared/hooks/useMediaQuery"
 
 export interface SelectableItem {
   id: string;
   displayName: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | undefined;
 }
 
-interface DebouncedResponsiveComboboxProps<T extends SelectableItem> {
+interface ResponsiveComboboxProps<T extends SelectableItem> {
   onSelect: (item: T) => void;
-  items?: T[];
-  fetchItems?: (query: string) => Promise<T[]>;
+  items: T[];
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
@@ -39,7 +37,6 @@ interface DebouncedResponsiveComboboxProps<T extends SelectableItem> {
 }
 
 function ComboboxContent<T extends SelectableItem>({
-  isLoading,
   displayedItems,
   emptyMessage,
   selectedItem,
@@ -49,7 +46,6 @@ function ComboboxContent<T extends SelectableItem>({
   placeholder,
   label,
 }: {
-  isLoading: boolean;
   displayedItems: T[];
   emptyMessage: string;
   selectedItem: T | null;
@@ -60,25 +56,22 @@ function ComboboxContent<T extends SelectableItem>({
   label: string;
 }) {
   return (
-    <Command className="overflow-hidden" aria-label={label}>
+    <Command className="overflow-visible" aria-label={label}>
       <CommandInput
         placeholder={placeholder}
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
       <div
-        className="command-scroll-area max-h-[300px] overflow-y-auto"
+        className="max-h-[300px] overflow-y-auto"
         role="listbox"
         aria-label={`${label} options`}
+        onWheel={(e) => e.stopPropagation()}
       >
-        {isLoading ? (
-          <CommandEmpty className="text-sm text-gray-500 text-center p-2">
-            Loading...
-          </CommandEmpty>
-        ) : displayedItems.length === 0 ? (
+        {displayedItems.length === 0 ? (
           <CommandEmpty>{emptyMessage}</CommandEmpty>
         ) : (
-          <CommandGroup>
+          <CommandGroup className="overflow-visible">
             {displayedItems.map((item) => (
               <CommandItem
                 aria-selected={selectedItem?.id === item.id}
@@ -104,55 +97,25 @@ function ComboboxContent<T extends SelectableItem>({
   )
 }
 
-export function DebouncedResponsiveCombobox<T extends SelectableItem>({
+export function ResponsiveCombobox<T extends SelectableItem>({
   onSelect,
   items,
-  fetchItems,
   placeholder = "Search...",
   emptyMessage = "No items found.",
   className,
   label = "Select an option",
-}: DebouncedResponsiveComboboxProps<T>) {
+}: ResponsiveComboboxProps<T>) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedItem, setSelectedItem] = React.useState<T | null>(null)
-  const [displayedItems, setDisplayedItems] = React.useState<T[]>([])
-  const [isLoading, setIsLoading] = React.useState(false)
 
-  const debouncedSearchQuery = useDebounce(searchQuery, 150)
-
-  // Handle static items (constants)
-  React.useEffect(() => {
-    if (items) {
-      const filtered = items.filter(item =>
-        item.displayName.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-      )
-      setDisplayedItems(filtered)
-    }
-  }, [items, debouncedSearchQuery])
-
-  // Handle API-based items
-  React.useEffect(() => {
-    async function fetchData() {
-      if (!fetchItems) return
-
-      setIsLoading(true)
-      try {
-        const results = await fetchItems(debouncedSearchQuery)
-        setDisplayedItems(results)
-      } catch (error) {
-        console.error('Error fetching items:', error)
-        setDisplayedItems([])
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    if (fetchItems) {
-      fetchData()
-    }
-  }, [fetchItems, debouncedSearchQuery])
+  const displayedItems = React.useMemo(() => {
+    if (!searchQuery) return items;
+    return items.filter(item =>
+      item.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [items, searchQuery]);
 
   const handleSelect = React.useCallback((item: T) => {
     setSelectedItem(item)
@@ -177,7 +140,6 @@ export function DebouncedResponsiveCombobox<T extends SelectableItem>({
 
   const commonContent = (
     <ComboboxContent
-      isLoading={isLoading}
       displayedItems={displayedItems}
       emptyMessage={emptyMessage}
       selectedItem={selectedItem}
@@ -196,7 +158,7 @@ export function DebouncedResponsiveCombobox<T extends SelectableItem>({
           {commonTriggerButton}
         </PopoverTrigger>
         <PopoverContent
-          className="w-full p-0"
+          className="w-[300px] p-0"
           align="start"
           side="bottom"
           sideOffset={5}
@@ -215,7 +177,7 @@ export function DebouncedResponsiveCombobox<T extends SelectableItem>({
         {commonTriggerButton}
       </DrawerTrigger>
       <DrawerContent>
-        <div className="mt-4 border-t p-4">
+        <div className="mt-4 border-t p-4 w-[300px]">
           {commonContent}
         </div>
       </DrawerContent>
@@ -223,4 +185,4 @@ export function DebouncedResponsiveCombobox<T extends SelectableItem>({
   )
 }
 
-DebouncedResponsiveCombobox.displayName = 'DebouncedResponsiveCombobox'
+ResponsiveCombobox.displayName = 'ResponsiveCombobox'
