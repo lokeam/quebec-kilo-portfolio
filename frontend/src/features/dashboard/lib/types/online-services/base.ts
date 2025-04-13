@@ -13,6 +13,7 @@ export interface BaseOnlineService {
   status: ServiceStatusCode;
   createdAt: string;
   updatedAt: string;
+  isSubscriptionService: boolean;
 };
 
 /**

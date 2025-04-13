@@ -49,51 +49,44 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/shared/components/ui/utils';
 import { Input } from "@/shared/components/ui/input";
-import { DebouncedResponsiveCombobox } from '@/shared/components/ui/DebouncedResponsiveCombobox/DebouncedResponsiveCombobox';
+import { ResponsiveCombobox } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 import { PAYMENT_METHODS } from '@/shared/constants/payment';
-import { BILLING_CYCLES } from '@/features/dashboard/lib/types/spend-tracking/constants';
 
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { SelectableItem } from '@/shared/components/ui/DebouncedResponsiveCombobox/DebouncedResponsiveCombobox';
+import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 
 
 // Utils
 import { ServiceCombobox } from '../../ServiceCombobox/ServiceCombobox';
 
-export const OnlineServiceFormSchema = z.object({
-  service: z.custom<OnlineService | null>()
-    .refine((service) => service !== null, {
-      message: "Please select a service"
-    }),
-  expenseType: z.string().optional().refine(
-    (val) => !val || ['1 month', '3 months', '6 months', '1 year'].includes(val),
-    "Please select a valid expense type"
-  ),
-  cost: z.number()
-    .min(0, "Cost must be at least 0")
-    .default(0),
-  billingPeriod: z.string().optional(),
-  nextPaymentDate: z.date()
-    .optional()
-    .refine((date) => {
-      if (!date) return true;
-      return date >= new Date();
-    }, "Payment date must be in the future"),
-  paymentMethod: z.custom<SelectableItem>()
-    .optional()
-    .refine((method) => !method || (method.id && method.displayName), {
-      message: "Please select a valid payment method"
-    })
-});
-
-const validateFormProgress = (formState: {
+export type OnlineServiceFormData = {
   service: OnlineService | null;
   expenseType?: string;
-  cost?: number;
+  cost: number;
   billingPeriod?: string;
   nextPaymentDate?: Date;
   paymentMethod?: SelectableItem;
-}): boolean => {
+};
+
+type FormValues = {
+  service: OnlineService | null;
+  expenseType?: string;
+  cost: number;
+  billingPeriod?: string;
+  nextPaymentDate?: Date;
+  paymentMethod?: SelectableItem;
+};
+
+export const OnlineServiceFormSchema = z.object({
+  service: z.custom<OnlineService | null>().refine((service) => service !== null, "Please select a service"),
+  expenseType: z.string().optional(),
+  cost: z.number().default(0),
+  billingPeriod: z.string().optional(),
+  nextPaymentDate: z.date().optional(),
+  paymentMethod: z.custom<SelectableItem>().optional()
+});
+
+const validateFormProgress = (formState: FormValues): boolean => {
   const {
     service,
     expenseType,
@@ -106,12 +99,12 @@ const validateFormProgress = (formState: {
   // First check if service exists
   if (!service) return false;
 
-  // For free services, only require service selection
-  if (service?.billing?.cycle === 'NA') {
+  // For non-subscription services, only require service selection
+  if (!service.isSubscriptionService) {
     return true;
   }
 
-  // For paid services, validate required fields
+  // For subscription services, validate required fields
   if (!expenseType) return false;
   if (typeof cost !== 'number' || cost <= 0) return false;
   if (!nextPaymentDate) return false;
@@ -139,15 +132,8 @@ interface OnlineServiceData {
 }
 
 interface OnlineServiceFormProps {
-  onSuccess?: (data: z.infer<typeof OnlineServiceFormSchema>) => void;
-  defaultValues?: {
-    service: OnlineService | null;
-    expenseType?: string;
-    cost?: number;
-    billingPeriod?: string;
-    nextPaymentDate?: Date;
-    paymentMethod?: SelectableItem;
-  };
+  onSuccess?: (data: OnlineServiceFormData) => void;
+  defaultValues?: Partial<FormValues>;
   buttonText?: string;
   serviceData?: OnlineServiceData;
   isEditing?: boolean;
@@ -158,11 +144,7 @@ export function OnlineServiceForm({
   buttonText = "Add Service",
   defaultValues = {
     service: null,
-    expenseType: undefined,
-    cost: 0,
-    billingPeriod: undefined,
-    nextPaymentDate: undefined,
-    paymentMethod: undefined,
+    cost: 0
   },
   serviceData,
   isEditing = false,
@@ -176,18 +158,11 @@ export function OnlineServiceForm({
   });
 
   /* Specific form components creates their own useForm hook instances */
-  const form = useForm<{
-    service: OnlineService | null;
-    expenseType?: string;
-    cost: number;
-    billingPeriod?: string;
-    nextPaymentDate?: Date;
-    paymentMethod?: SelectableItem;
-  }>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(OnlineServiceFormSchema),
     defaultValues: isEditing && serviceData
       ? {
-        service: serviceData.service || null,
+        service: serviceData.service,
         expenseType: serviceData.expenseType,
         cost: serviceData.cost || 0,
         billingPeriod: serviceData.billingPeriod,
@@ -197,28 +172,18 @@ export function OnlineServiceForm({
       : defaultValues
   });
 
-  const { watch, formState: {
-    isValid,
-    errors,
-  }} = form;
+  const { watch, formState: { isValid, errors } } = form;
 
   const selectedService = watch('service');
-  const expenseType = watch('expenseType');
-  const cost = watch('cost');
-
-  const isFreePlan =
-    !selectedService?.billing?.cycle
-    || selectedService?.billing?.cycle === BILLING_CYCLES.NA;
-
-  const shouldShowExpenseSection = !!selectedService;
-  const shouldShowCostSection = isFreePlan ? false : !!expenseType;
-  const shouldShowBillingSection = isFreePlan ? false : !!cost;
+  console.log('Selected Service:', selectedService);
+  const isFreePlan = !selectedService?.isSubscriptionService;
+  console.log('Is Free Plan:', isFreePlan, 'isSubscriptionService:', selectedService?.isSubscriptionService);
 
   // If service data changes AND we are editing, update form values
   useEffect(() => {
     if (isEditing && serviceData) {
       form.reset({
-        service: serviceData.service || null,
+        service: serviceData.service,
         expenseType: serviceData.expenseType,
         cost: serviceData.cost || 0,
         billingPeriod: serviceData.billingPeriod,
@@ -238,7 +203,6 @@ export function OnlineServiceForm({
   });
 
   const handleSubmit = useCallback((data: z.infer<typeof OnlineServiceFormSchema>) => {
-    // Transform form data to match API expectations
     const servicePayload = {
       id: isEditing && serviceData ? serviceData.id : undefined,
       name: data.service?.name || 'Unknown Service',
@@ -260,8 +224,6 @@ export function OnlineServiceForm({
     } else {
       locationManager.create(servicePayload);
     }
-
-    // Note: Don't use toast here as hooks in useLocationManager handle that
   }, [isEditing, serviceData, locationManager]);
 
   const handleDelete = useCallback((id: string) => {
@@ -282,7 +244,7 @@ export function OnlineServiceForm({
               <ServiceCombobox
                 onServiceSelect={(service: OnlineService) => {
                   field.onChange(service);
-                  form.trigger('service'); // Trigger custom validation when valid
+                  form.trigger('service');
                 }}
                 placeholder="Search for a service..."
                 emptyMessage="No services found."
@@ -293,126 +255,142 @@ export function OnlineServiceForm({
         />
 
         {/* Expense Section - Only show for paid services */}
-        <FormField
-          control={form.control}
-          name="expenseType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1 month">Monthly</SelectItem>
-                  <SelectItem value="3 months">Quarterly</SelectItem>
-                  <SelectItem value="6 months">Bi-Annually</SelectItem>
-                  <SelectItem value="1 year">Annually</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                How often do you pay to use this service?
-              </FormDescription>
-            </FormItem>
-          )}
-        />
+        {!isFreePlan && (
+          <FormField
+            control={form.control}
+            name="expenseType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1 month">Monthly</SelectItem>
+                    <SelectItem value="3 months">Quarterly</SelectItem>
+                    <SelectItem value="6 months">Bi-Annually</SelectItem>
+                    <SelectItem value="1 year">Annually</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  How often do you pay to use this service?
+                </FormDescription>
+                <FormMessage>{errors.expenseType?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Cost Section - Only show for paid services */}
-        <FormField
-          control={form.control}
-          name="cost"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cost</FormLabel>
-              <div className="flex">
-                <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-transparent">
-                  <span className="text-sm text-gray-500">$</span>
+        {!isFreePlan && (
+          <FormField
+            control={form.control}
+            name="cost"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost <span className="text-red-500">*</span></FormLabel>
+                <div className="flex">
+                  <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-transparent">
+                    <span className="text-sm text-gray-500">$</span>
+                  </div>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="rounded-l-none"
+                      value={field.value || ''}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        field.onChange(value === '' ? 0 : parseFloat(value));
+                      }}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
                 </div>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="rounded-l-none"
-                    value={field.value || ''}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      field.onChange(value === '' ? 0 : parseFloat(value));
-                    }}
-                    onBlur={field.onBlur}
-                  />
-                </FormControl>
-              </div>
-              <FormDescription>
-                Approximately how much is each payment?
-              </FormDescription>
-            </FormItem>
-          )}
-        />
+                <FormDescription>
+                  Approximately how much is each payment?
+                </FormDescription>
+                <FormMessage>{errors.cost?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Billing Section - Only show for paid services */}
-        <FormField
-          control={form.control}
-          name="nextPaymentDate"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Around what date is your next payment due?</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date()
-                    }
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {!isFreePlan && (
+          <FormField
+            control={form.control}
+            name="nextPaymentDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Next payment date <span className="text-red-500">*</span></FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date < new Date()
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormDescription>
+                  When is your next payment due?
+                </FormDescription>
+                <FormMessage>{errors.nextPaymentDate?.message}</FormMessage>
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Payment Method Section - Only show for paid services */}
-        <FormField
-          control={form.control}
-          name="paymentMethod"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>How do you pay for this service?</FormLabel>
-              <DebouncedResponsiveCombobox
-                onSelect={(method: SelectableItem) => {
-                  field.onChange(method);
-                  form.trigger('paymentMethod');
-                }}
-                items={Object.values(PAYMENT_METHODS)}
-                placeholder="Select a Payment Method"
-                emptyMessage="No payment methods found."
-              />
-              <FormMessage>{errors.paymentMethod?.message?.toString()}</FormMessage>
-            </FormItem>
-          )}
-        />
+        {!isFreePlan && (
+          <FormField
+            control={form.control}
+            name="paymentMethod"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
+                <ResponsiveCombobox
+                  onSelect={(method: SelectableItem) => {
+                    field.onChange(method);
+                    form.trigger('paymentMethod');
+                  }}
+                  items={Object.values(PAYMENT_METHODS)}
+                  placeholder="Select a Payment Method"
+                  emptyMessage="No payment methods found."
+                />
+                <FormDescription>
+                  How do you pay for this service?
+                </FormDescription>
+                <FormMessage>{errors.paymentMethod?.message?.toString()}</FormMessage>
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Submit Button */}
         <div className="flex justify-between w-full mt-6">
@@ -443,42 +421,42 @@ export function OnlineServiceForm({
             </Button>
           )}
         </div>
-
-        {/* Delete Dialog */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Deletion</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this service? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDeleteDialogOpen(false)}
-                disabled={locationManager.isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(serviceData?.id || '')}
-                disabled={locationManager.isDeleting}
-              >
-                {locationManager.isDeleting ? (
-                  <>
-                    <span className="animate-spin mr-2">⊚</span>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </FormContainer>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this service? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={locationManager.isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => handleDelete(serviceData?.id || '')}
+              disabled={locationManager.isDeleting}
+            >
+              {locationManager.isDeleting ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

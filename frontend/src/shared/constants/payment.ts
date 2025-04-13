@@ -60,9 +60,10 @@ export type PaymentMethodKey =
   | 'visa';
 
 export interface PaymentMethod {
+  readonly id: string;
   readonly displayName: string;
-  readonly id: PaymentMethodId;
   readonly type: 'credit' | 'debit' | 'digital' | 'other';
+  [key: string]: string | number | boolean | undefined;
 }
 
 export type PaymentMethodRecord = {
