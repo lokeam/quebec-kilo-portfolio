@@ -19,8 +19,48 @@
 #   - No sensitive service is exposed publicly (only the API is exposed with a published port).
 #   - Metrics are collected and visualized for monitoring system health.
 #
+# ---------------------------------------------------------------------------
+# Development Workflow
+# ---------------------------------------------------------------------------
+#
+# Normal Development Day:
+#   make dev-backend    # Start all backend services
+#   make stop          # Take a break (preserves data)
+#   make dev-backend    # Come back (data still there)
+#   make stop          # End of day
+#
+# When to Use Reset:
+#   - Starting a new feature that changes database schema
+#   - Database is acting weird and you want to start fresh
+#   - Preparing for a demo to stakeholders
+#   - Testing from a clean slate
+#
+# Example Workflows:
+#
+# 1. Normal Development:
+#    make dev-backend    # Start work
+#    make stop          # Take lunch
+#    make dev-backend    # Continue work
+#    make stop          # End day
+#
+# 2. Starting New Feature:
+#    make reset         # Clean slate
+#    make dev-backend    # Start fresh
+#
+# 3. Database Issues:
+#    make reset         # Reset everything
+#    make dev-backend    # Start clean
+#
+# 4. Demo Preparation:
+#    make reset         # Clean state
+#    make dev-backend    # Start services
+#
+# ⚠️ WARNING: make reset DELETES ALL DATA
+# Use with caution and only when you want to start completely fresh.
+#
+# ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -32,25 +72,111 @@ BLUE := \033[34m
 GREEN := \033[32m
 RED := \033[31m
 RESET := \033[0m
+YELLOW := \033[33m
 
 # ---------------------------------------------------------------------------
-# Reset: Forcefully tear down containers + remove persistent volumes
+# Stop: Safely stop all services while preserving data
 #
-# This target stops all running containers and removes all associated volumes,
-# including forcing the removal of the designated Redis volume. It also prunes
-# any dangling volumes from the Docker system.
+# This target stops all services but preserves all volumes and data.
+# Use this for normal development when you want to restart services.
 #
-# Usage: make reset
+# Usage: make stop
+# ---------------------------------------------------------------------------
+stop:
+	@echo "$(BLUE)Stopping all services (preserving data)...$(RESET)"
+	docker compose --env-file .env.dev down
+	@echo "$(GREEN)Services stopped. Data preserved.$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Clean: Remove containers and networks, preserve volumes
 #
-# ⚠️ Warning: This is a destructive operation that removes persistent data.
+# This target removes all containers and networks but preserves volumes.
+# Use this when you want to clean up containers but keep your data.
+#
+# Usage: make clean
+# ---------------------------------------------------------------------------
+clean:
+	@echo "$(BLUE)Cleaning containers and networks (preserving data)...$(RESET)"
+	docker compose --env-file .env.dev down
+	@echo "$(GREEN)Cleanup complete. Data preserved.$(RESET)"
+
+# ---------------------------------------------------------------------------
+# List Backups: Show available database backups
+#
+# This target lists all available database backups.
+#
+# Usage: make list-backups
+# ---------------------------------------------------------------------------
+list-backups:
+	@echo "$(BLUE)Available database backups:$(RESET)"
+	@ls -lh backups/qkoapi_*.sql 2>/dev/null || echo "$(YELLOW)No backups found$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Backup: Create a backup of the database
+#
+# This target creates a timestamped backup of the database.
+# Automatically keeps only the last 5 backups.
+#
+# Usage: make backup
+# ---------------------------------------------------------------------------
+backup:
+	@echo "$(BLUE)Creating database backup...$(RESET)"
+	@mkdir -p backups
+	@docker compose exec -T postgres pg_dump -U postgres qkoapi > backups/qkoapi_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)Backup created successfully$(RESET)"
+	@echo "$(BLUE)Rotating backups...$(RESET)"
+	@ls -t backups/qkoapi_*.sql 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# Check Database: Show recent database changes
+#
+# This target shows recent changes in the database.
+# Useful before resetting to ensure no important data is lost.
+#
+# Usage: make check-db
+# ---------------------------------------------------------------------------
+check-db:
+	@echo "$(BLUE)Checking recent database changes...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -c "\
+		SELECT table_name, COUNT(*) as row_count \
+		FROM information_schema.tables \
+		WHERE table_schema = 'public' \
+		GROUP BY table_name \
+		ORDER BY table_name;"
+	@echo "$(YELLOW)Note: This shows table row counts. Consider backing up if you have important data.$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Reset: Forcefully remove everything including data
+#
+# This target removes all containers, networks, and volumes.
+# Use this when you want to start completely fresh.
+#
+# Usage: make reset [BACKUP=true] [FORCE=true]
+#   BACKUP=true  Create a backup before reset (default: true)
+#   FORCE=true   Skip database check (default: false)
+#
+# Example:
+#   make reset              # Checks database, creates backup, then resets
+#   make reset FORCE=true   # Skips checks and backup
 # ---------------------------------------------------------------------------
 reset:
-	@echo "Stopping containers and removing volumes..."
-	docker compose down -v
-	@echo "Forcibly removing redis volume..."
+	@if [ "$(FORCE)" != "true" ]; then \
+		$(MAKE) check-db; \
+		echo "$(YELLOW)Are you sure you want to reset? This will delete all data. [y/N]$(RESET)"; \
+		read -r response; \
+		if [[ ! "$$response" =~ ^[Yy]$$ ]]; then \
+			echo "$(BLUE)Reset cancelled$(RESET)"; \
+			exit 1; \
+		fi; \
+	fi
+	@if [ "$(BACKUP)" != "false" ]; then \
+		$(MAKE) backup; \
+	fi
+	@echo "$(BLUE)Resetting everything (including data)...$(RESET)"
+	docker compose --env-file .env.dev down -v
 	docker volume rm -f $(REDIS_VOLUME)
-	@echo "Pruning dangling volumes (if any)..."
 	docker volume prune -f
+	@echo "$(GREEN)Complete reset complete. All data removed.$(RESET)"
 
 # ---------------------------------------------------------------------------
 # Up: Build + start backend services (excluding frontend)
@@ -85,28 +211,6 @@ up:
 # ---------------------------------------------------------------------------
 restart: reset up
 
-clean:
-	docker compose down
-
-# ---------------------------------------------------------------------------
-# Restart-All: Fully reset the environment + bring up ALL services (backend & frontend)
-#
-# This composite target calls the 'reset' target to clean up existing
-# containers and volumes, then starts both backend and frontend services.
-#
-# Usage: make restart-all
-#
-# ⚠️ Warning: This process is destructive as it removes all running containers
-# and volumes before restarting all services.
-# ---------------------------------------------------------------------------
-restart-all: CURRENT_ENV=development
-restart-all: check-docker check-env-files
-	@echo "$(BLUE)Fully resetting environment and starting all services (backend & frontend)...$(RESET)"
-	$(MAKE) reset
-	docker compose --env-file .env.dev up --build -d
-	@sleep 5
-	@$(MAKE) health
-
 # -----------------------------------------
 # Environment Initialization
 # -----------------------------------------
@@ -119,7 +223,10 @@ init-env:
 		cp .env.example .env.test && \
 		echo "$(GREEN)Created .env.test from example$(RESET)"; \
 	fi
-	@echo "$(BLUE)Remember to update passwords in your .env files$(RESET)"
+	@if [ "$(CURRENT_ENV)" = "production" ] && [ ! -f .env.prod ]; then \
+		echo "$(RED)Error: .env.prod not found$(RESET)"; \
+		exit 1; \
+	fi
 
 # -----------------------------------------
 # Pre-check Tasks
@@ -192,13 +299,6 @@ dev-backend: check-docker check-env-files
 # Shut down the development environment
 down:
 	docker compose --env-file .env.dev down -v
-
-# Clean up all resources
-clean:
-	@echo "$(BLUE)Cleaning up all resources...$(RESET)"
-	docker compose --env-file .env.dev down -v
-	docker system prune -f
-	@echo "$(GREEN)Cleanup complete$(RESET)"
 
 # ---------------------------------------------------------------------------
 # Full-Stack: Start all services including monitoring
@@ -427,3 +527,44 @@ help:
 	@echo " make run-with-sentry    - Run the API locally with Sentry enabled"
 	@echo " make test-sentry        - Test Sentry integration by triggering a test error"
 	@echo " make dev-with-sentry    - Start development environment with Sentry enabled"
+	@echo "\n$(BLUE)Database:$(RESET)"
+	@echo " make backup             - Create a database backup"
+	@echo " make restore BACKUP_FILE=path/to/backup.sql - Restore database from a backup"
+	@echo " make migrate            - Run database migrations"
+	@echo " make migrate-down       - Roll back database migrations"
+	@echo " make check-db           - Check database status"
+	@echo " make list-backups       - List available database backups"
+
+# ---------------------------------------------------------------------------
+# Restore: Restore database from backup
+#
+# This target restores the database from a specified backup file.
+#
+# Usage: make restore BACKUP_FILE=backups/qkoapi_20240101_120000.sql
+# ---------------------------------------------------------------------------
+restore:
+	@if [ -z "$(BACKUP_FILE)" ]; then \
+		echo "$(RED)Error: BACKUP_FILE is required$(RESET)"; \
+		echo "Usage: make restore BACKUP_FILE=path/to/backup.sql"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(BACKUP_FILE)" ]; then \
+		echo "$(RED)Error: Backup file $(BACKUP_FILE) not found$(RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Restoring database from $(BACKUP_FILE)...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi < $(BACKUP_FILE)
+	@echo "$(GREEN)Database restored successfully$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Database: Database management commands
+# ---------------------------------------------------------------------------
+migrate:
+	@echo "$(BLUE)Running database migrations...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150000_create_initial_schema.up.sql
+	@echo "$(GREEN)Migrations completed successfully$(RESET)"
+
+migrate-down:
+	@echo "$(BLUE)Rolling back database migrations...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150000_create_initial_schema.down.sql
+	@echo "$(GREEN)Migrations rolled back successfully$(RESET)"
