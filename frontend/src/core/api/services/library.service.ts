@@ -1,3 +1,10 @@
+/**
+ * Library Service API
+ *
+ * For API standards and best practices, see:
+ * @see {@link ../../../docs/api-standards.md}
+ */
+
 import { axiosInstance } from "@/core/api/client/axios-instance";
 
 const LIBRARY_ENDPOINT = '/api/v1/library/add';

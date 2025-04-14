@@ -1,3 +1,10 @@
+/**
+ * Sublocation Mutations
+ *
+ * For API standards and best practices, see:
+ * @see {@link ../../docs/api-standards.md}
+ */
+
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { useQueryClient } from '@tanstack/react-query';
 import { useBackendMutation } from '@/core/api/hooks/useBackendMutation';

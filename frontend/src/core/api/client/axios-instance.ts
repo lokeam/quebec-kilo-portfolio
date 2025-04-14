@@ -4,6 +4,13 @@ import type { ApiError } from '@/core/api/types/api.types';
 import { logger } from '@/core/utils/logger/logger';
 
 /**
+ * Axios Instance Configuration
+ *
+ * For API standards and best practices, see:
+ * @see {@link ../../docs/api-standards.md}
+ */
+
+/**
  * Even though Axios methods return just (T) ie: data, not the full response.
  *
  * This is complete bullshit that I need to write this just to get Axios to work

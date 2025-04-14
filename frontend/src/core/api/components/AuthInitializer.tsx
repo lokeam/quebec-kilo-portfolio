@@ -52,3 +52,10 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
+/**
+ * Auth Initializer Component
+ *
+ * For API standards and best practices, see:
+ * @see {@link ../../docs/api-standards.md}
+ */

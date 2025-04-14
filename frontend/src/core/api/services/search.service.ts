@@ -1,3 +1,10 @@
+/**
+ * Search Service API
+ *
+ * For API standards and best practices, see:
+ * @see {@link ../../../docs/api-standards.md}
+ */
+
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import type { SearchResponse } from '@/core/api/types/search.types';
 import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
