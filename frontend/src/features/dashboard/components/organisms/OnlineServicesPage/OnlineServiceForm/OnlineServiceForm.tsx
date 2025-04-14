@@ -37,13 +37,13 @@ import {
 // Hooks
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
+import { useCreateOnlineService, useUpdateOnlineService, useDeleteOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
 
 // Zod
 import { z } from "zod"
 
 // Icons
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
-import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 import { CalendarIcon } from 'lucide-react';
 
 import { format } from 'date-fns';
@@ -152,10 +152,12 @@ export function OnlineServiceForm({
 }: OnlineServiceFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Setup location manager hook with proper type
-  const locationManager = useLocationManager({
-    type: 'digital'
-  });
+  // Replace locationManager with mutation hooks using correct property names
+  const createMutation = useCreateOnlineService();
+  const updateMutation = useUpdateOnlineService();
+  const deleteMutation = useDeleteOnlineService();
+
+  const isLoading = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   /* Specific form components creates their own useForm hook instances */
   const form = useForm<FormValues>({
@@ -207,7 +209,7 @@ export function OnlineServiceForm({
       id: isEditing && serviceData ? serviceData.id : undefined,
       name: data.service?.name || 'Unknown Service',
       parentId: null,
-      type: 'digital',
+      type: 'digital' as const,
       parentLocationId: 'root',
       metadata: {
         service: data.service,
@@ -220,16 +222,16 @@ export function OnlineServiceForm({
     };
 
     if (isEditing && serviceData) {
-      locationManager.update(servicePayload);
+      updateMutation.mutate(servicePayload);
     } else {
-      locationManager.create(servicePayload);
+      createMutation.mutate(servicePayload);
     }
-  }, [isEditing, serviceData, locationManager]);
+  }, [isEditing, serviceData, createMutation, updateMutation]);
 
   const handleDelete = useCallback((id: string) => {
-    locationManager.delete(id);
+    deleteMutation.mutate(id);
     setDeleteDialogOpen(false);
-  }, [locationManager]);
+  }, [deleteMutation]);
 
   return (
     <>
@@ -397,9 +399,9 @@ export function OnlineServiceForm({
           <Button
             type="submit"
             className={isEditing && onDelete ? "flex-1" : "w-full"}
-            disabled={!isFormValid || locationManager.isCreating || locationManager.isUpdating}
+            disabled={!isFormValid || isLoading}
           >
-            {(locationManager.isCreating || locationManager.isUpdating) ? (
+            {(createMutation.isPending || updateMutation.isPending) ? (
               <>
                 <span className="animate-spin mr-2">⊚</span>
                 {isEditing ? "Updating..." : "Creating..."}
@@ -415,9 +417,9 @@ export function OnlineServiceForm({
               variant="destructive"
               className="ml-2"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={locationManager.isDeleting}
+              disabled={deleteMutation.isPending}
             >
-              {locationManager.isDeleting ? "Deleting..." : "Delete"}
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           )}
         </div>
@@ -436,16 +438,16 @@ export function OnlineServiceForm({
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={locationManager.isDeleting}
+              disabled={deleteMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={() => handleDelete(serviceData?.id || '')}
-              disabled={locationManager.isDeleting}
+              disabled={deleteMutation.isPending}
             >
-              {locationManager.isDeleting ? (
+              {deleteMutation.isPending ? (
                 <>
                   <span className="animate-spin mr-2">⊚</span>
                   Deleting...

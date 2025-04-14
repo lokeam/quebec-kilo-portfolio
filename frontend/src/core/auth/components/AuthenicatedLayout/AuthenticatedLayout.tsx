@@ -1,4 +1,3 @@
-
 // Components
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
 import { NotifyPopover } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotifyPopover';
@@ -13,9 +12,12 @@ import { Toaster } from '@/shared/components/ui/sonner';
 // Utils
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/shared/components/ui/utils';
-
+import { usePrefetchDigitalServicesCatalog } from '@/core/api/queries/useDigitalServicesCatalog';
 
 export default function AuthenticatedLayout() {
+  // This now safely runs after authentication is complete
+  usePrefetchDigitalServicesCatalog();
+
   return (
     <>
       {/* Shadcn UI Sidebar */}
