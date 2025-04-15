@@ -249,6 +249,9 @@ func (s *Server) setupMiddleware(mux *chi.Mux) {
 	mux.Use(middleware.RequestID)  // Trace requests
 	mux.Use(middleware.RealIP)     // Get actual client IP
 
+	// Custom request ID middleware
+	mux.Use(customMiddleware.EnrichRequestContext)
+
 	// Sentry Middleware
 	mux.Use(customMiddleware.SentryMiddleware)
 

@@ -11,6 +11,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
 /*
@@ -407,7 +411,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the location exists AND belongs to the user
 		THEN the adapter updates the location
 	*/
-	t.Run(`UpdatePhysicalLocation - Successfully updates a location`, func(t *testing.T){
+	t.Run(`UpdatePhysicalLocation - Successfully updates a location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -417,46 +421,56 @@ func TestPhysicalDbAdapter(t *testing.T) {
 
 		userID := "test-user-id"
 		locationID := "test-location-id"
+		now := time.Now()
 
 		location := models.PhysicalLocation{
-			ID:                 locationID,
-			UserID:             userID,
-			Name:               "Updated Location",
-			Label:              "Updated Label",
-			LocationType:       "Updated Type",
-			MapCoordinates:     "789,012",
+			ID:             locationID,
+			UserID:         userID,
+			Name:           "Updated Location",
+			Label:          "Updated Label",
+			LocationType:   "Updated Type",
+			MapCoordinates: "789,012",
+			BgColor:        "red",
 		}
 
 		// Setup mock expectations
-		mock.ExpectExec("UPDATE physical_locations").
+		mock.ExpectQuery("SELECT id FROM physical_locations").
+			WithArgs(locationID, userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+		mock.ExpectQuery("UPDATE physical_locations").
 			WithArgs(
+				locationID,
+				userID,
 				"Updated Location",
 				"Updated Label",
 				"Updated Type",
 				"789,012",
-				sqlmock.AnyArg(),
-				locationID,
-				userID,
+				"red",
 			).
-			WillReturnResult(sqlmock.NewResult(0, 1))
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
+			}).AddRow(
+				locationID, userID, "Updated Location", "Updated Label", "Updated Type", "789,012", "red", now, now,
+			))
 
 		// Execute
-		err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
+		updatedLocation, err := adapter.UpdatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, location.ID, updatedLocation.ID)
+		assert.Equal(t, location.UserID, updatedLocation.UserID)
+		assert.Equal(t, location.Name, updatedLocation.Name)
+		assert.Equal(t, location.Label, updatedLocation.Label)
+		assert.Equal(t, location.LocationType, updatedLocation.LocationType)
+		assert.Equal(t, location.MapCoordinates, updatedLocation.MapCoordinates)
+		assert.Equal(t, location.BgColor, updatedLocation.BgColor)
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
 	})
 
-	/*
-		GIVEN a request to UPDATE a physical location
-		WHEN the location does not exist or doesn't belong to the user
-		THEN the adapter returns an error
-	*/
 	t.Run(`UpdatePhysicalLocation - Returns error when location not found`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
@@ -475,38 +489,25 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
+			BgColor:        "red",
 		}
 
 		// Set up mock expectations
-		mock.ExpectExec("UPDATE physical_locations").
-			WithArgs(
-				"Updated Location",
-				"Updated Label",
-				"Updated Type",
-				"789,012",
-				sqlmock.AnyArg(),
-				locationID,
-				userID,
-			).
-			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectQuery("SELECT id FROM physical_locations").
+			WithArgs(locationID, userID).
+			WillReturnError(sql.ErrNoRows)
 
-
-		err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
+		// Execute
+		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
-		if err == nil {
-			t.Errorf("Expected an error, got nil")
-		}
+		assert.Error(t, err)
+		assert.Equal(t, ErrUnauthorizedLocation, err)
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
 	})
 
-	/*
-		GIVEN a request to UPDATE a physical location
-		WHEN the database returns an error
-		THEN the adapter also returns an error
-	*/
 	t.Run(`UpdatePhysicalLocation - Handles database errors`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
@@ -526,47 +527,41 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
+			BgColor:        "red",
 		}
 
 		// Set up mock expectations
-		mock.ExpectExec("UPDATE physical_locations").
+		mock.ExpectQuery("SELECT id FROM physical_locations").
+			WithArgs(locationID, userID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+		mock.ExpectQuery("UPDATE physical_locations").
 			WithArgs(
+				locationID,
+				userID,
 				"Updated Location",
 				"Updated Label",
 				"Updated Type",
 				"789,012",
-				sqlmock.AnyArg(),
-				locationID,
-				userID,
+				"red",
 			).
 			WillReturnError(dbError)
 
 		// Execute the function
-		err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
+		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
-		if err == nil {
-			t.Errorf("Expected an error, got nil")
-		}
-		if !errors.Is(err, dbError) {
-			t.Errorf("Expected error to contain %v, got %v", dbError, err)
-		}
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, dbError))
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
 	})
 
-	/*
-		GIVEN a request to UPDATE a physical location
-		WHEN the userID doesn't match the location's userID
-		THEN the adapter returns an UNAUTHORIZED error
-	*/
 	t.Run("UpdatePhysicalLocation - Returns error when user is not authorized", func(t *testing.T) {
 		// Setup
 		adapter, _, err := setupMockDB()
-		if err != nil {
-			t.Fatalf("Failed to setup mock DB: %v", err)
-		}
+		require.NoError(t, err)
 		defer adapter.db.Close()
 
 		userID := "test-user-id"
@@ -580,18 +575,15 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
+			BgColor:        "red",
 		}
 
 		// Execute the function
-		err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
+		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
-		if err == nil {
-			t.Errorf("Expected an unauthorized error, got nil")
-		}
-		if !errors.Is(err, ErrUnauthorizedLocation) {
-			t.Errorf("Expected unauthorized error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, ErrUnauthorizedLocation, err)
 	})
 
 	/*
@@ -727,4 +719,290 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		}
 	})
 
+}
+
+// func setupTestAdapter(t *testing.T) (*PhysicalDbAdapter, func()) {
+// 	appCtx := &appcontext.AppContext{
+// 		Config: &config.Config{
+// 			Postgres: &config.PostgresConfig{
+// 				ConnectionString: "postgres://postgres:postgres@localhost:5432/qko_test?sslmode=disable",
+// 			},
+// 		},
+// 		Logger: testutils.NewTestLogger(),
+// 	}
+
+// 	adapter, err := NewPhysicalDbAdapter(appCtx)
+// 	require.NoError(t, err)
+
+// 	cleanup := func() {
+// 		adapter.db.Close()
+// 	}
+
+// 	return adapter, cleanup
+// }
+
+func setupMockDB() (*PhysicalDbAdapter, sqlmock.Sqlmock, error) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sqlxDB := sqlx.NewDb(db, "postgres")
+	adapter := &PhysicalDbAdapter{
+		db:     sqlxDB,
+		logger: testutils.NewTestLogger(),
+	}
+
+	return adapter, mock, nil
+}
+
+func TestUpdatePhysicalLocation_Success(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+	now := time.Now()
+
+	// Mock the authorization check
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+	// Mock the update query
+	mock.ExpectQuery("UPDATE physical_locations").
+		WithArgs(
+			locationID,
+			userID,
+			"Test Location",
+			"Test Label",
+			"test",
+			"45.5017,-73.5673",
+			"red",
+		).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
+		}).AddRow(
+			locationID, userID, "Test Location", "Test Label", "test", "45.5017,-73.5673", "red", now, now,
+		))
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	updatedLocation, err := adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.NoError(t, err)
+	assert.Equal(t, locationID, updatedLocation.ID)
+	assert.Equal(t, userID, updatedLocation.UserID)
+	assert.Equal(t, "Test Location", updatedLocation.Name)
+	assert.Equal(t, "Test Label", updatedLocation.Label)
+	assert.Equal(t, "test", updatedLocation.LocationType)
+	assert.Equal(t, "45.5017,-73.5673", updatedLocation.MapCoordinates)
+	assert.Equal(t, "red", updatedLocation.BgColor)
+}
+
+func TestUpdatePhysicalLocation_Unauthorized(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the database query to return no rows
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnError(sql.ErrNoRows)
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          "user2", // Different user ID
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+	assert.Equal(t, ErrUnauthorizedLocation, err)
+}
+
+func TestUpdatePhysicalLocation_DatabaseError(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the database query to return an error
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnError(sql.ErrConnDone)
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+}
+
+func TestUpdatePhysicalLocation_NotFound(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the database query to return no rows
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnError(sql.ErrNoRows)
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+	assert.Equal(t, ErrUnauthorizedLocation, err)
+}
+
+func TestUpdatePhysicalLocation_InvalidCoordinates(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the authorization check
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "invalid",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+}
+
+func TestUpdatePhysicalLocation_InvalidBgColor(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the authorization check
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "invalid",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+}
+
+func TestUpdatePhysicalLocation_EmptyName(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the authorization check
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "",
+		Label:           "Test Label",
+		LocationType:    "test",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
+}
+
+func TestUpdatePhysicalLocation_EmptyLocationType(t *testing.T) {
+	adapter, mock, err := setupMockDB()
+	require.NoError(t, err)
+	defer adapter.db.Close()
+
+	ctx := context.Background()
+	userID := "user1"
+	locationID := "loc1"
+
+	// Mock the authorization check
+	mock.ExpectQuery("SELECT id FROM physical_locations").
+		WithArgs(locationID, userID).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+
+	location := models.PhysicalLocation{
+		ID:              locationID,
+		UserID:          userID,
+		Name:            "Test Location",
+		Label:           "Test Label",
+		LocationType:    "",
+		MapCoordinates:  "45.5017,-73.5673",
+		BgColor:         "red",
+	}
+
+	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
+	assert.Error(t, err)
 }

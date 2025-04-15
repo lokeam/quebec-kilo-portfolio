@@ -7,6 +7,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/stretchr/testify/mock"
 )
 
 // DefaultSanitizer returns a MockSanitizer with a passing default.
@@ -65,79 +66,47 @@ func DefaultPhysicalValidator() *MockPhysicalValidator {
 }
 
 func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {
-	return &MockPhysicalDbAdapter{
-		GetPhysicalLocationsFunc: func(
-			ctx context.Context,
-			userID string,
-		) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{
-				{
-					ID:             "location-1",
-					UserID:         userID,
-					Name:           "Home",
-					Label:          "Primary",
-					LocationType:   "Home",
-					MapCoordinates: "40.7128,-74.0060",
-					CreatedAt:      time.Now(),
-					UpdatedAt:      time.Now(),
-				},
-			}, nil
-		},
-		GetPhysicalLocationFunc: func(
-			ctx context.Context,
-			userID,
-			locationID string,
-		) (*models.PhysicalLocation, error) {
-			return &models.PhysicalLocation{
-				ID:              locationID,
-				UserID:          userID,
-				Name:            "Home",
-				Label:           "Primary",
-				LocationType:    "Home",
-				MapCoordinates:  "40.7128,-74.0060",
-				CreatedAt:       time.Now(),
-				UpdatedAt:       time.Now(),
-			}, nil
-		},
-		CreatePhysicalLocationFunc: func(
-			ctx context.Context,
-			userID string,
-			location models.PhysicalLocation,
-		) error {
-			return nil
-		},
-		UpdatePhysicalLocationFunc: func(
-			ctx context.Context,
-			userID string,
-			location models.PhysicalLocation,
-		) error {
-			return nil
-		},
-		DeletePhysicalLocationFunc: func(
-			ctx context.Context,
-			userID,
-			locationID string,
-		) error {
-			return nil
-		},
+	m := &MockPhysicalDbAdapter{}
+
+	defaultLocation := models.PhysicalLocation{
+		ID:             "location-1",
+		Name:           "Home",
+		Label:          "Primary",
+		LocationType:   "Home",
+		MapCoordinates: "40.7128,-74.0060",
 	}
+
+	m.On("GetPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(defaultLocation, nil)
+	m.On("GetUserPhysicalLocations", mock.Anything, mock.Anything).
+		Return([]models.PhysicalLocation{defaultLocation}, nil)
+	m.On("AddPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(defaultLocation, nil)
+	m.On("UpdatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(defaultLocation, nil)
+	m.On("RemovePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+
+	return m
 }
 
 func DefaultPhysicalCacheWrapper() *MockPhysicalCacheWrapper {
-	return &MockPhysicalCacheWrapper{
-		GetCachedPhysicalLocationsFunc: func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return nil, errors.New("cache miss")
-		},
-		SetCachedPhysicalLocationsFunc: func(ctx context.Context, userID string, locations []models.PhysicalLocation) error {
-			return nil
-		},
-		InvalidateUserCacheFunc: func(ctx context.Context, userID string) error {
-			return nil
-		},
-		InvalidateLocationCacheFunc: func(ctx context.Context, userID, locationID string) error {
-			return nil
-		},
-	}
+	m := &MockPhysicalCacheWrapper{}
+
+	m.On("GetCachedPhysicalLocations", mock.Anything, mock.Anything).
+		Return(nil, errors.New("cache miss"))
+	m.On("SetCachedPhysicalLocations", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+	m.On("GetSingleCachedPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, false, errors.New("cache miss"))
+	m.On("SetSingleCachedPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+	m.On("InvalidateUserCache", mock.Anything, mock.Anything).
+		Return(nil)
+	m.On("InvalidateLocationCache", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil)
+
+	return m
 }
 
 // ---------- Sublocation ----------

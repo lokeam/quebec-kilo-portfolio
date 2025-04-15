@@ -74,7 +74,6 @@ func (pca *PhysicalCacheAdapter) SetSingleCachedPhysicalLocation(
 	location models.PhysicalLocation,
 ) error {
 	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, location.ID)
-
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, location)
 }
 

@@ -2,13 +2,14 @@ package physical
 
 import (
 	"context"
-	"errors"
+	"reflect"
 	"testing"
-	"time"
 
+	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
+	"github.com/stretchr/testify/mock"
 )
 
 /*
@@ -58,448 +59,330 @@ import (
 */
 
 type MockPhysicalDbAdapter struct {
-	GetPhysicalLocationsFunc func(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	GetPhysicalLocationFunc func(ctx context.Context, userID, locationID string) (*models.PhysicalLocation, error)
-	CreatePhysicalLocationFunc func(ctx context.Context, userID string, location models.PhysicalLocation) error
-	UpdatePhysicalLocationFunc func(ctx context.Context, userID string, location models.PhysicalLocation) error
-	DeletePhysicalLocationFunc func(ctx context.Context, userID, locationID string) error
+	mock.Mock
 }
 
-func newMockGamePhysicalServiceWithDefaults(logger *testutils.TestLogger) *GamePhysicalService {
-	mockConfig := mocks.NewMockConfig()
-
-	return &GamePhysicalService{
-		dbAdapter:      mocks.DefaultPhysicalDbAdapter(),
-		config:         mockConfig,
-		logger:         logger,
-		validator:      mocks.DefaultPhysicalValidator(),
-		sanitizer:      mocks.DefaultSanitizer(),
-		cacheWrapper:   mocks.DefaultPhysicalCacheWrapper(),
-	}
+func (m *MockPhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, locationID)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
+
+func (m *MockPhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).([]models.PhysicalLocation), args.Error(1)
+}
+
+func (m *MockPhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, location)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
+}
+
+func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, location)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
+}
+
+func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
+	args := m.Called(ctx, userID, locationID)
+	return args.Error(0)
+}
+
+// func newMockGamePhysicalServiceWithDefaults(logger *testutils.TestLogger) *GamePhysicalService {
+// 	mockConfig := mocks.NewMockConfig()
+// 	mockDbAdapter := &MockPhysicalDbAdapter{}
+
+// 	// Set up default mock responses
+// 	mockDbAdapter.On("GetPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 		Return(models.PhysicalLocation{}, nil)
+// 	mockDbAdapter.On("GetUserPhysicalLocations", mock.Anything, mock.Anything).
+// 		Return([]models.PhysicalLocation{}, nil)
+// 	mockDbAdapter.On("AddPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 		Return(models.PhysicalLocation{}, nil)
+// 	mockDbAdapter.On("UpdatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 		Return(models.PhysicalLocation{}, nil)
+// 	mockDbAdapter.On("RemovePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 		Return(nil)
+
+// 	return &GamePhysicalService{
+// 		dbAdapter:      mockDbAdapter,
+// 		config:         mockConfig,
+// 		logger:         logger,
+// 		validator:      mocks.DefaultPhysicalValidator(),
+// 		sanitizer:      mocks.DefaultSanitizer(),
+// 		cacheWrapper:   mocks.DefaultPhysicalCacheWrapper(),
+// 	}
+// }
 
 func TestGamePhysicalService(t *testing.T) {
 	ctx := context.Background()
-	testUserID := "test-user-id"
-	testLocationID := "test-location-id"
+	mockDb := new(mocks.MockPhysicalDbAdapter)
+	mockCache := new(mocks.MockPhysicalCacheWrapper)
+	mockLogger := testutils.NewTestLogger()
 
-	testLocation := models.PhysicalLocation{
-		ID:                  testLocationID,
-		UserID:              testUserID,
-		Name:                "Test Location",
-		Label:               "Primary",
-		LocationType:        "house",
-		MapCoordinates:      "40.7128,-74.0060",
-		CreatedAt:           time.Now(),
-		UpdatedAt:           time.Now(),
+	appCtx := &appcontext.AppContext{
+		Logger: mockLogger,
 	}
 
-	// --------- GetPhysicalLocations: Cache Hit ---------
-	/*
-		GIVEN a user ID and cached locations exist
-		WHEN the GetPhysicalLocations method is called
-		THEN the service should return the cached locations without querying the database
-	*/
-	t.Run("GetPhysicalLocations - Cache Hit", func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
+	service, err := NewGamePhysicalService(appCtx)
+	if err != nil {
+		t.Fatalf("Failed to create service: %v", err)
+	}
+	service.dbAdapter = mockDb
+	service.cacheWrapper = mockCache
 
-		// GIVEN
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.GetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{testLocation}, nil
+	// Test GetPhysicalLocation
+	t.Run("GetPhysicalLocation", func(t *testing.T) {
+		expectedLocation := models.PhysicalLocation{
+			ID:             "loc1",
+			UserID:         "user1",
+			Name:           "Test Location",
+			Label:          "Test Label",
+			LocationType:   "type1",
+			MapCoordinates: "1.0,2.0",
+			BgColor:        "red",
 		}
-		service.cacheWrapper = mockCache
 
-		// WHEN
-		locations, err := service.GetPhysicalLocations(ctx, testUserID)
+		mockCache.On("GetSingleCachedPhysicalLocation", ctx, "user1", "loc1").
+			Return(nil, false, nil)
+		mockDb.On("GetPhysicalLocation", ctx, "user1", "loc1").
+			Return(expectedLocation, nil)
+		mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", expectedLocation).
+			Return(nil)
 
-		// THEN
+		location, err := service.GetPhysicalLocation(ctx, "user1", "loc1")
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("GetPhysicalLocation() error = %v", err)
+			return
 		}
-		if len(locations) != 1 {
-			t.Errorf("Expected 1 location, got %d", len(locations))
+		if !reflect.DeepEqual(location, expectedLocation) {
+			t.Errorf("GetPhysicalLocation() location = %v, expectedLocation %v", location, expectedLocation)
 		}
-		if locations[0].ID != testLocationID {
-			t.Errorf("Expected location ID %s, got %s", testLocationID, locations[0].ID)
-		}
+
+		mockDb.AssertExpectations(t)
+		mockCache.AssertExpectations(t)
 	})
 
-
-	// --------- GetPhysicalLocations Cache Miss ---------
-	/*
-		GIVEN a user ID and no cached locations exist
-		WHEN the GetPhysicalLocations method is called
-		THEN the service should query the database and cache the results
-	*/
-	t.Run("GetPhysicalLocations - Cache Miss", func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// GIVEN
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.GetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return nil, errors.New("cache miss")
+	// Test GetUserPhysicalLocations
+	t.Run("GetUserPhysicalLocations", func(t *testing.T) {
+		expectedLocations := []models.PhysicalLocation{
+			{
+				ID:             "loc1",
+				UserID:         "user1",
+				Name:           "Test Location 1",
+				Label:          "Test Label 1",
+				LocationType:   "type1",
+				MapCoordinates: "1.0,2.0",
+				BgColor:        "red",
+			},
+			{
+				ID:             "loc2",
+				UserID:         "user1",
+				Name:           "Test Location 2",
+				Label:          "Test Label 2",
+				LocationType:   "type2",
+				MapCoordinates: "3.0,4.0",
+				BgColor:        "blue",
+			},
 		}
 
-		// Track if SetCachedPhysicalLocationsFunc was called
-		cacheSetCalled := false
-		mockCache.SetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string, locations []models.PhysicalLocation) error {
-			cacheSetCalled = true
-			return nil
-		}
-		service.cacheWrapper = mockCache
+		mockCache.On("GetCachedPhysicalLocations", ctx, "user1").
+			Return(nil, nil)
+		mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+			Return(expectedLocations, nil)
+		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", expectedLocations).
+			Return(nil)
 
-		// Override DB adapter to return test data
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.GetPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{testLocation}, nil
-		}
-		service.dbAdapter = mockDb
-
-		// WHEN
-		locations, err := service.GetPhysicalLocations(ctx, testUserID)
-
-		// THEN
+		locations, err := service.GetUserPhysicalLocations(ctx, "user1")
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("GetUserPhysicalLocations() error = %v", err)
+			return
 		}
-		if len(locations) != 1 {
-			t.Errorf("Expected 1 location, got %d", len(locations))
+		if !reflect.DeepEqual(locations, expectedLocations) {
+			t.Errorf("GetUserPhysicalLocations() locations = %v, expectedLocations %v", locations, expectedLocations)
 		}
-		if !cacheSetCalled {
-			t.Error("Expected cache set to be called")
-		}
+
+		mockDb.AssertExpectations(t)
+		mockCache.AssertExpectations(t)
 	})
 
-	// --------- GetPhysicalLocation Cache Hit ---------
-	/*
-		GIVEN a user ID, location ID, and cached location exists
-		WHEN the GetPhysicalLocation method is called
-		THEN the service should return the cached location without querying the database
-	*/
-	t.Run("GetPhysicalLocation - Cache Hit", func(t *testing.T){
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.GetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{testLocation}, nil
+	// Test AddPhysicalLocation
+	t.Run("AddPhysicalLocation", func(t *testing.T) {
+		location := models.PhysicalLocation{
+			ID:             "loc1",
+			UserID:         "user1",
+			Name:           "Test Location",
+			Label:          "Test Label",
+			LocationType:   "type1",
+			MapCoordinates: "1.0,2.0",
+			BgColor:        "red",
 		}
-		service.cacheWrapper = mockCache
 
-		// WHEN
-		locations, err := service.GetPhysicalLocations(ctx, testUserID)
+		mockDb.On("AddPhysicalLocation", ctx, "user1", location).
+			Return(location, nil)
+		mockCache.On("InvalidateUserCache", ctx, "user1").
+			Return(nil)
 
-		// THEN
+		createdLocation, err := service.AddPhysicalLocation(ctx, "user1", location)
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("AddPhysicalLocation() error = %v", err)
+			return
 		}
-		if len(locations) != 1 {
-			t.Errorf("Expected 1 location, got %d", len(locations))
+		if !reflect.DeepEqual(createdLocation, location) {
+			t.Errorf("AddPhysicalLocation() createdLocation = %v, location %v", createdLocation, location)
 		}
-		if locations[0].ID != testLocationID {
-			t.Errorf("Expected location ID %s, got %s", testLocationID, locations[0].ID)
-		}
+
+		mockDb.AssertExpectations(t)
+		mockCache.AssertExpectations(t)
 	})
 
+	// Test UpdatePhysicalLocation
+	t.Run("UpdatePhysicalLocation", func(t *testing.T) {
+		userID := "9a4aeee6-fb31-4839-a921-f61b0525046d"
+		locationID := "loc1" // This should be the ID of the existing "John's condo" location
 
-	// --------- GetPhysicalLocation Cache Miss ---------
-	/*
-		GIVEN a user ID, location ID, and no cached location exists
-		WHEN the GetPhysicalLocation method is called
-		THEN the service should query the database and cache the result
-	*/
-	t.Run("GetPhysicalLocation with cache miss", func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
+		// existingLocation := models.PhysicalLocation{
+		// 	ID:             locationID,
+		// 	UserID:         userID,
+		// 	Name:           "John's condo",
+		// 	Label:          "Home",
+		// 	LocationType:   "apartment",
+		// 	MapCoordinates: "40.69041162815012, -74.04432918344848",
+		// 	BgColor:        "blue",
+		// }
 
-		// Override cache to simulate cache miss
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.GetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return nil, errors.New("cache miss")
+		updatedLocation := models.PhysicalLocation{
+			ID:             locationID,
+			UserID:         userID,
+			Name:           "John's condo",
+			Label:          "Home",
+			LocationType:   "apartment",
+			MapCoordinates: "40.69041162815012, -74.04432918344848",
+			BgColor:        "red", // Changed from blue to red
 		}
 
-		cacheSetCalled := false
-		mockCache.SetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string, locations []models.PhysicalLocation) error {
-			cacheSetCalled = true
-			return nil
-		}
-		service.cacheWrapper = mockCache
+		mockDb.On("UpdatePhysicalLocation", ctx, userID, updatedLocation).
+			Return(updatedLocation, nil)
+		mockCache.On("SetSingleCachedPhysicalLocation", ctx, userID, updatedLocation).
+			Return(nil)
 
-		// Override DB adapter to return test data
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.GetPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{testLocation}, nil
-		}
-		service.dbAdapter = mockDb
-
-		// WHEN
-		locations, err := service.GetPhysicalLocations(ctx, testUserID)
-
-		// THEN
+		result, err := service.UpdatePhysicalLocation(ctx, userID, updatedLocation)
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("UpdatePhysicalLocation() error = %v", err)
+			return
 		}
-		if len(locations) != 1 {
-			t.Errorf("Expected 1 location, got %d", len(locations))
+		if !reflect.DeepEqual(result, updatedLocation) {
+			t.Errorf("UpdatePhysicalLocation() result = %v, expected %v", result, updatedLocation)
 		}
-		if !cacheSetCalled {
-			t.Error("Expected cache set to be called")
-		}
+
+		mockDb.AssertExpectations(t)
+		mockCache.AssertExpectations(t)
 	})
 
+	// Test DeletePhysicalLocation
+	t.Run("DeletePhysicalLocation", func(t *testing.T) {
+		mockDb.On("RemovePhysicalLocation", ctx, "user1", "loc1").
+			Return(nil)
+		mockCache.On("InvalidateUserCache", ctx, "user1").
+			Return(nil)
+		mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
+			Return(nil)
 
-	// --------- AddPhysicalLocation Success ---------
-	/*
-		GIVEN a user ID and a valid location
-		WHEN the AddPhysicalLocation method is called
-		THEN the service should add the location to the database and invalidate the cache
-	*/
-	t.Run("AddPhysicalLocation - Success", func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// Track if AddPhysicalLocation func was called
-		dbAddCalled := false
-		mockDB := mocks.DefaultPhysicalDbAdapter()
-		mockDB.CreatePhysicalLocationFunc = func(ctx context.Context, userID string, location models.PhysicalLocation) error {
-			dbAddCalled = true
-			return nil
-		}
-		service.dbAdapter = mockDB
-
-		// Track if InvalidateUserCache was called
-		cacheInvalidatedCalled := false
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
-			cacheInvalidatedCalled = true
-			return nil
-		}
-		service.cacheWrapper = mockCache
-
-		// WHEN
-		err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
-
-		// THEN
+		err := service.DeletePhysicalLocation(ctx, "user1", "loc1")
 		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+			t.Errorf("DeletePhysicalLocation() error = %v", err)
+			return
 		}
-		if !dbAddCalled {
-			t.Error("Expected database add to be called")
-		}
-		if !cacheInvalidatedCalled {
-			t.Error("Expected cache invalidation to be called")
-		}
+
+		mockDb.AssertExpectations(t)
+		mockCache.AssertExpectations(t)
 	})
+}
 
+func TestUpdatePhysicalLocation(t *testing.T) {
+	tests := []struct {
+		name             string
+		userID          string
+		location        models.PhysicalLocation
+		expectedError   error
+		expectedLocation models.PhysicalLocation
+	}{
+		{
+			name:   "successful update",
+			userID: "user1",
+			location: models.PhysicalLocation{
+				ID:             "loc1",
+				UserID:         "user1",
+				Name:           "Updated Location",
+				Label:          "Updated Label",
+				LocationType:   "type1",
+				MapCoordinates: "1.0,2.0",
+				BgColor:        "red",
+			},
+			expectedError: nil,
+			expectedLocation: models.PhysicalLocation{
+				ID:             "loc1",
+				UserID:         "user1",
+				Name:           "Updated Location",
+				Label:          "Updated Label",
+				LocationType:   "type1",
+				MapCoordinates: "1.0,2.0",
+				BgColor:        "red",
+			},
+		},
+		{
+			name:   "unauthorized update",
+			userID: "user2",
+			location: models.PhysicalLocation{
+				ID:             "loc1",
+				UserID:         "user1",
+				Name:           "Updated Location",
+				Label:          "Updated Label",
+				LocationType:   "type1",
+				MapCoordinates: "1.0,2.0",
+				BgColor:        "red",
+			},
+			expectedError:     ErrUnauthorizedLocation,
+			expectedLocation: models.PhysicalLocation{},
+		},
+	}
 
-	// --------- AddPhysicalLocation Validation Failure ---------
-	/*
-		GIVEN a user ID and an invalid location
-		WHEN the AddPhysicalLocation method is called
-		THEN the service should return a validation error without calling the database
-	*/
-	t.Run(`AddPhysicalLocation - Validation Failure`, func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			mockDb := new(mocks.MockPhysicalDbAdapter)
+			mockCache := new(mocks.MockPhysicalCacheWrapper)
+			mockLogger := testutils.NewTestLogger()
 
-		// Override validator to simulate validation failure
-		mockValidator := mocks.DefaultPhysicalValidator()
-		mockValidator.ValidatePhysicalLocationFunc = func(location models.PhysicalLocation) (models.PhysicalLocation, error) {
-			return models.PhysicalLocation{}, errors.New("validation error")
-		}
-		service.validator = mockValidator
+			appCtx := &appcontext.AppContext{
+				Logger: mockLogger,
+			}
 
-		// Track if database is called
-		dbCalled := false
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.CreatePhysicalLocationFunc = func(ctx context.Context, userID string, location models.PhysicalLocation) error {
-			dbCalled = true
-			return nil
-		}
-		service.dbAdapter = mockDb
+			service, err := NewGamePhysicalService(appCtx)
+			if err != nil {
+				t.Fatalf("Failed to create service: %v", err)
+			}
+			service.dbAdapter = mockDb
+			service.cacheWrapper = mockCache
 
-		// WHEN
-		err := service.AddPhysicalLocation(ctx, testUserID, testLocation)
+			// Setup expectations
+			if tt.expectedError == nil {
+				mockDb.On("UpdatePhysicalLocation", ctx, tt.userID, tt.location).
+					Return(tt.expectedLocation, nil)
+				mockCache.On("SetSingleCachedPhysicalLocation", ctx, tt.userID, tt.expectedLocation).
+					Return(nil)
+			}
 
-		// THEN
-		if err == nil {
-			t.Error("Expected validation error, got nil")
-		}
-		if dbCalled {
-			t.Error("Expected database not to be called")
-		}
-	})
+			location, err := service.UpdatePhysicalLocation(ctx, tt.userID, tt.location)
+			if err != tt.expectedError {
+				t.Errorf("UpdatePhysicalLocation() error = %v, expectedError %v", err, tt.expectedError)
+				return
+			}
+			if err == nil && !reflect.DeepEqual(location, tt.expectedLocation) {
+				t.Errorf("UpdatePhysicalLocation() location = %v, expectedLocation %v", location, tt.expectedLocation)
+			}
 
-	// --------- UpdatePhysicalLocation Success ---------
-	/*
-		GIVEN a user ID and a valid location
-		WHEN the UpdatePhysicalLocation method is called
-		THEN the service should update the location in the database and invalidate both caches
-	*/
-	t.Run(`UpdatePhysicalLocation - Success`, func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// Track if UpdatePhysicalLocation was called
-		dbUpdateCalled := false
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.UpdatePhysicalLocationFunc = func(ctx context.Context, userID string, location models.PhysicalLocation) error {
-			dbUpdateCalled = true
-			return nil
-		}
-		service.dbAdapter = mockDb
-
-		// Track if cache invalidation was called
-		userCacheInvalidated := false
-		locationCacheInvalidated := false
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
-			userCacheInvalidated = true
-			return nil
-		}
-		mockCache.InvalidateLocationCacheFunc = func(ctx context.Context, userID, locationID string) error {
-			locationCacheInvalidated = true
-			return nil
-		}
-		service.cacheWrapper = mockCache
-
-		// WHEN
-		err := service.UpdatePhysicalLocation(ctx, testUserID, testLocation)
-
-		// THEN
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if !dbUpdateCalled {
-			t.Error("Expected database update to be called")
-		}
-		if !userCacheInvalidated {
-			t.Error("Expected user cache invalidation to be called")
-		}
-		if !locationCacheInvalidated {
-			t.Error("Expected location cache invalidation to be called")
-		}
-	})
-
-
-	// --------- DeletePhysicalLocation Success ---------
-	/*
-		GIVEN a user ID and a location ID
-		WHEN the DeletePhysicalLocation method is called
-		THEN the service should delete the location from the database and invalidate both caches
-	*/
-	t.Run(`DeletePhysicalLocation - Success`, func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// Track if RemovePhysicalLocation was called
-		dbDeleteCalled := false
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.DeletePhysicalLocationFunc = func(ctx context.Context, userID, locationID string) error {
-			dbDeleteCalled = true
-			return nil
-		}
-		service.dbAdapter = mockDb
-
-		// Track if cache invalidation was called
-		userCacheInvalidated := false
-		locationCacheInvalidated := false
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
-			userCacheInvalidated = true
-			return nil
-		}
-		mockCache.InvalidateLocationCacheFunc = func(ctx context.Context, userID, locationID string) error {
-			locationCacheInvalidated = true
-			return nil
-		}
-		service.cacheWrapper = mockCache
-
-
-		// WHEN
-		err := service.DeletePhysicalLocation(ctx, testUserID, testLocationID)
-
-		// THEN
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if !dbDeleteCalled {
-			t.Error("Expected database delete to be called")
-		}
-		if !userCacheInvalidated {
-			t.Error("Expected user cache invalidation to be called")
-		}
-		if !locationCacheInvalidated {
-			t.Error("Expected location cache invalidation to be called")
-		}
-	})
-
-
-	// --------- DB Error Handling ---------
-	/*
-		GIVEN a user ID
-		WHEN the database returns an error
-		THEN the service should propagate that error
-	*/
-	t.Run(`DB error is properly propagated`, func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// Override DB adapter to return an error
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.GetPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return nil, errors.New("database error")
-		}
-		service.dbAdapter = mockDb
-
-		// WHEN
-		_, err := service.GetPhysicalLocations(ctx, testUserID)
-
-		// THEN
-		if err == nil {
-			t.Error("Expected database error, got nil")
-		}
-	})
-
-	// --------- Cache Error Handling ---------
-	/*
-		GIVEN a user ID and successful DB operation
-		WHEN the cache returns an error during set
-		THEN the service should still return success
-	*/
-	t.Run(`Cache error during set doesn't block operation`, func(t *testing.T) {
-		testLogger := testutils.NewTestLogger()
-		service := newMockGamePhysicalServiceWithDefaults(testLogger)
-
-		// Override cache to simulate error during set
-		mockCache := mocks.DefaultPhysicalCacheWrapper()
-		mockCache.GetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return nil, errors.New("cache miss")
-		}
-		mockCache.SetCachedPhysicalLocationsFunc = func(ctx context.Context, userID string, locations []models.PhysicalLocation) error {
-			return errors.New("cache error")
-		}
-		service.cacheWrapper = mockCache
-
-		// Override DB adapter to return test data
-		mockDb := mocks.DefaultPhysicalDbAdapter()
-		mockDb.GetPhysicalLocationsFunc = func(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-			return []models.PhysicalLocation{testLocation}, nil
-		}
-		service.dbAdapter = mockDb
-
-		// WHEN
-		locations, err := service.GetPhysicalLocations(ctx, testUserID)
-
-		// THEN
-		if err != nil {
-			t.Errorf("Expected no error despite cache failure, got %v", err)
-		}
-		if len(locations) != 1 {
-			t.Errorf("Expected 1 location despite cache failure, got %d", len(locations))
-		}
-	})
+			mockDb.AssertExpectations(t)
+			mockCache.AssertExpectations(t)
+		})
+	}
 }

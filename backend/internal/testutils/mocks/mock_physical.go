@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/stretchr/testify/mock"
 )
 
 type MockPhysicalValidator struct {
@@ -18,69 +19,36 @@ func (m *MockPhysicalValidator) ValidatePhysicalLocation(location models.Physica
 }
 
 type MockPhysicalDbAdapter struct {
-	GetPhysicalLocationsFunc    func(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	GetPhysicalLocationFunc     func(ctx context.Context, userID, locationID string) (*models.PhysicalLocation, error)
-	CreatePhysicalLocationFunc  func(ctx context.Context, userID string, location models.PhysicalLocation) error
-	UpdatePhysicalLocationFunc  func(ctx context.Context, userID string, location models.PhysicalLocation) error
-	DeletePhysicalLocationFunc  func(ctx context.Context, userID, locationID string) error
+	mock.Mock
 }
 
-
-// GET
-func (m *MockPhysicalDbAdapter) GetPhysicalLocation(
-	ctx context.Context,
-	userID,
-	locationID string,
-) (models.PhysicalLocation, error) {
-	location, err := m.GetPhysicalLocationFunc(ctx, userID, locationID)
-	if err != nil {
-		return models.PhysicalLocation{}, err
-	}
-	return *location, nil
+func (m *MockPhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, locationID)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) GetUserPhysicalLocations(
-	ctx context.Context,
-	userID string,
-) ([]models.PhysicalLocation, error) {
-	return m.GetPhysicalLocationsFunc(ctx, userID)
+func (m *MockPhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).([]models.PhysicalLocation), args.Error(1)
 }
 
-// POST
-func (m *MockPhysicalDbAdapter) AddPhysicalLocation(
-	ctx context.Context,
-	userID string,
-	location models.PhysicalLocation,
-) (models.PhysicalLocation, error) {
-	err := m.CreatePhysicalLocationFunc(ctx, userID, location)
-	return location, err
+func (m *MockPhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, location)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-// PUT
-func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(
-	ctx context.Context,
-	userID string,
-	location models.PhysicalLocation,
-) error {
-	return m.UpdatePhysicalLocationFunc(ctx, userID, location)
+func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	args := m.Called(ctx, userID, location)
+	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-// DELETE
-func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(
-	ctx context.Context,
-	userID,
-	locationID string,
-) error {
-	return m.DeletePhysicalLocationFunc(ctx, userID, locationID)
+func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
+	args := m.Called(ctx, userID, locationID)
+	return args.Error(0)
 }
 
 type MockPhysicalCacheWrapper struct {
-	GetCachedPhysicalLocationsFunc      func(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	SetCachedPhysicalLocationsFunc      func(ctx context.Context, userID string, locations []models.PhysicalLocation) error
-	GetSingleCachedPhysicalLocationFunc func(ctx context.Context, userID, locationID string) (*models.PhysicalLocation, bool, error)
-	SetSingleCachedPhysicalLocationFunc func(ctx context.Context, userID string, location models.PhysicalLocation) error
-	InvalidateUserCacheFunc             func(ctx context.Context, userID string) error
-	InvalidateLocationCacheFunc         func(ctx context.Context, userID, locationID string) error
+	mock.Mock
 }
 
 // GET
@@ -88,7 +56,8 @@ func (m *MockPhysicalCacheWrapper) GetCachedPhysicalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.PhysicalLocation, error) {
-	return m.GetCachedPhysicalLocationsFunc(ctx, userID)
+	args := m.Called(ctx, userID)
+	return args.Get(0).([]models.PhysicalLocation), args.Error(1)
 }
 
 func (m *MockPhysicalCacheWrapper) GetSingleCachedPhysicalLocation(
@@ -96,7 +65,11 @@ func (m *MockPhysicalCacheWrapper) GetSingleCachedPhysicalLocation(
 	userID,
 	locationID string,
 ) (*models.PhysicalLocation, bool, error) {
-	return m.GetSingleCachedPhysicalLocationFunc(ctx, userID, locationID)
+	args := m.Called(ctx, userID, locationID)
+	if args.Get(0) == nil {
+		return nil, args.Bool(1), args.Error(2)
+	}
+	return args.Get(0).(*models.PhysicalLocation), args.Bool(1), args.Error(2)
 }
 
 // SET
@@ -105,7 +78,8 @@ func (m *MockPhysicalCacheWrapper) SetCachedPhysicalLocations(
 	userID string,
 	locations []models.PhysicalLocation,
 ) error {
-	return m.SetCachedPhysicalLocationsFunc(ctx, userID, locations)
+	args := m.Called(ctx, userID, locations)
+	return args.Error(0)
 }
 
 func (m *MockPhysicalCacheWrapper) SetSingleCachedPhysicalLocation(
@@ -113,7 +87,8 @@ func (m *MockPhysicalCacheWrapper) SetSingleCachedPhysicalLocation(
 	userID string,
 	location models.PhysicalLocation,
 ) error {
-	return m.SetSingleCachedPhysicalLocationFunc(ctx, userID, location)
+	args := m.Called(ctx, userID, location)
+	return args.Error(0)
 }
 
 // CLEAR
@@ -121,7 +96,8 @@ func (m *MockPhysicalCacheWrapper) InvalidateUserCache(
 	ctx context.Context,
 	userID string,
 ) error {
-	return m.InvalidateUserCacheFunc(ctx, userID)
+	args := m.Called(ctx, userID)
+	return args.Error(0)
 }
 
 func (m *MockPhysicalCacheWrapper) InvalidateLocationCache(
@@ -129,5 +105,6 @@ func (m *MockPhysicalCacheWrapper) InvalidateLocationCache(
 	userID,
 	locationID string,
 ) error {
-	return m.InvalidateLocationCacheFunc(ctx, userID, locationID)
+	args := m.Called(ctx, userID, locationID)
+	return args.Error(0)
 }

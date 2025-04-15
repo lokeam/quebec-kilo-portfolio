@@ -16,6 +16,7 @@ type PhysicalLocationRequest struct {
 	Label          string `json:"label"`
 	LocationType   string `json:"location_type"`
 	MapCoordinates string `json:"map_coordinates"`
+	BgColor        string `json:"bg_color"`
 }
 
 func NewPhysicalLocationHandler(
@@ -122,7 +123,7 @@ func handleListLocations(
     "userID": userID,
   })
 
-  locations, err := service.GetPhysicalLocations(r.Context(), userID)
+  locations, err := service.GetUserPhysicalLocations(r.Context(), userID)
   if err != nil {
     httputils.RespondWithError(
       httputils.NewResponseWriterAdapter(w),
@@ -136,9 +137,11 @@ func handleListLocations(
 
   response := struct {
     Success      bool               `json:"success"`
+    UserID       string             `json:"user_id"`
     Locations    []models.PhysicalLocation  `json:"locations"`
   } {
     Success: true,
+    UserID: userID,
     Locations: locations,
   }
 
@@ -164,7 +167,7 @@ func handleGetLocation(
 		"locationID": locationID,
 	})
 
-	location, err := service.GetPhysicalLocations(r.Context(), userID)
+	location, err := service.GetPhysicalLocation(r.Context(), userID, locationID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrLocationNotFound) {
@@ -183,7 +186,7 @@ func handleGetLocation(
 
 	response := struct {
 		Success  bool                    `json:"success"`
-		Location []models.PhysicalLocation `json:"location"`
+		Location models.PhysicalLocation `json:"location"`
 	}{
 		Success:  true,
 		Location: location,
@@ -226,10 +229,11 @@ func handleCreateLocation(
 		Label:          locationRequest.Label,
 		LocationType:   locationRequest.LocationType,
 		MapCoordinates: locationRequest.MapCoordinates,
+		BgColor:        locationRequest.BgColor,
 		UserID:         userID,
 	}
 
-	err := service.AddPhysicalLocation(r.Context(), userID, location)
+	createdLocation, err := service.AddPhysicalLocation(r.Context(), userID, location)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrValidationFailed) {
@@ -251,7 +255,7 @@ func handleCreateLocation(
 		Location models.PhysicalLocation `json:"location"`
 	}{
 		Success:  true,
-		Location: location,
+		Location: createdLocation,
 	}
 
 	httputils.RespondWithJSON(
@@ -294,10 +298,11 @@ func handleUpdateLocation(
 		Label:          locationRequest.Label,
 		LocationType:   locationRequest.LocationType,
 		MapCoordinates: locationRequest.MapCoordinates,
+		BgColor:        locationRequest.BgColor,
 		UserID:         userID,
 	}
 
-	err := service.UpdatePhysicalLocation(r.Context(), userID, location)
+	updatedLocation, err := service.UpdatePhysicalLocation(r.Context(), userID, location)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrLocationNotFound) {
@@ -321,7 +326,7 @@ func handleUpdateLocation(
 		Location models.PhysicalLocation `json:"location"`
 	}{
 		Success:  true,
-		Location: location,
+		Location: updatedLocation,
 	}
 
 	httputils.RespondWithJSON(

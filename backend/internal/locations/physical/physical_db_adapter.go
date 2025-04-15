@@ -22,7 +22,6 @@ type PhysicalDbAdapter struct {
 	client     *postgres.PostgresClient
 	db         *sqlx.DB
 	logger     interfaces.Logger
-	scanner    interfaces.GameScanner
 }
 
 func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter, error) {
@@ -55,27 +54,56 @@ func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter
 	}, nil
 }
 
-// GET
-func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
-	pa.logger.Debug("GetPhysicalLocation called", map[string]any{
-		"userID": userID,
-		"locationID": locationID,
-	})
+const (
+	createPhysicalLocationQuery = `
+		INSERT INTO physical_locations (
+			id, user_id, name, label, location_type, map_coordinates, bg_color
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+	`
 
-	query := `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+	getPhysicalLocationQuery = `
+		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 		FROM physical_locations
 		WHERE id = $1 AND user_id = $2
 	`
 
-	var location models.PhysicalLocation
-	err := pa.db.GetContext(ctx, &location, query, locationID, userID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return models.PhysicalLocation{}, fmt.Errorf("physical location not found: %w", err)
-		}
+	getUserPhysicalLocationsQuery = `
+		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+		FROM physical_locations
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
 
-		return models.PhysicalLocation{}, fmt.Errorf("error getting physical location: %w", err)
+	updatePhysicalLocationQuery = `
+		UPDATE physical_locations
+		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, bg_color = $7, updated_at = NOW()
+		WHERE id = $1 AND user_id = $2
+		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+	`
+)
+
+// GET
+func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+	pa.logger.Debug("GetPhysicalLocation called", map[string]any{
+		"userID":     userID,
+		"locationID": locationID,
+	})
+
+	var location models.PhysicalLocation
+	err := pa.db.QueryRowContext(ctx, getPhysicalLocationQuery, locationID, userID).Scan(
+		&location.ID,
+		&location.UserID,
+		&location.Name,
+		&location.Label,
+		&location.LocationType,
+		&location.MapCoordinates,
+		&location.BgColor,
+		&location.CreatedAt,
+		&location.UpdatedAt,
+	)
+	if err != nil {
+		return models.PhysicalLocation{}, fmt.Errorf("failed to get physical location: %w", err)
 	}
 
 	pa.logger.Debug("GetPhysicalLocation success", map[string]any{
@@ -90,17 +118,30 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 		"userID": userID,
 	})
 
-	query := `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
-		FROM physical_locations
-		WHERE user_id = $1
-		ORDER BY name
-	`
+	rows, err := pa.db.QueryContext(ctx, getUserPhysicalLocationsQuery, userID)
+	if err != nil {
+		return []models.PhysicalLocation{}, fmt.Errorf("failed to get user physical locations: %w", err)
+	}
+	defer rows.Close()
 
 	var locations []models.PhysicalLocation
-	err := pa.db.SelectContext(ctx, &locations, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("error getting user physical locations: %w", err)
+	for rows.Next() {
+		var location models.PhysicalLocation
+		err := rows.Scan(
+			&location.ID,
+			&location.UserID,
+			&location.Name,
+			&location.Label,
+			&location.LocationType,
+			&location.MapCoordinates,
+			&location.BgColor,
+			&location.CreatedAt,
+			&location.UpdatedAt,
+		)
+		if err != nil {
+			return []models.PhysicalLocation{}, fmt.Errorf("failed to scan physical location: %w", err)
+		}
+		locations = append(locations, location)
 	}
 
 	pa.logger.Debug("GetUserPhysicalLocations success", map[string]any{
@@ -111,59 +152,92 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 }
 
 // PUT
-func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) error {
-	pa.logger.Debug("UpdatePhysicalLocation called", map[string]any{
+func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	pa.logger.Debug("Updating physical location", map[string]any{
 		"userID": userID,
-		"locationID": location.ID,
+		"location": location,
 	})
 
-	// Ensure location belongs to user
-	if location.UserID != userID {
-    return ErrUnauthorizedLocation
-	}
-
-	query := `
-		UPDATE physical_locations
-		SET name = $1, label = $2, location_type = $3, map_coordinates = $4, updated_at = $5
-		WHERE id = $6 AND user_id = $7
-	`
-
-	now := time.Now()
-	result, err := pa.db.ExecContext(
-		ctx,
-		query,
+	var updatedLocation models.PhysicalLocation
+	err := pa.db.QueryRowContext(ctx, updatePhysicalLocationQuery,
+		location.ID,
+		userID,
 		location.Name,
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
-		now,
-		location.ID,
-		userID,
+		location.BgColor,
+	).Scan(
+		&updatedLocation.ID,
+		&updatedLocation.UserID,
+		&updatedLocation.Name,
+		&updatedLocation.Label,
+		&updatedLocation.LocationType,
+		&updatedLocation.MapCoordinates,
+		&updatedLocation.BgColor,
+		&updatedLocation.CreatedAt,
+		&updatedLocation.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("error updating physical location: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error getting rows affected: %w", err)
-	}
-	if rowsAffected == 0 {
-		return fmt.Errorf("physical location not found or not updated")
+		return models.PhysicalLocation{}, fmt.Errorf("failed to update physical location: %w", err)
 	}
 
 	pa.logger.Debug("UpdatePhysicalLocation success", map[string]any{
-		"rowsAffected": rowsAffected,
+		"location": updatedLocation,
 	})
+
+	return updatedLocation, nil
+}
+
+// POST
+func (pa *PhysicalDbAdapter) ensureUserExists(ctx context.Context, userID string) error {
+	pa.logger.Debug("Ensuring user exists", map[string]any{"userID": userID})
+
+	// Check if user exists
+	var exists bool
+	err := pa.db.QueryRowContext(ctx, `
+		SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)
+	`, userID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("error checking if user exists: %w", err)
+	}
+
+	if !exists {
+		// Create user with all required fields
+		_, err = pa.db.ExecContext(ctx, `
+			INSERT INTO users (id, email, created_at, updated_at)
+			VALUES ($1, $2, NOW(), NOW())
+		`, userID, fmt.Sprintf("%s@example.com", userID))
+		if err != nil {
+			return fmt.Errorf("error creating user: %w", err)
+		}
+	}
 
 	return nil
 }
 
-// POST
 func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
-	pa.logger.Debug("AddPhysicalLocation called", map[string]any{
-		"userID": userID,
-	})
+	pa.logger.Debug("Adding physical location", map[string]any{"userID": userID, "location": location})
+
+	// Ensure user exists first
+	if err := pa.ensureUserExists(ctx, userID); err != nil {
+		return models.PhysicalLocation{}, fmt.Errorf("error ensuring user exists: %w", err)
+	}
+
+	// Check if a location with this name already exists for the user
+	var existingID string
+	err := pa.db.QueryRowContext(ctx, `
+		SELECT id FROM physical_locations
+		WHERE user_id = $1 AND LOWER(name) = LOWER($2)
+	`, userID, location.Name).Scan(&existingID)
+
+	if err == nil {
+		// Location with this name already exists
+		return models.PhysicalLocation{}, fmt.Errorf("a physical location with the name '%s' already exists", location.Name)
+	} else if err != sql.ErrNoRows {
+		// Some other database error occurred
+		return models.PhysicalLocation{}, fmt.Errorf("error checking for existing location: %w", err)
+	}
 
 	// Generate a new UUID if ID is not provided
 	if location.ID == "" {
@@ -178,36 +252,41 @@ func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID str
 	location.CreatedAt = now
 	location.UpdatedAt = now
 
-	query := `
-		INSERT INTO physical_locations (id, user_id, name, label, location_type, map_coordinates, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
-	`
-
-	err := pa.db.QueryRowxContext(
-		ctx,
-		query,
+	var newLocation models.PhysicalLocation
+	err = pa.db.QueryRowContext(ctx, createPhysicalLocationQuery,
 		location.ID,
 		userID,
 		location.Name,
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
-		location.CreatedAt,
-		location.UpdatedAt,
-	).StructScan(&location)
-
+		location.BgColor,
+	).Scan(
+		&newLocation.ID,
+		&newLocation.UserID,
+		&newLocation.Name,
+		&newLocation.Label,
+		&newLocation.LocationType,
+		&newLocation.MapCoordinates,
+		&newLocation.BgColor,
+		&newLocation.CreatedAt,
+		&newLocation.UpdatedAt,
+	)
 	if err != nil {
-		return models.PhysicalLocation{}, fmt.Errorf("error adding physical location: %w", err)
+		return models.PhysicalLocation{}, fmt.Errorf("failed to create physical location: %w", err)
 	}
 
-	return location, nil
+	pa.logger.Debug("AddPhysicalLocation success", map[string]any{
+		"location": newLocation,
+	})
+
+	return newLocation, nil
 }
 
 // DELETE
 func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
-	pa.logger.Debug("RemovePhysicalLocation called", map[string]any{
-		"userID": userID,
+	pa.logger.Debug("Removing physical location", map[string]any{
+		"userID":     userID,
 		"locationID": locationID,
 	})
 
@@ -216,13 +295,17 @@ func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID 
 		pa.db,
 		pa.logger,
 		func(tx *sqlx.Tx) error {
-			// Check if location exists AND belongs to user
+			// First try to find the location by ID or name
+			var id string
 			checkQuery := `
 				SELECT id FROM physical_locations
-				WHERE id = $1 AND user_id = $2
+				WHERE (
+					(id::text = $1) OR
+					(name = $1) OR
+					(LOWER(name) = LOWER($1))
+				) AND user_id = $2
 			`
 
-			var id string
 			err := tx.QueryRowxContext(ctx, checkQuery, locationID, userID).Scan(&id)
 			if err != nil {
 				if err == sql.ErrNoRows {
@@ -231,13 +314,13 @@ func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID 
 				return fmt.Errorf("error checking physical location: %w", err)
 			}
 
-			// Delete the location
+			// Delete the location using the found ID
 			deleteQuery := `
 				DELETE FROM physical_locations
 				WHERE id = $1 AND user_id = $2
 			`
 
-			result, err := tx.ExecContext(ctx, deleteQuery, locationID, userID)
+			result, err := tx.ExecContext(ctx, deleteQuery, id, userID)
 			if err != nil {
 				return fmt.Errorf("error deleting physical location: %w", err)
 			}
@@ -251,8 +334,13 @@ func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID 
 				return fmt.Errorf("physical location not found or not deleted")
 			}
 
-		return nil
-	})
+			pa.logger.Debug("RemovePhysicalLocation success", map[string]any{
+				"rowsAffected": rowsAffected,
+				"locationID":   id,
+			})
+
+			return nil
+		})
 }
 
 // Helpers
