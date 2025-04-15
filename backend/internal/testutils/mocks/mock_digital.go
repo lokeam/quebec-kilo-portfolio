@@ -25,6 +25,7 @@ type MockDigitalDbAdapter struct {
 	AddDigitalLocationFunc func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) (models.DigitalLocation, error)
 	UpdateDigitalLocationFunc func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) error
 	DeleteDigitalLocationFunc func(ctx context.Context, userID, digitalLocationID string) error
+	FindDigitalLocationByNameFunc func(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
 }
 
 // GET
@@ -69,6 +70,15 @@ func (m *MockDigitalDbAdapter) RemoveDigitalLocation(
 	digitalLocationID string,
 ) error {
 	return m.DeleteDigitalLocationFunc(ctx, userID, digitalLocationID)
+}
+
+// Find by name
+func (m *MockDigitalDbAdapter) FindDigitalLocationByName(
+	ctx context.Context,
+	userID string,
+	name string,
+) (models.DigitalLocation, error) {
+	return m.FindDigitalLocationByNameFunc(ctx, userID, name)
 }
 
 // ---------

@@ -3,23 +3,24 @@ package digital
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
 type DigitalLocationRequest struct {
-	ID             string     `json:"id" db:"id"`
+	ID             string     `json:"id,omitempty" db:"id"`
 	Name           string     `json:"name" db:"id"`
-	LocationType   string     `json:"location_type" db:"user_id"`
 	IsActive       bool       `json:"is_active" db:"is_active"`
 	URL            string     `json:"url" db:"url"`
-	CreateAt       time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	CreatedAt      time.Time  `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at,omitempty" db:"updated_at"`
 }
 
 func NewDigitalLocationHandler(
@@ -55,8 +56,8 @@ func NewDigitalLocationHandler(
 
 		var locationID string
 		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) > 4 {
-			locationID = parts[len(parts) - 1]
+		if len(parts) > 4 && parts[len(parts)-1] != "digital" {
+			locationID = parts[len(parts)-1]
 		}
 
 		// Handle different HTTP Methods
@@ -123,7 +124,7 @@ func handleListDigitalLocations(
 		"userID":    userID,
 	})
 
-	locations, err := service.GetDigitalLocations(r.Context(), userID)
+	locations, err := service.GetUserDigitalLocations(r.Context(), userID)
 	if err != nil {
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
@@ -137,7 +138,7 @@ func handleListDigitalLocations(
 
 	response := struct {
 		Success     bool                        `json:"success"`
-		Locations   []models.DigitalLocation    `json:"sublocations"`
+		Locations   []models.DigitalLocation    `json:"digital_locations"`
 	} {
 		Success: true,
 		Locations: locations,
@@ -161,18 +162,33 @@ func handleGetDigitalLocation(
 	requestID string,
 ) {
 	appCtx.Logger.Info("Getting digital location", map[string]any{
-		"requestID":   requestID,
-		"userID":      userID,
-		"locationID":  locationID,
+		"requestID": requestID,
+		"userID":    userID,
+		"locationID": locationID,
 	})
 
-	digitalLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+	// Try to parse locationID as UUID first
+	var location models.DigitalLocation
+	var err error
+
+	if _, parseErr := uuid.Parse(locationID); parseErr == nil {
+		// If it's a valid UUID, try to get by ID
+		location, err = service.GetDigitalLocation(r.Context(), userID, locationID)
+	} else {
+		// If it's not a UUID, try to find by name
+		location, err = service.FindDigitalLocationByName(r.Context(), userID, locationID)
+	}
+
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrDigitalLocationNotFound) {
 			statusCode = http.StatusNotFound
 		}
 
+		appCtx.Logger.Error("Error getting digital location", map[string]any{
+			"error":     err,
+			"requestID": requestID,
+		})
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
@@ -183,20 +199,20 @@ func handleGetDigitalLocation(
 		return
 	}
 
-	response := struct {
-		Success    bool                     `json:"success"`
-		Location   models.DigitalLocation   `json:"location"`
-	} {
-		Success:  true,
-		Location: *digitalLocation,
+	response := map[string]any{
+		"success": true,
+		"data":    location,
 	}
 
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusOK,
-		response,
-	)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		appCtx.Logger.Error("Error encoding response", map[string]any{
+			"error":     err,
+			"requestID": requestID,
+		})
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func handleCreateDigitalLocation(
@@ -207,9 +223,9 @@ func handleCreateDigitalLocation(
 	userID string,
 	requestID string,
 ) {
-	appCtx.Logger.Info("Getting digital location", map[string]any{
-		"requestID":    requestID,
-		"userID":       userID,
+	appCtx.Logger.Info("Creating digital location", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
 	})
 
 	var locationRequest DigitalLocationRequest
@@ -224,16 +240,18 @@ func handleCreateDigitalLocation(
 		return
 	}
 
+	now := time.Now()
 	digitalLocation := models.DigitalLocation{
-		ID:             locationRequest.ID,
+		ID:             uuid.New().String(),
+		UserID:         userID,
 		Name:           locationRequest.Name,
 		IsActive:       locationRequest.IsActive,
 		URL:            locationRequest.URL,
-		CreatedAt:      locationRequest.CreateAt,
-		UpdatedAt:      locationRequest.UpdatedAt,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
-	err := service.AddDigitalLocation(r.Context(), userID, digitalLocation)
+	createdLocation, err := service.AddDigitalLocation(r.Context(), userID, digitalLocation)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrValidationFailed) {
@@ -255,7 +273,7 @@ func handleCreateDigitalLocation(
 		Location   models.DigitalLocation  `json:"location"`
 	} {
 		Success:  true,
-		Location: digitalLocation,
+		Location: createdLocation,
 	}
 
 	httputils.RespondWithJSON(
@@ -281,28 +299,46 @@ func handleUpdateDigitalLocation(
 		"locationID":   locationID,
 	})
 
-	var locationRequest DigitalLocationRequest
-	if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+	// First try to get the location by ID
+	location, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+	if err != nil {
+		// If not found by ID, try to find by name
+		location, err = service.FindDigitalLocationByName(r.Context(), userID, locationID)
+		if err != nil {
+			appCtx.Logger.Error("Failed to find digital location", map[string]any{
+				"error": err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				http.StatusNotFound,
+			)
+			return
+		}
+	}
+
+	// Parse request body
+	var updateReq DigitalLocationRequest
+	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
 			requestID,
-			errors.New("invalid request body"),
+			fmt.Errorf("invalid request body: %w", err),
 			http.StatusBadRequest,
 		)
 		return
 	}
 
-	location := models.DigitalLocation{
-		ID:            locationID,
-		Name:          locationRequest.Name,
-		IsActive:      locationRequest.IsActive,
-		URL:           locationRequest.URL,
-		CreatedAt:     locationRequest.CreateAt,
-		UpdatedAt:     locationRequest.UpdatedAt,
-	}
+	// Update the location with new values
+	location.Name = updateReq.Name
+	location.IsActive = updateReq.IsActive
+	location.URL = updateReq.URL
 
-	err := service.UpdateDigitalLocation(r.Context(), userID, location)
+	// Update in database
+	err = service.UpdateDigitalLocation(r.Context(), userID, location)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrDigitalLocationNotFound) {
@@ -352,7 +388,7 @@ func handleDeleteDigitalLocation(
 		"locationID":   locationID,
 	})
 
-	err := service.DeleteDigitalLocation(r.Context(), userID, locationID)
+	err := service.RemoveDigitalLocation(r.Context(), userID, locationID)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrDigitalLocationNotFound) {

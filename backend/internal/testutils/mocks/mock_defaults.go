@@ -275,66 +275,58 @@ func DefaultDigitalValidator() *MockDigitalValidator {
 
 func DefaultDigitalDbAdapter() *MockDigitalDbAdapter {
 	return &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(
-			ctx context.Context,
-			userID,
-			digitalLocationID string,
-		) (models.DigitalLocation, error) {
+		GetDigitalLocationFunc: func(ctx context.Context, userID, digitalLocationID string) (models.DigitalLocation, error) {
 			return models.DigitalLocation{
-				ID: digitalLocationID,
-				UserID: userID,
-				Name: "Digital Location 1",
-				IsActive: true,
-				URL: "https://example.com",
+				ID:        digitalLocationID,
+				UserID:    userID,
+				Name:      "Default Digital Location",
+				IsActive:  true,
+				URL:       "https://example.com",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			}, nil
 		},
-		GetDigitalLocationsFunc: func(
-			ctx context.Context,
-			userID string,
-		) ([]models.DigitalLocation, error) {
+		GetDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 			return []models.DigitalLocation{
 				{
-					ID: "digital-location-1",
-					UserID: userID,
-					Name: "Digital Location 1",
-					IsActive: true,
-					URL: "https://example.com",
+					ID:        "default-digital-location-1",
+					UserID:    userID,
+					Name:      "Default Digital Location 1",
+					IsActive:  true,
+					URL:       "https://example.com",
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
 				{
-					ID: "digital-location-2",
-					UserID: userID,
-					Name: "Digital Location 2",
-					IsActive: true,
-					URL: "https://example.com",
+					ID:        "default-digital-location-2",
+					UserID:    userID,
+					Name:      "Default Digital Location 2",
+					IsActive:  true,
+					URL:       "https://example.com",
 					CreatedAt: time.Now(),
 					UpdatedAt: time.Now(),
 				},
 			}, nil
 		},
-		AddDigitalLocationFunc: func(
-			ctx context.Context,
-			userID string,
-			digitalLocation models.DigitalLocation,
-		) (models.DigitalLocation, error) {
+		AddDigitalLocationFunc: func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) (models.DigitalLocation, error) {
 			return digitalLocation, nil
 		},
-		UpdateDigitalLocationFunc: func(
-			ctx context.Context,
-			userID string,
-			digitalLocation models.DigitalLocation,
-		) error {
+		UpdateDigitalLocationFunc: func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) error {
 			return nil
 		},
-		DeleteDigitalLocationFunc: func(
-			ctx context.Context,
-			userID string,
-			digitalLocationID string,
-		) error {
+		DeleteDigitalLocationFunc: func(ctx context.Context, userID, digitalLocationID string) error {
 			return nil
+		},
+		FindDigitalLocationByNameFunc: func(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
+			return models.DigitalLocation{
+				ID:        "default-digital-location",
+				UserID:    userID,
+				Name:      name,
+				IsActive:  true,
+				URL:       "https://example.com",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}, nil
 		},
 	}
 }
