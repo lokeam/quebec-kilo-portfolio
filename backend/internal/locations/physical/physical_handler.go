@@ -16,7 +16,6 @@ type PhysicalLocationRequest struct {
 	Label          string `json:"label"`
 	LocationType   string `json:"location_type"`
 	MapCoordinates string `json:"map_coordinates"`
-	BgColor        string `json:"bg_color"`
 }
 
 func NewPhysicalLocationHandler(
@@ -229,7 +228,6 @@ func handleCreateLocation(
 		Label:          locationRequest.Label,
 		LocationType:   locationRequest.LocationType,
 		MapCoordinates: locationRequest.MapCoordinates,
-		BgColor:        locationRequest.BgColor,
 		UserID:         userID,
 	}
 
@@ -298,7 +296,6 @@ func handleUpdateLocation(
 		Label:          locationRequest.Label,
 		LocationType:   locationRequest.LocationType,
 		MapCoordinates: locationRequest.MapCoordinates,
-		BgColor:        locationRequest.BgColor,
 		UserID:         userID,
 	}
 

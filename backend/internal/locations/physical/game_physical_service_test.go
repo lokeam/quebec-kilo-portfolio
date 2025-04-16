@@ -139,7 +139,6 @@ func TestGamePhysicalService(t *testing.T) {
 			Label:          "Test Label",
 			LocationType:   "type1",
 			MapCoordinates: "1.0,2.0",
-			BgColor:        "red",
 		}
 
 		mockCache.On("GetSingleCachedPhysicalLocation", ctx, "user1", "loc1").
@@ -172,7 +171,6 @@ func TestGamePhysicalService(t *testing.T) {
 				Label:          "Test Label 1",
 				LocationType:   "type1",
 				MapCoordinates: "1.0,2.0",
-				BgColor:        "red",
 			},
 			{
 				ID:             "loc2",
@@ -181,7 +179,6 @@ func TestGamePhysicalService(t *testing.T) {
 				Label:          "Test Label 2",
 				LocationType:   "type2",
 				MapCoordinates: "3.0,4.0",
-				BgColor:        "blue",
 			},
 		}
 
@@ -214,7 +211,6 @@ func TestGamePhysicalService(t *testing.T) {
 			Label:          "Test Label",
 			LocationType:   "type1",
 			MapCoordinates: "1.0,2.0",
-			BgColor:        "red",
 		}
 
 		mockDb.On("AddPhysicalLocation", ctx, "user1", location).
@@ -247,7 +243,6 @@ func TestGamePhysicalService(t *testing.T) {
 		// 	Label:          "Home",
 		// 	LocationType:   "apartment",
 		// 	MapCoordinates: "40.69041162815012, -74.04432918344848",
-		// 	BgColor:        "blue",
 		// }
 
 		updatedLocation := models.PhysicalLocation{
@@ -257,7 +252,6 @@ func TestGamePhysicalService(t *testing.T) {
 			Label:          "Home",
 			LocationType:   "apartment",
 			MapCoordinates: "40.69041162815012, -74.04432918344848",
-			BgColor:        "red", // Changed from blue to red
 		}
 
 		mockDb.On("UpdatePhysicalLocation", ctx, userID, updatedLocation).
@@ -316,7 +310,6 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Label:          "Updated Label",
 				LocationType:   "type1",
 				MapCoordinates: "1.0,2.0",
-				BgColor:        "red",
 			},
 			expectedError: nil,
 			expectedLocation: models.PhysicalLocation{
@@ -326,7 +319,6 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Label:          "Updated Label",
 				LocationType:   "type1",
 				MapCoordinates: "1.0,2.0",
-				BgColor:        "red",
 			},
 		},
 		{
@@ -339,7 +331,6 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Label:          "Updated Label",
 				LocationType:   "type1",
 				MapCoordinates: "1.0,2.0",
-				BgColor:        "red",
 			},
 			expectedError:     ErrUnauthorizedLocation,
 			expectedLocation: models.PhysicalLocation{},

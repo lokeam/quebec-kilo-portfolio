@@ -57,19 +57,19 @@ func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter
 const (
 	createPhysicalLocationQuery = `
 		INSERT INTO physical_locations (
-			id, user_id, name, label, location_type, map_coordinates, bg_color
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+			id, user_id, name, label, location_type, map_coordinates
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 	`
 
 	getPhysicalLocationQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 		FROM physical_locations
 		WHERE id = $1 AND user_id = $2
 	`
 
 	getUserPhysicalLocationsQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 		FROM physical_locations
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -77,9 +77,9 @@ const (
 
 	updatePhysicalLocationQuery = `
 		UPDATE physical_locations
-		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, bg_color = $7, updated_at = NOW()
+		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, updated_at = NOW()
 		WHERE id = $1 AND user_id = $2
-		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
+		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 	`
 )
 
@@ -98,7 +98,6 @@ func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID str
 		&location.Label,
 		&location.LocationType,
 		&location.MapCoordinates,
-		&location.BgColor,
 		&location.CreatedAt,
 		&location.UpdatedAt,
 	)
@@ -134,7 +133,6 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 			&location.Label,
 			&location.LocationType,
 			&location.MapCoordinates,
-			&location.BgColor,
 			&location.CreatedAt,
 			&location.UpdatedAt,
 		)
@@ -166,7 +164,6 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
-		location.BgColor,
 	).Scan(
 		&updatedLocation.ID,
 		&updatedLocation.UserID,
@@ -174,7 +171,6 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 		&updatedLocation.Label,
 		&updatedLocation.LocationType,
 		&updatedLocation.MapCoordinates,
-		&updatedLocation.BgColor,
 		&updatedLocation.CreatedAt,
 		&updatedLocation.UpdatedAt,
 	)
@@ -260,7 +256,6 @@ func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID str
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
-		location.BgColor,
 	).Scan(
 		&newLocation.ID,
 		&newLocation.UserID,
@@ -268,7 +263,6 @@ func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID str
 		&newLocation.Label,
 		&newLocation.LocationType,
 		&newLocation.MapCoordinates,
-		&newLocation.BgColor,
 		&newLocation.CreatedAt,
 		&newLocation.UpdatedAt,
 	)

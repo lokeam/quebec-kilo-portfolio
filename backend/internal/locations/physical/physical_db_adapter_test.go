@@ -430,7 +430,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
-			BgColor:        "red",
 		}
 
 		// Setup mock expectations
@@ -446,12 +445,11 @@ func TestPhysicalDbAdapter(t *testing.T) {
 				"Updated Label",
 				"Updated Type",
 				"789,012",
-				"red",
 			).
 			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
+				"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at",
 			}).AddRow(
-				locationID, userID, "Updated Location", "Updated Label", "Updated Type", "789,012", "red", now, now,
+				locationID, userID, "Updated Location", "Updated Label", "Updated Type", "789,012", now, now,
 			))
 
 		// Execute
@@ -465,7 +463,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		assert.Equal(t, location.Label, updatedLocation.Label)
 		assert.Equal(t, location.LocationType, updatedLocation.LocationType)
 		assert.Equal(t, location.MapCoordinates, updatedLocation.MapCoordinates)
-		assert.Equal(t, location.BgColor, updatedLocation.BgColor)
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
@@ -489,7 +486,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
-			BgColor:        "red",
 		}
 
 		// Set up mock expectations
@@ -527,7 +523,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
-			BgColor:        "red",
 		}
 
 		// Set up mock expectations
@@ -543,7 +538,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 				"Updated Label",
 				"Updated Type",
 				"789,012",
-				"red",
 			).
 			WillReturnError(dbError)
 
@@ -575,7 +569,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
 			MapCoordinates: "789,012",
-			BgColor:        "red",
 		}
 
 		// Execute the function
@@ -780,12 +773,11 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 			"Test Label",
 			"test",
 			"45.5017,-73.5673",
-			"red",
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
+			"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at",
 		}).AddRow(
-			locationID, userID, "Test Location", "Test Label", "test", "45.5017,-73.5673", "red", now, now,
+			locationID, userID, "Test Location", "Test Label", "test", "45.5017,-73.5673", now, now,
 		))
 
 	location := models.PhysicalLocation{
@@ -795,7 +787,6 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	updatedLocation, err := adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -806,7 +797,6 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 	assert.Equal(t, "Test Label", updatedLocation.Label)
 	assert.Equal(t, "test", updatedLocation.LocationType)
 	assert.Equal(t, "45.5017,-73.5673", updatedLocation.MapCoordinates)
-	assert.Equal(t, "red", updatedLocation.BgColor)
 }
 
 func TestUpdatePhysicalLocation_Unauthorized(t *testing.T) {
@@ -830,7 +820,6 @@ func TestUpdatePhysicalLocation_Unauthorized(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -859,7 +848,6 @@ func TestUpdatePhysicalLocation_DatabaseError(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -887,7 +875,6 @@ func TestUpdatePhysicalLocation_NotFound(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -916,7 +903,6 @@ func TestUpdatePhysicalLocation_InvalidCoordinates(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "invalid",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -944,7 +930,6 @@ func TestUpdatePhysicalLocation_InvalidBgColor(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "invalid",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -972,7 +957,6 @@ func TestUpdatePhysicalLocation_EmptyName(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "test",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -1000,7 +984,6 @@ func TestUpdatePhysicalLocation_EmptyLocationType(t *testing.T) {
 		Label:           "Test Label",
 		LocationType:    "",
 		MapCoordinates:  "45.5017,-73.5673",
-		BgColor:         "red",
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)

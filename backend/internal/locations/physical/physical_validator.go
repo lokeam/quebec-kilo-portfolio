@@ -22,9 +22,6 @@ const (
 // Valid location types
 var ValidLocationTypes = []string{"house", "apartment", "office", "warehouse"}
 
-// Valid background colors
-var ValidBgColors = []string{"red", "green", "blue", "orange", "gold", "purple", "brown", "gray"}
-
 // PhysicalValidator struct
 type PhysicalValidator struct {
 	sanitizer interfaces.Sanitizer
@@ -66,13 +63,6 @@ func (v *PhysicalValidator) ValidatePhysicalLocation(location models.PhysicalLoc
 		violations = append(violations, err.Error())
 	} else {
 		validatedLocation.MapCoordinates = sanitizedCoords
-	}
-
-	// Validate background color
-	if sanitizedColor, err := v.validateBgColor(location.BgColor); err != nil {
-		violations = append(violations, err.Error())
-	} else {
-		validatedLocation.BgColor = sanitizedColor
 	}
 
 	// Copy other fields that don't need validation
@@ -233,43 +223,6 @@ func (v *PhysicalValidator) validateMapCoordinates(coordinates string) (string, 
 		return "", &validationErrors.ValidationError{
 			Field:   "mapCoordinates",
 			Message: fmt.Sprintf("invalid coordinates content: %v", err),
-		}
-	}
-
-	return sanitized, nil
-}
-
-func (v *PhysicalValidator) validateBgColor(color string) (string, error) {
-	// If color is empty, it's valid (optional field)
-	if color == "" {
-		return "", nil
-	}
-
-	// Convert to lowercase for case-insensitive comparison
-	color = strings.ToLower(color)
-
-	// Check if color is valid
-	isValid := false
-	for _, validColor := range ValidBgColors {
-		if color == validColor {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return "", &validationErrors.ValidationError{
-			Field:   "bgColor",
-			Message: fmt.Sprintf("background color must be one of: %s", strings.Join(ValidBgColors, ", ")),
-		}
-	}
-
-	// Sanitize color
-	sanitized, err := v.sanitizer.SanitizeString(color)
-	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:   "bgColor",
-			Message: fmt.Sprintf("invalid background color content: %v", err),
 		}
 	}
 

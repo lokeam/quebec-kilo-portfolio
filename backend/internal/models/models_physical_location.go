@@ -35,7 +35,6 @@ type PhysicalLocation struct {
 	Label            string    `json:"label" db:"label"`
 	LocationType     string    `json:"location_type" db:"location_type"`
 	MapCoordinates   string    `json:"map_coordinates" db:"map_coordinates"`
-	BgColor          string    `json:"bg_color" db:"bg_color"`
 	CreatedAt        time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
