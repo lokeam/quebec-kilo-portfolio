@@ -120,3 +120,30 @@ func (cw *CacheWrapper) SetCachedResults(
 
 	return nil
 }
+
+func (cw *CacheWrapper) DeleteCacheKey(
+	ctx context.Context,
+	cacheKey string,
+) error {
+	// Validate cache key
+	if cacheKey == "" {
+		cw.logger.Error("Cache Wrapper - Cache key cannot be empty", map[string]any{
+			"cacheKey": cacheKey,
+		})
+		return errors.New("cache key cannot be empty")
+	}
+
+	if err := cw.cacheClient.Delete(ctx, cacheKey); err != nil {
+		cw.logger.Error("Cache Wrapper - Cache DELETE failed", map[string]any{
+			"cacheKey": cacheKey,
+			"error":    err,
+		})
+		return err
+	}
+
+	cw.logger.Info("Cache Wrapper - Cache DELETE successful", map[string]any{
+		"cacheKey": cacheKey,
+	})
+
+	return nil
+}

@@ -23,7 +23,7 @@ type GameSublocationService struct {
 type SublocationService interface {
 	GetSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
 	GetSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error)
-	AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
+	AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error)
 	DeleteSublocation(ctx context.Context, userID string, sublocationID string) error
 	UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
 }
@@ -46,7 +46,7 @@ func NewGameSublocationService(appContext *appcontext.AppContext) (*GameSublocat
 	appContext.Logger.Info("sanitizer created successfully", nil)
 
 	// Create validator
-	validator, err := NewSublocationValidator(sanitizer)
+	validator, err := NewSublocationValidator(sanitizer, dbAdapter)
 	if err != nil {
 		appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
 		return nil, err
@@ -142,10 +142,13 @@ func (gss *GameSublocationService) AddSublocation(
 	ctx context.Context,
 	userID string,
 	sublocation models.Sublocation,
-) error {
-	// Call existing implementation, discard first return value
-	_, err := gss.addSublocationImpl(ctx, userID, sublocation)
-	return err
+) (models.Sublocation, error) {
+	// Call existing implementation
+	createdSublocation, err := gss.addSublocationImpl(ctx, userID, sublocation)
+	if err != nil {
+		return models.Sublocation{}, err
+	}
+	return *createdSublocation, nil
 }
 
 func (gss *GameSublocationService) addSublocationImpl(

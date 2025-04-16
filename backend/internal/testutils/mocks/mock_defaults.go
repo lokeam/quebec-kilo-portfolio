@@ -126,14 +126,15 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 			sublocationID string,
 		) (models.Sublocation, error) {
 			return models.Sublocation{
-				ID:           "sublocation-1",
-				UserID:       userID,
-				Name:         "Sublocation 1",
-				LocationType: "house",
-				BgColor:      "red",
-				Capacity:     10,
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
+				ID:                 "sublocation-1",
+				UserID:            userID,
+				PhysicalLocationID: "physical-location-1",
+				Name:              "Sublocation 1",
+				LocationType:      "shelf",
+				BgColor:           "red",
+				StoredItems:       0,
+				CreatedAt:         time.Now(),
+				UpdatedAt:         time.Now(),
 			}, nil
 		},
 		GetSublocationsFunc: func(
@@ -142,24 +143,26 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 		) ([]models.Sublocation, error) {
 			return []models.Sublocation{
 				{
-					ID:           "sublocation-1",
-					UserID:       userID,
-					Name:         "Sublocation 1",
-					LocationType: "house",
-					BgColor:      "red",
-					Capacity:     10,
-					CreatedAt:    time.Now(),
-					UpdatedAt:    time.Now(),
+					ID:                 "sublocation-1",
+					UserID:            userID,
+					PhysicalLocationID: "physical-location-1",
+					Name:              "Sublocation 1",
+					LocationType:      "shelf",
+					BgColor:           "red",
+					StoredItems:       0,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				},
 				{
-					ID:           "sublocation-2",
-					UserID:       userID,
-					Name:         "Sublocation 2",
-					LocationType: "apartment",
-					BgColor:      "blue",
-					Capacity:     10,
-					CreatedAt:    time.Now(),
-					UpdatedAt:    time.Now(),
+					ID:                 "sublocation-2",
+					UserID:            userID,
+					PhysicalLocationID: "physical-location-1",
+					Name:              "Sublocation 2",
+					LocationType:      "console",
+					BgColor:           "blue",
+					StoredItems:       0,
+					CreatedAt:         time.Now(),
+					UpdatedAt:         time.Now(),
 				},
 			}, nil
 		},
@@ -183,6 +186,14 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 			sublocationID string,
 		) error {
 			return nil
+		},
+		CheckDuplicateSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			physicalLocationID string,
+			name string,
+		) (bool, error) {
+			return false, nil
 		},
 	}
 }

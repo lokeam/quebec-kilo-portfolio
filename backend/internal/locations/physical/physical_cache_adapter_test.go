@@ -72,13 +72,17 @@ func (m *MockCacheWrapper) GetCachedResults(
 	return args.Get(0).(bool), args.Error(1)
 }
 
-
 func (m *MockCacheWrapper) SetCachedResults(
 	ctx context.Context,
 	key string,
 	result any,
 ) error {
 	args := m.Called(ctx, key, result)
+	return args.Error(0)
+}
+
+func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
 	return args.Error(0)
 }
 

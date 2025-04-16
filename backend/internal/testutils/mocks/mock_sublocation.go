@@ -23,6 +23,7 @@ type MockSublocationDbAdapter struct {
 	AddSublocationFunc func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error)
 	UpdateSublocationFunc func(ctx context.Context, userID string, sublocation models.Sublocation) error
 	DeleteSublocationFunc func(ctx context.Context, userID string, sublocationID string) error
+	CheckDuplicateSublocationFunc func(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error)
 }
 
 
@@ -68,6 +69,16 @@ func (m *MockSublocationDbAdapter) RemoveSublocation(
 	sublocationID string,
 ) error {
 	return m.DeleteSublocationFunc(ctx, userID, sublocationID)
+}
+
+// Check for duplicate sublocation
+func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(
+	ctx context.Context,
+	userID string,
+	physicalLocationID string,
+	name string,
+) (bool, error) {
+	return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
 }
 
 type MockSublocationCacheWrapper struct {

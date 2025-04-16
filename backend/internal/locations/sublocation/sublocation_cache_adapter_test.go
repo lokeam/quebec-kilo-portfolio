@@ -76,6 +76,11 @@ func (m *MockCacheWrapper) SetCachedResults(
 	return args.Error(0)
 }
 
+func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
+	return args.Error(0)
+}
+
 func TestSublocationCacheAdapter(t *testing.T) {
 	// Setup test data
 	testUserID := "test-user-id"
@@ -86,7 +91,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		Name:            "Test Sublocation",
 		LocationType:    "shelf",
 		BgColor:         "blue",
-		Capacity:        20,
+		StoredItems:     20,
 	}
 	testSublocations := []models.Sublocation{testSublocation}
 	testError := errors.New("cache error")

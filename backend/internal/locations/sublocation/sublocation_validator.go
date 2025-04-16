@@ -1,10 +1,11 @@
 package sublocation
 
 import (
+	"context"
 	"fmt"
 	"strings"
-	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	validationErrors "github.com/lokeam/qko-beta/internal/shared/validation"
@@ -13,150 +14,157 @@ import (
 // Validation constants
 const (
 	MaxNameLength = 100
-	MinCapacity   = 1
-	MaxCapacity   = 1000
+	MinNameLength = 1
+	MinStoredItems   = 0
+	MaxStoredItems   = 1000
 )
 
-// Valid sublocation types
-var ValidSublocationTypes = []string{"shelf", "console", "cabinet", "drawer", "box", "closet"}
-
-// Valid background colors
-var ValidBgColors = []string{
-	"red", "blue", "green", "yellow", "purple",
-	"orange", "black", "white", "gray",
+// ValidSublocationTypes lists all valid sublocation types
+var ValidSublocationTypes = []string{
+	"shelf",
+	"console",
+	"cabinet",
+	"drawer",
+	"box",
+	"closet",
 }
 
-// SublocationValidator struct
+// ValidBgColors lists all valid background colors
+var ValidBgColors = []string{
+	"red",
+	"blue",
+	"green",
+	"gold",
+	"purple",
+	"orange",
+	"brown",
+	"white",
+	"gray",
+}
+
+// SublocationValidator handles validation of sublocation data
 type SublocationValidator struct {
 	sanitizer interfaces.Sanitizer
+	dbAdapter interfaces.SublocationDbAdapter
 }
 
 // NewSublocationValidator creates a new sublocation validator
-func NewSublocationValidator(sanitizer interfaces.Sanitizer) (*SublocationValidator, error) {
+func NewSublocationValidator(sanitizer interfaces.Sanitizer, dbAdapter interfaces.SublocationDbAdapter) (*SublocationValidator, error) {
 	if sanitizer == nil {
 		return nil, fmt.Errorf("sanitizer cannot be nil")
 	}
 
+	if dbAdapter == nil {
+		return nil, fmt.Errorf("dbAdapter cannot be nil")
+	}
+
 	return &SublocationValidator{
 		sanitizer: sanitizer,
+		dbAdapter: dbAdapter,
 	}, nil
 }
 
 // Validation Sublocation validates a sublocation model
-func (v *SublocationValidator) ValidateSublocation(
-	sublocation models.Sublocation,
-) (models.Sublocation, error) {
-	var validatedSublocation models.Sublocation
+func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
 	var violations []string
 
 	// Validate name
-	if sanitizedName, err := v.validateName(sublocation.Name); err != nil {
+	if err := sv.validateName(sublocation.Name); err != nil {
 		violations = append(violations, err.Error())
-	} else {
-		validatedSublocation.Name = sanitizedName
 	}
 
 	// Validate location type
-	if sanitizedType, err := v.validateLocationType(sublocation.LocationType); err != nil {
+	if err := sv.validateLocationType(sublocation.LocationType); err != nil {
 		violations = append(violations, err.Error())
-	} else {
-		validatedSublocation.LocationType = sanitizedType
 	}
 
 	// Validate background color
-	if sanitizedColor, err := v.validateBgColor(sublocation.BgColor); err != nil {
+	if err := sv.validateBackgroundColor(sublocation.BgColor); err != nil {
 		violations = append(violations, err.Error())
-	} else {
-		validatedSublocation.BgColor = sanitizedColor
 	}
 
-	// Validate capacity
-	if validatedCapacity, err := v.validateCapacity(sublocation.Capacity); err != nil {
+	// Validate stored items
+	if err := sv.validateStoredItems(sublocation.StoredItems); err != nil {
 		violations = append(violations, err.Error())
-	} else {
-		validatedSublocation.Capacity = validatedCapacity
 	}
 
-	// Copy other fields that don't need validation
-	validatedSublocation.ID = sublocation.ID
-	validatedSublocation.UserID = sublocation.UserID
-	validatedSublocation.CreatedAt = sublocation.CreatedAt
-	validatedSublocation.UpdatedAt = sublocation.UpdatedAt
-	validatedSublocation.Items = sublocation.Items
+	// Validate physical location ID
+	if err := sv.validatePhysicalLocationID(sublocation.PhysicalLocationID); err != nil {
+		violations = append(violations, err.Error())
+	}
+
+	// Check for duplicate sublocation
+	if exists, err := sv.dbAdapter.CheckDuplicateSublocation(
+		context.Background(),
+		sublocation.UserID,
+		sublocation.PhysicalLocationID,
+		sublocation.Name,
+	); err != nil {
+		violations = append(violations, "error checking for duplicate sublocation")
+	} else if exists {
+		violations = append(violations, "a sublocation with this name already exists in this physical location")
+	}
 
 	if len(violations) > 0 {
-		return models.Sublocation{}, &validationErrors.ValidationError{
-			Field:   "sublocation",
-			Message: strings.Join(violations, "; "),
-		}
+		return models.Sublocation{}, fmt.Errorf("validation failed: %s", strings.Join(violations, ", "))
 	}
 
-	return validatedSublocation, nil
+	return sublocation, nil
 }
 
-func (v *SublocationValidator) validateName(name string) (string, error) {
-	// Check if name is empty
-	if name == "" {
-		return "", &validationErrors.ValidationError{
-			Field:     "name",
-			Message:   "name cannot be empty",
+func (v *SublocationValidator) validateName(name string) error {
+	// First sanitize the name
+	sanitized, err := v.sanitizer.SanitizeString(name)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "name",
+			Message: fmt.Sprintf("invalid name content: %v", err),
 		}
 	}
 
 	// Check name length
-	if utf8.RuneCountInString(name) > MaxNameLength {
-		return "", &validationErrors.ValidationError{
-			Field:     "name",
-			Message:   fmt.Sprintf("name must be less than %d characters", MaxNameLength),
+	if len(sanitized) < MinNameLength {
+		return &validationErrors.ValidationError{
+			Field:   "name",
+			Message: fmt.Sprintf("name must be at least %d characters long", MinNameLength),
 		}
 	}
 
-	// Sanitize name
-	sanitized, err := v.sanitizer.SanitizeString(name)
-	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:     "name",
-			Message:   fmt.Sprintf("invalid name content: %v", err),
+	if len(sanitized) > MaxNameLength {
+		return &validationErrors.ValidationError{
+			Field:   "name",
+			Message: fmt.Sprintf("name must not exceed %d characters", MaxNameLength),
 		}
 	}
 
-	return sanitized, nil
+	return nil
 }
 
-func (v *SublocationValidator) validateLocationType(locationType string) (string, error) {
-	// First sanitize the location type
-	sanitized, err := v.sanitizer.SanitizeString(locationType)
-	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:   "locationType",
-			Message: fmt.Sprintf("invalid location type content: %v", err),
-		}
-	}
-
-	// Then check if location type is valid
+func (v *SublocationValidator) validateLocationType(locationType string) error {
+	// Check if location type is valid
 	isValid := false
 	for _, validType := range ValidSublocationTypes {
-		if strings.EqualFold(sanitized, validType) {
+		if locationType == validType {
 			isValid = true
 			break
 		}
 	}
 
 	if !isValid {
-		return "", &validationErrors.ValidationError{
+		return &validationErrors.ValidationError{
 			Field:   "locationType",
 			Message: fmt.Sprintf("location type must be one of %v", ValidSublocationTypes),
 		}
 	}
 
-	return sanitized, nil
+	return nil
 }
 
-func (v *SublocationValidator) validateBgColor(bgColor string) (string, error) {
+func (v *SublocationValidator) validateBackgroundColor(bgColor string) error {
 	// First sanitize the background color
 	sanitized, err := v.sanitizer.SanitizeString(bgColor)
 	if err != nil {
-		return "", &validationErrors.ValidationError{
+		return &validationErrors.ValidationError{
 			Field:   "bgColor",
 			Message: fmt.Sprintf("invalid background color content: %v", err),
 		}
@@ -165,38 +173,68 @@ func (v *SublocationValidator) validateBgColor(bgColor string) (string, error) {
 	// Next check if background color is valid
 	isValid := false
 	for _, validColor := range ValidBgColors {
-		if strings.EqualFold(bgColor, validColor) {
+		if strings.EqualFold(sanitized, validColor) {
 			isValid = true
 			break
 		}
 	}
 
 	if !isValid {
-		return "", &validationErrors.ValidationError{
+		return &validationErrors.ValidationError{
 			Field:     "bgColor",
 			Message:   fmt.Sprintf("background color must be one of %v", ValidBgColors),
 		}
 	}
 
-	return sanitized, nil
+	return nil
 }
 
-func (v *SublocationValidator) validateCapacity(capacity int) (int, error) {
-	// Check if capacity is positive
-	if capacity <= 0 {
-		return 0, &validationErrors.ValidationError{
-			Field:   "capacity",
-			Message: "capacity must be a positive number",
+func (v *SublocationValidator) validateStoredItems(storedItems int) error {
+	// Check if stored items is negative
+	if storedItems < 0 {
+		return &validationErrors.ValidationError{
+			Field:   "stored_items",
+			Message: "stored_items cannot be negative",
 		}
 	}
 
-	// Check if capacity is within reasonable limits
-	if capacity > MaxCapacity {
-		return 0, &validationErrors.ValidationError{
-			Field:   "capacity",
-			Message: fmt.Sprintf("capacity must not exceed %d", MaxCapacity),
+	// Check if stored items is within reasonable limits
+	if storedItems > MaxStoredItems {
+		return &validationErrors.ValidationError{
+			Field:   "stored_items",
+			Message: fmt.Sprintf("stored_items must not exceed %d", MaxStoredItems),
 		}
 	}
 
-	return capacity, nil
+	return nil
+}
+
+func (v *SublocationValidator) validatePhysicalLocationID(physicalLocationID string) error {
+	// Check if physical location ID is empty
+	if physicalLocationID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "physical_location_id",
+			Message: "physical_location_id cannot be empty",
+		}
+	}
+
+	// Sanitize physical location ID
+	sanitized, err := v.sanitizer.SanitizeString(physicalLocationID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "physical_location_id",
+			Message: fmt.Sprintf("invalid physical_location_id content: %v", err),
+		}
+	}
+
+	// Validate UUID format
+	_, err = uuid.Parse(sanitized)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "physical_location_id",
+			Message: "physical_location_id must be a valid UUID",
+		}
+	}
+
+	return nil
 }

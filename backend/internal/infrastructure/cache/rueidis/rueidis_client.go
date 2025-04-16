@@ -193,15 +193,19 @@ func (c *RueidisClient) Set(ctx context.Context, key string, value interface{}, 
 	return nil
 }
 
-func (c *RueidisClient) Delete(ctx context.Context, key ...string) error {
+func (c *RueidisClient) Delete(ctx context.Context, key string) error {
 	start := time.Now()
 	defer func() {
 		c.stats.Operations.Add(1)
 		c.stats.LastOperation.Store(time.Now())
 	}()
 
-	// Build + execute command
-	cmd := c.client.B().Del().Key(key...).Build()
+	if !c.IsReady() {
+		return ErrorClientNotReady
+	}
+
+	// Build and execute command
+	cmd := c.client.B().Del().Key(key).Build()
 	err := c.client.Do(ctx, cmd).Error()
 
 	if err != nil {
@@ -211,7 +215,7 @@ func (c *RueidisClient) Delete(ctx context.Context, key ...string) error {
 			"error": err,
 			"duration": time.Since(start),
 		})
-		return fmt.Errorf("redis delete failed: %w", err)
+		return c.ConvertRueidisError(err, "DELETE")
 	}
 
 	c.logger.Debug("redis delete successful", map[string]any{

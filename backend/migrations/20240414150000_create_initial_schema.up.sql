@@ -57,9 +57,10 @@ CREATE TABLE sublocations (
     name VARCHAR(255) NOT NULL,
     location_type VARCHAR(50) NOT NULL CHECK (location_type IN ('shelf', 'console', 'cabinet', 'closet', 'drawer', 'box', 'device')),
     bg_color VARCHAR(50) NOT NULL CHECK (bg_color IN ('red', 'green', 'blue', 'orange', 'gold', 'purple', 'brown', 'gray')),
-    capacity INTEGER NOT NULL DEFAULT 0,
+    stored_items INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(physical_location_id, name)
 );
 
 -- Create physical_game_locations table

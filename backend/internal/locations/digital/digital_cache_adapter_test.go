@@ -76,6 +76,11 @@ func (m *MockCacheWrapper) SetCachedResults(
 	return args.Error(0)
 }
 
+func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
+	return args.Error(0)
+}
+
 func TestDigitalCacheAdapter(t *testing.T) {
 	// Setup test data
 	testUserID := "test-user-id"

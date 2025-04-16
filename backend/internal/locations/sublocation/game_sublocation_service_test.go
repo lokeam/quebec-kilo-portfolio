@@ -88,7 +88,7 @@ func TestGameSublocationService(t *testing.T) {
 		Name:         "Test Sublocation",
 		LocationType: "shelf",
 		BgColor:      "blue",
-		Capacity:     50,
+		StoredItems:  50,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
@@ -195,7 +195,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.cacheWrapper = mockCache
 
 		// WHEN
-		err := service.AddSublocation(ctx, testUserID, testSublocation)
+		createdSublocation, err := service.AddSublocation(ctx, testUserID, testSublocation)
 
 		// THEN
 		if err != nil {
@@ -206,6 +206,9 @@ func TestGameSublocationService(t *testing.T) {
 		}
 		if !cacheInvalidatedCalled {
 			t.Error("Expected cache invalidation to be called")
+		}
+		if createdSublocation.ID != testSublocationID {
+			t.Errorf("Expected created sublocation ID %s, got %s", testSublocationID, createdSublocation.ID)
 		}
 	})
 
@@ -237,7 +240,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.dbAdapter = mockDb
 
 		// WHEN
-		err := service.AddSublocation(ctx, testUserID, testSublocation)
+		createdSublocation, err := service.AddSublocation(ctx, testUserID, testSublocation)
 
 		// THEN
 		if err == nil {
@@ -245,6 +248,9 @@ func TestGameSublocationService(t *testing.T) {
 		}
 		if dbCalled {
 			t.Error("Expected database not to be called")
+		}
+		if createdSublocation.ID != "" {
+			t.Error("Expected empty sublocation on validation error")
 		}
 	})
 

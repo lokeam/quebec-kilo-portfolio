@@ -66,10 +66,11 @@ func IsValidSublocationBgColor(color string) bool {
 type Sublocation struct {
 	ID                 string      `json:"id" db:"id"`
 	UserID             string      `json:"user_id" db:"user_id"`
+	PhysicalLocationID string      `json:"physical_location_id" db:"physical_location_id"`
 	Name               string      `json:"name" db:"name"`
 	LocationType       string      `json:"location_type" db:"location_type"`
 	BgColor            string      `json:"bg_color" db:"bg_color"`
-	Capacity           int         `json:"capacity" db:"capacity"`
+	StoredItems        int         `json:"stored_items" db:"stored_items"`
 	CreatedAt          time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at" db:"updated_at"`
 

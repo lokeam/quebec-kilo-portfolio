@@ -1,21 +1,25 @@
 package sublocation
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
 type SublocationRequest struct {
-	Name            string `json:"name"`
-	LocationType    string `json:"location_type"`
-	BgColor         string `json:"bg_color"`
-	Capacity        int    `json:"capacity"`
+	Name               string `json:"name"`
+	LocationType       string `json:"location_type"`
+	BgColor           string `json:"bg_color"`
+	StoredItems       int    `json:"stored_items"`
+	PhysicalLocationID string `json:"physical_location_id"`
 }
 
 func NewSublocationHandler(
@@ -133,10 +137,10 @@ func handleListSublocations(
 
 	response := struct {
 		Success        bool                    `json:"success"`
-		Locations      []models.Sublocation    `json:"sublocations"`
+		Sublocations   []models.Sublocation    `json:"sublocations"`
 	} {
 		Success: true,
-		Locations: locations,
+		Sublocations: locations,
 	}
 
 	httputils.RespondWithJSON(
@@ -203,10 +207,29 @@ func handleCreateSublocation(
 	userID string,
 	requestID string,
 ) {
-	appCtx.Logger.Info("Getting sublocation", map[string]any{
+	appCtx.Logger.Info("Creating sublocation", map[string]any{
 		"requestID":  requestID,
 		"userID":     userID,
 	})
+
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			requestID,
+			errors.New("error reading request body"),
+			http.StatusBadRequest,
+		)
+		return
+	}
+	appCtx.Logger.Debug("Request body", map[string]any{
+		"body": string(body),
+	})
+
+	// Reset the request body
+	r.Body = io.NopCloser(bytes.NewReader(body))
 
 	var locationRequest SublocationRequest
 	if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
@@ -220,15 +243,44 @@ func handleCreateSublocation(
 		return
 	}
 
-	sublocation := models.Sublocation{
-		Name:             locationRequest.Name,
-		LocationType:     locationRequest.LocationType,
-		BgColor:          locationRequest.BgColor,
-		Capacity:         locationRequest.Capacity,
-		UserID:           userID,
+	appCtx.Logger.Debug("Decoded request", map[string]any{
+		"request": locationRequest,
+	})
+
+	// Validate required fields
+	if locationRequest.PhysicalLocationID == "" {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			requestID,
+			errors.New("physical_location_id is required"),
+			http.StatusBadRequest,
+		)
+		return
 	}
 
-	err := service.AddSublocation(r.Context(), userID, sublocation)
+	// Validate UUID format
+	if _, err := uuid.Parse(locationRequest.PhysicalLocationID); err != nil {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			requestID,
+			errors.New("physical_location_id must be a valid UUID"),
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	sublocation := models.Sublocation{
+		Name:               locationRequest.Name,
+		LocationType:       locationRequest.LocationType,
+		BgColor:           locationRequest.BgColor,
+		StoredItems:       locationRequest.StoredItems,
+		UserID:            userID,
+		PhysicalLocationID: locationRequest.PhysicalLocationID,
+	}
+
+	createdSublocation, err := service.AddSublocation(r.Context(), userID, sublocation)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrValidationFailed) {
@@ -250,7 +302,7 @@ func handleCreateSublocation(
 		Location    models.Sublocation    `json:"location"`
 	} {
 		Success:    true,
-		Location:   sublocation,
+		Location:   createdSublocation,
 	}
 
 	httputils.RespondWithJSON(
@@ -293,8 +345,9 @@ func handleUpdateSublocation(
 		Name:           locationRequest.Name,
 		LocationType:   locationRequest.LocationType,
 		BgColor:        locationRequest.BgColor,
-		Capacity:       locationRequest.Capacity,
+		StoredItems:    locationRequest.StoredItems,
 		UserID:         userID,
+		PhysicalLocationID: locationRequest.PhysicalLocationID,
 	}
 
 	err := service.UpdateSublocation(r.Context(), userID, location)

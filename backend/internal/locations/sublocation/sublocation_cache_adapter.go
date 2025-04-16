@@ -82,7 +82,7 @@ func (sca *SublocationCacheAdapter) InvalidateUserCache(
 	userID string,
 ) error {
 	cacheKey := fmt.Sprintf("sublocation:%s", userID)
-	return sca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	return sca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
 
 func (sca *SublocationCacheAdapter) InvalidateSublocationCache(

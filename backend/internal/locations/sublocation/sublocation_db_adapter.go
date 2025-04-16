@@ -22,7 +22,6 @@ type SublocationDbAdapter struct {
 	client  *postgres.PostgresClient
 	db      *sqlx.DB
 	logger  interfaces.Logger
-	scanner interfaces.GameScanner
 }
 
 func NewSublocationDbAdapter(appContext *appcontext.AppContext) (*SublocationDbAdapter, error) {
@@ -61,8 +60,8 @@ func (sa *SublocationDbAdapter) GetSublocation(ctx context.Context, userID strin
 	})
 
 	query := `
-		SELECT id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
-		FROM sub_locations
+		SELECT id, user_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		FROM sublocations
 		WHERE id = $1 AND user_id = $2
 	`
 
@@ -101,8 +100,8 @@ func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID 
 	})
 
 	query := `
-		SELECT id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
-		FROM sub_locations
+		SELECT id, user_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		FROM sublocations
 		WHERE user_id = $1
 		ORDER BY name
 	`
@@ -174,8 +173,8 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 	}
 
 	query := `
-		UPDATE sub_locations
-		SET name = $1, location_type = $2, bg_color = $3, capacity = $4, updated_at = $5
+		UPDATE sublocations
+		SET name = $1, location_type = $2, bg_color = $3, stored_items = $4, updated_at = $5
 		WHERE id = $6 AND user_id = $7
   `
 
@@ -186,7 +185,7 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 		sublocation.Name,
 		sublocation.LocationType,
 		sublocation.BgColor,
-		sublocation.Capacity,
+		sublocation.StoredItems,
 		now,
 		sublocation.ID,
 		userID,
@@ -214,6 +213,7 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
 	sa.logger.Debug("AddSublocation called", map[string]any{
 		"userID": userID,
+		"sublocation": sublocation,
 	})
 
 	// Generate a new UUID if ID is not provided
@@ -229,33 +229,59 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 	sublocation.CreatedAt = now
 	sublocation.UpdatedAt = now
 
+	// Validate the physical location ID is a valid UUID
+	_, err := uuid.Parse(sublocation.PhysicalLocationID)
+	if err != nil {
+		return models.Sublocation{}, fmt.Errorf("invalid physical_location_id: %w", err)
+	}
+
+	sa.logger.Debug("Executing query", map[string]any{
+		"id": sublocation.ID,
+		"userID": userID,
+		"physicalLocationID": sublocation.PhysicalLocationID,
+		"name": sublocation.Name,
+		"locationType": sublocation.LocationType,
+		"bgColor": sublocation.BgColor,
+		"storedItems": sublocation.StoredItems,
+	})
+
 	query := `
-		INSERT INTO sub_locations (id, user_id, name, location_type, bg_color, capacity, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, user_id, name, location_type, bg_color, capacity, created_at, updated_at
+		INSERT INTO sublocations (id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
   `
 
-	err := sa.db.QueryRowxContext(
+	var createdSublocation models.Sublocation
+	err = sa.db.QueryRowxContext(
 		ctx,
 		query,
 		sublocation.ID,
 		userID,
+		sublocation.PhysicalLocationID,
 		sublocation.Name,
 		sublocation.LocationType,
 		sublocation.BgColor,
-		sublocation.Capacity,
+		sublocation.StoredItems,
 		sublocation.CreatedAt,
 		sublocation.UpdatedAt,
-	).StructScan(&sublocation)
+	).StructScan(&createdSublocation)
 
 	if err != nil {
+		sa.logger.Error("Error executing query", map[string]any{
+			"error": err,
+			"sublocation": sublocation,
+		})
 		return models.Sublocation{}, fmt.Errorf("error adding sublocation: %w", err)
 	}
 
 	// Initialize empty items slice
-	sublocation.Items = []models.Game{}
+	createdSublocation.Items = []models.Game{}
 
-	return sublocation, nil
+	sa.logger.Debug("AddSublocation success", map[string]any{
+		"createdSublocation": createdSublocation,
+	})
+
+	return createdSublocation, nil
 }
 
 // DELETE
@@ -272,7 +298,7 @@ func (sa *SublocationDbAdapter) RemoveSublocation(ctx context.Context, userID st
 		func(tx *sqlx.Tx) error {
 			// Check if sublocation exists AND belongs to user
 			checkQuery := `
-				SELECT id FROM sub_locations
+				SELECT id FROM sublocations
 				WHERE id = $1 AND user_id = $2
 			`
 
@@ -287,7 +313,7 @@ func (sa *SublocationDbAdapter) RemoveSublocation(ctx context.Context, userID st
 
 			// Delete the sublocation
 			deleteQuery := `
-				DELETE FROM sub_locations
+				DELETE FROM sublocations
 				WHERE id = $1 AND user_id = $2
 			`
 
@@ -334,7 +360,7 @@ func (sa *SublocationDbAdapter) AddGameToSublocation(ctx context.Context, userID
 			}
 
 			// Verify sublocation belongs to user
-			checkSublocQuery := `SELECT id FROM sub_locations WHERE id = $1 AND user_id = $2`
+			checkSublocQuery := `SELECT id FROM sublocations WHERE id = $1 AND user_id = $2`
 			var sublocIDResult string
 			err = tx.QueryRowxContext(ctx, checkSublocQuery, sublocationID, userID).Scan(&sublocIDResult)
 			if err != nil {
@@ -383,7 +409,7 @@ func (sa *SublocationDbAdapter) RemoveGameFromSublocation(ctx context.Context, u
 			}
 
 			// Verify sublocation belongs to user
-			checkSublocQuery := `SELECT id FROM sub_locations WHERE id = $1 AND user_id = $2`
+			checkSublocQuery := `SELECT id FROM sublocations WHERE id = $1 AND user_id = $2`
 			var sublocIDResult string
 			err = tx.QueryRowxContext(ctx, checkSublocQuery, sublocationID, userID).Scan(&sublocIDResult)
 			if err != nil {
@@ -411,4 +437,27 @@ func (sa *SublocationDbAdapter) RemoveGameFromSublocation(ctx context.Context, u
 
 			return nil
 		})
+}
+
+// Check if sublocation with same name exists in the same physical location
+func (sa *SublocationDbAdapter) CheckDuplicateSublocation(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error) {
+	sa.logger.Debug("CheckDuplicateSublocation called", map[string]any{
+		"userID": userID,
+		"physicalLocationID": physicalLocationID,
+		"name": name,
+	})
+
+	query := `
+		SELECT COUNT(*)
+		FROM sublocations
+		WHERE user_id = $1 AND physical_location_id = $2 AND LOWER(name) = LOWER($3)
+	`
+
+	var count int
+	err := sa.db.GetContext(ctx, &count, query, userID, physicalLocationID, name)
+	if err != nil {
+		return false, fmt.Errorf("error checking for duplicate sublocation: %w", err)
+	}
+
+	return count > 0, nil
 }

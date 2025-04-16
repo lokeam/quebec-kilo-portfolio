@@ -35,7 +35,17 @@ func TestCacheWrapper(t *testing.T) {
 
 		testTTL := 10 * time.Minute
 		testTimeout := 100 * time.Millisecond
-		testCache := &mocks.MockCacheClient{}
+		testCache := &mocks.MockCacheClient{
+			GetFunc: func(ctx context.Context, key string) (string, error) {
+				return "", nil
+			},
+			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
+			},
+		}
 
 		cacheWrapper, testErr := NewCacheWrapper(testCache, testTTL, testTimeout, testLogger)
 
@@ -61,6 +71,12 @@ func TestCacheWrapper(t *testing.T) {
 		testCache := &mocks.MockCacheClient{
 			GetFunc: func(ctx context.Context, key string) (string, error) {
 				return "", expectedError
+			},
+			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
 			},
 		}
 
@@ -97,6 +113,12 @@ func TestCacheWrapper(t *testing.T) {
 		testCache := &mocks.MockCacheClient{
 			GetFunc: func(ctx context.Context, key string) (string, error) {
 				return "invalid JSON", nil
+			},
+			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
 			},
 		}
 
@@ -136,6 +158,12 @@ func TestCacheWrapper(t *testing.T) {
 				// Block until context is cancelled
 				<-ctx.Done()
 				return "", ctx.Err()
+			},
+			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
 			},
 		}
 
@@ -207,6 +235,12 @@ func TestCacheWrapper(t *testing.T) {
 			GetFunc: func(ctx context.Context, key string) (string, error) {
 				return string(jsonData), nil
 			},
+			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
+			},
 		}
 
 		testCacheWrapper, testErr := NewCacheWrapper(
@@ -228,7 +262,7 @@ func TestCacheWrapper(t *testing.T) {
 		assert.True(t, cacheHit)
 		assert.Equal(t, expectedResult.ID, result.ID)
 		assert.Equal(t, expectedResult.Name, result.Name)
-
+		assert.Equal(t, expectedResult.Value, result.Value)
 	})
 
 	// ------ SetCachedResults() ------
@@ -246,6 +280,9 @@ func TestCacheWrapper(t *testing.T) {
 				// Block until context cancelled
 				<-ctx.Done()
 				return ctx.Err()
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
 			},
 		}
 
@@ -294,6 +331,9 @@ func TestCacheWrapper(t *testing.T) {
 			SetFunc: func(ctx context.Context, key string, result any, ttl time.Duration) error {
 				return expectedError
 			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
+			},
 		}
 
 		testCacheWrapper, testErr := NewCacheWrapper(
@@ -332,6 +372,9 @@ func TestCacheWrapper(t *testing.T) {
 
 		testCache := &mocks.MockCacheClient{
 			SetFunc: func(ctx context.Context, key string, result any, ttl time.Duration) error {
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
 				return nil
 			},
 		}
@@ -388,6 +431,9 @@ func TestCacheWrapper(t *testing.T) {
 			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
 				atomic.AddInt32(&setCalls, 1)
 				time.Sleep(5 * time.Millisecond) // Force some concurrency
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
 				return nil
 			},
 		}
@@ -463,6 +509,9 @@ func TestCacheWrapper(t *testing.T) {
 				setCalled = true
 				return nil
 			},
+			DeleteFunc: func(ctx context.Context, key string) error {
+				return nil
+			},
 		}
 
 		testCacheWrapper, testErr := NewCacheWrapper(
@@ -514,6 +563,9 @@ func TestCacheWrapper(t *testing.T) {
 			SetFunc: func(ctx context.Context, key string, value any, ttl time.Duration) error {
 				// Make sure that a reasonable default is always used even if value is zero or negative
 				assert.True(t, ttl > 0, "TTL should be a positive value")
+				return nil
+			},
+			DeleteFunc: func(ctx context.Context, key string) error {
 				return nil
 			},
 		}
