@@ -3,6 +3,7 @@ package models
 type Game struct {
 	ID              int64     `json:"id" db:"id"`
 	Name            string    `json:"name" db:"name"`
+	Label           string    `json:"label" db:"label"`
 	Summary         string    `json:"summary,omitempty" db:"summary"`
 	CoverID         int64     `json:"cover,omitempty" db:"cover_id"`
 	CoverURL        string    `json:"cover_url,omitempty" db:"cover_url"`
@@ -18,4 +19,12 @@ type Game struct {
 	PlatformNames   []string  `json:"platform_names" db:"-"`
 	GenreNames      []string  `json:"genre_names" db:"-"`
 	ThemeNames      []string  `json:"theme_names" db:"-"`
+
+	// Additional fields for frontend compatibility
+	Platform        string    `json:"platform" db:"-"`
+	PlatformVersion string    `json:"platform_version" db:"-"`
+	AcquiredDate    string    `json:"acquired_date" db:"-"`
+	Condition       string    `json:"condition,omitempty" db:"-"`
+	HasOriginalCase bool      `json:"has_original_case,omitempty" db:"-"`
+	HasManual       bool      `json:"has_manual,omitempty" db:"-"`
 }

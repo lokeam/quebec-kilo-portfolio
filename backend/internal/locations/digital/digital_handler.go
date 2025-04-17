@@ -138,10 +138,16 @@ func handleListDigitalLocations(
 
 	response := struct {
 		Success     bool                        `json:"success"`
-		Locations   []models.DigitalLocation    `json:"digital_locations"`
+		Data        struct {
+			DigitalLocations []models.DigitalLocation `json:"digital_locations"`
+		} `json:"data"`
 	} {
 		Success: true,
-		Locations: locations,
+		Data: struct {
+			DigitalLocations []models.DigitalLocation `json:"digital_locations"`
+		}{
+			DigitalLocations: locations,
+		},
 	}
 
 	httputils.RespondWithJSON(
@@ -199,20 +205,20 @@ func handleGetDigitalLocation(
 		return
 	}
 
-	response := map[string]any{
-		"success": true,
-		"data":    location,
+	response := struct {
+		Success bool                    `json:"success"`
+		Data    models.DigitalLocation `json:"data"`
+	}{
+		Success: true,
+		Data:    location,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		appCtx.Logger.Error("Error encoding response", map[string]any{
-			"error":     err,
-			"requestID": requestID,
-		})
-		http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		return
-	}
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		appCtx.Logger,
+		http.StatusOK,
+		response,
+	)
 }
 
 func handleCreateDigitalLocation(

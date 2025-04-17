@@ -82,7 +82,7 @@ func (pca *PhysicalCacheAdapter) InvalidateUserCache(
 	userID string,
 ) error {
 	cacheKey := fmt.Sprintf("physical:%s", userID)
-	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	return pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
 
 func (pca *PhysicalCacheAdapter) InvalidateLocationCache(
@@ -91,5 +91,5 @@ func (pca *PhysicalCacheAdapter) InvalidateLocationCache(
 	locationID string,
 ) error {
 	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
-	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	return pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }

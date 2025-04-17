@@ -187,9 +187,23 @@ func (gps *GamePhysicalService) AddPhysicalLocation(
 		return models.PhysicalLocation{}, err
 	}
 
-	// Invalidate user cache
-	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
-		gps.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+	// Get all locations to update cache
+	locations, err := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
+	if err != nil {
+		gps.logger.Error("Failed to get updated locations for cache", map[string]any{"error": err})
+		// Don't return error here, just log it
+	} else {
+		// Update the cache with all locations
+		if err := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); err != nil {
+			gps.logger.Error("Failed to update locations cache", map[string]any{"error": err})
+			// Don't return error here, just log it
+		}
+	}
+
+	// Also cache the individual location
+	if err := gps.cacheWrapper.SetSingleCachedPhysicalLocation(ctx, userID, createdLocation); err != nil {
+		gps.logger.Error("Failed to cache individual location", map[string]any{"error": err})
+		// Don't return error here, just log it
 	}
 
 	return createdLocation, nil
@@ -246,10 +260,20 @@ func (gps *GamePhysicalService) DeletePhysicalLocation(
 		return err
 	}
 
-	// Invalidate caches
-	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
-		gps.logger.Error("failed to invalidate user cache", map[string]any{"error": err})
+	// Get updated locations from DB
+	locations, err := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
+	if err != nil {
+		gps.logger.Error("Failed to get updated locations after deletion", map[string]any{"error": err})
+		// Don't return error here, just invalidate caches
+		locations = []models.PhysicalLocation{}
 	}
+
+	// Update the cache with current locations
+	if err := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); err != nil {
+		gps.logger.Error("Failed to update locations cache after deletion", map[string]any{"error": err})
+	}
+
+	// Invalidate the specific location cache
 	if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, locationID); err != nil {
 		gps.logger.Error("Failed to invalidate location cache", map[string]any{"error": err})
 	}

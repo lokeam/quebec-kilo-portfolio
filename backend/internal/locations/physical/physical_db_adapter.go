@@ -3,6 +3,7 @@ package physical
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -40,8 +41,6 @@ func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter
 	}
 
 	// Register custom types for PostgreSQL arrays so sqlx can handle string array types
-	// NOTE: Do these values need to be repeated in every db adapter?
-	// If so, can I separate these out into a shared fn?
 	db.MapperFunc(strings.ToLower)
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(25)
@@ -62,17 +61,105 @@ const (
 		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 	`
 
+	// Common Table Expression for sublocations
+	// Nested JSON Construction
 	getPhysicalLocationQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
-		FROM physical_locations
-		WHERE id = $1 AND user_id = $2
+		WITH location_sublocations AS (
+			SELECT
+				pl.id as location_id,
+				json_agg(
+					json_build_object(
+						'id', sl.id,
+						'name', sl.name,
+						'location_type', sl.location_type,
+						'bg_color', sl.bg_color,
+						'stored_items', sl.stored_items,
+						'created_at', sl.created_at,
+						'updated_at', sl.updated_at,
+						'items', COALESCE(
+							(
+								SELECT json_agg(
+									json_build_object(
+										'id', g.id,
+										'name', g.name,
+										'summary', g.summary,
+										'cover_id', g.cover_id,
+										'cover_url', g.cover_url,
+										'first_release_date', g.first_release_date,
+										'rating', g.rating
+									)
+								)
+								FROM games g
+								JOIN user_games ug ON ug.game_id = g.id
+								JOIN physical_game_locations pgl ON pgl.user_game_id = ug.id
+								WHERE pgl.sublocation_id = sl.id
+							),
+							'[]'::json
+						)
+					)
+				) as sublocations
+			FROM physical_locations pl
+			LEFT JOIN sublocations sl ON sl.physical_location_id = pl.id
+			WHERE pl.id = $1 AND pl.user_id = $2
+			GROUP BY pl.id
+		)
+		SELECT
+			pl.*,
+			COALESCE(ls.sublocations, '[]'::json) as sub_locations
+		FROM physical_locations pl
+		LEFT JOIN location_sublocations ls ON ls.location_id = pl.id
+		WHERE pl.id = $1 AND pl.user_id = $2
 	`
 
+	// Common Table Expression for sublocations
+	// Nested JSON Construction
 	getUserPhysicalLocationsQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
-		FROM physical_locations
-		WHERE user_id = $1
-		ORDER BY created_at DESC
+		WITH location_sublocations AS (
+			SELECT
+				pl.id as location_id,
+				json_agg(
+					json_build_object(
+						'id', sl.id,
+						'name', sl.name,
+						'location_type', sl.location_type,
+						'bg_color', sl.bg_color,
+						'stored_items', sl.stored_items,
+						'created_at', sl.created_at,
+						'updated_at', sl.updated_at,
+						'items', COALESCE(
+							(
+								SELECT json_agg(
+									json_build_object(
+										'id', g.id,
+										'name', g.name,
+										'summary', g.summary,
+										'cover_id', g.cover_id,
+										'cover_url', g.cover_url,
+										'first_release_date', g.first_release_date,
+										'rating', g.rating
+									)
+								)
+								FROM games g
+								JOIN user_games ug ON ug.game_id = g.id
+								JOIN physical_game_locations pgl ON pgl.user_game_id = ug.id
+								WHERE pgl.sublocation_id = sl.id
+							),
+							'[]'::json
+						)
+					)
+				) as sublocations
+			FROM physical_locations pl
+			LEFT JOIN sublocations sl ON sl.physical_location_id = pl.id
+			WHERE pl.user_id = $1
+			GROUP BY pl.id
+		)
+		SELECT
+			pl.*,
+			COALESCE(ls.sublocations, '[]'::json) as sub_locations
+		FROM physical_locations pl
+		LEFT JOIN location_sublocations ls ON ls.location_id = pl.id
+		WHERE pl.user_id = $1
+		ORDER BY pl.created_at
 	`
 
 	updatePhysicalLocationQuery = `
@@ -100,8 +187,12 @@ func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID str
 		&location.MapCoordinates,
 		&location.CreatedAt,
 		&location.UpdatedAt,
+		&location.SubLocations,
 	)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.PhysicalLocation{}, fmt.Errorf("physical location not found: %w", err)
+		}
 		return models.PhysicalLocation{}, fmt.Errorf("failed to get physical location: %w", err)
 	}
 
@@ -117,15 +208,18 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 		"userID": userID,
 	})
 
+	// Use QueryContext instead of SelectContext to handle the scanning manually
 	rows, err := pa.db.QueryContext(ctx, getUserPhysicalLocationsQuery, userID)
 	if err != nil {
-		return []models.PhysicalLocation{}, fmt.Errorf("failed to get user physical locations: %w", err)
+		return nil, fmt.Errorf("failed to query user physical locations: %w", err)
 	}
 	defer rows.Close()
 
 	var locations []models.PhysicalLocation
 	for rows.Next() {
 		var location models.PhysicalLocation
+		var subLocationsJSON []byte // Temporary holder for JSON data
+
 		err := rows.Scan(
 			&location.ID,
 			&location.UserID,
@@ -135,11 +229,24 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 			&location.MapCoordinates,
 			&location.CreatedAt,
 			&location.UpdatedAt,
+			&subLocationsJSON,
 		)
 		if err != nil {
-			return []models.PhysicalLocation{}, fmt.Errorf("failed to scan physical location: %w", err)
+			return nil, fmt.Errorf("failed to scan physical location: %w", err)
 		}
+
+		// Initialize the SubLocations slice
+		var subLocations []models.Sublocation
+		if err := json.Unmarshal(subLocationsJSON, &subLocations); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal sub_locations: %w", err)
+		}
+		location.SubLocations = &subLocations
+
 		locations = append(locations, location)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating physical locations: %w", err)
 	}
 
 	pa.logger.Debug("GetUserPhysicalLocations success", map[string]any{

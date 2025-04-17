@@ -59,14 +59,38 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 		"locationID": locationID,
 	})
 
-	query := `
-		SELECT id, user_id, name, is_active, url, created_at, updated_at
-		FROM digital_locations
-		WHERE id = $1 AND user_id = $2
-		`
+	const getDigitalLocationQuery = `
+		WITH location_games AS (
+			SELECT
+				dl.id as location_id,
+				json_agg(
+					json_build_object(
+						'id', g.id,
+						'name', g.name,
+						'summary', g.summary,
+						'cover_id', g.cover_id,
+						'cover_url', g.cover_url,
+						'first_release_date', g.first_release_date,
+						'rating', g.rating
+					)
+				) as items
+			FROM digital_locations dl
+			LEFT JOIN digital_game_locations dgl ON dgl.digital_location_id = dl.id
+			LEFT JOIN user_games ug ON ug.id = dgl.user_game_id
+			LEFT JOIN games g ON g.id = ug.game_id
+			WHERE dl.id = $1 AND dl.user_id = $2
+			GROUP BY dl.id
+		)
+		SELECT
+			dl.*,
+			COALESCE(lg.items, '[]'::json) as items
+		FROM digital_locations dl
+		LEFT JOIN location_games lg ON lg.location_id = dl.id
+		WHERE dl.id = $1 AND dl.user_id = $2
+	`
 
 	var location models.DigitalLocation
-	err := da.db.GetContext(ctx, &location, query, locationID, userID)
+	err := da.db.GetContext(ctx, &location, getDigitalLocationQuery, locationID, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.DigitalLocation{}, fmt.Errorf("digital location not found: %w", err)
@@ -87,15 +111,39 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 		"userID": userID,
 	})
 
-	query := `
-		SELECT id, user_id, name, is_active, url, created_at, updated_at
-		FROM digital_locations
-		WHERE user_id = $1
-		ORDER BY name
-		`
+	const getUserDigitalLocationsQuery = `
+		WITH location_games AS (
+			SELECT
+				dl.id as location_id,
+				json_agg(
+					json_build_object(
+						'id', g.id,
+						'name', g.name,
+						'summary', g.summary,
+						'cover_id', g.cover_id,
+						'cover_url', g.cover_url,
+						'first_release_date', g.first_release_date,
+						'rating', g.rating
+					)
+				) as items
+			FROM digital_locations dl
+			LEFT JOIN digital_game_locations dgl ON dgl.digital_location_id = dl.id
+			LEFT JOIN user_games ug ON ug.id = dgl.user_game_id
+			LEFT JOIN games g ON g.id = ug.game_id
+			WHERE dl.user_id = $1
+			GROUP BY dl.id
+		)
+		SELECT
+			dl.*,
+			COALESCE(lg.items, '[]'::json) as items
+		FROM digital_locations dl
+		LEFT JOIN location_games lg ON lg.location_id = dl.id
+		WHERE dl.user_id = $1
+		ORDER BY dl.created_at
+	`
 
 	var locations []models.DigitalLocation
-	err := da.db.SelectContext(ctx, &locations, query, userID)
+	err := da.db.SelectContext(ctx, &locations, getUserDigitalLocationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user digital locations: %w", err)
 	}

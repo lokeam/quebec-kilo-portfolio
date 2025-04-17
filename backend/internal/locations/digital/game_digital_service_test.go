@@ -187,7 +187,7 @@ func TestGameDigitalService(t *testing.T) {
 		if !errors.Is(err, expectedErr) {
 			t.Errorf("Expected error %v, got %v", expectedErr, err)
 		}
-		if location != (models.DigitalLocation{}) {
+		if location.ID != "" || location.Name != "" || location.IsActive != false {
 			t.Errorf("Expected empty location, got %v", location)
 		}
 	})
@@ -237,7 +237,7 @@ func TestGameDigitalService(t *testing.T) {
 		if !errors.Is(err, expectedErr) {
 			t.Errorf("Expected error %v, got %v", expectedErr, err)
 		}
-		if createdLocation != (models.DigitalLocation{}) {
+		if createdLocation.ID != "" || createdLocation.Name != "" || createdLocation.IsActive != false {
 			t.Errorf("Expected empty location, got %v", createdLocation)
 		}
 	})
@@ -365,7 +365,7 @@ func TestGameDigitalService_GetDigitalLocation(t *testing.T) {
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("Expected error %v, got %v", expectedErr, err)
 	}
-	if location != (models.DigitalLocation{}) {
+	if location.ID != "" || location.Name != "" || location.IsActive != false {
 		t.Errorf("Expected empty location, got %v", location)
 	}
 
@@ -412,7 +412,7 @@ func TestGameDigitalService_AddDigitalLocation(t *testing.T) {
 	if !errors.Is(err, expectedErr) {
 		t.Errorf("Expected error %v, got %v", expectedErr, err)
 	}
-	if createdLocation != (models.DigitalLocation{}) {
+	if createdLocation.ID != "" || createdLocation.Name != "" || createdLocation.IsActive != false {
 		t.Errorf("Expected empty location, got %v", createdLocation)
 	}
 
