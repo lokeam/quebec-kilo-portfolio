@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/lokeam/qko-beta/app"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
@@ -17,13 +18,44 @@ import (
 	"github.com/lokeam/qko-beta/internal/locations/physical"
 	"github.com/lokeam/qko-beta/internal/locations/sublocation"
 	"github.com/lokeam/qko-beta/internal/search"
+	"github.com/lokeam/qko-beta/internal/shared/logger"
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
-	"github.com/lokeam/qko-beta/internal/wishlist"
+	"github.com/lokeam/qko-beta/internal/testutils/mocks"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
+func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interface{}) chi.Router {
+	// Type assertion to get services struct
+	svc, ok := services.(*app.Services)
+	if !ok {
+		// Try to assert as mock services
+		mockSvc, ok := services.(*mocks.MockServices)
+		if !ok {
+			appContext.Logger.Error("Invalid services type provided", map[string]any{
+				"type": fmt.Sprintf("%T", services),
+			})
+			// Create a minimal router
+			mux := chi.NewRouter()
+			mux.Get("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte(`{"status":"service initialization failed"}`))
+			})
+			return mux
+		}
+		// Convert mock services to app services interface implementation
+		svc = &app.Services{
+			Digital:       mockSvc.Digital,
+			Physical:      mockSvc.Physical,
+			Sublocation:   mockSvc.Sublocation,
+			Library:       mockSvc.Library,
+			LibraryMap:    mockSvc.LibraryMap,
+			Wishlist:      mockSvc.Wishlist,
+			SearchFactory: mockSvc.SearchFactory,
+			SearchMap:     mockSvc.SearchMap,
+		}
+	}
+
 	// Create Router
 	mux := chi.NewRouter()
 
@@ -32,110 +64,49 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	s.setupCORS(mux)
 
 	// Add trailing slash middleware
-	mux.Use(middleware.StripSlashes)
+	mux.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Log the original path
+			appContext.Logger.Debug("Before StripSlashes", map[string]interface{}{
+				"method": r.Method,
+				"path":   r.URL.Path,
+			})
+
+			// Call the StripSlashes middleware
+			middleware.StripSlashes(next).ServeHTTP(w, r)
+
+			// Log the path after StripSlashes
+			appContext.Logger.Debug("After StripSlashes", map[string]interface{}{
+				"method": r.Method,
+				"path":   r.URL.Path,
+			})
+		})
+	})
 
 	// Add mock authentication middleware
 	mux.Use(authMiddleware.MockAuthMiddleware(appContext))
 
-	// Initialize services
-	libraryService, err := library.NewGameLibraryService(appContext)
-	if err != nil {
-		appContext.Logger.Error("Failed to initialize library service", map[string]any{
-			"error": err,
-		})
-
-		if appContext.Config.Env == "production" {
-			panic(fmt.Sprintf("Critical error initializing library service: %v", err))
-		}
-	}
-
-	// Initialize physical services
-	physicalService, err := physical.NewGamePhysicalService(appContext)
-	if err != nil {
-		appContext.Logger.Error("Failed to initialized physical service", map[string]any{
-			"error": err,
-		})
-
-		if appContext.Config.Env == "production" {
-			panic(fmt.Sprintf("Critical error initializing physical service: %v", err))
-		}
-	}
-
-	// Initialize sublocation services
-	sublocationService, err := sublocation.NewGameSublocationService(appContext)
-	if err != nil {
-		appContext.Logger.Error("Failed to initialized sublocation service", map[string]any{
-			"error": err,
-		})
-
-		if appContext.Config.Env == "production" {
-			panic(fmt.Sprintf("Critical error initializing sublocation service: %v", err))
-		}
-	}
-
-	// Initialize digital location services
-	digitalService, err := digital.NewGameDigitalService(appContext)
-	if err != nil {
-		appContext.Logger.Error("Failed to initialized digital service", map[string]any{
-			"error": err,
-		})
-	}
-
-	if appContext.Config.Env == "production" {
-		panic(fmt.Sprintf("Critical error initialized digital service: %v", err))
-	}
-
-
-	// Create library services map
-	libraryServices := make(library.DomainLibraryServices)
-	libraryServices["games"] = libraryService
-
 	// Create library handler
-	libraryHandler := library.NewLibraryHandler(appContext, libraryServices)
-	// TODO: add error handling
-
+	libraryHandler := library.NewLibraryHandler(appContext, svc.LibraryMap)
 
 	// Create physical handler
-	physicalHandler := physical.NewPhysicalLocationHandler(appContext, physicalService)
-	// TODO: add error handling
-
+	physicalHandler := physical.NewPhysicalLocationHandler(appContext, svc.Physical)
 
 	// Create sublocation handler
-	sublocationHandler := sublocation.NewSublocationHandler(appContext, sublocationService)
-	// TODO: add error handling
-
-	// Create digital location handler
-	digitalHandler := digital.NewDigitalLocationHandler(appContext, digitalService)
-	// TODO: add error handling
+	sublocationHandler := sublocation.NewSublocationHandler(appContext, svc.Sublocation)
 
 	// Create digital services catalog handler
-	digitalServicesCatalogHandler := digital.NewDigitalServicesCatalogHandler(appContext)
-
-
-	wishlistService, err := wishlist.NewGameWishlistService(appContext)
-	if err != nil {
-		appContext.Logger.Error("Failed to initialize wishlist service", map[string]any{
-			"error": err,
-		})
-	}
+	digitalServicesCatalogHandler := digital.GetDigitalServicesCatalog(appContext)
 
 	// Initialize handlers using single App Context
-	searchServiceFactory := search.NewSearchServiceFactory(appContext)
 	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
-
-	// Initialize search services
-	searchServices := make(search.DomainSearchServices)
-	gameSearchService, err := searchServiceFactory.GetService("games")
-	if err == nil {
-		searchServices["games"] = gameSearchService
-	}
 
 	// Create search handler
 	searchHandler := search.NewSearchHandler(
 		appContext,
-		searchServices,  // Pass the map instead of the factory
-		libraryService,
-		wishlistService,
+		svc.SearchMap,
+		svc.Library,
+		svc.Wishlist,
 	)
 
 	// Debug logging for searchHandler
@@ -156,6 +127,14 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 	} else {
 		appContext.Logger.Info("searchHandler is of type http.HandlerFunc", map[string]any{
 			"appContext": appContext,
+		})
+	}
+
+	// Log route setup
+	log, err := logger.NewLogger()
+	if err == nil {
+		log.Debug("Setting up routes", map[string]interface{}{
+			"base_path": "/api/v1",
 		})
 	}
 
@@ -199,11 +178,14 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext) chi.Router {
 
 		// Digital Locations
 		r.Route("/locations/digital", func(r chi.Router) {
-			r.Get("/", digitalHandler)
-			r.Post("/", digitalHandler)
-			r.Get("/{id}", digitalHandler)
-			r.Put("/{id}", digitalHandler)
-			r.Delete("/{id}", digitalHandler)
+			if err == nil {
+				log.Debug("Setting up digital locations routes", map[string]interface{}{
+					"path": "/api/v1/locations/digital",
+				})
+			}
+
+			// Register routes using the new pattern
+			digital.RegisterDigitalRoutes(r, appContext, svc.Digital)
 
 			// Services Catalog
 			r.Get("/services/catalog", digitalServicesCatalogHandler)

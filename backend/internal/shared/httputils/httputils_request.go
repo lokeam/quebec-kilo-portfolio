@@ -3,9 +3,10 @@ package httputils
 import (
 	"net/http"
 
-	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
+	"github.com/lokeam/qko-beta/internal/shared/constants"
 )
 
+// These are HTTP header constants used throughout the application.
 const (
 	ClientIDHeader = "Client-ID"
 	AuthorizationHeader = "Authorization"
@@ -13,15 +14,15 @@ const (
 	ContentTypeHeader = "Content-Type"
 	ContentTypeText = "text/plain"
 	XRequestIDHeader = "X-Request-ID"
-	RequestIDKey contextKey = "requestID"
+	XContentTypeOptions = "X-Content-Type-Options"
+	ContentTypeJSON = "application/json"
+	ContentTypeHTML = "text/html"
 )
 
-type contextKey string
-
 func GetRequestID(r *http.Request) string {
-	// First check if request ID is in context
-	if id, ok := r.Context().Value(RequestIDKey).(string); ok {
-			return id
+	// Try to get from context first
+	if id, ok := r.Context().Value(constants.RequestIDKey).(string); ok {
+		return id
 	}
 
 	// Fall back to header
@@ -29,7 +30,7 @@ func GetRequestID(r *http.Request) string {
 }
 
 func GetUserID(r *http.Request) string {
-	if id, ok := r.Context().Value(authMiddleware.UserIDKey).(string); ok {
+	if id, ok := r.Context().Value(constants.UserIDKey).(string); ok {
 		return id
 	}
 
