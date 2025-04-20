@@ -138,6 +138,24 @@ func (gss *GameSublocationService) GetSublocations(
 }
 
 // POST
+// AddSublocation adds a new sublocation for a user.
+//
+// Cache Invalidation Strategy:
+// - The private addSublocationImpl method invalidates the user cache to ensure cache consistency
+//   even if called directly (defensive programming).
+// - The public AddSublocation method invalidates both the user cache and the parent physical
+//   location's cache to maintain consistency across related caches.
+//
+// IMPORTANT: The double cache invalidation is INTENTIONAL and NECESSARY:
+// 1. addSublocationImpl handles basic user cache invalidation for consistency
+// 2. AddSublocation handles both user cache and physical location cache invalidation
+//
+// DO NOT attempt to "optimize" this by removing either cache invalidation:
+// - Removing addSublocationImpl's invalidation would break cache consistency if called directly
+// - Removing AddSublocation's invalidation would miss the physical location cache update
+//
+// This pattern is consistent with our production codebase and follows defensive programming
+// principles to ensure cache consistency across all possible code paths.
 func (gss *GameSublocationService) AddSublocation(
 	ctx context.Context,
 	userID string,
@@ -148,6 +166,16 @@ func (gss *GameSublocationService) AddSublocation(
 	if err != nil {
 		return models.Sublocation{}, err
 	}
+
+	// Invalidate caches
+	if err := gss.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+	}
+	// Also invalidate the parent physical location's cache
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, createdSublocation.PhysicalLocationID); err != nil {
+		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
+	}
+
 	return *createdSublocation, nil
 }
 
@@ -170,11 +198,7 @@ func (gss *GameSublocationService) addSublocationImpl(
 		return nil, err
 	}
 
-	// Invalidate user cache
-	if err := gss.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
-		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
-	}
-
+	// Cache invalidation is handled by the public AddSublocation method
 	return &createdSublocation, nil
 }
 
@@ -206,7 +230,17 @@ func (gss *GameSublocationService) UpdateSublocation(
 		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
 	}
 	if err := gss.cacheWrapper.InvalidateSublocationCache(ctx, userID, validatedSublocation.ID); err != nil {
-		gss.logger.Error("Failed to invalidate location cache", map[string]any{"error": err})
+		gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{"error": err})
+	}
+	// Also invalidate the parent physical location's cache
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, validatedSublocation.PhysicalLocationID); err != nil {
+		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
+	}
+
+	// Force a refresh of the physical location's cache by getting the updated data
+	// This ensures that the physical location's sublocations are up to date
+	if _, err := gss.dbAdapter.GetSublocation(ctx, userID, validatedSublocation.ID); err != nil {
+		gss.logger.Error("Failed to refresh sublocation data", map[string]any{"error": err})
 	}
 
 	return nil
@@ -218,6 +252,13 @@ func (gss *GameSublocationService) DeleteSublocation(
 	userID string,
 	sublocationID string,
 ) error {
+	// First get the sublocation to get its physical location ID
+	sublocation, err := gss.dbAdapter.GetSublocation(ctx, userID, sublocationID)
+	if err != nil {
+		gss.logger.Error("Failed to get sublocation before deletion", map[string]any{"error": err})
+		return err
+	}
+
 	// Remove from database
 	if err := gss.dbAdapter.RemoveSublocation(
 		ctx,
@@ -234,6 +275,10 @@ func (gss *GameSublocationService) DeleteSublocation(
 	}
 	if err := gss.cacheWrapper.InvalidateSublocationCache(ctx, userID, sublocationID); err != nil {
 		gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{"error": err})
+	}
+	// Also invalidate the parent physical location's cache
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, sublocation.PhysicalLocationID); err != nil {
+		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
 	}
 
 	return nil

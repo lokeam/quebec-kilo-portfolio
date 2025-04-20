@@ -28,10 +28,6 @@ type GameSearchService struct {
 	appContext      *appcontext.AppContext
 }
 
-type SearchService interface {
-	Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error)
-}
-
 // NewGameSearchService wires up the GameSearchService with its dependencies.
 func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService, error) {
 
@@ -91,7 +87,7 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 	s.logger.Debug("Making IGDB request", map[string]any{
 		"query": req.Query,
 		"limit": req.Limit,
-})
+	})
 
 	// 1. Sanitize the query.
 	sanitized, err := s.sanitizer.SanitizeSearchQuery(req.Query)
@@ -171,6 +167,12 @@ func (s *GameSearchService) searchWithTokenRefresh(
 ) ([]*models.Game, error) {
 	// Attempt to search IGDB
 	games, err := s.adapter.SearchGames(ctx, query, limit)
+
+	// Add logging
+	s.logger.Debug("IGDB SearchGames response", map[string]any{
+		"games": games,
+		"error": err,
+	})
 
 	// If we get an error, check if it is related to auth (401)
 	if err != nil && IAuthError(err) {

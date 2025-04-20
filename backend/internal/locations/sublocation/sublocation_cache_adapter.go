@@ -93,3 +93,12 @@ func (sca *SublocationCacheAdapter) InvalidateSublocationCache(
 	cacheKey := fmt.Sprintf("sublocation:%s:sublocation:%s", userID, sublocationID)
 	return sca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
 }
+
+func (sca *SublocationCacheAdapter) InvalidateLocationCache(
+	ctx context.Context,
+	userID string,
+	locationID string,
+) error {
+	key := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
+	return sca.cacheWrapper.DeleteCacheKey(ctx, key)
+}

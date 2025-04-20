@@ -6,11 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/shared/constants"
 )
-
-type contextKey string
-
-const UserIDKey contextKey = "userID"
 
 // Mock user ID for testing
 const MockUserID = "9a4aeee6-fb31-4839-a921-f61b0525046d"
@@ -34,7 +31,7 @@ func MockAuthMiddleware(appCtx *appcontext.AppContext) func(http.Handler) http.H
 				}
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), constants.UserIDKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

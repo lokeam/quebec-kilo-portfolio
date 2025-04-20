@@ -200,44 +200,25 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 
 func DefaultSublocationCacheWrapper() *MockSublocationCacheWrapper {
 	return &MockSublocationCacheWrapper{
-		GetCachedSublocationsFunc: func(
-			ctx context.Context,
-			userID string,
-		) ([]models.Sublocation, error) {
-			return nil, errors.New("cache miss")
+		GetCachedSublocationsFunc: func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+			return nil, nil
 		},
-		SetCachedSublocationsFunc: func(
-			ctx context.Context,
-			userID string,
-			locations []models.Sublocation,
-		) error {
+		SetCachedSublocationsFunc: func(ctx context.Context, userID string, sublocations []models.Sublocation) error {
 			return nil
 		},
-		GetSingleCachedSublocationFunc: func(
-			ctx context.Context,
-			userID,
-			sublocationID string,
-		) (*models.Sublocation, bool, error) {
-			return nil, false, errors.New("cache miss")
+		GetSingleCachedSublocationFunc: func(ctx context.Context, userID string, sublocationID string) (*models.Sublocation, bool, error) {
+			return nil, false, nil
 		},
-		SetSingleCachedSublocationFunc: func(
-			ctx context.Context,
-			userID string,
-			sublocation models.Sublocation,
-		) error {
+		SetSingleCachedSublocationFunc: func(ctx context.Context, userID string, sublocation models.Sublocation) error {
 			return nil
 		},
-		InvalidateUserCacheFunc: func(
-			ctx context.Context,
-			userID string,
-		) error {
+		InvalidateUserCacheFunc: func(ctx context.Context, userID string) error {
 			return nil
 		},
-		InvalidateSublocationCacheFunc: func(
-			ctx context.Context,
-			userID,
-			sublocationID string,
-		) error {
+		InvalidateSublocationCacheFunc: func(ctx context.Context, userID string, locationID string) error {
+			return nil
+		},
+		InvalidateLocationCacheFunc: func(ctx context.Context, userID string, locationID string) error {
 			return nil
 		},
 	}
@@ -308,6 +289,70 @@ func DefaultDigitalDbAdapter() *MockDigitalDbAdapter {
 				UpdatedAt: time.Now(),
 			}, nil
 		},
+		// Subscription Operations
+		GetSubscriptionFunc: func(ctx context.Context, locationID string) (*models.Subscription, error) {
+			return &models.Subscription{
+				ID:              1,
+				LocationID:      locationID,
+				BillingCycle:    "monthly",
+				CostPerCycle:    9.99,
+				NextPaymentDate: time.Now().AddDate(0, 1, 0),
+				PaymentMethod:   "credit_card",
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}, nil
+		},
+		AddSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+			subscription.ID = 1
+			subscription.CreatedAt = time.Now()
+			subscription.UpdatedAt = time.Now()
+			return &subscription, nil
+		},
+		UpdateSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) error {
+			return nil
+		},
+		RemoveSubscriptionFunc: func(ctx context.Context, locationID string) error {
+			return nil
+		},
+		// Payment Operations
+		GetPaymentsFunc: func(ctx context.Context, locationID string) ([]models.Payment, error) {
+			return []models.Payment{
+				{
+					ID:            1,
+					LocationID:    locationID,
+					Amount:        9.99,
+					PaymentDate:   time.Now(),
+					PaymentMethod: "credit_card",
+					TransactionID: "txn_123",
+					CreatedAt:     time.Now(),
+				},
+				{
+					ID:            2,
+					LocationID:    locationID,
+					Amount:        9.99,
+					PaymentDate:   time.Now().AddDate(0, -1, 0),
+					PaymentMethod: "credit_card",
+					TransactionID: "txn_456",
+					CreatedAt:     time.Now().AddDate(0, -1, 0),
+				},
+			}, nil
+		},
+		AddPaymentFunc: func(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+			payment.ID = 1
+			payment.CreatedAt = time.Now()
+			return &payment, nil
+		},
+		GetPaymentFunc: func(ctx context.Context, paymentID int64) (*models.Payment, error) {
+			return &models.Payment{
+				ID:            paymentID,
+				LocationID:    "default-digital-location",
+				Amount:        9.99,
+				PaymentDate:   time.Now(),
+				PaymentMethod: "credit_card",
+				TransactionID: "txn_123",
+				CreatedAt:     time.Now(),
+			}, nil
+		},
 	}
 }
 
@@ -350,6 +395,48 @@ func DefaultDigitalCacheWrapper() *MockDigitalCacheWrapper {
 			ctx context.Context,
 			userID,
 			digitalLocationID string,
+		) error {
+			return nil
+		},
+
+		// Subscription caching
+		GetCachedSubscriptionFunc: func(
+			ctx context.Context,
+			locationID string,
+		) (*models.Subscription, bool, error) {
+			return nil, false, errors.New("cache miss")
+		},
+		SetCachedSubscriptionFunc: func(
+			ctx context.Context,
+			locationID string,
+			subscription models.Subscription,
+		) error {
+			return nil
+		},
+		InvalidateSubscriptionCacheFunc: func(
+			ctx context.Context,
+			locationID string,
+		) error {
+			return nil
+		},
+
+		// Payment caching
+		GetCachedPaymentsFunc: func(
+			ctx context.Context,
+			locationID string,
+		) ([]models.Payment, error) {
+			return nil, errors.New("cache miss")
+		},
+		SetCachedPaymentsFunc: func(
+			ctx context.Context,
+			locationID string,
+			payments []models.Payment,
+		) error {
+			return nil
+		},
+		InvalidatePaymentsCacheFunc: func(
+			ctx context.Context,
+			locationID string,
 		) error {
 			return nil
 		},

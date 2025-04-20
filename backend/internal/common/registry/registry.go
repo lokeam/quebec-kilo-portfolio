@@ -6,6 +6,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search"
+	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/wishlist"
 )
 
@@ -14,7 +15,7 @@ type Registry struct {
     appCtx *appcontext.AppContext
 
     // Keep concrete service references
-    searchServices map[string]search.SearchService
+    searchServices map[string]services.SearchService
     libraryServices map[string]library.LibraryService
 		wishlistServices map[string]wishlist.WishlistService
 }
@@ -23,7 +24,7 @@ type Registry struct {
 func NewRegistry(appCtx *appcontext.AppContext) *Registry {
     registry := &Registry{
         appCtx: appCtx,
-        searchServices: make(map[string]search.SearchService),
+        searchServices: make(map[string]services.SearchService),
         libraryServices: make(map[string]library.LibraryService),
 				wishlistServices: make(map[string]wishlist.WishlistService),
     }
@@ -61,7 +62,7 @@ func (r *Registry) registerServices() {
 }
 
 // GetSearchService returns a specific search service
-func (r *Registry) GetSearchService(domain string) (search.SearchService, error) {
+func (r *Registry) GetSearchService(domain string) (services.SearchService, error) {
     service, exists := r.searchServices[domain]
     if !exists {
         return nil, fmt.Errorf("unsupported search domain: %s", domain)

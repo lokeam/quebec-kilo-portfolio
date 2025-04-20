@@ -41,6 +41,13 @@ Scenarios:
   - Error
 */
 
+const (
+	testUserID = "test-user-id"
+	testLocationID = "test-location-id"
+)
+
+var testError = errors.New("test error")
+
 type MockCacheWrapper struct {
 	mock.Mock
 	sublocations []models.Sublocation
@@ -83,7 +90,6 @@ func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error
 
 func TestSublocationCacheAdapter(t *testing.T) {
 	// Setup test data
-	testUserID := "test-user-id"
 	testSublocationID := "test-sublocation-id"
 	testSublocation := models.Sublocation{
 		ID:              testSublocationID,
@@ -94,7 +100,6 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		StoredItems:     20,
 	}
 	testSublocations := []models.Sublocation{testSublocation}
-	testError := errors.New("cache error")
 
 	// Helper fn to create a new adapter w/ mock cache wrapper
 	createAdapter := func(mockCache *MockCacheWrapper) *SublocationCacheAdapter {
@@ -455,5 +460,49 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		mockCache.AssertExpectations(t)
 	})
 
+	// ----------- InvalidateLocationCache -----------
+	/*
+		GIVEN a cache wrapper that successfully invalidates the physical location cache
+		WHEN InvalidateLocationCache is called
+		THEN it should not return an error
+	*/
+	t.Run("InvalidateLocationCache - success", func(t *testing.T) {
+		// GIVEN
+		mockCache := new(MockCacheWrapper)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
+
+		adapter := createAdapter(mockCache)
+
+		// WHEN
+		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
+
+		// THEN
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		mockCache.AssertExpectations(t)
+	})
+
+	/*
+		GIVEN a cache wrapper that returns an error when invalidating physical location cache
+		WHEN InvalidateLocationCache is called
+		THEN it should return the error
+	*/
+	t.Run("InvalidateLocationCache - error", func(t *testing.T) {
+		// GIVEN
+		mockCache := new(MockCacheWrapper)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(testError)
+
+		adapter := createAdapter(mockCache)
+
+		// WHEN
+		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
+
+		// THEN
+		if err != testError {
+			t.Errorf("Expected error %v, got %v", testError, err)
+		}
+		mockCache.AssertExpectations(t)
+	})
 
 }

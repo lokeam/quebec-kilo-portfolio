@@ -10,15 +10,15 @@ import (
 	"strconv"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/types"
-	"github.com/lokeam/qko-beta/internal/wishlist"
 )
 
-type DomainSearchServices map[string]SearchService
+// Use DomainSearchServices from services package
+type DomainSearchServices = services.DomainSearchServices
 
 type SearchRequestBody struct {
 	Query string `json:"query"`
@@ -28,10 +28,9 @@ type SearchRequestBody struct {
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
 func NewSearchHandler(
 	appCtx *appcontext.AppContext,
-	//searchServiceFactory SearchServiceFactory,
-	searchServices DomainSearchServices,
-	libraryService library.LibraryService,
-	wishlistService wishlist.WishlistService,
+	searchServices services.DomainSearchServices,
+	libraryService services.LibraryService,
+	wishlistService services.WishlistService,
 ) http.HandlerFunc {
 	// Instantiate the concrete search service.
 	appCtx.Logger.Info("NewSearchHandler created, initializing game search service", map[string]any{
@@ -150,7 +149,6 @@ func NewSearchHandler(
 		var result *searchdef.SearchResult
 
 		// 9. Dispatch to the appropriate service.
-		//service, err := searchServiceFactory.GetService(domain)
 		service, exists := searchServices[domain]
 		if !exists {
 			domainErr := &types.DomainError{
@@ -233,7 +231,7 @@ func containsGame(games []models.Game, gameID int64) bool {
 }
 
 // Helper function to grab keys from map
-func getKeysFromMap(m map[string]SearchService) []string {
+func getKeysFromMap(m map[string]services.SearchService) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

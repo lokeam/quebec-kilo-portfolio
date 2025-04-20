@@ -13,4 +13,5 @@ type SublocationCacheWrapper interface {
 	SetSingleCachedSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
 	InvalidateUserCache(ctx context.Context, userID string) error
 	InvalidateSublocationCache(ctx context.Context, userID string, locationID string) error
+	InvalidateLocationCache(ctx context.Context, userID string, locationID string) error
 }

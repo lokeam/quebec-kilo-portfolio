@@ -3,6 +3,7 @@ package digital
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -71,7 +72,34 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 						'cover_id', g.cover_id,
 						'cover_url', g.cover_url,
 						'first_release_date', g.first_release_date,
-						'rating', g.rating
+						'rating', g.rating,
+						'platform_names', COALESCE(
+							(
+								SELECT array_agg(p.name ORDER BY p.name)
+								FROM game_platforms gp
+								JOIN platforms p ON p.id = gp.platform_id
+								WHERE gp.game_id = g.id
+							),
+							'{}'
+						),
+						'genre_names', COALESCE(
+							(
+								SELECT array_agg(gn.name ORDER BY gn.name)
+								FROM game_genres gg
+								JOIN genres gn ON gn.id = gg.genre_id
+								WHERE gg.game_id = g.id
+							),
+							'{}'
+						),
+						'theme_names', COALESCE(
+							(
+								SELECT array_agg(t.name ORDER BY t.name)
+								FROM game_themes gt
+								JOIN themes t ON t.id = gt.theme_id
+								WHERE gt.game_id = g.id
+							),
+							'{}'
+						)
 					)
 				) as items
 			FROM digital_locations dl
@@ -89,21 +117,30 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 		WHERE dl.id = $1 AND dl.user_id = $2
 	`
 
-	var location models.DigitalLocation
-	err := da.db.GetContext(ctx, &location, getDigitalLocationQuery, locationID, userID)
+	type DigitalLocationWithItems struct {
+		models.DigitalLocation
+		ItemsJSON []byte `db:"items"`
+	}
+
+	var locationWithItems DigitalLocationWithItems
+	err := da.db.GetContext(ctx, &locationWithItems, getDigitalLocationQuery, locationID, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.DigitalLocation{}, fmt.Errorf("digital location not found: %w", err)
 		}
-
 		return models.DigitalLocation{}, fmt.Errorf("error getting digital location: %w", err)
 	}
 
+	// Unmarshal the JSON array into the Items field
+	if err := json.Unmarshal(locationWithItems.ItemsJSON, &locationWithItems.Items); err != nil {
+		return models.DigitalLocation{}, fmt.Errorf("error unmarshaling items: %w", err)
+	}
+
 	da.logger.Debug("GetDigitalLocation success", map[string]any{
-		"location": location,
+		"location": locationWithItems.DigitalLocation,
 	})
 
-	return location, nil
+	return locationWithItems.DigitalLocation, nil
 }
 
 func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
@@ -123,7 +160,34 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 						'cover_id', g.cover_id,
 						'cover_url', g.cover_url,
 						'first_release_date', g.first_release_date,
-						'rating', g.rating
+						'rating', g.rating,
+						'platform_names', COALESCE(
+							(
+								SELECT array_agg(p.name ORDER BY p.name)
+								FROM game_platforms gp
+								JOIN platforms p ON p.id = gp.platform_id
+								WHERE gp.game_id = g.id
+							),
+							'{}'
+						),
+						'genre_names', COALESCE(
+							(
+								SELECT array_agg(gn.name ORDER BY gn.name)
+								FROM game_genres gg
+								JOIN genres gn ON gn.id = gg.genre_id
+								WHERE gg.game_id = g.id
+							),
+							'{}'
+						),
+						'theme_names', COALESCE(
+							(
+								SELECT array_agg(t.name ORDER BY t.name)
+								FROM game_themes gt
+								JOIN themes t ON t.id = gt.theme_id
+								WHERE gt.game_id = g.id
+							),
+							'{}'
+						)
 					)
 				) as items
 			FROM digital_locations dl
@@ -142,10 +206,24 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 		ORDER BY dl.created_at
 	`
 
-	var locations []models.DigitalLocation
-	err := da.db.SelectContext(ctx, &locations, getUserDigitalLocationsQuery, userID)
+	type DigitalLocationWithItems struct {
+		models.DigitalLocation
+		ItemsJSON []byte `db:"items"`
+	}
+
+	var locationsWithItems []DigitalLocationWithItems
+	err := da.db.SelectContext(ctx, &locationsWithItems, getUserDigitalLocationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user digital locations: %w", err)
+	}
+
+	// Convert to DigitalLocation array and unmarshal items
+	locations := make([]models.DigitalLocation, len(locationsWithItems))
+	for i, loc := range locationsWithItems {
+		if err := json.Unmarshal(loc.ItemsJSON, &loc.Items); err != nil {
+			return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
+		}
+		locations[i] = loc.DigitalLocation
 	}
 
 	da.logger.Debug("GetUserDigitalLocations success", map[string]any{
@@ -153,42 +231,6 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 	})
 
 	return locations, nil
-}
-
-func (da *DigitalDbAdapter) GetGamesByDigitalLocationID(
-	ctx context.Context,
-	userID string,
-	sublocationID string,
-) ([]models.Game, error) {
-	da.logger.Debug("GetGamesByDigitalLocationID called", map[string]any{
-		"userID":         userID,
-		"sublocationID":  sublocationID,
-	})
-
-	query := `
-		SELECT g.*
-		FROM games g
-		JOIN game_digital_locations gdl ON g.id = gdl.game_id
-		WHERE gdl.digital_location_id = $1 AND g.user_id = $2
-	`
-
-	var games []models.Game
-	err := da.db.SelectContext(
-		ctx,
-		&games,
-		query,
-		sublocationID,
-		userID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting games for digital location: %w", err)
-	}
-
-	da.logger.Debug("GetGamesByDigitalLocationID success", map[string]any{
-		"games":  games,
-	})
-
-	return games, nil
 }
 
 // POST
@@ -287,9 +329,14 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error {
 	a.logger.Debug("Updating digital location", map[string]any{"userID": userID, "location": location})
 
+	// Validate ID is present
+	if location.ID == "" {
+		return fmt.Errorf("id is required")
+	}
+
 	// Check if the location belongs to the user
 	if location.UserID != userID {
-			return ErrUnauthorizedLocation
+		return ErrUnauthorizedLocation
 	}
 
 	now := time.Now()
@@ -320,7 +367,7 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 	}
 
 	if rowsAffected == 0 {
-			return fmt.Errorf("digital location not found or not updated")
+		return fmt.Errorf("digital location not found")
 	}
 
 	return nil
@@ -408,4 +455,324 @@ func (da *DigitalDbAdapter) FindDigitalLocationByName(ctx context.Context, userI
 	})
 
 	return location, nil
+}
+
+// GetSubscription retrieves a subscription for a digital location
+func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID string) (*models.Subscription, error) {
+	da.logger.Debug("GetSubscription called", map[string]any{
+		"locationID": locationID,
+	})
+
+	query := `
+		SELECT id, digital_location_id, billing_cycle, cost_per_cycle,
+		       next_payment_date, payment_method, created_at, updated_at
+		FROM digital_location_subscriptions
+		WHERE digital_location_id = $1
+	`
+
+	var subscription models.Subscription
+	err := da.db.GetContext(ctx, &subscription, query, locationID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No subscription found is not an error
+		}
+		return nil, fmt.Errorf("error getting subscription: %w", err)
+	}
+
+	return &subscription, nil
+}
+
+// AddSubscription creates a new subscription for a digital location
+func (da *DigitalDbAdapter) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+	da.logger.Debug("AddSubscription called", map[string]any{
+		"subscription": subscription,
+	})
+
+	query := `
+		INSERT INTO digital_location_subscriptions
+			(digital_location_id, billing_cycle, cost_per_cycle,
+			 next_payment_date, payment_method, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, digital_location_id, billing_cycle, cost_per_cycle,
+		          next_payment_date, payment_method, created_at, updated_at
+	`
+
+	now := time.Now()
+	subscription.CreatedAt = now
+	subscription.UpdatedAt = now
+
+	err := da.db.QueryRowxContext(
+		ctx,
+		query,
+		subscription.LocationID,
+		subscription.BillingCycle,
+		subscription.CostPerCycle,
+		subscription.NextPaymentDate,
+		subscription.PaymentMethod,
+		subscription.CreatedAt,
+		subscription.UpdatedAt,
+	).StructScan(&subscription)
+
+	if err != nil {
+		return nil, fmt.Errorf("error adding subscription: %w", err)
+	}
+
+	return &subscription, nil
+}
+
+// UpdateSubscription updates an existing subscription
+func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription models.Subscription) error {
+	da.logger.Debug("UpdateSubscription called", map[string]any{
+		"subscription": subscription,
+	})
+
+	query := `
+		UPDATE digital_location_subscriptions
+		SET billing_cycle = $1,
+			cost_per_cycle = $2,
+			next_payment_date = $3,
+			payment_method = $4,
+			updated_at = $5
+		WHERE digital_location_id = $6
+	`
+
+	subscription.UpdatedAt = time.Now()
+	result, err := da.db.ExecContext(
+		ctx,
+		query,
+		subscription.BillingCycle,
+		subscription.CostPerCycle,
+		subscription.NextPaymentDate,
+		subscription.PaymentMethod,
+		subscription.UpdatedAt,
+		subscription.LocationID,
+	)
+
+	if err != nil {
+		return fmt.Errorf("error updating subscription: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subscription not found")
+	}
+
+	return nil
+}
+
+// RemoveSubscription deletes a subscription for a digital location
+func (da *DigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID string) error {
+	da.logger.Debug("RemoveSubscription called", map[string]any{
+		"locationID": locationID,
+	})
+
+	query := `
+		DELETE FROM digital_location_subscriptions
+		WHERE digital_location_id = $1
+	`
+
+	result, err := da.db.ExecContext(ctx, query, locationID)
+	if err != nil {
+		return fmt.Errorf("error removing subscription: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("subscription not found")
+	}
+
+	return nil
+}
+
+// GetPayments retrieves all payments for a digital location
+func (da *DigitalDbAdapter) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+	da.logger.Debug("GetPayments called", map[string]any{
+		"locationID": locationID,
+	})
+
+	query := `
+		SELECT id, digital_location_id, amount, payment_date,
+		       payment_method, transaction_id, created_at
+		FROM digital_location_payments
+		WHERE digital_location_id = $1
+		ORDER BY payment_date DESC
+	`
+
+	var payments []models.Payment
+	err := da.db.SelectContext(ctx, &payments, query, locationID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting payments: %w", err)
+	}
+
+	return payments, nil
+}
+
+// AddPayment records a new payment for a digital location
+func (da *DigitalDbAdapter) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+	da.logger.Debug("AddPayment called", map[string]any{
+		"payment": payment,
+	})
+
+	query := `
+		INSERT INTO digital_location_payments
+			(digital_location_id, amount, payment_date,
+			 payment_method, transaction_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, digital_location_id, amount, payment_date,
+		          payment_method, transaction_id, created_at
+	`
+
+	payment.CreatedAt = time.Now()
+
+	err := da.db.QueryRowxContext(
+		ctx,
+		query,
+		payment.LocationID,
+		payment.Amount,
+		payment.PaymentDate,
+		payment.PaymentMethod,
+		payment.TransactionID,
+		payment.CreatedAt,
+	).StructScan(&payment)
+
+	if err != nil {
+		return nil, fmt.Errorf("error adding payment: %w", err)
+	}
+
+	return &payment, nil
+}
+
+// GetPayment retrieves a specific payment by ID
+func (da *DigitalDbAdapter) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+	da.logger.Debug("GetPayment called", map[string]any{
+		"paymentID": paymentID,
+	})
+
+	query := `
+		SELECT id, digital_location_id, amount, payment_date,
+		       payment_method, transaction_id, created_at
+		FROM digital_location_payments
+		WHERE id = $1
+	`
+
+	var payment models.Payment
+	err := da.db.GetContext(ctx, &payment, query, paymentID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("payment not found")
+		}
+		return nil, fmt.Errorf("error getting payment: %w", err)
+	}
+
+	return &payment, nil
+}
+
+// AddGameToDigitalLocation adds a game to a digital location
+func (da *DigitalDbAdapter) AddGameToDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error {
+	da.logger.Debug("AddGameToDigitalLocation called", map[string]any{
+		"userID":     userID,
+		"locationID": locationID,
+		"gameID":     gameID,
+	})
+
+	// First, get the user_game_id for this user and game
+	var userGameID int
+	err := da.db.GetContext(ctx, &userGameID, `
+		SELECT id FROM user_games
+		WHERE user_id = $1 AND game_id = $2
+	`, userID, gameID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("game not found in user's library")
+		}
+		return fmt.Errorf("error getting user game: %w", err)
+	}
+
+	// Then, add the game to the digital location
+	_, err = da.db.ExecContext(ctx, `
+		INSERT INTO digital_game_locations (user_game_id, digital_location_id)
+		VALUES ($1, $2)
+	`, userGameID, locationID)
+	if err != nil {
+		if strings.Contains(err.Error(), "digital_game_locations_user_game_id_digital_location_id_key") {
+			return fmt.Errorf("game already exists in this digital location")
+		}
+		return fmt.Errorf("error adding game to digital location: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveGameFromDigitalLocation removes a game from a digital location
+func (da *DigitalDbAdapter) RemoveGameFromDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error {
+	da.logger.Debug("RemoveGameFromDigitalLocation called", map[string]any{
+		"userID":     userID,
+		"locationID": locationID,
+		"gameID":     gameID,
+	})
+
+	// First, get the user_game_id for this user and game
+	var userGameID int
+	err := da.db.GetContext(ctx, &userGameID, `
+		SELECT id FROM user_games
+		WHERE user_id = $1 AND game_id = $2
+	`, userID, gameID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("game not found in user's library")
+		}
+		return fmt.Errorf("error getting user game: %w", err)
+	}
+
+	// Then, remove the game from the digital location
+	result, err := da.db.ExecContext(ctx, `
+		DELETE FROM digital_game_locations
+		WHERE user_game_id = $1 AND digital_location_id = $2
+	`, userGameID, locationID)
+	if err != nil {
+		return fmt.Errorf("error removing game from digital location: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("game not found in digital location")
+	}
+
+	return nil
+}
+
+// GetGamesByDigitalLocationID gets all games in a digital location
+func (da *DigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, userID string, locationID string) ([]models.Game, error) {
+	da.logger.Debug("GetGamesByDigitalLocationID called", map[string]any{
+		"userID":     userID,
+		"locationID": locationID,
+	})
+
+	query := `
+		SELECT g.*
+		FROM games g
+		JOIN user_games ug ON ug.game_id = g.id
+		JOIN digital_game_locations dgl ON dgl.user_game_id = ug.id
+		WHERE dgl.digital_location_id = $1 AND ug.user_id = $2
+	`
+
+	var games []models.Game
+	err := da.db.SelectContext(ctx, &games, query, locationID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting games for digital location: %w", err)
+	}
+
+	return games, nil
 }

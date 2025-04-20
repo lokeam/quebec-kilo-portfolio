@@ -88,6 +88,7 @@ type MockSublocationCacheWrapper struct {
 	SetSingleCachedSublocationFunc      func(ctx context.Context, userID string, location models.Sublocation) error
 	InvalidateUserCacheFunc             func(ctx context.Context, userID string) error
 	InvalidateSublocationCacheFunc      func(ctx context.Context, userID, sublocationID string) error
+	InvalidateLocationCacheFunc         func(ctx context.Context, userID, locationID string) error
 }
 
 // GET
@@ -137,4 +138,15 @@ func (m *MockSublocationCacheWrapper) InvalidateSublocationCache(
 	sublocationID string,
 ) error {
 	return m.InvalidateSublocationCacheFunc(ctx, userID, sublocationID)
+}
+
+func (m *MockSublocationCacheWrapper) InvalidateLocationCache(
+	ctx context.Context,
+	userID,
+	locationID string,
+) error {
+	if m.InvalidateLocationCacheFunc != nil {
+		return m.InvalidateLocationCacheFunc(ctx, userID, locationID)
+	}
+	return nil
 }

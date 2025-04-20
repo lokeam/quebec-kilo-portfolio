@@ -11,11 +11,13 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/services"
+	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
-type DomainLibraryServices map[string]LibraryService
+// Use the DomainLibraryServices from the services package
+type DomainLibraryServices = services.DomainLibraryServices
 
 type LibraryRequestBody struct {
 	Query string `json:"query"`
@@ -48,7 +50,7 @@ func NewLibraryHandler(
 		})
 
 		// 2. Retrieve userID from the request context
-		userID, ok := r.Context().Value(authMiddleware.UserIDKey).(string)
+		userID, ok := r.Context().Value(constants.UserIDKey).(string)
 		if !ok {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
@@ -272,7 +274,7 @@ func NewLibraryHandler(
 						err,
 						http.StatusInternalServerError,
 					)
-			}
+				}
 				return
 			}
 

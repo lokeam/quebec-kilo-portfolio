@@ -6,9 +6,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/lokeam/qko-beta/internal/appcontext"
+	mcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
+	rcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/testutils"
-	"github.com/lokeam/qko-beta/internal/testutils/mocks"
 )
 
 /*
@@ -64,6 +66,22 @@ type MockDigitalDbAdapter struct {
 	AddDigitalLocationFunc func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error)
 	UpdateDigitalLocationFunc func(ctx context.Context, userID string, location models.DigitalLocation) error
 	RemoveDigitalLocationFunc func(ctx context.Context, userID, locationID string) error
+
+	// Subscription Operations
+	GetSubscriptionFunc func(ctx context.Context, locationID string) (*models.Subscription, error)
+	AddSubscriptionFunc func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
+	UpdateSubscriptionFunc func(ctx context.Context, subscription models.Subscription) error
+	RemoveSubscriptionFunc func(ctx context.Context, locationID string) error
+
+	// Payment Operations
+	GetPaymentsFunc func(ctx context.Context, locationID string) ([]models.Payment, error)
+	AddPaymentFunc func(ctx context.Context, payment models.Payment) (*models.Payment, error)
+	GetPaymentFunc func(ctx context.Context, paymentID int64) (*models.Payment, error)
+
+	// Game Operations
+	AddGameToDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
+	RemoveGameFromDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
+	GetGamesByDigitalLocationIDFunc func(ctx context.Context, userID string, locationID string) ([]models.Game, error)
 }
 
 func (m *MockDigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
@@ -90,17 +108,232 @@ func (m *MockDigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID
 	return m.RemoveDigitalLocationFunc(ctx, userID, locationID)
 }
 
-func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDigitalService {
-	mockConfig := mocks.NewMockConfig()
+// Subscription Operations
+func (m *MockDigitalDbAdapter) GetSubscription(ctx context.Context, locationID string) (*models.Subscription, error) {
+	return m.GetSubscriptionFunc(ctx, locationID)
+}
 
-	return &GameDigitalService{
-		dbAdapter:    mocks.DefaultDigitalDbAdapter(),
-		config:       mockConfig,
-		logger:       logger,
-		validator:    mocks.DefaultDigitalValidator(),
-		sanitizer:    mocks.DefaultSanitizer(),
-		cacheWrapper: mocks.DefaultDigitalCacheWrapper(),
+func (m *MockDigitalDbAdapter) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+	return m.AddSubscriptionFunc(ctx, subscription)
+}
+
+func (m *MockDigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription models.Subscription) error {
+	return m.UpdateSubscriptionFunc(ctx, subscription)
+}
+
+func (m *MockDigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID string) error {
+	return m.RemoveSubscriptionFunc(ctx, locationID)
+}
+
+// Payment Operations
+func (m *MockDigitalDbAdapter) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+	return m.GetPaymentsFunc(ctx, locationID)
+}
+
+func (m *MockDigitalDbAdapter) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+	return m.AddPaymentFunc(ctx, payment)
+}
+
+func (m *MockDigitalDbAdapter) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+	return m.GetPaymentFunc(ctx, paymentID)
+}
+
+// Game Operations
+func (m *MockDigitalDbAdapter) AddGameToDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error {
+	return m.AddGameToDigitalLocationFunc(ctx, userID, locationID, gameID)
+}
+
+func (m *MockDigitalDbAdapter) RemoveGameFromDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error {
+	return m.RemoveGameFromDigitalLocationFunc(ctx, userID, locationID, gameID)
+}
+
+func (m *MockDigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, userID string, locationID string) ([]models.Game, error) {
+	return m.GetGamesByDigitalLocationIDFunc(ctx, userID, locationID)
+}
+
+// MockDigitalCacheWrapper is a mock implementation of interfaces.DigitalCacheWrapper
+type MockDigitalCacheWrapper struct {
+	GetCachedDigitalLocationsFunc      func(ctx context.Context, userID string) ([]models.DigitalLocation, error)
+	SetCachedDigitalLocationsFunc      func(ctx context.Context, userID string, locations []models.DigitalLocation) error
+	GetSingleCachedDigitalLocationFunc func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error)
+	SetSingleCachedDigitalLocationFunc func(ctx context.Context, userID string, location models.DigitalLocation) error
+	InvalidateUserCacheFunc            func(ctx context.Context, userID string) error
+	InvalidateDigitalLocationCacheFunc func(ctx context.Context, userID, locationID string) error
+
+	// Subscription caching
+	GetCachedSubscriptionFunc          func(ctx context.Context, locationID string) (*models.Subscription, bool, error)
+	SetCachedSubscriptionFunc          func(ctx context.Context, locationID string, subscription models.Subscription) error
+	InvalidateSubscriptionCacheFunc    func(ctx context.Context, locationID string) error
+
+	// Payment caching
+	GetCachedPaymentsFunc              func(ctx context.Context, locationID string) ([]models.Payment, error)
+	SetCachedPaymentsFunc              func(ctx context.Context, locationID string, payments []models.Payment) error
+	InvalidatePaymentsCacheFunc        func(ctx context.Context, locationID string) error
+}
+
+func (m *MockDigitalCacheWrapper) GetCachedDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+	return m.GetCachedDigitalLocationsFunc(ctx, userID)
+}
+
+func (m *MockDigitalCacheWrapper) SetCachedDigitalLocations(ctx context.Context, userID string, locations []models.DigitalLocation) error {
+	return m.SetCachedDigitalLocationsFunc(ctx, userID, locations)
+}
+
+func (m *MockDigitalCacheWrapper) GetSingleCachedDigitalLocation(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
+	return m.GetSingleCachedDigitalLocationFunc(ctx, userID, locationID)
+}
+
+func (m *MockDigitalCacheWrapper) SetSingleCachedDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error {
+	return m.SetSingleCachedDigitalLocationFunc(ctx, userID, location)
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateUserCache(ctx context.Context, userID string) error {
+	return m.InvalidateUserCacheFunc(ctx, userID)
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationCache(ctx context.Context, userID, locationID string) error {
+	return m.InvalidateDigitalLocationCacheFunc(ctx, userID, locationID)
+}
+
+// Subscription caching
+func (m *MockDigitalCacheWrapper) GetCachedSubscription(ctx context.Context, locationID string) (*models.Subscription, bool, error) {
+	return m.GetCachedSubscriptionFunc(ctx, locationID)
+}
+
+func (m *MockDigitalCacheWrapper) SetCachedSubscription(ctx context.Context, locationID string, subscription models.Subscription) error {
+	return m.SetCachedSubscriptionFunc(ctx, locationID, subscription)
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateSubscriptionCache(ctx context.Context, locationID string) error {
+	return m.InvalidateSubscriptionCacheFunc(ctx, locationID)
+}
+
+// Payment caching
+func (m *MockDigitalCacheWrapper) GetCachedPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+	return m.GetCachedPaymentsFunc(ctx, locationID)
+}
+
+func (m *MockDigitalCacheWrapper) SetCachedPayments(ctx context.Context, locationID string, payments []models.Payment) error {
+	return m.SetCachedPaymentsFunc(ctx, locationID, payments)
+}
+
+func (m *MockDigitalCacheWrapper) InvalidatePaymentsCache(ctx context.Context, locationID string) error {
+	return m.InvalidatePaymentsCacheFunc(ctx, locationID)
+}
+
+func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDigitalService {
+	mockDbAdapter := &MockDigitalDbAdapter{
+		GetUserDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return []models.DigitalLocation{}, nil
+		},
+		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+			return models.DigitalLocation{}, nil
+		},
+		FindDigitalLocationByNameFunc: func(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
+			return models.DigitalLocation{}, nil
+		},
+		AddDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+			return models.DigitalLocation{}, nil
+		},
+		UpdateDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) error {
+			return nil
+		},
+		RemoveDigitalLocationFunc: func(ctx context.Context, userID, locationID string) error {
+			return nil
+		},
+		GetSubscriptionFunc: func(ctx context.Context, locationID string) (*models.Subscription, error) {
+			return &models.Subscription{}, nil
+		},
+		AddSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+			return &models.Subscription{}, nil
+		},
+		UpdateSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) error {
+			return nil
+		},
+		RemoveSubscriptionFunc: func(ctx context.Context, locationID string) error {
+			return nil
+		},
+		GetPaymentsFunc: func(ctx context.Context, locationID string) ([]models.Payment, error) {
+			return []models.Payment{}, nil
+		},
+		AddPaymentFunc: func(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+			return &models.Payment{}, nil
+		},
+		GetPaymentFunc: func(ctx context.Context, paymentID int64) (*models.Payment, error) {
+			return &models.Payment{}, nil
+		},
+		AddGameToDigitalLocationFunc: func(ctx context.Context, userID string, locationID string, gameID int64) error {
+			return nil
+		},
+		RemoveGameFromDigitalLocationFunc: func(ctx context.Context, userID string, locationID string, gameID int64) error {
+			return nil
+		},
+		GetGamesByDigitalLocationIDFunc: func(ctx context.Context, userID string, locationID string) ([]models.Game, error) {
+			return []models.Game{}, nil
+		},
 	}
+
+	mockCacheWrapper := &MockDigitalCacheWrapper{
+		GetCachedDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return []models.DigitalLocation{}, nil
+		},
+		SetCachedDigitalLocationsFunc: func(ctx context.Context, userID string, locations []models.DigitalLocation) error {
+			return nil
+		},
+		GetSingleCachedDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
+			return &models.DigitalLocation{}, true, nil
+		},
+		SetSingleCachedDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) error {
+			return nil
+		},
+		InvalidateUserCacheFunc: func(ctx context.Context, userID string) error {
+			return nil
+		},
+		InvalidateDigitalLocationCacheFunc: func(ctx context.Context, userID, locationID string) error {
+			return nil
+		},
+
+		// Subscription caching
+		GetCachedSubscriptionFunc: func(ctx context.Context, locationID string) (*models.Subscription, bool, error) {
+			return &models.Subscription{}, true, nil
+		},
+		SetCachedSubscriptionFunc: func(ctx context.Context, locationID string, subscription models.Subscription) error {
+			return nil
+		},
+		InvalidateSubscriptionCacheFunc: func(ctx context.Context, locationID string) error {
+			return nil
+		},
+
+		// Payment caching
+		GetCachedPaymentsFunc: func(ctx context.Context, locationID string) ([]models.Payment, error) {
+			return []models.Payment{}, nil
+		},
+		SetCachedPaymentsFunc: func(ctx context.Context, locationID string, payments []models.Payment) error {
+			return nil
+		},
+		InvalidatePaymentsCacheFunc: func(ctx context.Context, locationID string) error {
+			return nil
+		},
+	}
+
+	// Create mock Redis client
+	mockRedisClient := &rcache.RueidisClient{}
+
+	// Create mock memory cache
+	mockMemCache := &mcache.MemoryCache{}
+
+	appCtx := &appcontext.AppContext{
+		Logger:      logger,
+		RedisClient: mockRedisClient,
+		MemCache:    mockMemCache,
+	}
+
+	// Set the mock adapters on the service after creation
+	gds, _ := NewGameDigitalService(appCtx)
+	gds.dbAdapter = mockDbAdapter
+	gds.cacheWrapper = mockCacheWrapper
+
+	return gds
 }
 
 func TestGameDigitalService(t *testing.T) {

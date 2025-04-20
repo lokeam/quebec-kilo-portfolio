@@ -95,3 +95,75 @@ func (dca *DigitalCacheAdapter) InvalidateDigitalLocationCache(
 	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
 }
+
+func (dca *DigitalCacheAdapter) GetCachedSubscription(
+	ctx context.Context,
+	locationID string,
+) (*models.Subscription, bool, error) {
+	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+
+	var subscription models.Subscription
+	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &subscription)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if cacheHit {
+		return &subscription, true, nil
+	}
+
+	return nil, false, nil
+}
+
+func (dca *DigitalCacheAdapter) SetCachedSubscription(
+	ctx context.Context,
+	locationID string,
+	subscription models.Subscription,
+) error {
+	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, subscription)
+}
+
+func (dca *DigitalCacheAdapter) InvalidateSubscriptionCache(
+	ctx context.Context,
+	locationID string,
+) error {
+	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+}
+
+func (dca *DigitalCacheAdapter) GetCachedPayments(
+	ctx context.Context,
+	locationID string,
+) ([]models.Payment, error) {
+	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+
+	var payments []models.Payment
+	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &payments)
+	if err != nil {
+		return nil, err
+	}
+
+	if cacheHit {
+		return payments, nil
+	}
+
+	return nil, nil
+}
+
+func (dca *DigitalCacheAdapter) SetCachedPayments(
+	ctx context.Context,
+	locationID string,
+	payments []models.Payment,
+) error {
+	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, payments)
+}
+
+func (dca *DigitalCacheAdapter) InvalidatePaymentsCache(
+	ctx context.Context,
+	locationID string,
+) error {
+	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+}

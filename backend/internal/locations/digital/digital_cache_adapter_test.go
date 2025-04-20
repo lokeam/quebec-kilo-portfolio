@@ -3,9 +3,12 @@ package digital
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -43,36 +46,15 @@ Scenarios:
 
 type MockCacheWrapper struct {
 	mock.Mock
-	locations []models.DigitalLocation
 }
 
-func (m *MockCacheWrapper) GetCachedResults(
-	ctx context.Context,
-	key string,
-	result any,
-) (bool, error) {
+func (m *MockCacheWrapper) GetCachedResults(ctx context.Context, key string, result interface{}) (bool, error) {
 	args := m.Called(ctx, key, result)
-
-	if args.Get(0).(bool) && result != nil && len(m.locations) > 0 {
-		switch value := result.(type) {
-		case *[]models.DigitalLocation:
-			// Copy mock locations to result pointer
-			*value = m.locations
-		case *models.DigitalLocation:
-			// Copy mock location to result pointer
-			*value = m.locations[0]
-		}
-	}
-
-	return args.Get(0).(bool), args.Error(1)
+	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockCacheWrapper) SetCachedResults(
-	ctx context.Context,
-	key string,
-	result any,
-) error {
-	args := m.Called(ctx, key, result)
+func (m *MockCacheWrapper) SetCachedResults(ctx context.Context, key string, value interface{}) error {
+	args := m.Called(ctx, key, value)
 	return args.Error(0)
 }
 
@@ -92,7 +74,6 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		IsActive: true,
 		URL:      "https://example.com",
 	}
-	testLocations := []models.DigitalLocation{testLocation}
 	testError := errors.New("cache error")
 
 	// Helper function to create a new adapter with mock cache wrapper
@@ -110,7 +91,6 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`GetCachedDigitalLocations - Cache hit`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.locations = testLocations
 		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id", mock.Anything).Return(true, nil)
 
 		adapter := createAdapter(mockCache)
@@ -236,7 +216,6 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`GetSingleCachedDigitalLocation - cache hit`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.locations = testLocations
 		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", mock.Anything).Return(true, nil)
 
 		adapter := createAdapter(mockCache)
@@ -455,5 +434,240 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		}
 		mockCache.AssertExpectations(t)
 	})
+}
+
+func TestGetCachedSubscription(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+	subscription := models.Subscription{
+		ID:              1,
+		LocationID:      locationID,
+		BillingCycle:    "monthly",
+		CostPerCycle:    9.99,
+		NextPaymentDate: time.Now(),
+		PaymentMethod:   "Visa",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:subscription:%s", locationID), mock.Anything).
+		Return(true, nil).
+		Run(func(args mock.Arguments) {
+			result := args.Get(2).(*models.Subscription)
+			*result = subscription
+		})
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	// Test cache hit
+	result, found, err := adapter.GetCachedSubscription(ctx, locationID)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, subscription.ID, result.ID)
+
+	// Test cache miss
+	mockCache = &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:subscription:%s", locationID), mock.Anything).
+		Return(false, nil)
+
+	adapter, err = NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	result, found, err = adapter.GetCachedSubscription(ctx, locationID)
+	assert.NoError(t, err)
+	assert.False(t, found)
+	assert.Nil(t, result)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestSetCachedSubscription(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+	subscription := models.Subscription{
+		ID:              1,
+		LocationID:      locationID,
+		BillingCycle:    "monthly",
+		CostPerCycle:    9.99,
+		NextPaymentDate: time.Now(),
+		PaymentMethod:   "Visa",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("SetCachedResults", ctx, fmt.Sprintf("digital:subscription:%s", locationID), subscription).
+		Return(nil)
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	err = adapter.SetCachedSubscription(ctx, locationID, subscription)
+	assert.NoError(t, err)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestInvalidateSubscriptionCache(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("DeleteCacheKey", ctx, fmt.Sprintf("digital:subscription:%s", locationID)).
+		Return(nil)
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	err = adapter.InvalidateSubscriptionCache(ctx, locationID)
+	assert.NoError(t, err)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestGetCachedPayments(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+	payments := []models.Payment{
+		{
+			ID:            1,
+			LocationID:    locationID,
+			Amount:        1000,
+			PaymentDate:   time.Now(),
+			PaymentMethod: "Visa",
+			CreatedAt:     time.Now(),
+		},
+		{
+			ID:            2,
+			LocationID:    locationID,
+			Amount:        2000,
+			PaymentDate:   time.Now(),
+			PaymentMethod: "Mastercard",
+			CreatedAt:     time.Now(),
+		},
+	}
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:payments:%s", locationID), mock.Anything).
+		Return(true, nil).
+		Run(func(args mock.Arguments) {
+			result := args.Get(2).(*[]models.Payment)
+			*result = payments
+		})
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	// Test cache hit
+	result, err := adapter.GetCachedPayments(ctx, locationID)
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, payments[0].ID, result[0].ID)
+	assert.Equal(t, payments[1].ID, result[1].ID)
+
+	// Test cache miss
+	mockCache = &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:payments:%s", locationID), mock.Anything).
+		Return(false, nil)
+
+	adapter, err = NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	result, err = adapter.GetCachedPayments(ctx, locationID)
+	assert.NoError(t, err)
+	assert.Nil(t, result)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestSetCachedPayments(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+	payments := []models.Payment{
+		{
+			ID:            1,
+			LocationID:    locationID,
+			Amount:        1000,
+			PaymentDate:   time.Now(),
+			PaymentMethod: "Visa",
+			CreatedAt:     time.Now(),
+		},
+	}
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("SetCachedResults", ctx, fmt.Sprintf("digital:payments:%s", locationID), payments).
+		Return(nil)
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	err = adapter.SetCachedPayments(ctx, locationID, payments)
+	assert.NoError(t, err)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestInvalidatePaymentsCache(t *testing.T) {
+	ctx := context.Background()
+	locationID := "test-location"
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("DeleteCacheKey", ctx, fmt.Sprintf("digital:payments:%s", locationID)).
+		Return(nil)
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	err = adapter.InvalidatePaymentsCache(ctx, locationID)
+	assert.NoError(t, err)
+
+	mockCache.AssertExpectations(t)
+}
+
+func TestGetSingleCachedDigitalLocation(t *testing.T) {
+	ctx := context.Background()
+	userID := "test-user"
+	locationID := "test-location"
+	location := models.DigitalLocation{
+		ID:       locationID,
+		UserID:   userID,
+		Name:     "Test Location",
+		IsActive: true,
+		URL:      "https://example.com",
+	}
+
+	mockCache := &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:%s:location:%s", userID, locationID), mock.Anything).
+		Return(true, nil).
+		Run(func(args mock.Arguments) {
+			result := args.Get(2).(*models.DigitalLocation)
+			*result = location
+		})
+
+	adapter, err := NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	// Test cache hit
+	result, found, err := adapter.GetSingleCachedDigitalLocation(ctx, userID, locationID)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, location.ID, result.ID)
+
+	// Test cache miss
+	mockCache = &MockCacheWrapper{}
+	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:%s:location:%s", userID, locationID), mock.Anything).
+		Return(false, nil)
+
+	adapter, err = NewDigitalCacheAdapter(mockCache)
+	assert.NoError(t, err)
+
+	result, found, err = adapter.GetSingleCachedDigitalLocation(ctx, userID, locationID)
+	assert.NoError(t, err)
+	assert.False(t, found)
+	assert.Nil(t, result)
+
+	mockCache.AssertExpectations(t)
 }
 

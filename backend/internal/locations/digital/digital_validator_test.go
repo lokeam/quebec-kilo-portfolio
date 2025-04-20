@@ -5,10 +5,15 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	sanitizer "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 )
 
 /*
@@ -17,6 +22,8 @@ Behavior:
 2. Helper methods:
    - validateName
    - validateURL
+   - validateSubscription
+   - ValidatePayment
 
 validateName:
 - Ensure name is not empty
@@ -28,12 +35,27 @@ validateURL:
 - Ensure URL is a valid format
 - Ensure URL is sanitized
 
+validateSubscription:
+- Ensure billing cycle is valid
+- Ensure cost per cycle is positive
+- Ensure payment method is valid
+- Ensure next payment date is in the future
+
+ValidatePayment:
+- Ensure amount is positive
+- Ensure payment method is valid
+- Ensure payment date is not in the future
+- Ensure transaction ID length is within limits
+
 Scenarios:
 Reject locations with:
 - Empty name
 - Names longer than 100 chars
 - Empty URL
 - Invalid URL format
+- Invalid service type
+- Invalid subscription data
+- Invalid payment data
 Pass validation with complete, valid location
 Collect errors when multiple violations are present
 */
@@ -255,54 +277,370 @@ func TestDigitalValidator(t *testing.T) {
 	})
 
 
+	// ----------- validateSubscription() ------------
+	/*
+		GIVEN a subscription with an invalid billing cycle
+		WHEN validateSubscription() is called
+		THEN the method returns an error stating "invalid billing cycle"
+	*/
+	t.Run(`validateSubscription() rejects invalid billing cycles`, func(t *testing.T) {
+		testSubscription := models.Subscription{
+			BillingCycle: "invalid",
+			CostPerCycle: 10.0,
+			PaymentMethod: "Visa",
+			NextPaymentDate: time.Now().Add(24 * time.Hour),
+		}
+
+		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for invalid billing cycle, but got nil")
+		}
+
+		expectedError := "invalid billing cycle: invalid"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedSubscription.ID != 0 {
+			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
+		}
+	})
+
+	/*
+		GIVEN a subscription with a non-positive cost
+		WHEN validateSubscription() is called
+		THEN the method returns an error stating "cost per cycle must be greater than 0"
+	*/
+	t.Run(`validateSubscription() rejects non-positive costs`, func(t *testing.T) {
+		testSubscription := models.Subscription{
+			BillingCycle: "monthly",
+			CostPerCycle: 0,
+			PaymentMethod: "Visa",
+			NextPaymentDate: time.Now().Add(24 * time.Hour),
+		}
+
+		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for non-positive cost, but got nil")
+		}
+
+		expectedError := "cost per cycle must be greater than 0"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedSubscription.ID != 0 {
+			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
+		}
+	})
+
+	/*
+		GIVEN a subscription with an invalid payment method
+		WHEN validateSubscription() is called
+		THEN the method returns an error stating "invalid payment method"
+	*/
+	t.Run(`validateSubscription() rejects invalid payment methods`, func(t *testing.T) {
+		testSubscription := models.Subscription{
+			BillingCycle: "monthly",
+			CostPerCycle: 10.0,
+			PaymentMethod: "Invalid",
+			NextPaymentDate: time.Now().Add(24 * time.Hour),
+		}
+
+		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for invalid payment method, but got nil")
+		}
+
+		expectedError := "invalid payment method: Invalid"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedSubscription.ID != 0 {
+			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
+		}
+	})
+
+	/*
+		GIVEN a subscription with a past next payment date
+		WHEN validateSubscription() is called
+		THEN the method returns an error stating "next payment date must be in the future"
+	*/
+	t.Run(`validateSubscription() rejects past next payment dates`, func(t *testing.T) {
+		testSubscription := models.Subscription{
+			BillingCycle: "monthly",
+			CostPerCycle: 10.0,
+			PaymentMethod: "Visa",
+			NextPaymentDate: time.Now().Add(-24 * time.Hour),
+		}
+
+		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for past next payment date, but got nil")
+		}
+
+		expectedError := "next payment date must be in the future"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedSubscription.ID != 0 {
+			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
+		}
+	})
+
+	/*
+		GIVEN a valid subscription
+		WHEN validateSubscription() is called
+		THEN the method returns the validated subscription and no error
+	*/
+	t.Run(`validateSubscription() Happy Path - Returns validated subscription for valid input`, func(t *testing.T) {
+		testSubscription := models.Subscription{
+			BillingCycle: "monthly",
+			CostPerCycle: 10.0,
+			PaymentMethod: "Visa",
+			NextPaymentDate: time.Now().Add(24 * time.Hour),
+		}
+
+		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+
+		if testErr != nil {
+			t.Errorf("expected no error for valid subscription, but got %v", testErr)
+		}
+
+		if validatedSubscription.BillingCycle != testSubscription.BillingCycle ||
+			validatedSubscription.CostPerCycle != testSubscription.CostPerCycle ||
+			validatedSubscription.PaymentMethod != testSubscription.PaymentMethod ||
+			!validatedSubscription.NextPaymentDate.Equal(testSubscription.NextPaymentDate) {
+			t.Errorf("expected validated subscription to match input, but got %+v", validatedSubscription)
+		}
+	})
+
+	// ----------- ValidatePayment() ------------
+	/*
+		GIVEN a payment with a non-positive amount
+		WHEN ValidatePayment() is called
+		THEN the method returns an error stating "amount must be greater than 0"
+	*/
+	t.Run(`ValidatePayment() rejects non-positive amounts`, func(t *testing.T) {
+		testPayment := models.Payment{
+			Amount: 0,
+			PaymentMethod: "Visa",
+			PaymentDate: time.Now(),
+		}
+
+		validatedPayment, testErr := testValidator.ValidatePayment(testPayment)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for non-positive amount, but got nil")
+		}
+
+		expectedError := "amount must be greater than 0"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedPayment.ID != 0 {
+			t.Errorf("expected validated payment to be empty on error, but got %+v", validatedPayment)
+		}
+	})
+
+	/*
+		GIVEN a payment with an invalid payment method
+		WHEN ValidatePayment() is called
+		THEN the method returns an error stating "invalid payment method"
+	*/
+	t.Run(`ValidatePayment() rejects invalid payment methods`, func(t *testing.T) {
+		testPayment := models.Payment{
+			Amount: 10.0,
+			PaymentMethod: "Invalid",
+			PaymentDate: time.Now(),
+		}
+
+		validatedPayment, testErr := testValidator.ValidatePayment(testPayment)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for invalid payment method, but got nil")
+		}
+
+		expectedError := "invalid payment method: Invalid"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedPayment.ID != 0 {
+			t.Errorf("expected validated payment to be empty on error, but got %+v", validatedPayment)
+		}
+	})
+
+	/*
+		GIVEN a payment with a future payment date
+		WHEN ValidatePayment() is called
+		THEN the method returns an error stating "payment date cannot be in the future"
+	*/
+	t.Run(`ValidatePayment() rejects future payment dates`, func(t *testing.T) {
+		testPayment := models.Payment{
+			Amount: 10.0,
+			PaymentMethod: "Visa",
+			PaymentDate: time.Now().Add(24 * time.Hour),
+		}
+
+		validatedPayment, testErr := testValidator.ValidatePayment(testPayment)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for future payment date, but got nil")
+		}
+
+		expectedError := "payment date cannot be in the future"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedPayment.ID != 0 {
+			t.Errorf("expected validated payment to be empty on error, but got %+v", validatedPayment)
+		}
+	})
+
+	/*
+		GIVEN a payment with a transaction ID that is too long
+		WHEN ValidatePayment() is called
+		THEN the method returns an error stating "transaction ID must be less than X characters"
+	*/
+	t.Run(`ValidatePayment() rejects long transaction IDs`, func(t *testing.T) {
+		testPayment := models.Payment{
+			Amount: 10.0,
+			PaymentMethod: "Visa",
+			PaymentDate: time.Now(),
+			TransactionID: strings.Repeat("a", MaxTransactionIDLength+1),
+		}
+
+		validatedPayment, testErr := testValidator.ValidatePayment(testPayment)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for long transaction ID, but got nil")
+		}
+
+		expectedError := fmt.Sprintf("transaction ID must be less than %d characters", MaxTransactionIDLength)
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedPayment.ID != 0 {
+			t.Errorf("expected validated payment to be empty on error, but got %+v", validatedPayment)
+		}
+	})
+
+	/*
+		GIVEN a valid payment
+		WHEN ValidatePayment() is called
+		THEN the method returns the validated payment and no error
+	*/
+	t.Run(`ValidatePayment() Happy Path - Returns validated payment for valid input`, func(t *testing.T) {
+		testPayment := models.Payment{
+			Amount: 10.0,
+			PaymentMethod: "Visa",
+			PaymentDate: time.Now(),
+			TransactionID: "test-transaction-id",
+		}
+
+		validatedPayment, testErr := testValidator.ValidatePayment(testPayment)
+
+		if testErr != nil {
+			t.Errorf("expected no error for valid payment, but got %v", testErr)
+		}
+
+		if validatedPayment.Amount != testPayment.Amount ||
+			validatedPayment.PaymentMethod != testPayment.PaymentMethod ||
+			!validatedPayment.PaymentDate.Equal(testPayment.PaymentDate) ||
+			validatedPayment.TransactionID != testPayment.TransactionID {
+			t.Errorf("expected validated payment to match input, but got %+v", validatedPayment)
+		}
+	})
+
 	// ----------- ValidateDigitalLocation() ------------
 	/*
-		GIVEN a location with multiple validation issues
+		GIVEN a location with an invalid service type
 		WHEN ValidateDigitalLocation() is called
-		THEN the method returns an error with all violations
+		THEN the method returns an error stating "invalid service type"
 	*/
-	t.Run(`ValidateDigitalLocation() - Collects errors when multiple violations are present`, func(t *testing.T) {
+	t.Run(`ValidateDigitalLocation() rejects invalid service types`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
-			Name:    "",
-			URL:    "not-a-valid-url",
+			Name: "Test Location",
+			URL: "https://example.com",
+			ServiceType: "Invalid",
 		}
 
 		validatedLocation, testErr := testValidator.ValidateDigitalLocation(testLocation)
 
 		if testErr == nil {
-			t.Errorf("expected an error for location with multiple issues, but got nil")
+			t.Fatalf("expected an error for invalid service type, but got nil")
 		}
 
-		// Check that the error contains all expected validation messages
-		errorStr := testErr.Error()
-		expectedErrors := []string{
-			"name cannot be empty",
-			"invalid URL format",
+		expectedError := "invalid service type: Invalid"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
 
-		for _, expectedError := range expectedErrors {
-			if !strings.Contains(errorStr, expectedError) {
-				t.Errorf("expected error to contain %q, but got %q", expectedError, errorStr)
-			}
-		}
-
-		// Check that the returned location is empty
-		if validatedLocation.Name != "" || validatedLocation.URL != "" {
+		if validatedLocation.ID != "" {
 			t.Errorf("expected validated location to be empty on error, but got %+v", validatedLocation)
 		}
 	})
 
+	/*
+		GIVEN a location with an invalid subscription
+		WHEN ValidateDigitalLocation() is called
+		THEN the method returns an error stating "Subscription validation failed"
+	*/
+	t.Run(`ValidateDigitalLocation() rejects invalid subscriptions`, func(t *testing.T) {
+		testLocation := models.DigitalLocation{
+			Name: "Test Location",
+			URL: "https://example.com",
+			ServiceType: "Steam",
+			Subscription: &models.Subscription{
+				BillingCycle: "invalid",
+				CostPerCycle: 10.0,
+				PaymentMethod: "Visa",
+				NextPaymentDate: time.Now().Add(24 * time.Hour),
+			},
+		}
+
+		validatedLocation, testErr := testValidator.ValidateDigitalLocation(testLocation)
+
+		if testErr == nil {
+			t.Fatalf("expected an error for invalid subscription, but got nil")
+		}
+
+		expectedError := "Subscription validation failed"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+
+		if validatedLocation.ID != "" {
+			t.Errorf("expected validated location to be empty on error, but got %+v", validatedLocation)
+		}
+	})
 
 	/*
-		GIVEN a valid location
+		GIVEN a valid location with subscription
 		WHEN ValidateDigitalLocation() is called
 		THEN the method returns the validated location and no error
 	*/
-	t.Run(`ValidateDigitalLocation() - Happy Path - Passes validation for valid location`, func(t *testing.T) {
+	t.Run(`ValidateDigitalLocation() Happy Path - Returns validated location with subscription`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
-			Name:     "My Website",
-			URL:      "https://example.com",
-			IsActive: true,
+			Name: "Test Location",
+			URL: "https://example.com",
+			ServiceType: "Steam",
+			Subscription: &models.Subscription{
+				BillingCycle: "monthly",
+				CostPerCycle: 10.0,
+				PaymentMethod: "Visa",
+				NextPaymentDate: time.Now().Add(24 * time.Hour),
+			},
 		}
 
 		validatedLocation, testErr := testValidator.ValidateDigitalLocation(testLocation)
@@ -311,11 +649,109 @@ func TestDigitalValidator(t *testing.T) {
 			t.Errorf("expected no error for valid location, but got %v", testErr)
 		}
 
-		// Check that the validated location matches the input
 		if validatedLocation.Name != testLocation.Name ||
 			validatedLocation.URL != testLocation.URL ||
-			validatedLocation.IsActive != testLocation.IsActive {
+			validatedLocation.ServiceType != testLocation.ServiceType ||
+			validatedLocation.Subscription == nil ||
+			validatedLocation.Subscription.BillingCycle != testLocation.Subscription.BillingCycle ||
+			validatedLocation.Subscription.CostPerCycle != testLocation.Subscription.CostPerCycle ||
+			validatedLocation.Subscription.PaymentMethod != testLocation.Subscription.PaymentMethod ||
+			!validatedLocation.Subscription.NextPaymentDate.Equal(testLocation.Subscription.NextPaymentDate) {
 			t.Errorf("expected validated location to match input, but got %+v", validatedLocation)
 		}
 	})
+}
+
+func TestDigitalValidator_ValidateSubscription(t *testing.T) {
+	// Create a fixed time for testing
+	fixedTime := time.Date(2024, 4, 18, 0, 0, 0, 0, time.UTC)
+
+	// Create validator with fixed time source
+	sanitizer, err := sanitizer.NewSanitizer()
+	require.NoError(t, err)
+
+	validator := &DigitalValidator{
+		sanitizer: sanitizer,
+		timeSource: func() time.Time { return fixedTime },
+	}
+
+	tests := []struct {
+		name        string
+		subscription models.Subscription
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "valid subscription",
+			subscription: models.Subscription{
+				BillingCycle:    "monthly",
+				CostPerCycle:    9.99,
+				PaymentMethod:   "credit_card",
+				NextPaymentDate: fixedTime.AddDate(0, 1, 0), // 1 month in future
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid billing cycle",
+			subscription: models.Subscription{
+				BillingCycle:    "invalid",
+				CostPerCycle:    9.99,
+				PaymentMethod:   "credit_card",
+				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
+			},
+			wantErr:     true,
+			errContains: "invalid billing cycle",
+		},
+		{
+			name: "invalid cost per cycle",
+			subscription: models.Subscription{
+				BillingCycle:    "monthly",
+				CostPerCycle:    -1.00,
+				PaymentMethod:   "credit_card",
+				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
+			},
+			wantErr:     true,
+			errContains: "cost per cycle must be greater than 0",
+		},
+		{
+			name: "invalid payment method",
+			subscription: models.Subscription{
+				BillingCycle:    "monthly",
+				CostPerCycle:    9.99,
+				PaymentMethod:   "invalid",
+				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
+			},
+			wantErr:     true,
+			errContains: "invalid payment method",
+		},
+		{
+			name: "invalid next payment date",
+			subscription: models.Subscription{
+				BillingCycle:    "monthly",
+				CostPerCycle:    9.99,
+				PaymentMethod:   "credit_card",
+				NextPaymentDate: fixedTime.AddDate(0, -1, 0), // 1 month in past
+			},
+			wantErr:     true,
+			errContains: "next payment date must be in the future",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := validator.validateSubscription(tt.subscription)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.subscription.BillingCycle, got.BillingCycle)
+			assert.Equal(t, tt.subscription.CostPerCycle, got.CostPerCycle)
+			assert.Equal(t, tt.subscription.PaymentMethod, got.PaymentMethod)
+			assert.Equal(t, tt.subscription.NextPaymentDate, got.NextPaymentDate)
+		})
+	}
 }

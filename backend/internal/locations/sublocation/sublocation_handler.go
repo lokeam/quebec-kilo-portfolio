@@ -6,11 +6,12 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"strings"
 
+	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
@@ -24,7 +25,7 @@ type SublocationRequest struct {
 
 func NewSublocationHandler(
 	appCtx *appcontext.AppContext,
-	sublocationService *GameSublocationService,
+	sublocationService services.SublocationService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		appCtx.Logger.Info("SublocationHandler ServeHTTP called", map[string]any{
@@ -53,11 +54,7 @@ func NewSublocationHandler(
 			return
 		}
 
-		var locationID string
-		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) > 4 {
-			locationID = parts[len(parts) - 1]
-		}
+		locationID := chi.URLParam(r, "id")
 
 		// Handle different HTTP Methods
 		switch r.Method {
@@ -114,7 +111,7 @@ func handleListSublocations(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service *GameSublocationService,
+	service services.SublocationService,
 	userID string,
 	requestID string,
 ) {
@@ -155,7 +152,7 @@ func handleGetSublocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service SublocationService,
+	service services.SublocationService,
 	userID string,
 	locationID string,
 	requestID string,
@@ -203,7 +200,7 @@ func handleCreateSublocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service SublocationService,
+	service services.SublocationService,
 	userID string,
 	requestID string,
 ) {
@@ -317,7 +314,7 @@ func handleUpdateSublocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service SublocationService,
+	service services.SublocationService,
 	userID string,
 	locationID string,
 	requestID string,
@@ -389,7 +386,7 @@ func handleDeleteSublocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service SublocationService,
+	service services.SublocationService,
 	userID string,
 	locationID string,
 	requestID string,

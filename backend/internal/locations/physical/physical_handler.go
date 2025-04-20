@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
@@ -20,7 +21,7 @@ type PhysicalLocationRequest struct {
 
 func NewPhysicalLocationHandler(
 	appCtx *appcontext.AppContext,
-	physicalService *GamePhysicalService,
+	physicalService services.PhysicalService,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		appCtx.Logger.Info("PhysicalHandler ServeHTTP called", map[string]any{
@@ -106,7 +107,7 @@ func handleListLocations(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service *GamePhysicalService,
+	service services.PhysicalService,
 	userID string,
 	requestID string,
 ) {
@@ -148,7 +149,7 @@ func handleGetLocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service PhysicalService,
+	service services.PhysicalService,
 	userID string,
 	locationID string,
 	requestID string,
@@ -195,7 +196,7 @@ func handleCreateLocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service PhysicalService,
+	service services.PhysicalService,
 	userID string,
 	requestID string,
 ) {
@@ -260,7 +261,7 @@ func handleUpdateLocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service PhysicalService,
+	service services.PhysicalService,
 	userID string,
 	locationID string,
 	requestID string,
@@ -330,7 +331,7 @@ func handleDeleteLocation(
 	w http.ResponseWriter,
 	r *http.Request,
 	appCtx *appcontext.AppContext,
-	service PhysicalService,
+	service services.PhysicalService,
 	userID string,
 	locationID string,
 	requestID string,

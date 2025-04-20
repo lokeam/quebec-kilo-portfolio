@@ -13,4 +13,14 @@ type DigitalCacheWrapper interface {
 	SetSingleCachedDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
 	InvalidateUserCache(ctx context.Context, userID string) error
 	InvalidateDigitalLocationCache(ctx context.Context, userID string, locationID string) error
+
+	// Subscription caching
+	GetCachedSubscription(ctx context.Context, locationID string) (*models.Subscription, bool, error)
+	SetCachedSubscription(ctx context.Context, locationID string, subscription models.Subscription) error
+	InvalidateSubscriptionCache(ctx context.Context, locationID string) error
+
+	// Payment caching
+	GetCachedPayments(ctx context.Context, locationID string) ([]models.Payment, error)
+	SetCachedPayments(ctx context.Context, locationID string, payments []models.Payment) error
+	InvalidatePaymentsCache(ctx context.Context, locationID string) error
 }
