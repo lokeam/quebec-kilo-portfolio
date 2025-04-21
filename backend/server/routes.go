@@ -89,12 +89,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 	// Create library handler
 	libraryHandler := library.NewLibraryHandler(appContext, svc.LibraryMap)
 
-	// Create physical handler
-	physicalHandler := physical.NewPhysicalLocationHandler(appContext, svc.Physical)
-
-	// Create sublocation handler
-	sublocationHandler := sublocation.NewSublocationHandler(appContext, svc.Sublocation)
-
 	// Create digital services catalog handler
 	digitalServicesCatalogHandler := digital.GetDigitalServicesCatalog(appContext)
 
@@ -160,20 +154,18 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
         "path": "/api/v1/locations/physical",
 			})
 
-			r.Get("/", physicalHandler)
-			r.Post("/", physicalHandler)
-			r.Get("/{id}", physicalHandler)
-			r.Put("/{id}", physicalHandler)
-			r.Delete("/{id}", physicalHandler)
+			// Register routes using the new pattern
+			physical.RegisterPhysicalRoutes(r, appContext, svc.Physical)
 		})
 
 		// Sublocations
 		r.Route("/locations/sublocations", func(r chi.Router) {
-			r.Get("/", sublocationHandler)
-			r.Post("/", sublocationHandler)
-			r.Get("/{id}", sublocationHandler)
-			r.Put("/{id}", sublocationHandler)
-			r.Delete("/{id}", sublocationHandler)
+			appContext.Logger.Info("Registering sublocation routes", map[string]any{
+        "path": "/api/v1/locations/sublocations",
+			})
+
+			// Register routes using the new pattern
+			sublocation.RegisterSublocationRoutes(r, appContext, svc.Sublocation)
 		})
 
 		// Digital Locations

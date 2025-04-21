@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
+// PhysicalLocationRequest represents the request payload for physical location operations
 type PhysicalLocationRequest struct {
 	Name           string `json:"name"`
 	Label          string `json:"label"`
@@ -19,23 +22,26 @@ type PhysicalLocationRequest struct {
 	MapCoordinates string `json:"map_coordinates"`
 }
 
-func NewPhysicalLocationHandler(
-	appCtx *appcontext.AppContext,
-	physicalService services.PhysicalService,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		appCtx.Logger.Info("PhysicalHandler ServeHTTP called", map[string]any{
-			"method": r.Method,
-			"path":   r.URL.Path,
-		})
+// RegisterPhysicalRoutes registers all physical location routes
+func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.PhysicalService) {
+	// Base routes
+	r.Get("/", GetUserPhysicalLocations(appCtx, service))
+	r.Post("/", AddPhysicalLocation(appCtx, service))
 
+	// Nested routes with ID
+	r.Route("/{id}", func(r chi.Router) {
+		r.Get("/", GetPhysicalLocation(appCtx, service))
+		r.Put("/", UpdatePhysicalLocation(appCtx, service))
+		r.Delete("/", RemovePhysicalLocation(appCtx, service))
+	})
+}
+
+// GetUserPhysicalLocations handles GET requests for listing all physical locations
+func GetUserPhysicalLocations(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		// Extract location ID from URL using chi.URLParam
-		locationID := chi.URLParam(r, "id")
-
-		// Extract user ID from request context
 		userID := httputils.GetUserID(r)
 		if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
@@ -51,326 +57,368 @@ func NewPhysicalLocationHandler(
 			return
 		}
 
-		// Handle different HTTP methods
-		switch r.Method {
-		case http.MethodGet:
-			if locationID != "" {
-				handleGetLocation(w, r, appCtx, physicalService, userID, locationID, requestID)
-			} else {
-				handleListLocations(w, r, appCtx, physicalService, userID, requestID)
-			}
+		appCtx.Logger.Info("Listing physical locations", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
 
-		case http.MethodPost:
-			handleCreateLocation(w, r, appCtx, physicalService, userID, requestID)
-
-		case http.MethodPut:
-			if locationID == "" {
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("location ID is required"),
-					http.StatusBadRequest,
-				)
-				return
-			}
-			handleUpdateLocation(w, r, appCtx, physicalService, userID, locationID, requestID)
-
-		case http.MethodDelete:
-			if locationID == "" {
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("location ID is required"),
-					http.StatusBadRequest,
-				)
-				return
-			}
-			handleDeleteLocation(w, r, appCtx, physicalService, userID, locationID, requestID)
-
-		default:
+		locations, err := service.GetUserPhysicalLocations(r.Context(), userID)
+		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("method not allowed"),
-				http.StatusMethodNotAllowed,
+				err,
+				http.StatusInternalServerError,
 			)
+			return
 		}
+
+		response := struct {
+			Success   bool                     `json:"success"`
+			UserID    string                   `json:"user_id"`
+			Locations []models.PhysicalLocation `json:"locations"`
+		}{
+			Success:   true,
+			UserID:    userID,
+			Locations: locations,
+		}
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
 	}
 }
 
-// Helper fns
-// handles GET request to list all physical locations
-func handleListLocations(
-	w http.ResponseWriter,
-	r *http.Request,
-	appCtx *appcontext.AppContext,
-	service services.PhysicalService,
-	userID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("listing physical locations", map[string]any{
-		"requestID": requestID,
-		"userID":    userID,
-	})
+// GetPhysicalLocation handles GET requests for a single physical location
+func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get Request ID for tracing
+		requestID := httputils.GetRequestID(r)
 
-	locations, err := service.GetUserPhysicalLocations(r.Context(), userID)
-	if err != nil {
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			err,
-			http.StatusInternalServerError,
-		)
-		return
-	}
-
-	response := struct {
-		Success      bool               `json:"success"`
-		UserID       string             `json:"user_id"`
-		Locations    []models.PhysicalLocation  `json:"locations"`
-	} {
-		Success: true,
-		UserID: userID,
-		Locations: locations,
-	}
-
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusOK,
-		response,
-	)
-}
-func handleGetLocation(
-	w http.ResponseWriter,
-	r *http.Request,
-	appCtx *appcontext.AppContext,
-	service services.PhysicalService,
-	userID string,
-	locationID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("Getting physical location", map[string]any{
-		"requestID":  requestID,
-		"userID":     userID,
-		"locationID": locationID,
-	})
-
-	location, err := service.GetPhysicalLocation(r.Context(), userID, locationID)
-	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrLocationNotFound) {
-			statusCode = http.StatusNotFound
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
 		}
 
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			err,
-			statusCode,
-		)
-		return
-	}
+		locationID := chi.URLParam(r, "id")
+		appCtx.Logger.Info("Getting physical location", map[string]any{
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": locationID,
+		})
 
-	response := struct {
-		Success  bool                    `json:"success"`
-		Location models.PhysicalLocation `json:"location"`
-	}{
-		Success:  true,
-		Location: location,
-	}
-
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusOK,
-		response,
-	)
-}
-func handleCreateLocation(
-	w http.ResponseWriter,
-	r *http.Request,
-	appCtx *appcontext.AppContext,
-	service services.PhysicalService,
-	userID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("Creating physical location", map[string]any{
-		"requestID": requestID,
-		"userID":    userID,
-	})
-
-	var locationRequest PhysicalLocationRequest
-	if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			errors.New("invalid request body"),
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	location := models.PhysicalLocation{
-		Name:           locationRequest.Name,
-		Label:          locationRequest.Label,
-		LocationType:   locationRequest.LocationType,
-		MapCoordinates: locationRequest.MapCoordinates,
-		UserID:         userID,
-	}
-
-	createdLocation, err := service.AddPhysicalLocation(r.Context(), userID, location)
-	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrValidationFailed) {
-			statusCode = http.StatusBadRequest
+		if locationID == "" {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("id is required"),
+				http.StatusBadRequest,
+			)
+			return
 		}
 
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			err,
-			statusCode,
-		)
-		return
-	}
+		location, err := service.GetPhysicalLocation(r.Context(), userID, locationID)
+		if err != nil {
+			statusCode := http.StatusInternalServerError
+			if errors.Is(err, ErrLocationNotFound) {
+				statusCode = http.StatusNotFound
+			}
 
-	response := struct {
-		Success  bool                    `json:"success"`
-		Location models.PhysicalLocation `json:"location"`
-	}{
-		Success:  true,
-		Location: createdLocation,
-	}
-
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusCreated,
-		response,
-	)
-}
-func handleUpdateLocation(
-	w http.ResponseWriter,
-	r *http.Request,
-	appCtx *appcontext.AppContext,
-	service services.PhysicalService,
-	userID string,
-	locationID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("Updating physical location", map[string]any{
-		"requestID":  requestID,
-		"userID":     userID,
-		"locationID": locationID,
-	})
-
-	var locationRequest PhysicalLocationRequest
-	if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			errors.New("invalid request body"),
-			http.StatusBadRequest,
-		)
-		return
-	}
-
-	location := models.PhysicalLocation{
-		ID:             locationID,
-		Name:           locationRequest.Name,
-		Label:          locationRequest.Label,
-		LocationType:   locationRequest.LocationType,
-		MapCoordinates: locationRequest.MapCoordinates,
-		UserID:         userID,
-	}
-
-	updatedLocation, err := service.UpdatePhysicalLocation(r.Context(), userID, location)
-	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrLocationNotFound) {
-			statusCode = http.StatusNotFound
-		} else if errors.Is(err, ErrValidationFailed) {
-			statusCode = http.StatusBadRequest
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				statusCode,
+			)
+			return
 		}
 
-		httputils.RespondWithError(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			requestID,
-			err,
-			statusCode,
-		)
-		return
-	}
-
-	response := struct {
-		Success  bool                    `json:"success"`
-		Location models.PhysicalLocation `json:"location"`
-	}{
-		Success:  true,
-		Location: updatedLocation,
-	}
-
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusOK,
-		response,
-	)
-}
-func handleDeleteLocation(
-	w http.ResponseWriter,
-	r *http.Request,
-	appCtx *appcontext.AppContext,
-	service services.PhysicalService,
-	userID string,
-	locationID string,
-	requestID string,
-) {
-	appCtx.Logger.Info("Deleting physical location", map[string]any{
-		"requestID":  requestID,
-		"userID":     userID,
-		"locationID": locationID,
-	})
-
-	err := service.DeletePhysicalLocation(r.Context(), userID, locationID)
-	if err != nil {
-		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrLocationNotFound) {
-			statusCode = http.StatusNotFound
+		response := struct {
+			Success  bool                    `json:"success"`
+			Location models.PhysicalLocation `json:"location"`
+		}{
+			Success:  true,
+			Location: location,
 		}
 
-		httputils.RespondWithError(
+		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
-			requestID,
-			err,
-			statusCode,
+			http.StatusOK,
+			response,
 		)
-		return
 	}
+}
 
-	response := struct {
-		Success bool   `json:"success"`
-		ID      string `json:"id"`
-	}{
-		Success: true,
-		ID:      locationID,
+// AddPhysicalLocation handles POST requests for creating a new physical location
+func AddPhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get Request ID for tracing
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		appCtx.Logger.Info("Creating physical location", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		var locationRequest PhysicalLocationRequest
+		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("invalid request body"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// Create a new UUID for the location
+		locationID := uuid.New().String()
+		now := time.Now()
+
+		location := models.PhysicalLocation{
+			ID:             locationID,
+			UserID:         userID,
+			Name:           locationRequest.Name,
+			Label:          locationRequest.Label,
+			LocationType:   locationRequest.LocationType,
+			MapCoordinates: locationRequest.MapCoordinates,
+			CreatedAt:      now,
+			UpdatedAt:      now,
+		}
+
+		createdLocation, err := service.AddPhysicalLocation(r.Context(), userID, location)
+		if err != nil {
+			statusCode := http.StatusInternalServerError
+			if errors.Is(err, ErrValidationFailed) {
+				statusCode = http.StatusBadRequest
+			}
+
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				statusCode,
+			)
+			return
+		}
+
+		response := struct {
+			Success  bool                    `json:"success"`
+			Location models.PhysicalLocation `json:"location"`
+		}{
+			Success:  true,
+			Location: createdLocation,
+		}
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusCreated,
+			response,
+		)
 	}
+}
 
-	httputils.RespondWithJSON(
-		httputils.NewResponseWriterAdapter(w),
-		appCtx.Logger,
-		http.StatusOK,
-		response,
-	)
+// UpdatePhysicalLocation handles PUT requests for updating a physical location
+func UpdatePhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get Request ID for tracing
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		locationID := chi.URLParam(r, "id")
+		appCtx.Logger.Info("Updating physical location", map[string]any{
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": locationID,
+		})
+
+		if locationID == "" {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("location ID is required"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		var locationRequest PhysicalLocationRequest
+		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("invalid request body"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		location := models.PhysicalLocation{
+			ID:             locationID,
+			UserID:         userID,
+			Name:           locationRequest.Name,
+			Label:          locationRequest.Label,
+			LocationType:   locationRequest.LocationType,
+			MapCoordinates: locationRequest.MapCoordinates,
+			UpdatedAt:      time.Now(),
+		}
+
+		updatedLocation, err := service.UpdatePhysicalLocation(r.Context(), userID, location)
+		if err != nil {
+			statusCode := http.StatusInternalServerError
+			if errors.Is(err, ErrLocationNotFound) {
+				statusCode = http.StatusNotFound
+			} else if errors.Is(err, ErrValidationFailed) {
+				statusCode = http.StatusBadRequest
+			}
+
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				statusCode,
+			)
+			return
+		}
+
+		response := struct {
+			Success  bool                    `json:"success"`
+			Location models.PhysicalLocation `json:"location"`
+		}{
+			Success:  true,
+			Location: updatedLocation,
+		}
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// RemovePhysicalLocation handles DELETE requests for removing a physical location
+func RemovePhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Get Request ID for tracing
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		locationID := chi.URLParam(r, "id")
+		appCtx.Logger.Info("Deleting physical location", map[string]any{
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": locationID,
+		})
+
+		if locationID == "" {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("location ID is required"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		err := service.DeletePhysicalLocation(r.Context(), userID, locationID)
+		if err != nil {
+			statusCode := http.StatusInternalServerError
+			if errors.Is(err, ErrLocationNotFound) {
+				statusCode = http.StatusNotFound
+			}
+
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				statusCode,
+			)
+			return
+		}
+
+		response := struct {
+			Success bool   `json:"success"`
+			ID      string `json:"id"`
+		}{
+			Success: true,
+			ID:      locationID,
+		}
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
 }
