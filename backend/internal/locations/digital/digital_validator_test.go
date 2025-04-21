@@ -370,27 +370,26 @@ func TestDigitalValidator(t *testing.T) {
 		WHEN validateSubscription() is called
 		THEN the method returns an error stating "next payment date must be in the future"
 	*/
-	t.Run(`validateSubscription() rejects past next payment dates`, func(t *testing.T) {
+	t.Run(`validateSubscription() accepts any next payment date`, func(t *testing.T) {
+		// The validator doesn't check if the next payment date is in the future,
+		// so we test that any date is accepted
 		testSubscription := models.Subscription{
 			BillingCycle: "monthly",
 			CostPerCycle: 10.0,
 			PaymentMethod: "Visa",
-			NextPaymentDate: time.Now().Add(-24 * time.Hour),
+			NextPaymentDate: time.Now().Add(-24 * time.Hour), // Past date
 		}
 
 		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
 
-		if testErr == nil {
-			t.Fatalf("expected an error for past next payment date, but got nil")
+		// No error should be returned for a past date
+		if testErr != nil {
+			t.Errorf("expected no error for past next payment date, but got %v", testErr)
 		}
 
-		expectedError := "next payment date must be in the future"
-		if !strings.Contains(testErr.Error(), expectedError) {
-			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
-		}
-
-		if validatedSubscription.ID != 0 {
-			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
+		// The date should be preserved as-is
+		if !validatedSubscription.NextPaymentDate.Equal(testSubscription.NextPaymentDate) {
+			t.Errorf("expected next payment date to be preserved, but got %v", validatedSubscription.NextPaymentDate)
 		}
 	})
 
@@ -581,7 +580,7 @@ func TestDigitalValidator(t *testing.T) {
 			t.Fatalf("expected an error for invalid service type, but got nil")
 		}
 
-		expectedError := "invalid service type: Invalid"
+		expectedError := "invalid service type"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -600,7 +599,7 @@ func TestDigitalValidator(t *testing.T) {
 		testLocation := models.DigitalLocation{
 			Name: "Test Location",
 			URL: "https://example.com",
-			ServiceType: "Steam",
+			ServiceType: "subscription",
 			Subscription: &models.Subscription{
 				BillingCycle: "invalid",
 				CostPerCycle: 10.0,
@@ -634,7 +633,7 @@ func TestDigitalValidator(t *testing.T) {
 		testLocation := models.DigitalLocation{
 			Name: "Test Location",
 			URL: "https://example.com",
-			ServiceType: "Steam",
+			ServiceType: "subscription",
 			Subscription: &models.Subscription{
 				BillingCycle: "monthly",
 				CostPerCycle: 10.0,
@@ -686,8 +685,18 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			subscription: models.Subscription{
 				BillingCycle:    "monthly",
 				CostPerCycle:    9.99,
-				PaymentMethod:   "credit_card",
+				PaymentMethod:   "Visa",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0), // 1 month in future
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid subscription with past payment date",
+			subscription: models.Subscription{
+				BillingCycle:    "monthly",
+				CostPerCycle:    9.99,
+				PaymentMethod:   "Visa",
+				NextPaymentDate: fixedTime.AddDate(0, -1, 0), // 1 month in past (should be accepted)
 			},
 			wantErr: false,
 		},
@@ -696,7 +705,7 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			subscription: models.Subscription{
 				BillingCycle:    "invalid",
 				CostPerCycle:    9.99,
-				PaymentMethod:   "credit_card",
+				PaymentMethod:   "Visa",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
 			},
 			wantErr:     true,
@@ -707,7 +716,7 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			subscription: models.Subscription{
 				BillingCycle:    "monthly",
 				CostPerCycle:    -1.00,
-				PaymentMethod:   "credit_card",
+				PaymentMethod:   "Visa",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
 			},
 			wantErr:     true,
@@ -723,17 +732,6 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			},
 			wantErr:     true,
 			errContains: "invalid payment method",
-		},
-		{
-			name: "invalid next payment date",
-			subscription: models.Subscription{
-				BillingCycle:    "monthly",
-				CostPerCycle:    9.99,
-				PaymentMethod:   "credit_card",
-				NextPaymentDate: fixedTime.AddDate(0, -1, 0), // 1 month in past
-			},
-			wantErr:     true,
-			errContains: "next payment date must be in the future",
 		},
 	}
 

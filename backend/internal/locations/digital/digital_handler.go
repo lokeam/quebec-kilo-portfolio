@@ -46,20 +46,20 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		userID := httputils.GetUserID(r)
-		if userID == "" {
+	userID := httputils.GetUserID(r)
+	if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("userID not found in request context"),
-				http.StatusUnauthorized,
-			)
-			return
-		}
+			errors.New("userID not found in request context"),
+			http.StatusUnauthorized,
+		)
+		return
+	}
 
 		appCtx.Logger.Info("Listing digital locations", map[string]any{
 			"requestID": requestID,
@@ -67,18 +67,18 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 		})
 
 		locations, err := service.GetUserDigitalLocations(r.Context(), userID)
-		if err != nil {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if err != nil {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				http.StatusInternalServerError,
-			)
-			return
-		}
+			err,
+			http.StatusInternalServerError,
+		)
+		return
+	}
 
-		response := struct {
+	response := struct {
 			Success   bool                     `json:"success"`
 			UserID    string                   `json:"user_id"`
 			Locations []models.DigitalLocation `json:"locations"`
@@ -86,14 +86,14 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 			Success:   true,
 			UserID:    userID,
 			Locations: locations,
-		}
+	}
 
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
-			http.StatusOK,
-			response,
-		)
+		http.StatusOK,
+		response,
+	)
 	}
 }
 
@@ -103,77 +103,77 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		userID := httputils.GetUserID(r)
-		if userID == "" {
+	userID := httputils.GetUserID(r)
+	if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("userID not found in request context"),
-				http.StatusUnauthorized,
-			)
-			return
-		}
+			errors.New("userID not found in request context"),
+			http.StatusUnauthorized,
+		)
+		return
+	}
 
 		locationID := chi.URLParam(r, "id")
 		appCtx.Logger.Info("Getting digital location", map[string]any{
 			"requestID":  requestID,
 			"userID":     userID,
 			"locationID": locationID,
-		})
+	})
 
-		if locationID == "" {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if locationID == "" {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("id is required"),
-				http.StatusBadRequest,
-			)
-			return
-		}
+			errors.New("id is required"),
+			http.StatusBadRequest,
+		)
+		return
+	}
 
-		var location models.DigitalLocation
-		var err error
+	var location models.DigitalLocation
+	var err error
 
-		if _, parseErr := uuid.Parse(locationID); parseErr == nil {
+	if _, parseErr := uuid.Parse(locationID); parseErr == nil {
 			location, err = service.GetDigitalLocation(r.Context(), userID, locationID)
-		} else {
+	} else {
 			location, err = service.FindDigitalLocationByName(r.Context(), userID, locationID)
-		}
+	}
 
-		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrDigitalLocationNotFound) {
-				statusCode = http.StatusNotFound
-			}
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, ErrDigitalLocationNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				statusCode,
-			)
-			return
-		}
+			err,
+			statusCode,
+		)
+		return
+	}
 
-		response := struct {
+	response := struct {
 			Success  bool                   `json:"success"`
 			Location models.DigitalLocation `json:"location"`
-		}{
+	}{
 			Success:  true,
 			Location: location,
-		}
+	}
 
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
-			http.StatusOK,
-			response,
-		)
+		http.StatusOK,
+		response,
+	)
 	}
 }
 
@@ -183,40 +183,40 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		userID := httputils.GetUserID(r)
-		if userID == "" {
+	userID := httputils.GetUserID(r)
+	if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("userID not found in request context"),
-				http.StatusUnauthorized,
-			)
-			return
-		}
+			errors.New("userID not found in request context"),
+			http.StatusUnauthorized,
+		)
+		return
+	}
 
 		appCtx.Logger.Info("Creating digital location", map[string]any{
 			"requestID": requestID,
 			"userID":    userID,
 		})
 
-		var locationRequest DigitalLocationRequest
-		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	var locationRequest DigitalLocationRequest
+	if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("invalid request body"),
-				http.StatusBadRequest,
-			)
-			return
-		}
+			errors.New("invalid request body"),
+			http.StatusBadRequest,
+		)
+		return
+	}
 
-		now := time.Now()
-		digitalLocation := models.DigitalLocation{
+	now := time.Now()
+	digitalLocation := models.DigitalLocation{
 			ID:          uuid.New().String(),
 			UserID:      userID,
 			Name:        locationRequest.Name,
@@ -225,32 +225,32 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 			URL:         locationRequest.URL,
 			CreatedAt:   now,
 			UpdatedAt:   now,
-		}
+	}
 
-		// Handle subscription if provided
-		if locationRequest.Subscription != nil {
-			subscription := *locationRequest.Subscription
-			subscription.LocationID = digitalLocation.ID
-			subscription.CreatedAt = now
-			subscription.UpdatedAt = now
-			digitalLocation.Subscription = &subscription
-		}
+	// Handle subscription if provided
+	if locationRequest.Subscription != nil {
+		subscription := *locationRequest.Subscription
+		subscription.LocationID = digitalLocation.ID
+		subscription.CreatedAt = now
+		subscription.UpdatedAt = now
+		digitalLocation.Subscription = &subscription
+	}
 
 		createdLocation, err := service.AddDigitalLocation(r.Context(), userID, digitalLocation)
-		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrValidationFailed) {
-				statusCode = http.StatusBadRequest
-			}
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, ErrValidationFailed) {
+			statusCode = http.StatusBadRequest
+		}
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				statusCode,
-			)
-			return
-		}
+			err,
+			statusCode,
+		)
+		return
+	}
 
 		response := struct {
 			Success  bool                   `json:"success"`
@@ -260,12 +260,12 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 			Location: createdLocation,
 		}
 
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
-			http.StatusCreated,
+		http.StatusCreated,
 			response,
-		)
+	)
 	}
 }
 
@@ -275,120 +275,120 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		userID := httputils.GetUserID(r)
-		if userID == "" {
+	userID := httputils.GetUserID(r)
+	if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("userID not found in request context"),
-				http.StatusUnauthorized,
-			)
-			return
-		}
+			errors.New("userID not found in request context"),
+			http.StatusUnauthorized,
+		)
+		return
+	}
 
-		locationID := chi.URLParam(r, "id")
+	locationID := chi.URLParam(r, "id")
 		appCtx.Logger.Info("Updating digital location", map[string]any{
 			"requestID":  requestID,
 			"userID":     userID,
 			"locationID": locationID,
 		})
 
-		if locationID == "" {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if locationID == "" {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("location ID is required"),
-				http.StatusBadRequest,
-			)
-			return
-		}
+			errors.New("location ID is required"),
+			http.StatusBadRequest,
+		)
+		return
+	}
 
-		var updateReq DigitalLocationRequest
-		if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
+	var updateReq DigitalLocationRequest
+	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
 			appCtx.Logger.Error("Failed to decode request body", map[string]any{"error": err})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("invalid request body"),
-				http.StatusBadRequest,
-			)
-			return
-		}
+			errors.New("invalid request body"),
+			http.StatusBadRequest,
+		)
+		return
+	}
 
-		// Get existing location
+	// Get existing location
 		location, err := service.GetDigitalLocation(r.Context(), userID, locationID)
-		if err != nil {
+	if err != nil {
 			appCtx.Logger.Error("Failed to get existing location", map[string]any{"error": err})
-			statusCode := http.StatusInternalServerError
+		statusCode := http.StatusInternalServerError
 			if errors.Is(err, ErrDigitalLocationNotFound) {
-				statusCode = http.StatusNotFound
-			}
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+			statusCode = http.StatusNotFound
+		}
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				statusCode,
-			)
-			return
-		}
+			err,
+			statusCode,
+		)
+		return
+	}
 
-		// Update fields
-		location.Name = updateReq.Name
-		location.ServiceType = updateReq.ServiceType
-		location.IsActive = updateReq.IsActive
-		location.URL = updateReq.URL
-		location.UpdatedAt = time.Now()
+	// Update fields
+	location.Name = updateReq.Name
+	location.ServiceType = updateReq.ServiceType
+	location.IsActive = updateReq.IsActive
+	location.URL = updateReq.URL
+	location.UpdatedAt = time.Now()
 
-		// Ensure the ID is set from the URL
-		location.ID = locationID
+	// Ensure the ID is set from the URL
+	location.ID = locationID
 
 		// If subscription is provided, update it
-		if updateReq.Subscription != nil {
-			subscription := &models.Subscription{
-				ID:              updateReq.Subscription.ID,
-				LocationID:      location.ID,
+	if updateReq.Subscription != nil {
+		subscription := &models.Subscription{
+			ID:              updateReq.Subscription.ID,
+			LocationID:      location.ID,
 				BillingCycle:    updateReq.Subscription.BillingCycle,
 				CostPerCycle:    updateReq.Subscription.CostPerCycle,
 				NextPaymentDate: updateReq.Subscription.NextPaymentDate,
 				PaymentMethod:   updateReq.Subscription.PaymentMethod,
-				UpdatedAt:       time.Now(),
-			}
-
-			// Only set CreatedAt if this is a new subscription
-			if location.Subscription == nil {
-				subscription.CreatedAt = time.Now()
-			} else {
-				subscription.CreatedAt = location.Subscription.CreatedAt
-			}
-
-			location.Subscription = subscription
+			UpdatedAt:       time.Now(),
 		}
+
+		// Only set CreatedAt if this is a new subscription
+		if location.Subscription == nil {
+			subscription.CreatedAt = time.Now()
+		} else {
+			subscription.CreatedAt = location.Subscription.CreatedAt
+		}
+
+		location.Subscription = subscription
+	}
 
 		err = service.UpdateDigitalLocation(r.Context(), userID, location)
-		if err != nil {
+	if err != nil {
 			appCtx.Logger.Error("Failed to update location", map[string]any{"error": err})
-			statusCode := http.StatusInternalServerError
+		statusCode := http.StatusInternalServerError
 			if errors.Is(err, ErrDigitalLocationNotFound) {
-				statusCode = http.StatusNotFound
+			statusCode = http.StatusNotFound
 			} else if errors.Is(err, ErrValidationFailed) {
-				statusCode = http.StatusBadRequest
-			}
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+			statusCode = http.StatusBadRequest
+		}
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				statusCode,
-			)
-			return
-		}
+			err,
+			statusCode,
+		)
+		return
+	}
 
 		response := struct {
 			Success  bool                   `json:"success"`
@@ -398,12 +398,12 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 			Location: location,
 		}
 
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
-			http.StatusOK,
+		http.StatusOK,
 			response,
-		)
+	)
 	}
 }
 
@@ -413,70 +413,70 @@ func RemoveDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
-		userID := httputils.GetUserID(r)
-		if userID == "" {
+	userID := httputils.GetUserID(r)
+	if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("userID not found in request context"),
-				http.StatusUnauthorized,
-			)
-			return
-		}
+			errors.New("userID not found in request context"),
+			http.StatusUnauthorized,
+		)
+		return
+	}
 
-		locationID := chi.URLParam(r, "id")
+	locationID := chi.URLParam(r, "id")
 		appCtx.Logger.Info("Deleting digital location", map[string]any{
 			"requestID":  requestID,
 			"userID":     userID,
 			"locationID": locationID,
 		})
 
-		if locationID == "" {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if locationID == "" {
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("location ID is required"),
-				http.StatusBadRequest,
-			)
-			return
-		}
+			errors.New("location ID is required"),
+			http.StatusBadRequest,
+		)
+		return
+	}
 
 		err := service.RemoveDigitalLocation(r.Context(), userID, locationID)
-		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrDigitalLocationNotFound) {
-				statusCode = http.StatusNotFound
-			}
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
+	if err != nil {
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, ErrDigitalLocationNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				err,
-				statusCode,
-			)
-			return
-		}
+			err,
+			statusCode,
+		)
+		return
+	}
 
-		response := struct {
+	response := struct {
 			Success bool   `json:"success"`
 			ID      string `json:"id"`
-		}{
-			Success: true,
+	}{
+		Success: true,
 			ID:      locationID,
-		}
-
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			http.StatusOK,
-			response,
-		)
 	}
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+		http.StatusOK,
+		response,
+	)
+}
 }
 
 // For backward compatibility - wrapper for the digital service catalog

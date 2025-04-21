@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -88,8 +89,11 @@ func TestDigitalDbAdapter(t *testing.T) {
 		locationID := "test-location-id"
 		now := time.Now()
 
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at"}).
-			AddRow(locationID, userID, "Test Location", true, "https://example.com", now, now)
+		// Add a valid JSON array for items
+		itemsJSON := `[]` // Empty JSON array
+
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at", "items"}).
+			AddRow(locationID, userID, "Test Location", true, "https://example.com", now, now, itemsJSON)
 
 		mock.ExpectQuery("SELECT (.+) FROM digital_locations").
 			WithArgs(locationID, userID).
@@ -107,6 +111,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			URL:       "https://example.com",
 			CreatedAt: now,
 			UpdatedAt: now,
+			Items:     []models.Game{}, // Empty slice of games
 		}
 
 		// Verify
@@ -210,10 +215,13 @@ func TestDigitalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		now := time.Now()
 
+		// Add valid JSON arrays for items
+		itemsJSON := `[]` // Empty JSON array
+
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at"}).
-			AddRow("loc1", userID, "Location 1", true, "https://example1.com", now, now).
-			AddRow("loc2", userID, "Location 2", true, "https://example2.com", now, now)
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at", "items"}).
+			AddRow("loc1", userID, "Location 1", true, "https://example1.com", now, now, itemsJSON).
+			AddRow("loc2", userID, "Location 2", true, "https://example2.com", now, now, itemsJSON)
 
 		mock.ExpectQuery("SELECT (.+) FROM digital_locations").
 			WithArgs(userID).
@@ -242,7 +250,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN NO locations exist in the db
 		THEN the adapter returns an empty slice
 	*/
-	t.Run(`GetUserDigitalLocations - Returns empty slice when locations exist`, func(t *testing.T) {
+	t.Run(`GetUserDigitalLocations - Returns empty slice when no locations exist`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -253,7 +261,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at"})
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at", "items"})
 
 		mock.ExpectQuery("SELECT (.+) FROM digital_locations").
 			WithArgs(userID).
@@ -335,12 +343,23 @@ func TestDigitalDbAdapter(t *testing.T) {
 		}
 
 		// Set up mock expectations
+		// For ensureUserExists - user exists
+		mock.ExpectQuery("SELECT EXISTS").
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+
+		// Check if a location with the same name already exists
+		mock.ExpectQuery("SELECT id FROM digital_locations").
+			WithArgs(userID, "New Location").
+			WillReturnError(sql.ErrNoRows)
+
+		// Add the location
 		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "is_active", "url", "created_at", "updated_at"}).
 			AddRow(locationID, userID, "New Location", true, "https://example.com", now, now)
 
 		mock.ExpectQuery("INSERT INTO digital_locations").
 			WithArgs(
-				locationID,
+				sqlmock.AnyArg(), // ID could be generated if empty
 				userID,
 				"New Location",
 				true,
@@ -390,9 +409,19 @@ func TestDigitalDbAdapter(t *testing.T) {
 		}
 
 		// Set up mock expectations
+		// For ensureUserExists - user exists
+		mock.ExpectQuery("SELECT EXISTS").
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+
+		// Check if a location with the same name already exists
+		mock.ExpectQuery("SELECT id FROM digital_locations").
+			WithArgs(userID, "New Location").
+			WillReturnError(sql.ErrNoRows)
+
 		mock.ExpectQuery("INSERT INTO digital_locations").
 			WithArgs(
-				locationID,
+				sqlmock.AnyArg(), // ID could be generated if empty
 				userID,
 				"New Location",
 				true,
@@ -1219,4 +1248,478 @@ func TestAddDigitalLocation(t *testing.T) {
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("there were unfulfilled expectations: %s", err)
 	}
+}
+
+func TestAddGameToDigitalLocation(t *testing.T) {
+	// Setup
+	testLogger := testutils.NewTestLogger()
+
+	// Create mock DB
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer mockDB.Close()
+
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	adapter := &DigitalDbAdapter{
+		db:     sqlxDB,
+		logger: testLogger,
+	}
+
+	userID := "test-user-id"
+	locationID := "test-location-id"
+	gameID := int64(123)
+	userGameID := 456
+
+	t.Run("successfully adds game to digital location", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(userGameID))
+
+		mock.ExpectExec("INSERT INTO digital_game_locations").
+			WithArgs(userGameID, locationID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Execute
+		err := adapter.AddGameToDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("game not found in user's library", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnError(sql.ErrNoRows)
+
+		// Execute
+		err := adapter.AddGameToDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "game not found in user's library") {
+			t.Errorf("Expected error about game not found, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("game already exists in location", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(userGameID))
+
+		duplicateErr := errors.New("ERROR: duplicate key value violates unique constraint \"digital_game_locations_user_game_id_digital_location_id_key\"")
+		mock.ExpectExec("INSERT INTO digital_game_locations").
+			WithArgs(userGameID, locationID).
+			WillReturnError(duplicateErr)
+
+		// Execute
+		err := adapter.AddGameToDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "game already exists in this digital location") {
+			t.Errorf("Expected error about game already existing, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestRemoveGameFromDigitalLocation(t *testing.T) {
+	// Setup
+	testLogger := testutils.NewTestLogger()
+
+	// Create mock DB
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer mockDB.Close()
+
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	adapter := &DigitalDbAdapter{
+		db:     sqlxDB,
+		logger: testLogger,
+	}
+
+	userID := "test-user-id"
+	locationID := "test-location-id"
+	gameID := int64(123)
+	userGameID := 456
+
+	t.Run("successfully removes game from digital location", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(userGameID))
+
+		mock.ExpectExec("DELETE FROM digital_game_locations").
+			WithArgs(userGameID, locationID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		// Execute
+		err := adapter.RemoveGameFromDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("game not found in user's library", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnError(sql.ErrNoRows)
+
+		// Execute
+		err := adapter.RemoveGameFromDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "game not found in user's library") {
+			t.Errorf("Expected error about game not found, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("game not found in digital location", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(userGameID))
+
+		mock.ExpectExec("DELETE FROM digital_game_locations").
+			WithArgs(userGameID, locationID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Execute
+		err := adapter.RemoveGameFromDigitalLocation(context.Background(), userID, locationID, gameID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "game not found in digital location") {
+			t.Errorf("Expected error about game not found in location, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestGetGamesByDigitalLocationID(t *testing.T) {
+	// Setup
+	testLogger := testutils.NewTestLogger()
+
+	// Create mock DB
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer mockDB.Close()
+
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	adapter := &DigitalDbAdapter{
+		db:     sqlxDB,
+		logger: testLogger,
+	}
+
+	userID := "test-user-id"
+	locationID := "test-location-id"
+
+	t.Run("successfully gets games for a digital location", func(t *testing.T) {
+		// Set up expectations
+		rows := sqlmock.NewRows([]string{"id", "name", "summary", "cover_id", "cover_url", "first_release_date", "rating"}).
+			AddRow(1, "Game 1", "Summary 1", "cover1", "http://cover1.jpg", time.Now(), 4.5).
+			AddRow(2, "Game 2", "Summary 2", "cover2", "http://cover2.jpg", time.Now(), 4.8)
+
+		mock.ExpectQuery("SELECT g.* FROM games g").
+			WithArgs(locationID, userID).
+			WillReturnRows(rows)
+
+		// Execute
+		games, err := adapter.GetGamesByDigitalLocationID(context.Background(), userID, locationID)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(games) != 2 {
+			t.Errorf("Expected 2 games, got %d", len(games))
+		}
+		if games[0].Name != "Game 1" || games[1].Name != "Game 2" {
+			t.Errorf("Games not returned correctly: %+v", games)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("no games found for digital location", func(t *testing.T) {
+		// Set up expectations
+		rows := sqlmock.NewRows([]string{"id", "name", "summary", "cover_id", "cover_url", "first_release_date", "rating"})
+
+		mock.ExpectQuery("SELECT g.* FROM games g").
+			WithArgs(locationID, userID).
+			WillReturnRows(rows)
+
+		// Execute
+		games, err := adapter.GetGamesByDigitalLocationID(context.Background(), userID, locationID)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if len(games) != 0 {
+			t.Errorf("Expected 0 games, got %d", len(games))
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		// Set up expectations
+		dbError := errors.New("database error")
+
+		mock.ExpectQuery("SELECT g.* FROM games g").
+			WithArgs(locationID, userID).
+			WillReturnError(dbError)
+
+		// Execute
+		_, err := adapter.GetGamesByDigitalLocationID(context.Background(), userID, locationID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !errors.Is(err, dbError) {
+			t.Errorf("Expected error %v, got %v", dbError, err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestUpdateSubscription(t *testing.T) {
+	// Setup
+	testLogger := testutils.NewTestLogger()
+
+	// Create mock DB
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer mockDB.Close()
+
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	adapter := &DigitalDbAdapter{
+		db:     sqlxDB,
+		logger: testLogger,
+	}
+
+	locationID := "test-location-id"
+	subscription := models.Subscription{
+		ID:             1,
+		LocationID:     locationID,
+		BillingCycle:   "monthly",
+		CostPerCycle:   9.99,
+		NextPaymentDate: time.Now(),
+		PaymentMethod:  "Credit Card",
+	}
+
+	t.Run("successfully updates subscription", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectExec("UPDATE digital_location_subscriptions").
+			WithArgs(
+				subscription.BillingCycle,
+				subscription.CostPerCycle,
+				sqlmock.AnyArg(), // NextPaymentDate can be any time
+				subscription.PaymentMethod,
+				sqlmock.AnyArg(), // UpdatedAt can be any time
+				subscription.LocationID,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		// Execute
+		err := adapter.UpdateSubscription(context.Background(), subscription)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("subscription not found", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectExec("UPDATE digital_location_subscriptions").
+			WithArgs(
+				subscription.BillingCycle,
+				subscription.CostPerCycle,
+				sqlmock.AnyArg(), // NextPaymentDate can be any time
+				subscription.PaymentMethod,
+				sqlmock.AnyArg(), // UpdatedAt can be any time
+				subscription.LocationID,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Execute
+		err := adapter.UpdateSubscription(context.Background(), subscription)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "subscription not found") {
+			t.Errorf("Expected error about subscription not found, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		// Set up expectations
+		dbError := errors.New("database error")
+		mock.ExpectExec("UPDATE digital_location_subscriptions").
+			WithArgs(
+				subscription.BillingCycle,
+				subscription.CostPerCycle,
+				sqlmock.AnyArg(), // NextPaymentDate can be any time
+				subscription.PaymentMethod,
+				sqlmock.AnyArg(), // UpdatedAt can be any time
+				subscription.LocationID,
+			).
+			WillReturnError(dbError)
+
+		// Execute
+		err := adapter.UpdateSubscription(context.Background(), subscription)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !errors.Is(err, dbError) {
+			t.Errorf("Expected error %v, got %v", dbError, err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+}
+
+func TestRemoveSubscription(t *testing.T) {
+	// Setup
+	testLogger := testutils.NewTestLogger()
+
+	// Create mock DB
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("Failed to create mock DB: %v", err)
+	}
+	defer mockDB.Close()
+
+	sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+
+	adapter := &DigitalDbAdapter{
+		db:     sqlxDB,
+		logger: testLogger,
+	}
+
+	locationID := "test-location-id"
+
+	t.Run("successfully removes subscription", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectExec("DELETE FROM digital_location_subscriptions").
+			WithArgs(locationID).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		// Execute
+		err := adapter.RemoveSubscription(context.Background(), locationID)
+
+		// Verify
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("subscription not found", func(t *testing.T) {
+		// Set up expectations
+		mock.ExpectExec("DELETE FROM digital_location_subscriptions").
+			WithArgs(locationID).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Execute
+		err := adapter.RemoveSubscription(context.Background(), locationID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), "subscription not found") {
+			t.Errorf("Expected error about subscription not found, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		// Set up expectations
+		dbError := errors.New("database error")
+		mock.ExpectExec("DELETE FROM digital_location_subscriptions").
+			WithArgs(locationID).
+			WillReturnError(dbError)
+
+		// Execute
+		err := adapter.RemoveSubscription(context.Background(), locationID)
+
+		// Verify
+		if err == nil {
+			t.Errorf("Expected an error, got nil")
+		}
+		if !errors.Is(err, dbError) {
+			t.Errorf("Expected error %v, got %v", dbError, err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unmet expectations: %v", err)
+		}
+	})
 }

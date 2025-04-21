@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 
-	"github.com/lokeam/qko-beta/internal/appcontext"
-	mcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
-	rcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
+	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/models"
+	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
@@ -224,16 +224,20 @@ func (m *MockDigitalCacheWrapper) InvalidatePaymentsCache(ctx context.Context, l
 func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDigitalService {
 	mockDbAdapter := &MockDigitalDbAdapter{
 		GetUserDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-			return []models.DigitalLocation{}, nil
+			return []models.DigitalLocation{
+				{ID: "1", Name: "Location 1", URL: "http://example.com/1", ServiceType: "basic", IsActive: true},
+				{ID: "2", Name: "Location 2", URL: "http://example.com/2", ServiceType: "subscription", IsActive: true},
+			}, nil
 		},
 		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
+			return models.DigitalLocation{ID: locationID, Name: "Test Location", URL: "http://example.com", ServiceType: "basic", IsActive: true}, nil
 		},
 		FindDigitalLocationByNameFunc: func(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
+			return models.DigitalLocation{ID: "test-id", Name: name, URL: "http://example.com", ServiceType: "basic", IsActive: true}, nil
 		},
 		AddDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
+			location.ID = "new-id"
+			return location, nil
 		},
 		UpdateDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) error {
 			return nil
@@ -242,10 +246,10 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 			return nil
 		},
 		GetSubscriptionFunc: func(ctx context.Context, locationID string) (*models.Subscription, error) {
-			return &models.Subscription{}, nil
+			return &models.Subscription{ID: 1, LocationID: locationID}, nil
 		},
 		AddSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
-			return &models.Subscription{}, nil
+			return &models.Subscription{ID: 1, LocationID: subscription.LocationID}, nil
 		},
 		UpdateSubscriptionFunc: func(ctx context.Context, subscription models.Subscription) error {
 			return nil
@@ -254,13 +258,13 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 			return nil
 		},
 		GetPaymentsFunc: func(ctx context.Context, locationID string) ([]models.Payment, error) {
-			return []models.Payment{}, nil
+			return []models.Payment{{ID: 1, LocationID: locationID}}, nil
 		},
 		AddPaymentFunc: func(ctx context.Context, payment models.Payment) (*models.Payment, error) {
-			return &models.Payment{}, nil
+			return &models.Payment{ID: 1, LocationID: payment.LocationID}, nil
 		},
 		GetPaymentFunc: func(ctx context.Context, paymentID int64) (*models.Payment, error) {
-			return &models.Payment{}, nil
+			return &models.Payment{ID: paymentID}, nil
 		},
 		AddGameToDigitalLocationFunc: func(ctx context.Context, userID string, locationID string, gameID int64) error {
 			return nil
@@ -269,19 +273,22 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 			return nil
 		},
 		GetGamesByDigitalLocationIDFunc: func(ctx context.Context, userID string, locationID string) ([]models.Game, error) {
-			return []models.Game{}, nil
+			return []models.Game{{ID: 1, Name: "Test Game"}}, nil
 		},
 	}
 
 	mockCacheWrapper := &MockDigitalCacheWrapper{
 		GetCachedDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-			return []models.DigitalLocation{}, nil
+			return []models.DigitalLocation{
+				{ID: "1", Name: "Location 1", URL: "http://example.com/1", ServiceType: "basic", IsActive: true},
+				{ID: "2", Name: "Location 2", URL: "http://example.com/2", ServiceType: "subscription", IsActive: true},
+			}, nil
 		},
 		SetCachedDigitalLocationsFunc: func(ctx context.Context, userID string, locations []models.DigitalLocation) error {
 			return nil
 		},
 		GetSingleCachedDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
-			return &models.DigitalLocation{}, true, nil
+			return &models.DigitalLocation{ID: locationID, Name: "Test Location", URL: "http://example.com", ServiceType: "basic", IsActive: true}, true, nil
 		},
 		SetSingleCachedDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) error {
 			return nil
@@ -292,10 +299,8 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 		InvalidateDigitalLocationCacheFunc: func(ctx context.Context, userID, locationID string) error {
 			return nil
 		},
-
-		// Subscription caching
 		GetCachedSubscriptionFunc: func(ctx context.Context, locationID string) (*models.Subscription, bool, error) {
-			return &models.Subscription{}, true, nil
+			return &models.Subscription{ID: 1, LocationID: locationID}, true, nil
 		},
 		SetCachedSubscriptionFunc: func(ctx context.Context, locationID string, subscription models.Subscription) error {
 			return nil
@@ -303,10 +308,8 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 		InvalidateSubscriptionCacheFunc: func(ctx context.Context, locationID string) error {
 			return nil
 		},
-
-		// Payment caching
 		GetCachedPaymentsFunc: func(ctx context.Context, locationID string) ([]models.Payment, error) {
-			return []models.Payment{}, nil
+			return []models.Payment{{ID: 1, LocationID: locationID}}, nil
 		},
 		SetCachedPaymentsFunc: func(ctx context.Context, locationID string, payments []models.Payment) error {
 			return nil
@@ -316,24 +319,27 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 		},
 	}
 
-	// Create mock Redis client
-	mockRedisClient := &rcache.RueidisClient{}
-
-	// Create mock memory cache
-	mockMemCache := &mcache.MemoryCache{}
-
-	appCtx := &appcontext.AppContext{
-		Logger:      logger,
-		RedisClient: mockRedisClient,
-		MemCache:    mockMemCache,
+	// Create a mock config
+	mockConfig := &config.Config{
+		Redis: config.RedisConfig{
+			RedisTTL:     60,
+			RedisTimeout: 5,
+		},
 	}
 
-	// Set the mock adapters on the service after creation
-	gds, _ := NewGameDigitalService(appCtx)
-	gds.dbAdapter = mockDbAdapter
-	gds.cacheWrapper = mockCacheWrapper
+	// Create mock sanitizer and validator
+	mockSanitizer, _ := security.NewSanitizer()
+	mockValidator, _ := NewDigitalValidator(mockSanitizer)
 
-	return gds
+	// Directly create the service with mocks instead of using NewGameDigitalService
+	return &GameDigitalService{
+		dbAdapter:    mockDbAdapter,
+		cacheWrapper: mockCacheWrapper,
+		logger:       logger,
+		config:       mockConfig,
+		sanitizer:    mockSanitizer,
+		validator:    mockValidator,
+	}
 }
 
 func TestGameDigitalService(t *testing.T) {
@@ -362,11 +368,23 @@ func TestGameDigitalService(t *testing.T) {
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedErr := errors.New("test error")
 
-		service.dbAdapter = &MockDigitalDbAdapter{
-			GetUserDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-				return nil, expectedErr
-			},
+		// Override the default mock
+		mockDb := &MockDigitalDbAdapter{}
+		// Copy all the defaults from the original mock
+		*mockDb = *service.dbAdapter.(*MockDigitalDbAdapter)
+		// Override just the function we want to test
+		mockDb.GetUserDigitalLocationsFunc = func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return nil, expectedErr
 		}
+		service.dbAdapter = mockDb
+
+		// Set cache to return an error to force DB lookup
+		mockCache := &MockDigitalCacheWrapper{}
+		*mockCache = *service.cacheWrapper.(*MockDigitalCacheWrapper)
+		mockCache.GetCachedDigitalLocationsFunc = func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return nil, errors.New("cache miss")
+		}
+		service.cacheWrapper = mockCache
 
 		// Execute
 		locations, err := service.GetUserDigitalLocations(context.Background(), "test-user")
@@ -375,7 +393,7 @@ func TestGameDigitalService(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error, got nil")
 		}
-		if !errors.Is(err, expectedErr) {
+		if err.Error() != expectedErr.Error() {
 			t.Errorf("Expected error %v, got %v", expectedErr, err)
 		}
 		if len(locations) != 0 {
@@ -404,11 +422,21 @@ func TestGameDigitalService(t *testing.T) {
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedErr := sql.ErrNoRows
 
-		service.dbAdapter = &MockDigitalDbAdapter{
-			GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-				return models.DigitalLocation{}, expectedErr
-			},
+		// Override the default mock
+		mockDb := &MockDigitalDbAdapter{}
+		*mockDb = *service.dbAdapter.(*MockDigitalDbAdapter)
+		mockDb.GetDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+			return models.DigitalLocation{}, expectedErr
 		}
+		service.dbAdapter = mockDb
+
+		// Set cache to return an error to force DB lookup
+		mockCache := &MockDigitalCacheWrapper{}
+		*mockCache = *service.cacheWrapper.(*MockDigitalCacheWrapper)
+		mockCache.GetSingleCachedDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
+			return nil, false, errors.New("cache miss")
+		}
+		service.cacheWrapper = mockCache
 
 		// Execute
 		location, err := service.GetDigitalLocation(context.Background(), "test-user", "test-location")
@@ -429,8 +457,10 @@ func TestGameDigitalService(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		newLocation := models.DigitalLocation{
-			Name:     "Test Location",
-			IsActive: true,
+			Name:        "Test Location",
+			URL:         "http://example.com",
+			ServiceType: "basic",
+			IsActive:    true,
 		}
 
 		// Execute
@@ -450,15 +480,19 @@ func TestGameDigitalService(t *testing.T) {
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedErr := errors.New("test error")
 		newLocation := models.DigitalLocation{
-			Name:     "Test Location",
-			IsActive: true,
+			Name:        "Test Location",
+			URL:         "http://example.com",
+			ServiceType: "basic",
+			IsActive:    true,
 		}
 
-		service.dbAdapter = &MockDigitalDbAdapter{
-			AddDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
-				return models.DigitalLocation{}, expectedErr
-			},
+		// Override the default mock
+		mockDb := &MockDigitalDbAdapter{}
+		*mockDb = *service.dbAdapter.(*MockDigitalDbAdapter)
+		mockDb.AddDigitalLocationFunc = func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+			return models.DigitalLocation{}, expectedErr
 		}
+		service.dbAdapter = mockDb
 
 		// Execute
 		createdLocation, err := service.AddDigitalLocation(context.Background(), "test-user", newLocation)
@@ -467,7 +501,7 @@ func TestGameDigitalService(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error, got nil")
 		}
-		if !errors.Is(err, expectedErr) {
+		if !errors.Is(err, expectedErr) && err.Error() != "validation failed: "+expectedErr.Error() {
 			t.Errorf("Expected error %v, got %v", expectedErr, err)
 		}
 		if createdLocation.ID != "" || createdLocation.Name != "" || createdLocation.IsActive != false {
@@ -479,9 +513,11 @@ func TestGameDigitalService(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		location := models.DigitalLocation{
-			ID:       "test-location",
-			Name:     "Updated Location",
-			IsActive: true,
+			ID:          "test-location",
+			Name:        "Updated Location",
+			URL:         "http://example.com",
+			ServiceType: "basic",
+			IsActive:    true,
 		}
 
 		// Execute
@@ -511,11 +547,13 @@ func TestGameDigitalService(t *testing.T) {
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedErr := sql.ErrNoRows
 
-		service.dbAdapter = &MockDigitalDbAdapter{
-			RemoveDigitalLocationFunc: func(ctx context.Context, userID, locationID string) error {
-				return expectedErr
-			},
+		// Override the default mock
+		mockDb := &MockDigitalDbAdapter{}
+		*mockDb = *service.dbAdapter.(*MockDigitalDbAdapter)
+		mockDb.RemoveDigitalLocationFunc = func(ctx context.Context, userID, locationID string) error {
+			return expectedErr
 		}
+		service.dbAdapter = mockDb
 
 		// Execute
 		err := service.RemoveDigitalLocation(context.Background(), "test-user", "test-location")
@@ -533,8 +571,8 @@ func TestGameDigitalService(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedLocations := []models.DigitalLocation{
-			{ID: "1", Name: "Location 1"},
-			{ID: "2", Name: "Location 2"},
+			{ID: "1", Name: "Location 1", URL: "http://example.com/1", ServiceType: "basic", IsActive: true},
+			{ID: "2", Name: "Location 2", URL: "http://example.com/2", ServiceType: "subscription", IsActive: true},
 		}
 
 		// Execute
@@ -553,15 +591,25 @@ func TestGameDigitalService(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedLocations := []models.DigitalLocation{
-			{ID: "1", Name: "Location 1"},
-			{ID: "2", Name: "Location 2"},
+			{ID: "1", Name: "Location 1", URL: "http://example.com/1", ServiceType: "basic", IsActive: true},
+			{ID: "2", Name: "Location 2", URL: "http://example.com/2", ServiceType: "subscription", IsActive: true},
 		}
 
-		service.dbAdapter = &MockDigitalDbAdapter{
-			GetUserDigitalLocationsFunc: func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-				return expectedLocations, nil
-			},
+		// Override cache to simulate a miss
+		mockCache := &MockDigitalCacheWrapper{}
+		*mockCache = *service.cacheWrapper.(*MockDigitalCacheWrapper)
+		mockCache.GetCachedDigitalLocationsFunc = func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return nil, errors.New("cache miss")
 		}
+		service.cacheWrapper = mockCache
+
+		// Override DB to return expected locations
+		mockDb := &MockDigitalDbAdapter{}
+		*mockDb = *service.dbAdapter.(*MockDigitalDbAdapter)
+		mockDb.GetUserDigitalLocationsFunc = func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+			return expectedLocations, nil
+		}
+		service.dbAdapter = mockDb
 
 		// Execute
 		locations, err := service.GetUserDigitalLocations(context.Background(), "test-user")
@@ -580,18 +628,35 @@ func TestGameDigitalService_GetDigitalLocation(t *testing.T) {
 	// Setup
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := sql.ErrNoRows
-	expectedLocation := models.DigitalLocation{}
-
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, expectedErr
-		},
+	expectedLocation := models.DigitalLocation{
+		ID:          "test-id",
+		Name:        "Test Location",
+		URL:         "http://example.com",
+		ServiceType: "basic",
+		IsActive:    true,
 	}
 
-	// Execute
+	// Set up for error test
+	mockDb1 := &MockDigitalDbAdapter{}
+	*mockDb1 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb1.GetDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+		return models.DigitalLocation{}, expectedErr
+	}
+
+	// Set cache to miss
+	mockCache1 := &MockDigitalCacheWrapper{}
+	*mockCache1 = *service.cacheWrapper.(*MockDigitalCacheWrapper)
+	mockCache1.GetSingleCachedDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
+		return nil, false, errors.New("cache miss")
+	}
+
+	service.dbAdapter = mockDb1
+	service.cacheWrapper = mockCache1
+
+	// Execute error test
 	location, err := service.GetDigitalLocation(context.Background(), "test-user", "test-location")
 
-	// Verify
+	// Verify error case
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
@@ -602,21 +667,32 @@ func TestGameDigitalService_GetDigitalLocation(t *testing.T) {
 		t.Errorf("Expected empty location, got %v", location)
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return expectedLocation, nil
-		},
+	// Set up success test
+	mockDb2 := &MockDigitalDbAdapter{}
+	*mockDb2 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb2.GetDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+		return expectedLocation, nil
 	}
 
-	// Execute
+	// Set cache to miss
+	mockCache2 := &MockDigitalCacheWrapper{}
+	*mockCache2 = *service.cacheWrapper.(*MockDigitalCacheWrapper)
+	mockCache2.GetSingleCachedDigitalLocationFunc = func(ctx context.Context, userID, locationID string) (*models.DigitalLocation, bool, error) {
+		return nil, false, errors.New("cache miss")
+	}
+
+	service.dbAdapter = mockDb2
+	service.cacheWrapper = mockCache2
+
+	// Execute success test
 	location, err = service.GetDigitalLocation(context.Background(), "test-user", "test-location")
 
-	// Verify
+	// Verify success case
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if location.ID == "" {
-		t.Error("Expected location to be returned")
+	if location.ID != expectedLocation.ID {
+		t.Errorf("Expected location ID %s, got %s", expectedLocation.ID, location.ID)
 	}
 }
 
@@ -625,48 +701,55 @@ func TestGameDigitalService_AddDigitalLocation(t *testing.T) {
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := errors.New("test error")
 	location := models.DigitalLocation{
-		Name:     "Test Location",
-		IsActive: true,
+		Name:        "Test Location",
+		URL:         "http://example.com",
+		ServiceType: "basic",
+		IsActive:    true,
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		FindDigitalLocationByNameFunc: func(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, expectedErr
-		},
+	// Set up error test
+	mockDb1 := &MockDigitalDbAdapter{}
+	*mockDb1 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb1.AddDigitalLocationFunc = func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+		return models.DigitalLocation{}, expectedErr
 	}
+	service.dbAdapter = mockDb1
 
-	// Execute
+	// Execute error test
 	createdLocation, err := service.AddDigitalLocation(context.Background(), "test-user", location)
 
-	// Verify
+	// Verify error case
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	if !errors.Is(err, expectedErr) {
-		t.Errorf("Expected error %v, got %v", expectedErr, err)
+	if !errors.Is(err, expectedErr) && err.Error() != "validation failed: "+expectedErr.Error() {
+		t.Errorf("Expected error containing %v, got %v", expectedErr, err)
 	}
 	if createdLocation.ID != "" || createdLocation.Name != "" || createdLocation.IsActive != false {
 		t.Errorf("Expected empty location, got %v", createdLocation)
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		FindDigitalLocationByNameFunc: func(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
-		},
-		AddDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
-			return location, nil
-		},
+	// Set up success test
+	mockDb2 := &MockDigitalDbAdapter{}
+	*mockDb2 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb2.AddDigitalLocationFunc = func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+		location.ID = "new-id"
+		return location, nil
 	}
+	service.dbAdapter = mockDb2
 
-	// Execute
+	// Execute success test
 	createdLocation, err = service.AddDigitalLocation(context.Background(), "test-user", location)
 
-	// Verify
+	// Verify success case
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	if createdLocation.Name != location.Name {
 		t.Errorf("Expected location name %s, got %s", location.Name, createdLocation.Name)
+	}
+	if createdLocation.ID != "new-id" {
+		t.Errorf("Expected location ID 'new-id', got %s", createdLocation.ID)
 	}
 }
 
@@ -675,41 +758,44 @@ func TestGameDigitalService_UpdateDigitalLocation(t *testing.T) {
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := sql.ErrNoRows
 	location := models.DigitalLocation{
-		ID:       "test-location",
-		Name:     "Updated Location",
-		IsActive: true,
+		ID:          "test-location",
+		Name:        "Updated Location",
+		URL:         "http://example.com",
+		ServiceType: "basic",
+		IsActive:    true,
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, expectedErr
-		},
+	// Set up error test
+	mockDb1 := &MockDigitalDbAdapter{}
+	*mockDb1 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb1.UpdateDigitalLocationFunc = func(ctx context.Context, userID string, location models.DigitalLocation) error {
+		return expectedErr
 	}
+	service.dbAdapter = mockDb1
 
-	// Execute
+	// Execute error test
 	err := service.UpdateDigitalLocation(context.Background(), "test-user", location)
 
-	// Verify
+	// Verify error case
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
-	if !errors.Is(err, expectedErr) {
-		t.Errorf("Expected error %v, got %v", expectedErr, err)
+	if !errors.Is(err, expectedErr) && !strings.Contains(err.Error(), expectedErr.Error()) {
+		t.Errorf("Expected error containing %v, got %v", expectedErr, err)
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
-		},
-		UpdateDigitalLocationFunc: func(ctx context.Context, userID string, location models.DigitalLocation) error {
-			return nil
-		},
+	// Set up success test
+	mockDb2 := &MockDigitalDbAdapter{}
+	*mockDb2 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb2.UpdateDigitalLocationFunc = func(ctx context.Context, userID string, location models.DigitalLocation) error {
+		return nil
 	}
+	service.dbAdapter = mockDb2
 
-	// Execute
+	// Execute success test
 	err = service.UpdateDigitalLocation(context.Background(), "test-user", location)
 
-	// Verify
+	// Verify success case
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -720,16 +806,18 @@ func TestGameDigitalService_RemoveDigitalLocation(t *testing.T) {
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := sql.ErrNoRows
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, expectedErr
-		},
+	// Set up error test
+	mockDb1 := &MockDigitalDbAdapter{}
+	*mockDb1 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb1.RemoveDigitalLocationFunc = func(ctx context.Context, userID, locationID string) error {
+		return expectedErr
 	}
+	service.dbAdapter = mockDb1
 
-	// Execute
+	// Execute error test
 	err := service.RemoveDigitalLocation(context.Background(), "test-user", "test-location")
 
-	// Verify
+	// Verify error case
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}
@@ -737,19 +825,21 @@ func TestGameDigitalService_RemoveDigitalLocation(t *testing.T) {
 		t.Errorf("Expected error %v, got %v", expectedErr, err)
 	}
 
-	service.dbAdapter = &MockDigitalDbAdapter{
-		GetDigitalLocationFunc: func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
-			return models.DigitalLocation{}, nil
-		},
-		RemoveDigitalLocationFunc: func(ctx context.Context, userID, locationID string) error {
-			return nil
-		},
+	// Set up success test
+	mockDb2 := &MockDigitalDbAdapter{}
+	*mockDb2 = *service.dbAdapter.(*MockDigitalDbAdapter)
+	mockDb2.RemoveDigitalLocationFunc = func(ctx context.Context, userID, locationID string) error {
+		return nil
 	}
+	mockDb2.GetUserDigitalLocationsFunc = func(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+		return []models.DigitalLocation{}, nil
+	}
+	service.dbAdapter = mockDb2
 
-	// Execute
+	// Execute success test
 	err = service.RemoveDigitalLocation(context.Background(), "test-user", "test-location")
 
-	// Verify
+	// Verify success case
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

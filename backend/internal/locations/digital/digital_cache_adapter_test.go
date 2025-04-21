@@ -91,7 +91,15 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`GetCachedDigitalLocations - Cache hit`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id", mock.Anything).Return(true, nil)
+		expectedLocations := []models.DigitalLocation{testLocation}
+
+		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id", mock.Anything).
+			Return(true, nil).
+			Run(func(args mock.Arguments) {
+				// Copy the test location data into the result parameter
+				result := args.Get(2).(*[]models.DigitalLocation)
+				*result = expectedLocations
+			})
 
 		adapter := createAdapter(mockCache)
 
@@ -134,7 +142,6 @@ func TestDigitalCacheAdapter(t *testing.T) {
 			t.Errorf("Expected nil locations, got %v", locations)
 		}
 		mockCache.AssertExpectations(t)
-
 	})
 
 	/*
@@ -142,10 +149,10 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		WHEN GetCachedDigitalLocations is called
 		THEN it should return an error
 	*/
-	t.Run(`GetCachedDigitalLocations - cache miss`, func(t *testing.T) {
+	t.Run(`GetCachedDigitalLocations - Cache error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id", mock.Anything).Return(false, nil)
+		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id", mock.Anything).Return(false, testError)
 
 		adapter := createAdapter(mockCache)
 
@@ -153,8 +160,8 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		locations, err := adapter.GetCachedDigitalLocations(context.Background(), testUserID)
 
 		// THEN
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
+		if err != testError {
+			t.Errorf("Expected error %v, got %v", testError, err)
 		}
 		if locations != nil {
 			t.Errorf("Expected nil locations, got %v", locations)
@@ -168,15 +175,16 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		WHEN SetCachedDigitalLocations is called
 		THEN it should not return an error
 	*/
-	t.Run(`SetSingleCachedDigitalLocation - Success`, func(t *testing.T) {
+	t.Run(`SetCachedDigitalLocations - Success`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", testLocation).Return(nil)
+		locations := []models.DigitalLocation{testLocation}
+		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id", locations).Return(nil)
 
 		adapter := createAdapter(mockCache)
 
 		// WHEN
-		err := adapter.SetSingleCachedDigitalLocation(context.Background(), testUserID, testLocation)
+		err := adapter.SetCachedDigitalLocations(context.Background(), testUserID, locations)
 
 		// THEN
 		if err != nil {
@@ -190,19 +198,20 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		WHEN SetCachedDigitalLocations is called
 		THEN it should return the error
 	*/
-	t.Run(`InvalidateUserCache - success`, func(t *testing.T) {
+	t.Run(`SetCachedDigitalLocations - Error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id", nil).Return(nil)
+		locations := []models.DigitalLocation{testLocation}
+		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id", locations).Return(testError)
 
 		adapter := createAdapter(mockCache)
 
 		// WHEN
-		err := adapter.InvalidateUserCache(context.Background(), testUserID)
+		err := adapter.SetCachedDigitalLocations(context.Background(), testUserID, locations)
 
 		// THEN
-		if err != nil {
-			t.Errorf("Expected no error but instead got %v", err)
+		if err != testError {
+			t.Errorf("Expected error %v, got %v", testError, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -216,7 +225,13 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`GetSingleCachedDigitalLocation - cache hit`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", mock.Anything).Return(true, nil)
+		mockCache.On("GetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", mock.Anything).
+			Return(true, nil).
+			Run(func(args mock.Arguments) {
+				// Copy the test location data into the result parameter
+				result := args.Get(2).(*models.DigitalLocation)
+				*result = testLocation
+			})
 
 		adapter := createAdapter(mockCache)
 
@@ -515,7 +530,7 @@ func TestInvalidateSubscriptionCache(t *testing.T) {
 	locationID := "test-location"
 
 	mockCache := &MockCacheWrapper{}
-	mockCache.On("DeleteCacheKey", ctx, fmt.Sprintf("digital:subscription:%s", locationID)).
+	mockCache.On("SetCachedResults", ctx, fmt.Sprintf("digital:subscription:%s", locationID), nil).
 		Return(nil)
 
 	adapter, err := NewDigitalCacheAdapter(mockCache)
@@ -614,7 +629,7 @@ func TestInvalidatePaymentsCache(t *testing.T) {
 	locationID := "test-location"
 
 	mockCache := &MockCacheWrapper{}
-	mockCache.On("DeleteCacheKey", ctx, fmt.Sprintf("digital:payments:%s", locationID)).
+	mockCache.On("SetCachedResults", ctx, fmt.Sprintf("digital:payments:%s", locationID), nil).
 		Return(nil)
 
 	adapter, err := NewDigitalCacheAdapter(mockCache)
@@ -654,6 +669,7 @@ func TestGetSingleCachedDigitalLocation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, location.ID, result.ID)
+	assert.Equal(t, location.Name, result.Name)
 
 	// Test cache miss
 	mockCache = &MockCacheWrapper{}
