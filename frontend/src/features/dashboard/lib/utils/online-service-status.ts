@@ -12,18 +12,31 @@ export function getServiceStatusColor(status: ServiceStatusCode): string {
 }
 
 export function isServiceFree(service: OnlineService): boolean {
-  return service.billing.fees.monthly === 'FREE' &&
-         service.billing.fees.quarterly === 'FREE' &&
-         service.billing.fees.annual === 'FREE';
+  // Check if billing exists and has fees
+  if (!service?.billing?.fees) {
+    return true; // If no billing info or fees, consider it free
+  }
+
+  // Now safely check the fees
+  const { fees } = service.billing;
+
+  // Only check monthly fee since it's the only one guaranteed in the type
+  return fees.monthly === 'FREE' || fees.monthly === '0';
 }
 
-export function formatCurrency(amount: string): string {
-  if (amount === 'FREE') return amount;
+export function formatCurrency(amount: string | null | undefined): string {
+  if (!amount || amount === 'FREE' || amount === '0') {
+    return 'FREE';
+  }
   // Ensure consistent currency formatting
   return amount.startsWith('$') ? amount : `$${amount}`;
 }
 
 export function isRenewalMonth(service: OnlineService): boolean {
+  if (!service?.billing?.renewalDate?.month) {
+    return false; // If no renewal date, it's not renewing this month
+  }
+
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   return currentMonth === service.billing.renewalDate.month;
 }

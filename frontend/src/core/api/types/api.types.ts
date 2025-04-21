@@ -84,3 +84,39 @@ export interface BackendQueryOptions<ResponseData> extends
   queryKey: readonly unknown[];
   queryFn: (getToken: () => Promise<string>) => Promise<ResponseData>;
 }
+
+/**
+ * Valid service types for digital locations
+ */
+export const SERVICE_TYPES = {
+  SUBSCRIPTION: 'subscription',
+  BASIC: 'basic'
+} as const;
+
+export type ServiceTypeValue = typeof SERVICE_TYPES[keyof typeof SERVICE_TYPES];
+
+/**
+ * Creates a properly typed service type value based on subscription status
+ */
+export function createServiceType(isSubscription: boolean): ServiceTypeValue {
+  return isSubscription ? 'subscription' : 'basic';
+}
+
+/**
+ * Maps frontend billing cycle display values to backend billing cycle values
+ */
+export const BILLING_CYCLE_MAP: Record<string, string> = {
+  '1 month': 'monthly',
+  '3 months': 'quarterly',
+  '6 months': 'semi_annual',
+  '1 year': 'annual'
+};
+
+/**
+ * Default values for digital services
+ */
+export const DIGITAL_SERVICE_DEFAULTS = {
+  URL: 'https://example.com',
+  PAYMENT_METHOD: 'Visa',
+  BILLING_CYCLE: '1 month'
+};

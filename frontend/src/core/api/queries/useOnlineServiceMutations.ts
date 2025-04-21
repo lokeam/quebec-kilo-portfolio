@@ -7,17 +7,37 @@ import {
   type CreateOnlineServiceRequest
 } from '@/core/api/services/onlineServices.service';
 
-export function useCreateOnlineService() {
+interface MutationOptions {
+  onSuccessCallback?: () => void;
+}
+
+export function useCreateOnlineService(options?: MutationOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (serviceData: CreateOnlineServiceRequest) => createOnlineService(serviceData),
-    onSuccess: (data) => {
+    onSuccess: (_, variables) => {
+      // Hopefully contains variables from teh original serviceData
+      const serviceData = variables;
+
       // Invalidate services queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['services'] });
 
+      // Invalidate digitalLocations query in order to update the UI
+      queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
+
       // Show success toast
-      toast.success(`${data.name} added to your services!`);
+      const serviceName = serviceData.name || "New service";
+
+      toast.success(`${serviceName} added to your services!`, {
+        description: "Your new service has been successfully created.",
+        duration: 15000
+      });
+
+      // Call the optional callback if provided
+      if (options?.onSuccessCallback) {
+        options.onSuccessCallback();
+      }
     },
     onError: (error) => {
       toast.error('Failed to add service');
@@ -26,7 +46,7 @@ export function useCreateOnlineService() {
   });
 }
 
-export function useUpdateOnlineService() {
+export function useUpdateOnlineService(options?: MutationOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -35,17 +55,28 @@ export function useUpdateOnlineService() {
       // Invalidate services queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['services'] });
 
+      // Invalidate digitalLocations query in order to update the UI
+      queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
+
       // Show success toast
-      toast.success(`${data.name} updated successfully!`);
+      toast.success(`${data.name} updated successfully!`, {
+        description: "Your service has been successfully updated.",
+        duration: 15000
+      });
+
+      // Call the optional callback if provided
+      if (options?.onSuccessCallback) {
+        options.onSuccessCallback();
+      }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error('Failed to update service');
       console.error('Update service error:', error);
     }
   });
 }
 
-export function useDeleteOnlineService() {
+export function useDeleteOnlineService(options?: MutationOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -54,8 +85,19 @@ export function useDeleteOnlineService() {
       // Invalidate services queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['services'] });
 
+      // Invalidate digitalLocations query in order to update the UI
+      queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
+
       // Show success toast
-      toast.success('Service deleted successfully');
+      toast.success('Service deleted successfully', {
+        description: "Your service has been successfully deleted.",
+        duration: 15000
+      });
+
+      // Call the optional callback if provided
+      if (options?.onSuccessCallback) {
+        options.onSuccessCallback();
+      }
     },
     onError: (error) => {
       toast.error('Failed to delete service');

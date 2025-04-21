@@ -63,10 +63,10 @@ export const SingleOnlineServiceCard = memo(({
   );
 
   const hasValidLogo = Boolean(logo);
-  const isFree = isServiceFree({ billing } as OnlineService);
+  const isFree = isServiceFree({ id, label, logo, status, billing, tier } as OnlineService);
   const showRenewalBadge = status !== SERVICE_STATUS_CODES.ACTIVE &&
     !isFree &&
-    isRenewalMonth({ billing } as OnlineService);
+    isRenewalMonth({ id, label, logo, status, billing, tier } as OnlineService);
 
   const handleEditService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card onClick from firing
@@ -134,7 +134,7 @@ export const SingleOnlineServiceCard = memo(({
                   <span className="text-xs text-muted-foreground">
                   {currentTierDetails.name}
                   </span>
-                  {tier.maxDevices && (
+                  {tier?.maxDevices && (
                     <span className="text-xs text-muted-foreground">
                       Up to {tier.maxDevices} devices
                     </span>

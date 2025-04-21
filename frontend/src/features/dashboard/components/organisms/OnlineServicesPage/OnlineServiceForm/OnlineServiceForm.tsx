@@ -58,6 +58,7 @@ import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/R
 
 // Utils
 import { ServiceCombobox } from '../../ServiceCombobox/ServiceCombobox';
+import { createServiceType, DIGITAL_SERVICE_DEFAULTS } from '@/core/api/types/api.types';
 
 export type OnlineServiceFormData = {
   service: OnlineService | null;
@@ -133,6 +134,7 @@ interface OnlineServiceData {
 
 interface OnlineServiceFormProps {
   onSuccess?: (data: OnlineServiceFormData) => void;
+  onClose?: () => void;
   defaultValues?: Partial<FormValues>;
   buttonText?: string;
   serviceData?: OnlineServiceData;
@@ -148,14 +150,27 @@ export function OnlineServiceForm({
   },
   serviceData,
   isEditing = false,
+  onClose,
   onDelete,
 }: OnlineServiceFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Replace locationManager with mutation hooks using correct property names
-  const createMutation = useCreateOnlineService();
-  const updateMutation = useUpdateOnlineService();
-  const deleteMutation = useDeleteOnlineService();
+  const createMutation = useCreateOnlineService({
+    onSuccessCallback: () => {
+      if (onClose) onClose();
+    }
+  });
+  const updateMutation = useUpdateOnlineService({
+    onSuccessCallback: () => {
+      if (onClose) onClose();
+    }
+  });
+  const deleteMutation = useDeleteOnlineService({
+    onSuccessCallback: () => {
+      if (onClose) onClose();
+    }
+  });
 
   const isLoading = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
@@ -209,15 +224,19 @@ export function OnlineServiceForm({
       id: isEditing && serviceData ? serviceData.id : undefined,
       name: data.service?.name || 'Unknown Service',
       parentId: null,
-      type: 'digital' as const,
+      type: createServiceType(data.service?.isSubscriptionService || false),
       parentLocationId: 'root',
       metadata: {
-        service: data.service,
-        expenseType: data.expenseType,
-        cost: data.cost,
-        billingPeriod: data.billingPeriod,
-        nextPaymentDate: data.nextPaymentDate,
-        paymentMethod: data.paymentMethod,
+        service: data.service || null,
+        expenseType: data.expenseType || '1 month',
+        cost: data.cost || 0,
+        billingPeriod: data.billingPeriod || data.expenseType,
+        nextPaymentDate: data.nextPaymentDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        paymentMethod: data.paymentMethod || {
+          displayName: DIGITAL_SERVICE_DEFAULTS.PAYMENT_METHOD,
+          id: 'credit',
+          type: 'credit'
+        },
       }
     };
 

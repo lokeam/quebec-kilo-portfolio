@@ -1,80 +1,57 @@
-import { useState, useEffect } from 'react';
+import { useCallback,useState, useEffect } from 'react';
 
 // Template Components
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 // Components
+import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
 
-// Mock Data and Utilities
-import { onlineServicesPageMockData } from './onlineServicesPage.mockdata';
+// API Hooks and Utilities
+import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
 // Types
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 import type { ServiceTierName } from '@/features/dashboard/lib/types/online-services/tiers';
 import type { ServiceStatusCode, ServiceType } from '@/shared/constants/service.constants';
+import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
 import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
-// Add this interface above the transformService function
-interface RawOnlineService {
-  id: string;
-  name: string;
-  logo?: string;
-  url?: string;
-  type: string;
-  status: string;
+// Helper function to transform digital location data to online service format
+const transformDigitalLocationToService = (location: DigitalLocation): OnlineService => ({
+  id: location.id,
+  name: location.name,
+  logo: 'default-logo',
+  url: location.url || '#',
+  type: location.service_type as ServiceType,
+  status: location.is_active ? 'active' as ServiceStatusCode : 'inactive' as ServiceStatusCode,
+  features: [],
+  label: location.name,
+  createdAt: location.created_at,
+  updatedAt: location.updated_at,
+  isSubscriptionService: !!location.subscription,
   tier: {
-    name: string;
-    features: string[];
-  };
-  billing?: {
-    cycle?: string;
-    fees?: {
-      monthly?: string;
-      quarterly?: string;
-      annual?: string;
-    };
-    paymentMethod?: string;
-    renewalDate?: {
-      month: string;
-      day: string;
-    };
-  };
-}
-
-// Helper function to transform raw service data
-const transformService = (service: RawOnlineService): OnlineService => ({
-  ...service,
-  logo: service.logo || 'default-logo',
-  url: service.url || '#',
-  type: service.type as ServiceType,
-  status: service.status as ServiceStatusCode,
-  features: service.tier.features || [],
-  label: service.name,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  tier: {
-    currentTier: service.tier.name as ServiceTierName,
+    currentTier: 'Basic' as ServiceTierName,
     availableTiers: [{
-      name: service.tier.name as ServiceTierName,
-      features: service.tier.features,
-      id: `tier-${service.tier.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: 'Basic' as ServiceTierName,
+      features: [],
+      id: `tier-basic`,
       isDefault: true
     }]
   },
-  billing: service.billing ? {
-    cycle: service.billing.cycle || 'NA',
+  billing: location.subscription ? {
+    cycle: location.subscription.billing_cycle || 'NA',
     fees: {
-      monthly: service.billing.fees?.monthly || '0'
+      monthly: location.subscription.cost_per_cycle.toString() || '0'
     },
-    paymentMethod: service.billing.paymentMethod || 'Generic',
-    renewalDate: service.billing.renewalDate ? {
-      month: service.billing.renewalDate.month,
-      day: Number(service.billing.renewalDate.day)
-    } : undefined
+    paymentMethod: location.subscription.payment_method || 'Generic',
+    renewalDate: {
+      month: new Date(location.subscription.next_payment_date).toLocaleString('default', { month: 'long' }),
+      day: new Date(location.subscription.next_payment_date).getDate()
+    }
   } : undefined
 });
 
@@ -82,11 +59,26 @@ export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const setServices = useOnlineServicesStore((state) => state.setServices);
+  const services = useOnlineServicesStore((state) => state.services);
 
-  // Transform and load services to the store
+  // Fetch digital locations using our hook
+  const { data: digitalLocations, isLoading, error } = useDigitalLocations();
+
+  // Transform digital locations to online services format and update store
   useEffect(() => {
-    setServices(onlineServicesPageMockData?.services.map(transformService));
-  }, [setServices]);
+    if (digitalLocations) {
+      const transformedServices = digitalLocations.map(transformDigitalLocationToService);
+      setServices(transformedServices);
+    }
+  }, [digitalLocations, setServices]);
+
+  const handleCloseAddDrawer = useCallback(() => {
+    setAddServiceOpen(false);
+  }, []);
+
+  // const handleCloseEditDrawer = useCallback(() => {
+  //   setEditServiceOpen(false);
+  // }, [])
 
   return (
     <PageMain>
@@ -105,7 +97,7 @@ export function OnlineServicesPageContent() {
             description="Tell us about your digital service."
           >
             {/* Replace with actual form component when available */}
-            <OnlineServiceForm />
+            <OnlineServiceForm onClose={handleCloseAddDrawer} />
           </DrawerContainer>
 
           {/* Edit Digital Service Button */}
@@ -127,13 +119,43 @@ export function OnlineServicesPageContent() {
         {/* Add a toolbar for filtering/searching services */}
         <OnlineServicesToolbar />
 
-        {/* Add accordion or other display components for services */}
+        {/* Loading, Error and Data States */}
         <div className="mt-4 space-y-4">
-          {/* Replace with actual accordion component when available */}
+          {isLoading && (
+            <div className="p-4 border rounded-md">
+              <p className="text-gray-500">Loading digital services...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+              <p className="text-red-500">Error loading digital services</p>
+            </div>
+          )}
+
+          {!isLoading && !error && services.length === 0 && (
+            <div className="p-4 border rounded-md">
+              <p className="text-gray-500">No digital services found. Add a service to get started.</p>
+            </div>
+          )}
+
+          {!isLoading && !error && services.length > 0 && (
           <div className="p-4 border rounded-md">
             <h2 className="text-lg font-semibold">Digital Services</h2>
-            <p className="text-gray-500">Your digital services will be displayed here</p>
+            <p className="text-gray-500">{services.length} services found</p>
+
+            {/* List of services using transformed service objects */}
+            <ul className="mt-2 space-y-2">
+              {services.map((service, index) => (
+                <SingleOnlineServiceCard
+                  key={`${service.id}-${index}`}
+                  {...service}
+                  isWatchedByResizeObserver={index === 0}
+                />
+              ))}
+            </ul>
           </div>
+          )}
         </div>
       </div>
     </PageMain>
