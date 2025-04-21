@@ -230,13 +230,67 @@ func TestSublocationValidator(t *testing.T) {
 		}
 	})
 
+	// ----------- validatePhysicalLocationID() ------------
+	t.Run(`validatePhysicalLocationID() rejects empty IDs`, func(t *testing.T) {
+		testID := ""
+		testErr := testValidator.validatePhysicalLocationID(testID)
+
+		if testErr == nil {
+			t.Errorf("expected an error for empty physical_location_id, but got nil")
+		}
+
+		expectedError := "physical_location_id cannot be empty"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+	})
+
+	t.Run(`validatePhysicalLocationID() rejects invalid UUIDs`, func(t *testing.T) {
+		testID := "not-a-uuid"
+		testErr := testValidator.validatePhysicalLocationID(testID)
+
+		if testErr == nil {
+			t.Errorf("expected an error for invalid UUID, but got nil")
+		}
+
+		expectedError := "physical_location_id must be a valid UUID"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+	})
+
+	t.Run(`validatePhysicalLocationID() fails when sanitizer fails`, func(t *testing.T) {
+		testID := "<script>alert('xss');</script>"
+		testErr := testValidator.validatePhysicalLocationID(testID)
+
+		if testErr == nil {
+			t.Errorf("expected an error when sanitizer fails, but got nil")
+		}
+
+		expectedError := "invalid physical_location_id content: sanitizer failure"
+		if !strings.Contains(testErr.Error(), expectedError) {
+			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
+		}
+	})
+
+	t.Run(`validatePhysicalLocationID() Happy Path - Accepts valid UUID`, func(t *testing.T) {
+		testID := "123e4567-e89b-12d3-a456-426614174000" // Valid UUID format
+		testErr := testValidator.validatePhysicalLocationID(testID)
+
+		if testErr != nil {
+			t.Errorf("expected no error for valid UUID, but got %v", testErr)
+		}
+	})
+
 	// ----------- ValidateSublocation() ------------
 	t.Run(`ValidateSublocation() - Collects errors when multiple violations are present`, func(t *testing.T) {
 		testSublocation := models.Sublocation{
-			Name:         "", // Empty name
-			LocationType: "Invalid", // Invalid type
-			BgColor:      "not-a-color", // Invalid color
-			StoredItems:  -10, // Negative stored items
+			UserID:             "test-user-id",
+			Name:               "", // Empty name
+			LocationType:       "Invalid", // Invalid type
+			BgColor:            "not-a-color", // Invalid color
+			StoredItems:        -10, // Negative stored items
+			PhysicalLocationID: "not-a-uuid", // Invalid UUID
 		}
 
 		validatedSublocation, testErr := testValidator.ValidateSublocation(testSublocation)
@@ -248,10 +302,11 @@ func TestSublocationValidator(t *testing.T) {
 		// Check that the error contains all expected validation messages
 		errorStr := testErr.Error()
 		expectedErrors := []string{
-			"name cannot be empty",
+			"name must be at least 1 characters long",
 			"location type must be one of",
 			"background color must be one of",
 			"stored_items cannot be negative",
+			"physical_location_id must be a valid UUID",
 		}
 
 		for _, expectedError := range expectedErrors {
@@ -269,10 +324,12 @@ func TestSublocationValidator(t *testing.T) {
 
 	t.Run(`ValidateSublocation() - Happy Path - Passes validation for valid sublocation`, func(t *testing.T) {
 		testSublocation := models.Sublocation{
-			Name:         "Game Shelf",
-			LocationType: "shelf",
-			BgColor:      "blue",
-			StoredItems:  50,
+			UserID:             "test-user-id",
+			Name:               "Game Shelf",
+			LocationType:       "shelf",
+			BgColor:            "blue",
+			StoredItems:        50,
+			PhysicalLocationID: "123e4567-e89b-12d3-a456-426614174000", // Valid UUID
 		}
 
 		validatedSublocation, testErr := testValidator.ValidateSublocation(testSublocation)
@@ -285,7 +342,9 @@ func TestSublocationValidator(t *testing.T) {
 		if validatedSublocation.Name != testSublocation.Name ||
 			validatedSublocation.LocationType != testSublocation.LocationType ||
 			validatedSublocation.BgColor != testSublocation.BgColor ||
-			validatedSublocation.StoredItems != testSublocation.StoredItems {
+			validatedSublocation.StoredItems != testSublocation.StoredItems ||
+			validatedSublocation.PhysicalLocationID != testSublocation.PhysicalLocationID ||
+			validatedSublocation.UserID != testSublocation.UserID {
 			t.Errorf("expected validated sublocation to match input, but got %+v", validatedSublocation)
 		}
 	})

@@ -108,7 +108,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			int64(1609459200), 4.5,
 		)
 
-		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sublocations gsl ON g.id = gsl.game_id WHERE gsl.sublocation_id = \\$1 AND g.user_id = \\$2").
+		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sub_locations gsl ON g.id = gsl.game_id WHERE gsl.sub_location_id = \\$1 AND g.user_id = \\$2").
 			WithArgs(sublocationID, userID).
 			WillReturnRows(gameRows)
 
@@ -163,7 +163,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 				int64(1609459200), 4.7,
 			)
 
-		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sublocations gsl ON g.id = gsl.game_id WHERE gsl.sublocation_id = \\$1 AND g.user_id = \\$2").
+		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sub_locations gsl ON g.id = gsl.game_id WHERE gsl.sub_location_id = \\$1 AND g.user_id = \\$2").
 			WithArgs(sublocationID, userID).
 			WillReturnRows(gameRows)
 
@@ -232,9 +232,15 @@ func TestSublocationDbAdapter(t *testing.T) {
 		now := time.Now()
 
 		// Set up mock expectations for sublocations query
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "location_type", "bg_color", "capacity", "created_at", "updated_at"}).
-			AddRow("subloc-1", userID, "Sublocation 1", "shelf", "red", 20, now, now).
-			AddRow("subloc-2", userID, "Sublocation 2", "cabinet", "blue", 30, now, now)
+		rows := sqlmock.NewRows([]string{
+			"id", "user_id", "physical_location_id", "name",
+			"location_type", "bg_color", "stored_items",
+			"created_at", "updated_at",
+		}).
+			AddRow("subloc-1", userID, "physical-loc-1", "Sublocation 1",
+			"shelf", "red", 20, now, now).
+			AddRow("subloc-2", userID, "physical-loc-1", "Sublocation 2",
+			"cabinet", "blue", 30, now, now)
 
 		mock.ExpectQuery("SELECT (.+) FROM sublocations").
 			WithArgs(userID).
@@ -249,7 +255,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			int64(1609459200), 4.5,
 		)
 
-		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sublocations gsl ON g.id = gsl.game_id WHERE gsl.sublocation_id = \\$1 AND g.user_id = \\$2").
+		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sub_locations gsl ON g.id = gsl.game_id WHERE gsl.sub_location_id = \\$1 AND g.user_id = \\$2").
 			WithArgs("subloc-1", userID).
 			WillReturnRows(gameRows1)
 
@@ -262,7 +268,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			int64(1609459200), 4.7,
 		)
 
-		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sublocations gsl ON g.id = gsl.game_id WHERE gsl.sublocation_id = \\$1 AND g.user_id = \\$2").
+		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sub_locations gsl ON g.id = gsl.game_id WHERE gsl.sub_location_id = \\$1 AND g.user_id = \\$2").
 			WithArgs("subloc-2", userID).
 			WillReturnRows(gameRows2)
 
@@ -328,7 +334,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 				sublocation.LocationType,
 				sublocation.BgColor,
 				sublocation.StoredItems,
-				sublocation.UpdatedAt,
+				sqlmock.AnyArg(),
 				sublocation.ID,
 				sublocation.UserID,
 			).
@@ -398,7 +404,8 @@ func TestSublocationDbAdapter(t *testing.T) {
 		defer adapter.db.Close()
 
 		userID := "test-user-id"
-		physicalLocationID := "test-physical-location-id"
+		// Use a valid UUID format for physicalLocationID to pass uuid.Parse validation
+		physicalLocationID := "123e4567-e89b-12d3-a456-426614174000"
 		now := time.Now()
 
 		sublocation := models.Sublocation{
@@ -422,10 +429,11 @@ func TestSublocationDbAdapter(t *testing.T) {
 				sublocation.LocationType,
 				sublocation.BgColor,
 				sublocation.StoredItems,
-				sublocation.CreatedAt,
-				sublocation.UpdatedAt,
+				sqlmock.AnyArg(), // Use AnyArg() for timestamps to avoid precision issues
+				sqlmock.AnyArg(),
 			).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(sublocation.ID))
+			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "physical_location_id", "name", "location_type", "bg_color", "stored_items", "created_at", "updated_at"}).
+				AddRow(sublocation.ID, sublocation.UserID, sublocation.PhysicalLocationID, sublocation.Name, sublocation.LocationType, sublocation.BgColor, sublocation.StoredItems, sublocation.CreatedAt, sublocation.UpdatedAt))
 
 		result, err := adapter.AddSublocation(context.Background(), userID, sublocation)
 
@@ -552,7 +560,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WillReturnRows(sublocRows)
 
 		// Add the relationship
-		mock.ExpectExec("INSERT INTO game_sublocations").
+		mock.ExpectExec("INSERT INTO game_sub_locations").
 			WithArgs(gameID, sublocationID).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -640,7 +648,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WillReturnRows(sublocRows)
 
 		// Remove the relationship
-		mock.ExpectExec("DELETE FROM game_sublocations").
+		mock.ExpectExec("DELETE FROM game_sub_locations").
 			WithArgs(gameID, sublocationID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -690,7 +698,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WillReturnRows(sublocRows)
 
 		// Remove the relationship - no rows affected
-		mock.ExpectExec("DELETE FROM game_sublocations").
+		mock.ExpectExec("DELETE FROM game_sub_locations").
 			WithArgs(gameID, sublocationID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -729,7 +737,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			"first_release_date", "rating",
 		})
 
-		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sublocations gsl ON g.id = gsl.game_id WHERE gsl.sublocation_id = \\$1 AND g.user_id = \\$2").
+		mock.ExpectQuery("SELECT g.\\* FROM games g JOIN game_sub_locations gsl ON g.id = gsl.game_id WHERE gsl.sub_location_id = \\$1 AND g.user_id = \\$2").
 			WithArgs(sublocationID, userID).
 			WillReturnRows(gameRows)
 

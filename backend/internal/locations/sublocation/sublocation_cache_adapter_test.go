@@ -379,7 +379,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateUserCache - success", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id", nil).Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -401,7 +401,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateUserCache - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id", nil).Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id").Return(testError)
 
 		adapter := createAdapter(mockCache)
 
@@ -424,7 +424,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateSublocationCache - success", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", nil).Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -446,7 +446,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateSublocationCache - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", nil).Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id").Return(testError)
 
 		adapter := createAdapter(mockCache)
 
@@ -470,6 +470,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
 		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -492,6 +493,29 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
 		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(testError)
+
+		adapter := createAdapter(mockCache)
+
+		// WHEN
+		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
+
+		// THEN
+		if err != testError {
+			t.Errorf("Expected error %v, got %v", testError, err)
+		}
+		mockCache.AssertExpectations(t)
+	})
+
+	/*
+		GIVEN a cache wrapper that succeeds for specific location but fails for locations collection
+		WHEN InvalidateLocationCache is called
+		THEN it should return the error from locations collection deletion
+	*/
+	t.Run("InvalidateLocationCache - partial error", func(t *testing.T) {
+		// GIVEN
+		mockCache := new(MockCacheWrapper)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(testError)
 
 		adapter := createAdapter(mockCache)
 
