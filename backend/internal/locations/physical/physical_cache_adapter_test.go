@@ -373,7 +373,7 @@ func TestPhysicalCacheAdapter(t *testing.T) {
 	t.Run("InvalidateUserCache success", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "physical:test-user-id", nil).Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -396,7 +396,7 @@ func TestPhysicalCacheAdapter(t *testing.T) {
 	t.Run("InvalidateUserCache error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "physical:test-user-id", nil).Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(testError)
 
 		adapter := createAdapter(mockCache)
 
@@ -420,7 +420,7 @@ func TestPhysicalCacheAdapter(t *testing.T) {
 	t.Run("InvalidateLocationCache success", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "physical:test-user-id:location:test-location-id", nil).Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -443,7 +443,7 @@ func TestPhysicalCacheAdapter(t *testing.T) {
 	t.Run("InvaliateLocationCache error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "physical:test-user-id:location:test-location-id", nil).Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(testError)
 
 		adapter := createAdapter(mockCache)
 
