@@ -8,16 +8,18 @@ import (
 	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/services"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 )
 
 type GameSublocationService struct {
-	dbAdapter      interfaces.SublocationDbAdapter
-	config         *config.Config
-	cacheWrapper   interfaces.SublocationCacheWrapper
-	logger         interfaces.Logger
-	sanitizer      interfaces.Sanitizer
-	validator      interfaces.SublocationValidator
+	dbAdapter       interfaces.SublocationDbAdapter
+	config          *config.Config
+	cacheWrapper    interfaces.SublocationCacheWrapper
+	logger          interfaces.Logger
+	sanitizer       interfaces.Sanitizer
+	validator       interfaces.SublocationValidator
+	physicalService services.PhysicalService
 }
 
 type SublocationService interface {
@@ -28,7 +30,10 @@ type SublocationService interface {
 	UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
 }
 
-func NewGameSublocationService(appContext *appcontext.AppContext) (*GameSublocationService, error) {
+func NewGameSublocationService(
+	appContext *appcontext.AppContext,
+	physicalService services.PhysicalService,
+) (*GameSublocationService, error) {
 	// Create initialize db adapter
 	dbAdapter, err := NewSublocationDbAdapter(appContext)
 	if err != nil {
@@ -75,17 +80,19 @@ func NewGameSublocationService(appContext *appcontext.AppContext) (*GameSublocat
 		"dbAdapter": dbAdapter != nil,
 		"validator": validator != nil,
 		"cacheWrapper": sublocationCacheAdapter != nil,
+		"physicalService": physicalService != nil,
 	})
 
 	// Sanity check that all dependencies are intialized
 
 	return &GameSublocationService{
-		dbAdapter:      dbAdapter,
-		validator:      validator,
-		logger:         appContext.Logger,
-		config:         appContext.Config,
-		cacheWrapper:   sublocationCacheAdapter,
-		sanitizer:      sanitizer,
+		dbAdapter:       dbAdapter,
+		validator:       validator,
+		logger:          appContext.Logger,
+		config:          appContext.Config,
+		cacheWrapper:    sublocationCacheAdapter,
+		sanitizer:       sanitizer,
+		physicalService: physicalService,
 	}, nil
 }
 
@@ -171,9 +178,34 @@ func (gss *GameSublocationService) AddSublocation(
 	if err := gss.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
 	}
+
 	// Also invalidate the parent physical location's cache
-	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, createdSublocation.PhysicalLocationID); err != nil {
+	physicalLocationID := createdSublocation.PhysicalLocationID
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, physicalLocationID); err != nil {
 		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
+	}
+
+	// Force immediate refresh of physical location cache by fetching it
+	gss.logger.Debug("Forcing refresh of physical location cache", map[string]any{
+		"userID": userID,
+		"physicalLocationID": physicalLocationID,
+	})
+
+	// Actively refresh the physical location data if service is available
+	if gss.physicalService != nil {
+		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		if refreshErr != nil {
+			gss.logger.Warn("Failed to refresh physical location cache", map[string]any{
+				"error": refreshErr,
+				"physicalLocationID": physicalLocationID,
+			})
+		} else {
+			gss.logger.Debug("Successfully refreshed physical location cache", map[string]any{
+				"physicalLocationID": physicalLocationID,
+			})
+		}
+	} else {
+		gss.logger.Warn("Physical service not available for cache refresh", nil)
 	}
 
 	return *createdSublocation, nil
@@ -225,6 +257,9 @@ func (gss *GameSublocationService) UpdateSublocation(
 		return err
 	}
 
+	// Store the physical location ID for cache invalidation and logging
+	physicalLocationID := validatedSublocation.PhysicalLocationID
+
 	// Invalidate caches
 	if err := gss.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
@@ -233,14 +268,31 @@ func (gss *GameSublocationService) UpdateSublocation(
 		gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{"error": err})
 	}
 	// Also invalidate the parent physical location's cache
-	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, validatedSublocation.PhysicalLocationID); err != nil {
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, physicalLocationID); err != nil {
 		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
 	}
 
-	// Force a refresh of the physical location's cache by getting the updated data
-	// This ensures that the physical location's sublocations are up to date
-	if _, err := gss.dbAdapter.GetSublocation(ctx, userID, validatedSublocation.ID); err != nil {
-		gss.logger.Error("Failed to refresh sublocation data", map[string]any{"error": err})
+	// Force immediate refresh of physical location cache
+	gss.logger.Debug("Forcing refresh of physical location cache after sublocation update", map[string]any{
+		"userID": userID,
+		"physicalLocationID": physicalLocationID,
+	})
+
+	// Actively refresh the physical location data if service is available
+	if gss.physicalService != nil {
+		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		if refreshErr != nil {
+			gss.logger.Warn("Failed to refresh physical location cache after update", map[string]any{
+				"error": refreshErr,
+				"physicalLocationID": physicalLocationID,
+			})
+		} else {
+			gss.logger.Debug("Successfully refreshed physical location cache after update", map[string]any{
+				"physicalLocationID": physicalLocationID,
+			})
+		}
+	} else {
+		gss.logger.Warn("Physical service not available for cache refresh after update", nil)
 	}
 
 	return nil
@@ -259,6 +311,9 @@ func (gss *GameSublocationService) DeleteSublocation(
 		return err
 	}
 
+	// Store the physical location ID before deletion
+	physicalLocationID := sublocation.PhysicalLocationID
+
 	// Remove from database
 	if err := gss.dbAdapter.RemoveSublocation(
 		ctx,
@@ -276,9 +331,33 @@ func (gss *GameSublocationService) DeleteSublocation(
 	if err := gss.cacheWrapper.InvalidateSublocationCache(ctx, userID, sublocationID); err != nil {
 		gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{"error": err})
 	}
+
 	// Also invalidate the parent physical location's cache
-	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, sublocation.PhysicalLocationID); err != nil {
+	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, physicalLocationID); err != nil {
 		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
+	}
+
+	// Force immediate refresh of physical location cache
+	gss.logger.Debug("Forcing refresh of physical location cache after sublocation deletion", map[string]any{
+		"userID": userID,
+		"physicalLocationID": physicalLocationID,
+	})
+
+	// Actively refresh the physical location data if service is available
+	if gss.physicalService != nil {
+		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		if refreshErr != nil {
+			gss.logger.Warn("Failed to refresh physical location cache after deletion", map[string]any{
+				"error": refreshErr,
+				"physicalLocationID": physicalLocationID,
+			})
+		} else {
+			gss.logger.Debug("Successfully refreshed physical location cache after deletion", map[string]any{
+				"physicalLocationID": physicalLocationID,
+			})
+		}
+	} else {
+		gss.logger.Warn("Physical service not available for cache refresh after deletion", nil)
 	}
 
 	return nil

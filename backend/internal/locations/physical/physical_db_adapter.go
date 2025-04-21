@@ -70,6 +70,8 @@ const (
 				json_agg(
 					json_build_object(
 						'id', sl.id,
+						'user_id', sl.user_id,
+						'physical_location_id', sl.physical_location_id,
 						'name', sl.name,
 						'location_type', sl.location_type,
 						'bg_color', sl.bg_color,
@@ -120,6 +122,8 @@ const (
 				json_agg(
 					json_build_object(
 						'id', sl.id,
+						'user_id', sl.user_id,
+						'physical_location_id', sl.physical_location_id,
 						'name', sl.name,
 						'location_type', sl.location_type,
 						'bg_color', sl.bg_color,

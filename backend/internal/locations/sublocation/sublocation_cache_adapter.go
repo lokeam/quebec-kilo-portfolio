@@ -91,7 +91,7 @@ func (sca *SublocationCacheAdapter) InvalidateSublocationCache(
 	sublocationID string,
 ) error {
 	cacheKey := fmt.Sprintf("sublocation:%s:sublocation:%s", userID, sublocationID)
-	return sca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	return sca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
 
 func (sca *SublocationCacheAdapter) InvalidateLocationCache(
@@ -99,6 +99,16 @@ func (sca *SublocationCacheAdapter) InvalidateLocationCache(
 	userID string,
 	locationID string,
 ) error {
-	key := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
-	return sca.cacheWrapper.DeleteCacheKey(ctx, key)
+	// Delete both the specific location key and the user's locations collection
+	physicalLocationKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
+	physicalLocationsKey := fmt.Sprintf("physical:%s", userID)
+
+	// Delete specific location cache
+	if err := sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationKey); err != nil {
+		return err
+	}
+
+	// Also delete the collection of physical locations for this user
+	// This ensures that when GetUserPhysicalLocations is called, it will fetch fresh data
+	return sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationsKey)
 }

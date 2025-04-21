@@ -60,7 +60,7 @@ func (sa *SublocationDbAdapter) GetSublocation(ctx context.Context, userID strin
 	})
 
 	query := `
-		SELECT id, user_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		SELECT id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
 		FROM sublocations
 		WHERE id = $1 AND user_id = $2
 	`
@@ -100,7 +100,7 @@ func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID 
 	})
 
 	query := `
-		SELECT id, user_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		SELECT id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
 		FROM sublocations
 		WHERE user_id = $1
 		ORDER BY name

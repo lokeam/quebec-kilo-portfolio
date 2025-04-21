@@ -44,8 +44,8 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 	}
 	servicesObj.Physical = physicalService
 
-	// Initialize sublocation service
-	sublocationService, err := sublocation.NewGameSublocationService(appCtx)
+	// Initialize sublocation service - Pass physical service for cache refresh upon crud operation
+	sublocationService, err := sublocation.NewGameSublocationService(appCtx, physicalService)
 	if err != nil {
 		return nil, fmt.Errorf("initializing sublocation service: %w", err)
 	}
