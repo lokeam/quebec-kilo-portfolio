@@ -214,6 +214,27 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	gds.logger.Debug("Updating digital location", map[string]any{
 		"userID": userID,
 		"location": location,
+		"is_active_value": location.IsActive,
+	})
+
+	// CRITICAL FIX: Invalidate the cache BEFORE doing anything else
+	if err := gds.cacheWrapper.InvalidateDigitalLocationCache(ctx, userID, location.ID); err != nil {
+		gds.logger.Error("Failed to invalidate location cache before update", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationID": location.ID,
+		})
+		// Continue despite error, since we're going to update the DB anyway
+	}
+
+	// Fill in any missing fields from the DB if needed
+	if location.UserID == "" {
+		location.UserID = userID
+	}
+
+	// DEBUG: Log state before validation
+	gds.logger.Debug("Before validation", map[string]any{
+		"location_is_active": location.IsActive,
 	})
 
 	// Validate the location
@@ -221,6 +242,14 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	if err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
+
+	// DEBUG: Log state after validation
+	gds.logger.Debug("After validation", map[string]any{
+		"validatedLocation_is_active": validatedLocation.IsActive,
+	})
+
+	// CRITICAL FIX: Ensure is_active value from request is preserved
+	validatedLocation.IsActive = location.IsActive
 
 	// Update in database
 	if err := gds.dbAdapter.UpdateDigitalLocation(ctx, userID, validatedLocation); err != nil {
@@ -230,14 +259,35 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 		return fmt.Errorf("failed to update digital location: %w", err)
 	}
 
-	// Update cache
-	if err := gds.cacheWrapper.SetSingleCachedDigitalLocation(ctx, userID, validatedLocation); err != nil {
-		gds.logger.Error("Failed to update digital location in cache", map[string]any{
-			"error": err,
-			"userID": userID,
-			"location": validatedLocation,
-		})
-		// Don't return error here as the database update was successful
+	// Get the updated location to ensure we have the correct state after the update
+	updatedLocation, err := gds.dbAdapter.GetDigitalLocation(ctx, userID, location.ID)
+	if err != nil {
+		gds.logger.Error("Failed to get updated location after update", map[string]any{"error": err})
+		// Continue despite error, since the DB update was successful
+	} else {
+		// Update single location cache with the fresh data from DB
+		if err := gds.cacheWrapper.SetSingleCachedDigitalLocation(ctx, userID, updatedLocation); err != nil {
+			gds.logger.Error("Failed to update digital location in cache", map[string]any{
+				"error": err,
+				"userID": userID,
+				"location": updatedLocation,
+			})
+		}
+	}
+
+	// Update the list cache as well to ensure consistency
+	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
+	if err != nil {
+		gds.logger.Error("Failed to get updated locations after update", map[string]any{"error": err})
+		// As a fallback, invalidate the user's cache to force a refresh on next list request
+		if invalidateErr := gds.cacheWrapper.InvalidateUserCache(ctx, userID); invalidateErr != nil {
+			gds.logger.Error("Failed to invalidate user cache", map[string]any{"error": invalidateErr})
+		}
+	} else {
+		// Update the cache with all locations
+		if err := gds.cacheWrapper.SetCachedDigitalLocations(ctx, userID, locations); err != nil {
+			gds.logger.Error("Failed to update locations cache after location update", map[string]any{"error": err})
+		}
 	}
 
 	gds.logger.Debug("UpdateDigitalLocation success", map[string]any{

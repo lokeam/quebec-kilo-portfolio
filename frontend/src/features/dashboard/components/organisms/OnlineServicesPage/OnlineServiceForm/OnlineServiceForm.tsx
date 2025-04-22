@@ -5,7 +5,7 @@ import { FormContainer } from '@/features/dashboard/components/templates/FormCon
 
 // Shadcn UI Components
 // import { Input } from "@/shared/components/ui/input"
-// import { Switch } from "@/shared/components/ui/switch"
+import { Switch } from "@/shared/components/ui/switch"
 
 import { Button } from "@/shared/components/ui/button";
 
@@ -67,6 +67,7 @@ export type OnlineServiceFormData = {
   billingPeriod?: string;
   nextPaymentDate?: Date;
   paymentMethod?: SelectableItem;
+  is_active?: boolean;
 };
 
 type FormValues = {
@@ -76,6 +77,7 @@ type FormValues = {
   billingPeriod?: string;
   nextPaymentDate?: Date;
   paymentMethod?: SelectableItem;
+  is_active?: boolean;
 };
 
 export const OnlineServiceFormSchema = z.object({
@@ -84,7 +86,8 @@ export const OnlineServiceFormSchema = z.object({
   cost: z.number().default(0),
   billingPeriod: z.string().optional(),
   nextPaymentDate: z.date().optional(),
-  paymentMethod: z.custom<SelectableItem>().optional()
+  paymentMethod: z.custom<SelectableItem>().optional(),
+  is_active: z.boolean().default(true)
 });
 
 const validateFormProgress = (formState: FormValues): boolean => {
@@ -130,6 +133,7 @@ interface OnlineServiceData {
   paymentMethod?: SelectableItem;
   createdAt?: Date;
   updatedAt?: Date;
+  is_active?: boolean;
 }
 
 interface OnlineServiceFormProps {
@@ -185,8 +189,12 @@ export function OnlineServiceForm({
         billingPeriod: serviceData.billingPeriod,
         nextPaymentDate: serviceData.nextPaymentDate,
         paymentMethod: serviceData.paymentMethod,
+        is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
       }
-      : defaultValues
+      : {
+        ...defaultValues,
+        is_active: true
+      }
   });
 
   const { watch, formState: { isValid, errors } } = form;
@@ -206,6 +214,7 @@ export function OnlineServiceForm({
         billingPeriod: serviceData.billingPeriod,
         nextPaymentDate: serviceData.nextPaymentDate,
         paymentMethod: serviceData.paymentMethod,
+        is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
       });
     }
   }, [form, isEditing, serviceData]);
@@ -226,6 +235,7 @@ export function OnlineServiceForm({
       parentId: null,
       type: createServiceType(data.service?.isSubscriptionService || false),
       parentLocationId: 'root',
+      is_active: data.is_active,
       metadata: {
         service: data.service || null,
         expenseType: data.expenseType || '1 month',
@@ -271,6 +281,28 @@ export function OnlineServiceForm({
                 emptyMessage="No services found."
               />
               <FormMessage>{errors.service?.message}</FormMessage>
+            </FormItem>
+          )}
+        />
+
+        {/* Active Status */}
+        <FormField
+          control={form.control}
+          name="is_active"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Active Status</FormLabel>
+                <FormDescription>
+                  Is this service currently active?
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

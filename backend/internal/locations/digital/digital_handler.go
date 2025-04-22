@@ -371,13 +371,13 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		location.Subscription = subscription
 	}
 
-		err = service.UpdateDigitalLocation(r.Context(), userID, location)
+	err = service.UpdateDigitalLocation(r.Context(), userID, location)
 	if err != nil {
-			appCtx.Logger.Error("Failed to update location", map[string]any{"error": err})
+		appCtx.Logger.Error("Failed to update location", map[string]any{"error": err})
 		statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrDigitalLocationNotFound) {
+		if errors.Is(err, ErrDigitalLocationNotFound) {
 			statusCode = http.StatusNotFound
-			} else if errors.Is(err, ErrValidationFailed) {
+		} else if errors.Is(err, ErrValidationFailed) {
 			statusCode = http.StatusBadRequest
 		}
 		httputils.RespondWithError(
@@ -390,13 +390,24 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		return
 	}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location models.DigitalLocation `json:"location"`
-		}{
-			Success:  true,
-			Location: location,
-		}
+	// Fetch the freshly updated location from the database to ensure we return the
+	// updated state as it exists in the database
+	updatedLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+	if err != nil {
+		appCtx.Logger.Error("Failed to fetch updated location after update", map[string]any{"error": err})
+		// Continue with the location we have rather than returning an error since the update was successful
+	} else {
+		// Use the freshly fetched data
+		location = updatedLocation
+	}
+
+	response := struct {
+		Success  bool                   `json:"success"`
+		Location models.DigitalLocation `json:"location"`
+	}{
+		Success:  true,
+		Location: location,
+	}
 
 	httputils.RespondWithJSON(
 		httputils.NewResponseWriterAdapter(w),

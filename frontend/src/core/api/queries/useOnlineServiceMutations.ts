@@ -16,8 +16,8 @@ export function useCreateOnlineService(options?: MutationOptions) {
 
   return useMutation({
     mutationFn: (serviceData: CreateOnlineServiceRequest) => createOnlineService(serviceData),
-    onSuccess: (_, variables) => {
-      // Hopefully contains variables from teh original serviceData
+    onSuccess: (data, variables) => {
+      // Access serviceData from variables parameter
       const serviceData = variables;
 
       // Invalidate services queries to refresh data
@@ -51,7 +51,10 @@ export function useUpdateOnlineService(options?: MutationOptions) {
 
   return useMutation({
     mutationFn: (serviceData: CreateOnlineServiceRequest) => updateOnlineService(serviceData),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
+      // Access original serviceData from variables
+      const serviceData = variables;
+
       // Invalidate services queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['services'] });
 
@@ -59,7 +62,7 @@ export function useUpdateOnlineService(options?: MutationOptions) {
       queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
 
       // Show success toast
-      toast.success(`${data.name} updated successfully!`, {
+      toast.success(`${serviceData.name} updated successfully!`, {
         description: "Your service has been successfully updated.",
         duration: 15000
       });

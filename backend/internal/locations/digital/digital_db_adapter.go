@@ -327,7 +327,11 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 
 // PUT
 func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error {
-	a.logger.Debug("Updating digital location", map[string]any{"userID": userID, "location": location})
+	a.logger.Debug("Updating digital location", map[string]any{
+		"userID": userID,
+		"location": location,
+		"is_active": location.IsActive, // Explicitly log the is_active value
+	})
 
 	// Validate ID is present
 	if location.ID == "" {
@@ -342,9 +346,22 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 	now := time.Now()
 	query := `
 			UPDATE digital_locations
-			SET name = $1, is_active = $2, url = $3, updated_at = $4
-			WHERE id = $5 AND user_id = $6
+			SET name = $1, is_active = $2, url = $3, updated_at = $4, service_type = $5
+			WHERE id = $6 AND user_id = $7
 	`
+
+	a.logger.Debug("Executing SQL update", map[string]any{
+		"query": query,
+		"values": []interface{}{
+			location.Name,
+			location.IsActive,
+			location.URL,
+			now,
+			location.ServiceType,
+			location.ID,
+			userID,
+		},
+	})
 
 	result, err := a.db.ExecContext(
 			ctx,
@@ -353,6 +370,7 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 			location.IsActive,
 			location.URL,
 			now,
+			location.ServiceType,
 			location.ID,
 			userID,
 	)
@@ -369,6 +387,10 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 	if rowsAffected == 0 {
 		return fmt.Errorf("digital location not found")
 	}
+
+	a.logger.Debug("Update completed successfully", map[string]any{
+		"rowsAffected": rowsAffected,
+	})
 
 	return nil
 }

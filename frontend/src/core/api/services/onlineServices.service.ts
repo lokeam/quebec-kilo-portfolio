@@ -21,6 +21,7 @@ export interface CreateOnlineServiceRequest {
   parentId: string | null;
   type: 'basic' | 'subscription';
   parentLocationId: string;
+  is_active?: boolean;
   metadata: {
     service: OnlineService | null;
     expenseType?: string;
@@ -81,7 +82,7 @@ export const createOnlineService = async (serviceData: CreateOnlineServiceReques
   const digitalLocation = {
     name: serviceData.name,
     service_type: serviceData.type,
-    is_active: true,
+    is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
     url: serviceData.metadata.service?.url && serviceData.metadata.service.url !== '#'
       ? serviceData.metadata.service.url
       : DIGITAL_SERVICE_DEFAULTS.URL,
@@ -131,7 +132,7 @@ export const updateOnlineService = async (serviceData: CreateOnlineServiceReques
     id : serviceData.id,
     name: serviceData.name,
     service_type: serviceData.type,
-    is_active: true,
+    is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
     url: serviceData.metadata.service?.url || '#',
     ...(serviceData.metadata.service?.isSubscriptionService && {
       subscription: {
