@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { OnlineServicesPageErrorFallback } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageErrorFallback';
 import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSkeleton'
-import { MediaPageLocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationFormSingle/PhysicalLocationFormSingle';
+//import { MediaPageLocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationFormSingle/PhysicalLocationFormSingle';
 
 // Hooks
 import { useNavigate } from 'react-router-dom';
@@ -62,11 +62,11 @@ export default function OnboardingPagePhysical() {
           <h1 className="text-3xl font-bold mb-6">Let's learn where you are storing your games</h1>
           <p className="text-lg mb-8">Where do we go to find them?</p>
 
-          <MediaPageLocationForm
+          {/* <MediaPageLocationForm
             onSuccess={handleFormSuccess}
             defaultValues={defaultValues}
             buttonText="Continue"
-          />
+          /> */}
         </div>
       </Suspense>
     </ErrorBoundary>
