@@ -78,14 +78,20 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 		return
 	}
 
+	// Convert backend model to frontend-compatible format
+	frontendLocations := make([]map[string]interface{}, len(locations))
+	for i, loc := range locations {
+		frontendLocations[i] = loc.ToFrontendDigitalLocation()
+	}
+
 	response := struct {
-			Success   bool                     `json:"success"`
-			UserID    string                   `json:"user_id"`
-			Locations []models.DigitalLocation `json:"locations"`
+			Success   bool                    `json:"success"`
+			UserID    string                  `json:"user_id"`
+			Locations []map[string]interface{} `json:"locations"`
 		}{
 			Success:   true,
 			UserID:    userID,
-			Locations: locations,
+			Locations: frontendLocations,
 	}
 
 	httputils.RespondWithJSON(
@@ -160,12 +166,15 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		return
 	}
 
+	// Convert to frontend format
+	frontendLocation := location.ToFrontendDigitalLocation()
+
 	response := struct {
 			Success  bool                   `json:"success"`
-			Location models.DigitalLocation `json:"location"`
+			Location map[string]interface{} `json:"location"`
 	}{
 			Success:  true,
-			Location: location,
+			Location: frontendLocation,
 	}
 
 	httputils.RespondWithJSON(
@@ -239,8 +248,13 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		createdLocation, err := service.AddDigitalLocation(r.Context(), userID, digitalLocation)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
-		if errors.Is(err, ErrValidationFailed) {
-			statusCode = http.StatusBadRequest
+			appCtx.Logger.Error("Failed to create digital location", map[string]any{
+				"error":      err,
+				"request_id": requestID,
+			})
+		// Handle specific error types
+		if errors.Is(err, ErrDigitalLocationExists) {
+			statusCode = http.StatusConflict
 		}
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
@@ -252,19 +266,22 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		return
 	}
 
-		response := struct {
+	// Convert to frontend format
+	frontendLocation := createdLocation.ToFrontendDigitalLocation()
+
+	response := struct {
 			Success  bool                   `json:"success"`
-			Location models.DigitalLocation `json:"location"`
+			Location map[string]interface{} `json:"location"`
 		}{
 			Success:  true,
-			Location: createdLocation,
+			Location: frontendLocation,
 		}
 
 	httputils.RespondWithJSON(
 		httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
 		http.StatusCreated,
-			response,
+		response,
 	)
 	}
 }
@@ -349,36 +366,67 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 	// Ensure the ID is set from the URL
 	location.ID = locationID
 
-		// If subscription is provided, update it
+	// Handle subscription
 	if updateReq.Subscription != nil {
-		subscription := &models.Subscription{
-			ID:              updateReq.Subscription.ID,
-			LocationID:      location.ID,
-				BillingCycle:    updateReq.Subscription.BillingCycle,
-				CostPerCycle:    updateReq.Subscription.CostPerCycle,
-				NextPaymentDate: updateReq.Subscription.NextPaymentDate,
-				PaymentMethod:   updateReq.Subscription.PaymentMethod,
-			UpdatedAt:       time.Now(),
-		}
+		subscription := *updateReq.Subscription
+		subscription.LocationID = locationID
+		subscription.UpdatedAt = time.Now()
 
-		// Only set CreatedAt if this is a new subscription
 		if location.Subscription == nil {
+				// Add new subscription
 			subscription.CreatedAt = time.Now()
+			newSubscription, err := service.AddSubscription(r.Context(), subscription)
+			if err != nil {
+					appCtx.Logger.Error("Failed to add subscription during location update", map[string]any{"error": err})
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+						appCtx.Logger,
+						requestID,
+					errors.New("failed to add subscription"),
+					http.StatusInternalServerError,
+				)
+				return
+			}
+			location.Subscription = newSubscription
 		} else {
+			// Update existing subscription
+			subscription.ID = location.Subscription.ID
 			subscription.CreatedAt = location.Subscription.CreatedAt
+			if err := service.UpdateSubscription(r.Context(), subscription); err != nil {
+					appCtx.Logger.Error("Failed to update subscription", map[string]any{"error": err})
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+						appCtx.Logger,
+						requestID,
+					errors.New("failed to update subscription"),
+					http.StatusInternalServerError,
+				)
+				return
+			}
+			location.Subscription = &subscription
 		}
-
-		location.Subscription = subscription
+	} else if location.Subscription != nil && updateReq.ServiceType != "subscription" {
+		// Remove subscription if service type changed and no subscription was provided
+		if err := service.RemoveSubscription(r.Context(), locationID); err != nil {
+				appCtx.Logger.Error("Failed to remove subscription", map[string]any{"error": err})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+				errors.New("failed to remove subscription"),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+		location.Subscription = nil
 	}
 
-	err = service.UpdateDigitalLocation(r.Context(), userID, location)
-	if err != nil {
-		appCtx.Logger.Error("Failed to update location", map[string]any{"error": err})
+	// Call service method to update location in database
+	if err := service.UpdateDigitalLocation(r.Context(), userID, location); err != nil {
+			appCtx.Logger.Error("Failed to update digital location", map[string]any{"error": err})
 		statusCode := http.StatusInternalServerError
 		if errors.Is(err, ErrDigitalLocationNotFound) {
 			statusCode = http.StatusNotFound
-		} else if errors.Is(err, ErrValidationFailed) {
-			statusCode = http.StatusBadRequest
 		}
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
@@ -390,23 +438,29 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		return
 	}
 
-	// Fetch the freshly updated location from the database to ensure we return the
-	// updated state as it exists in the database
+	// Get updated location to return
 	updatedLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
 	if err != nil {
-		appCtx.Logger.Error("Failed to fetch updated location after update", map[string]any{"error": err})
-		// Continue with the location we have rather than returning an error since the update was successful
-	} else {
-		// Use the freshly fetched data
-		location = updatedLocation
+			appCtx.Logger.Error("Failed to get updated location", map[string]any{"error": err})
+		httputils.RespondWithError(
+			httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+			errors.New("location was updated but could not be retrieved"),
+			http.StatusInternalServerError,
+		)
+		return
 	}
+
+	// Convert to frontend format
+	frontendLocation := updatedLocation.ToFrontendDigitalLocation()
 
 	response := struct {
 		Success  bool                   `json:"success"`
-		Location models.DigitalLocation `json:"location"`
+		Location map[string]interface{} `json:"location"`
 	}{
 		Success:  true,
-		Location: location,
+		Location: frontendLocation,
 	}
 
 	httputils.RespondWithJSON(

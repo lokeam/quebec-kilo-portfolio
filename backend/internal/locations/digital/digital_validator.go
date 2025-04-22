@@ -72,6 +72,7 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 ) (models.DigitalLocation, error) {
 	v.logger.Debug("Validating digital location", map[string]any{
 		"location": location,
+		"incoming_is_active": location.IsActive,
 	})
 
 	var validatedLocation models.DigitalLocation
@@ -134,6 +135,7 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 
 	v.logger.Debug("Validation successful", map[string]any{
 		"location": validatedLocation,
+		"validated_is_active": validatedLocation.IsActive,
 	})
 	return validatedLocation, nil
 }

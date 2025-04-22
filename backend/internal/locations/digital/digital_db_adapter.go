@@ -111,19 +111,34 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 		)
 		SELECT
 			dl.*,
-			COALESCE(lg.items, '[]'::json) as items
+			COALESCE(lg.items, '[]'::json) as items,
+			dls.id as sub_id,
+			dls.billing_cycle,
+			dls.cost_per_cycle,
+			dls.next_payment_date,
+			dls.payment_method,
+			dls.created_at as sub_created_at,
+			dls.updated_at as sub_updated_at
 		FROM digital_locations dl
 		LEFT JOIN location_games lg ON lg.location_id = dl.id
+		LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
 		WHERE dl.id = $1 AND dl.user_id = $2
 	`
 
-	type DigitalLocationWithItems struct {
+	type DigitalLocationJoin struct {
 		models.DigitalLocation
-		ItemsJSON []byte `db:"items"`
+		ItemsJSON     []byte    `db:"items"`
+		SubID         *int64    `db:"sub_id"`
+		BillingCycle  *string   `db:"billing_cycle"`
+		CostPerCycle  *float64  `db:"cost_per_cycle"`
+		NextPaymentDate *time.Time `db:"next_payment_date"`
+		PaymentMethod *string   `db:"payment_method"`
+		SubCreatedAt  *time.Time `db:"sub_created_at"`
+		SubUpdatedAt  *time.Time `db:"sub_updated_at"`
 	}
 
-	var locationWithItems DigitalLocationWithItems
-	err := da.db.GetContext(ctx, &locationWithItems, getDigitalLocationQuery, locationID, userID)
+	var locationJoin DigitalLocationJoin
+	err := da.db.GetContext(ctx, &locationJoin, getDigitalLocationQuery, locationID, userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.DigitalLocation{}, fmt.Errorf("digital location not found: %w", err)
@@ -132,15 +147,29 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 	}
 
 	// Unmarshal the JSON array into the Items field
-	if err := json.Unmarshal(locationWithItems.ItemsJSON, &locationWithItems.Items); err != nil {
+	if err := json.Unmarshal(locationJoin.ItemsJSON, &locationJoin.Items); err != nil {
 		return models.DigitalLocation{}, fmt.Errorf("error unmarshaling items: %w", err)
 	}
 
+	// If subscription data exists, add it to the location
+	if locationJoin.SubID != nil {
+		locationJoin.Subscription = &models.Subscription{
+			ID:              *locationJoin.SubID,
+			LocationID:      locationJoin.ID,
+			BillingCycle:    *locationJoin.BillingCycle,
+			CostPerCycle:    *locationJoin.CostPerCycle,
+			NextPaymentDate: *locationJoin.NextPaymentDate,
+			PaymentMethod:   *locationJoin.PaymentMethod,
+			CreatedAt:       *locationJoin.SubCreatedAt,
+			UpdatedAt:       *locationJoin.SubUpdatedAt,
+		}
+	}
+
 	da.logger.Debug("GetDigitalLocation success", map[string]any{
-		"location": locationWithItems.DigitalLocation,
+		"location": locationJoin.DigitalLocation,
 	})
 
-	return locationWithItems.DigitalLocation, nil
+	return locationJoin.DigitalLocation, nil
 }
 
 func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
@@ -199,30 +228,60 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 		)
 		SELECT
 			dl.*,
-			COALESCE(lg.items, '[]'::json) as items
+			COALESCE(lg.items, '[]'::json) as items,
+			dls.id as sub_id,
+			dls.billing_cycle,
+			dls.cost_per_cycle,
+			dls.next_payment_date,
+			dls.payment_method,
+			dls.created_at as sub_created_at,
+			dls.updated_at as sub_updated_at
 		FROM digital_locations dl
 		LEFT JOIN location_games lg ON lg.location_id = dl.id
+		LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
 		WHERE dl.user_id = $1
 		ORDER BY dl.created_at
 	`
 
-	type DigitalLocationWithItems struct {
+	type DigitalLocationJoin struct {
 		models.DigitalLocation
-		ItemsJSON []byte `db:"items"`
+		ItemsJSON     []byte    `db:"items"`
+		SubID         *int64    `db:"sub_id"`
+		BillingCycle  *string   `db:"billing_cycle"`
+		CostPerCycle  *float64  `db:"cost_per_cycle"`
+		NextPaymentDate *time.Time `db:"next_payment_date"`
+		PaymentMethod *string   `db:"payment_method"`
+		SubCreatedAt  *time.Time `db:"sub_created_at"`
+		SubUpdatedAt  *time.Time `db:"sub_updated_at"`
 	}
 
-	var locationsWithItems []DigitalLocationWithItems
-	err := da.db.SelectContext(ctx, &locationsWithItems, getUserDigitalLocationsQuery, userID)
+	var locationsJoin []DigitalLocationJoin
+	err := da.db.SelectContext(ctx, &locationsJoin, getUserDigitalLocationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user digital locations: %w", err)
 	}
 
 	// Convert to DigitalLocation array and unmarshal items
-	locations := make([]models.DigitalLocation, len(locationsWithItems))
-	for i, loc := range locationsWithItems {
+	locations := make([]models.DigitalLocation, len(locationsJoin))
+	for i, loc := range locationsJoin {
 		if err := json.Unmarshal(loc.ItemsJSON, &loc.Items); err != nil {
 			return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
 		}
+
+		// If subscription data exists, add it to the location
+		if loc.SubID != nil {
+			loc.Subscription = &models.Subscription{
+				ID:              *loc.SubID,
+				LocationID:      loc.ID,
+				BillingCycle:    *loc.BillingCycle,
+				CostPerCycle:    *loc.CostPerCycle,
+				NextPaymentDate: *loc.NextPaymentDate,
+				PaymentMethod:   *loc.PaymentMethod,
+				CreatedAt:       *loc.SubCreatedAt,
+				UpdatedAt:       *loc.SubUpdatedAt,
+			}
+		}
+
 		locations[i] = loc.DigitalLocation
 	}
 
@@ -261,7 +320,11 @@ func (a *DigitalDbAdapter) ensureUserExists(ctx context.Context, userID string) 
 }
 
 func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
-	a.logger.Debug("Adding digital location", map[string]any{"userID": userID, "location": location})
+	a.logger.Debug("Adding digital location", map[string]any{
+		"userID": userID,
+		"location": location,
+		"is_active": location.IsActive, // Explicitly log the is_active value
+	})
 
 	// Ensure user exists first
 	if err := a.ensureUserExists(ctx, userID); err != nil {
@@ -296,10 +359,24 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 	location.CreatedAt = now
 	location.UpdatedAt = now
 
+	// Set default service_type if not provided
+	if location.ServiceType == "" {
+		location.ServiceType = "basic"
+	}
+
+	a.logger.Debug("Executing SQL insert", map[string]any{
+		"id": location.ID,
+		"userID": userID,
+		"name": location.Name,
+		"service_type": location.ServiceType,
+		"is_active": location.IsActive,
+		"url": location.URL,
+	})
+
 	query := `
-		INSERT INTO digital_locations (id, user_id, name, is_active, url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, user_id, name, is_active, url, created_at, updated_at
+		INSERT INTO digital_locations (id, user_id, name, service_type, is_active, url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, user_id, name, service_type, is_active, url, created_at, updated_at
 	`
 
 	err = a.db.QueryRowxContext(
@@ -308,6 +385,7 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 		location.ID,
 		userID,
 		location.Name,
+		location.ServiceType,
 		location.IsActive,
 		location.URL,
 		location.CreatedAt,
@@ -321,6 +399,12 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 		}
 		return models.DigitalLocation{}, fmt.Errorf("error adding digital location: %w", err)
 	}
+
+	// Log the returned location to verify is_active value
+	a.logger.Debug("Digital location created successfully", map[string]any{
+		"location": location,
+		"is_active": location.IsActive,
+	})
 
 	return location, nil
 }
@@ -458,7 +542,7 @@ func (da *DigitalDbAdapter) FindDigitalLocationByName(ctx context.Context, userI
 	})
 
 	query := `
-		SELECT id, user_id, name, is_active, url, created_at, updated_at
+		SELECT id, user_id, name, service_type, is_active, url, created_at, updated_at
 		FROM digital_locations
 		WHERE user_id = $1 AND LOWER(name) = LOWER($2)
 		`

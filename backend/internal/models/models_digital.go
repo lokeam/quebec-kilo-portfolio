@@ -18,6 +18,50 @@ type DigitalLocation struct {
 	Subscription *Subscription     `json:"subscription,omitempty"`
 }
 
+// IsSubscriptionService returns true if the location's service type is 'subscription'
+func (dl *DigitalLocation) IsSubscriptionService() bool {
+	return dl.ServiceType == "subscription" || dl.Subscription != nil
+}
+
+// MarshalJSON implements json.Marshaler for DigitalLocation
+// to include computed fields like isSubscriptionService
+func (dl DigitalLocation) MarshalJSON() ([]byte, error) {
+	type Alias DigitalLocation
+	return json.Marshal(&struct {
+		Alias
+		IsSubscriptionService bool `json:"isSubscriptionService"`
+	}{
+		Alias:                Alias(dl),
+		IsSubscriptionService: dl.IsSubscriptionService(),
+	})
+}
+
+// ToFrontendDigitalLocation converts a backend DigitalLocation to a frontend-compatible format
+// This is used for API responses that need to match frontend expectations
+func (dl *DigitalLocation) ToFrontendDigitalLocation() map[string]interface{} {
+	result := map[string]interface{}{
+		"id":                   dl.ID,
+		"user_id":              dl.UserID,
+		"name":                 dl.Name,
+		"service_type":         dl.ServiceType,
+		"is_active":            dl.IsActive,
+		"url":                  dl.URL,
+		"created_at":           dl.CreatedAt.Format(time.RFC3339),
+		"updated_at":           dl.UpdatedAt.Format(time.RFC3339),
+		"isSubscriptionService": dl.IsSubscriptionService(),
+	}
+
+	if dl.Subscription != nil {
+		result["subscription"] = dl.Subscription
+	}
+
+	if len(dl.Items) > 0 {
+		result["items"] = dl.Items
+	}
+
+	return result
+}
+
 // Subscription model
 type Subscription struct {
 	ID              int64     `json:"id" db:"id"`

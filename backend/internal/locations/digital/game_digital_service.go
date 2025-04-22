@@ -174,11 +174,29 @@ func (gds *GameDigitalService) FindDigitalLocationByName(ctx context.Context, us
 
 // POST
 func (gds *GameDigitalService) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+	// Add detailed logging
+	gds.logger.Debug("Adding digital location with is_active", map[string]any{
+		"userID": userID,
+		"original_is_active": location.IsActive,
+	})
+
+	// Store original is_active value
+	originalIsActive := location.IsActive
+
 	// Validate the location
 	validatedLocation, err := gds.validator.ValidateDigitalLocation(location)
 	if err != nil {
 		return models.DigitalLocation{}, fmt.Errorf("validation failed: %w", err)
 	}
+
+	// DEBUG: Log after validation
+	gds.logger.Debug("After validation", map[string]any{
+		"validated_is_active": validatedLocation.IsActive,
+		"original_is_active": originalIsActive,
+	})
+
+	// CRITICAL FIX: Ensure is_active value is preserved
+	validatedLocation.IsActive = originalIsActive
 
 	// Add to db
 	createdLocation, err := gds.dbAdapter.AddDigitalLocation(ctx, userID, validatedLocation)
