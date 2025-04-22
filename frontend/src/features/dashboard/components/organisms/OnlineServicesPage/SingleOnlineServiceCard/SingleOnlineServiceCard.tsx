@@ -55,6 +55,7 @@ export const SingleOnlineServiceCard = memo(({
   onClick,
   onDelete
 }: SingleOnlineServiceCardProps) => {
+  console.log('SingleOnlineServiceCard - logo', logo);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

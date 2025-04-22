@@ -13,6 +13,7 @@ import {
   BILLING_CYCLE_MAP,
   DIGITAL_SERVICE_DEFAULTS,
 } from '@/core/api/types/api.types';
+import { mapToApiServiceType, type ServiceType } from '@/shared/constants/service.constants';
 
 
 export interface CreateOnlineServiceRequest {
@@ -81,7 +82,7 @@ export const createOnlineService = async (serviceData: CreateOnlineServiceReques
   // Transform service data to backend format
   const digitalLocation = {
     name: serviceData.name,
-    service_type: serviceData.type,
+    service_type: mapToApiServiceType(serviceData.type as ServiceType),
     is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
     url: serviceData.metadata.service?.url && serviceData.metadata.service.url !== '#'
       ? serviceData.metadata.service.url

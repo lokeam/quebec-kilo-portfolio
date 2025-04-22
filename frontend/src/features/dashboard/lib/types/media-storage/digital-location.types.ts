@@ -31,9 +31,18 @@ export interface DigitalLocation {
   url: string;
   created_at: string;
   updated_at: string;
-  items: Game[];
-  subscription?: Subscription;
-  isSubscriptionService?: boolean;
+  logo?: string;
+  label?: string;
+  subscription?: {
+    id: number;
+    location_id: string;
+    billing_cycle: string;
+    cost_per_cycle: number;
+    next_payment_date: string;
+    payment_method: string;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 /**

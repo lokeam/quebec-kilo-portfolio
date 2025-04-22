@@ -73,6 +73,8 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	v.logger.Debug("Validating digital location", map[string]any{
 		"location": location,
 		"incoming_is_active": location.IsActive,
+		"service_type": location.ServiceType,
+		"has_subscription": location.Subscription != nil,
 	})
 
 	var validatedLocation models.DigitalLocation
@@ -81,6 +83,9 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	// Copy ID and user ID first - these are required and don't need validation
 	validatedLocation.ID = location.ID
 	validatedLocation.UserID = location.UserID
+
+	// IMPORTANT: Preserve is_active flag
+	validatedLocation.IsActive = location.IsActive
 
 	// Validate name
 	if sanitizedName, err := v.validateName(location.Name); err != nil {
@@ -98,13 +103,33 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 
 	// Validate service type first
 	if location.ServiceType == "" {
-		violations = append(violations, "service type cannot be empty")
+		v.logger.Warn("Service type is empty, defaulting to 'basic'", nil)
+		validatedLocation.ServiceType = "basic"
 	} else if !ValidServiceTypes[location.ServiceType] {
-		violations = append(violations,
-			fmt.Sprintf("invalid service type '%s'. Valid types are: basic, subscription",
-				location.ServiceType))
+		v.logger.Warn("Invalid service type, defaulting to 'basic'", map[string]any{
+			"provided_type": location.ServiceType,
+		})
+		validatedLocation.ServiceType = "basic"
 	} else {
 		validatedLocation.ServiceType = location.ServiceType
+	}
+
+	// Check consistency between service type and subscription
+	if validatedLocation.ServiceType == "subscription" && location.Subscription == nil {
+		v.logger.Warn("Service type is 'subscription' but no subscription details provided", map[string]any{
+			"location_id": location.ID,
+			"name": location.Name,
+		})
+		// Leave as-is (warning only) - frontend should handle providing subscription data
+	} else if validatedLocation.ServiceType != "subscription" && location.Subscription != nil {
+		v.logger.Warn("Subscription details provided but service type is not 'subscription'", map[string]any{
+			"location_id": location.ID,
+			"service_type": validatedLocation.ServiceType,
+			"name": location.Name,
+		})
+		// When subscription data is present but type doesn't match, correct the type
+		validatedLocation.ServiceType = "subscription"
+		v.logger.Debug("Auto-corrected service type to 'subscription' based on presence of subscription data", nil)
 	}
 
 	// Validate subscription if present

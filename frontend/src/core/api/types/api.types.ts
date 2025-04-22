@@ -1,3 +1,6 @@
+import type { ApiServiceType } from '@/shared/constants/service.constants';
+import type { ServiceType } from '@/shared/constants/service.constants';
+import { API_SERVICE_TYPES } from '@/shared/constants/service.constants';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 /**
@@ -101,6 +104,17 @@ export type ServiceTypeValue = typeof SERVICE_TYPES[keyof typeof SERVICE_TYPES];
 export function createServiceType(isSubscription: boolean): ServiceTypeValue {
   return isSubscription ? 'subscription' : 'basic';
 }
+
+
+/**
+ * Maps frontend service types to their corresponding backend API service types
+ */
+export function getApiServiceType(frontendType: ServiceType): ApiServiceType {
+  return (frontendType === SERVICE_TYPES.SUBSCRIPTION)
+    ? API_SERVICE_TYPES.SUBSCRIPTION
+    : API_SERVICE_TYPES.BASIC;
+}
+
 
 /**
  * Maps frontend billing cycle display values to backend billing cycle values
