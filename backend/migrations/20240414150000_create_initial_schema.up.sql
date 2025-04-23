@@ -128,18 +128,21 @@ CREATE TYPE digital_service_type AS ENUM (
 
 -- Create payment methods enum
 CREATE TYPE payment_method_type AS ENUM (
-    'Visa',
-    'Mastercard',
+    'Alipay',
     'Amex',
+    'Diners',
     'Discover',
-    'Paypal',
-    'Apple_pay',
-    'Google_pay',
-    'Amazon_pay',
-    'Samsung_pay',
+    'Elo',
+    'Generic',
+    'Hiper',
+    'Hipercard',
     'Jcb',
+    'Maestro',
+    'Mastercard',
     'Mir',
-    'Alipay'
+    'Paypal',
+    'Unionpay',
+    'Visa'
 );
 
 -- Create digital_locations table

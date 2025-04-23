@@ -27,18 +27,21 @@ var ValidServiceTypes = map[string]bool{
 
 // Valid payment methods
 var ValidPaymentMethods = map[string]bool{
-	"Visa": true,
-	"Mastercard": true,
-	"Amex": true,
-	"Discover": true,
-	"Paypal": true,
-	"Apple_pay": true,
-	"Google_pay": true,
-	"Amazon_pay": true,
-	"Samsung_pay": true,
-	"Jcb": true,
-	"Mir": true,
 	"Alipay": true,
+	"Amex": true,
+	"Diners": true,
+	"Discover": true,
+	"Elo": true,
+	"Generic": true,
+	"Hiper": true,
+	"Hipercard": true,
+	"Jcb": true,
+	"Maestro": true,
+	"Mastercard": true,
+	"Mir": true,
+	"Paypal": true,
+	"Unionpay": true,
+	"Visa": true,
 }
 
 // Valid billing cycles
