@@ -78,10 +78,36 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 		return
 	}
 
+	// Debug: Check subscription data
+	for i, loc := range locations {
+		appCtx.Logger.Debug("Location from DB", map[string]any{
+			"index": i,
+			"id": loc.ID,
+			"name": loc.Name,
+			"has_subscription": loc.Subscription != nil,
+		})
+		if loc.Subscription != nil {
+			appCtx.Logger.Debug("Subscription details", map[string]any{
+				"sub_id": loc.Subscription.ID,
+				"billing_cycle": loc.Subscription.BillingCycle,
+				"cost": loc.Subscription.CostPerCycle,
+			})
+		}
+	}
+
 	// Convert backend model to frontend-compatible format
 	frontendLocations := make([]map[string]interface{}, len(locations))
 	for i, loc := range locations {
 		frontendLocations[i] = loc.ToFrontendDigitalLocation()
+	}
+
+	// Log a sample of the transformed data
+	if len(frontendLocations) > 0 {
+		appCtx.Logger.Debug("Sample transformed location", map[string]any{
+				"sample": frontendLocations[0],
+				"has_billing": frontendLocations[0]["billing"] != nil,
+				"has_subscription": frontendLocations[0]["subscription"] != nil,
+		})
 	}
 
 	response := struct {
@@ -172,7 +198,7 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 	response := struct {
 			Success  bool                   `json:"success"`
 			Location map[string]interface{} `json:"location"`
-	}{
+		}{
 			Success:  true,
 			Location: frontendLocation,
 	}

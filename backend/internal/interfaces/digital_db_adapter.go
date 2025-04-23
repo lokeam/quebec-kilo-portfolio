@@ -25,6 +25,7 @@ type DigitalDbAdapter interface {
 	AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
 	UpdateSubscription(ctx context.Context, subscription models.Subscription) error
 	RemoveSubscription(ctx context.Context, locationID string) error
+	EnsureSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error)
 
 	// Payment Operations
 	GetPayments(ctx context.Context, locationID string) ([]models.Payment, error)

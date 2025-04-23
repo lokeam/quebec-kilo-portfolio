@@ -30,7 +30,8 @@ func TestHealthCheckRoute(t *testing.T) {
     testRequest := httptest.NewRequest(http.MethodGet, healthPath, nil)
     testResponseRecorder := httptest.NewRecorder()
 
-    testServer.SetupRoutes(mockAppContext).ServeHTTP(testResponseRecorder, testRequest)
+    mockServices := mocks.NewMockServices()
+    testServer.SetupRoutes(mockAppContext, mockServices).ServeHTTP(testResponseRecorder, testRequest)
 
     assert.Equal(t, http.StatusOK, testResponseRecorder.Code, "expected status code 200")
 
@@ -56,7 +57,8 @@ func TestHealthCheckRoute(t *testing.T) {
     testRequest := httptest.NewRequest(http.MethodGet, healthPath, nil)
     testResponseRecorder := httptest.NewRecorder()
 
-    testServer.SetupRoutes(mockAppContext).ServeHTTP(testResponseRecorder, testRequest)
+    mockServices := mocks.NewMockServices()
+    testServer.SetupRoutes(mockAppContext, mockServices).ServeHTTP(testResponseRecorder, testRequest)
 
     assert.Equal(t, http.StatusInternalServerError, testResponseRecorder.Code, "expected status code 500")
 

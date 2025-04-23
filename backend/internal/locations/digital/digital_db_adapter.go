@@ -177,6 +177,26 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 		"userID": userID,
 	})
 
+	// First, let's check if subscriptions exist for this user's locations
+	var locationIDs []string
+	checkSubscriptionsQuery := `
+		SELECT dl.id
+		FROM digital_locations dl
+		JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
+		WHERE dl.user_id = $1
+	`
+	err := da.db.SelectContext(ctx, &locationIDs, checkSubscriptionsQuery, userID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error checking subscriptions: %w", err)
+	}
+
+	// Log subscription check results
+	da.logger.Debug("Subscription check", map[string]any{
+		"userID": userID,
+		"locationIDs": locationIDs,
+		"count": len(locationIDs),
+	})
+
 	const getUserDigitalLocationsQuery = `
 		WITH location_games AS (
 			SELECT
@@ -256,10 +276,23 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 	}
 
 	var locationsJoin []DigitalLocationJoin
-	err := da.db.SelectContext(ctx, &locationsJoin, getUserDigitalLocationsQuery, userID)
+	err = da.db.SelectContext(ctx, &locationsJoin, getUserDigitalLocationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user digital locations: %w", err)
 	}
+
+	// Log the raw data from database
+	var firstLocationID string
+	var hasSubID bool
+	if len(locationsJoin) > 0 {
+		firstLocationID = locationsJoin[0].ID
+		hasSubID = locationsJoin[0].SubID != nil
+	}
+	da.logger.Debug("Raw location data from DB", map[string]any{
+		"count": len(locationsJoin),
+		"first_location_id": firstLocationID,
+		"first_location_has_sub_id": hasSubID,
+	})
 
 	// Convert to DigitalLocation array and unmarshal items
 	locations := make([]models.DigitalLocation, len(locationsJoin))
@@ -270,6 +303,13 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 
 		// If subscription data exists, add it to the location
 		if loc.SubID != nil {
+			da.logger.Debug("Found subscription data for location", map[string]any{
+				"locationID": loc.ID,
+				"subID": *loc.SubID,
+				"billingCycle": *loc.BillingCycle,
+				"costPerCycle": *loc.CostPerCycle,
+			})
+
 			loc.Subscription = &models.Subscription{
 				ID:              *loc.SubID,
 				LocationID:      loc.ID,
@@ -279,6 +319,29 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 				PaymentMethod:   *loc.PaymentMethod,
 				CreatedAt:       *loc.SubCreatedAt,
 				UpdatedAt:       *loc.SubUpdatedAt,
+			}
+		} else if loc.ServiceType == "subscription" {
+			// If this is a subscription service without subscription data, we need to check
+			// if it actually does have a subscription record in the database
+			da.logger.Debug("Location is subscription type but no subscription data found in join", map[string]any{
+				"locationID": loc.ID,
+				"name": loc.Name,
+			})
+
+			// Try to get or create subscription data
+			sub, err := da.EnsureSubscriptionExists(ctx, loc.ID)
+			if err != nil {
+				da.logger.Error("Failed to ensure subscription exists", map[string]any{
+					"locationID": loc.ID,
+					"error": err,
+				})
+				// Continue despite error
+			} else if sub != nil {
+				da.logger.Debug("Added subscription data to location", map[string]any{
+					"locationID": loc.ID,
+					"subID": sub.ID,
+				})
+				loc.Subscription = sub
 			}
 		}
 
@@ -881,4 +944,68 @@ func (da *DigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, use
 	}
 
 	return games, nil
+}
+
+// EnsureSubscriptionExists creates a subscription record for a location if it doesn't exist
+func (da *DigitalDbAdapter) EnsureSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
+	da.logger.Debug("EnsureSubscriptionExists called", map[string]any{
+		"locationID": locationID,
+	})
+
+	// First check if subscription already exists
+	existingSub, err := da.GetSubscription(ctx, locationID)
+	if err == nil && existingSub != nil {
+		da.logger.Debug("Subscription already exists", map[string]any{
+			"locationID": locationID,
+			"subID": existingSub.ID,
+		})
+		return existingSub, nil
+	}
+
+	// Get the location to check if it's a subscription type
+	var location models.DigitalLocation
+	err = da.db.GetContext(ctx, &location, `
+		SELECT * FROM digital_locations WHERE id = $1
+	`, locationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get location: %w", err)
+	}
+
+	if location.ServiceType != "subscription" {
+		da.logger.Debug("Location is not subscription type, not creating subscription", map[string]any{
+			"locationID": locationID,
+			"serviceType": location.ServiceType,
+		})
+		return nil, nil
+	}
+
+	// Create a default subscription
+	now := time.Now()
+	nextMonth := now.AddDate(0, 1, 0)
+	subscription := models.Subscription{
+		LocationID:      locationID,
+		BillingCycle:    "monthly",
+		CostPerCycle:    9.99,  // Default price
+		NextPaymentDate: nextMonth,
+		PaymentMethod:   "Visa", // Use a valid payment method from the enum
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+
+	// Add to database
+	result, err := da.AddSubscription(ctx, subscription)
+	if err != nil {
+		da.logger.Error("Failed to create default subscription", map[string]any{
+			"locationID": locationID,
+			"error": err,
+		})
+		return nil, err
+	}
+
+	da.logger.Info("Created default subscription for location", map[string]any{
+		"locationID": locationID,
+		"subID": result.ID,
+	})
+
+	return result, nil
 }

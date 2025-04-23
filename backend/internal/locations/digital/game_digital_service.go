@@ -107,25 +107,68 @@ func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalServi
 
 // GET
 func (gds *GameDigitalService) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-	// Attempt to get cached locations
-	cachedLocations, err := gds.cacheWrapper.GetCachedDigitalLocations(ctx, userID)
-	if err == nil {
-		gds.logger.Debug("Cache hit for digital locations", map[string]any{"userID": userID})
-		return cachedLocations, nil
+	// Check for cached locations, but make sure to validate they have subscription data if needed
+	cachedLocations, cacheErr := gds.cacheWrapper.GetCachedDigitalLocations(ctx, userID)
+	if cacheErr == nil && cachedLocations != nil && len(cachedLocations) > 0 {
+		// Validate subscription data is present when expected
+		needsRefresh := false
+		for _, loc := range cachedLocations {
+			if loc.ServiceType == "subscription" && loc.Subscription == nil {
+				gds.logger.Debug("Found cached location with subscription type but missing subscription data", map[string]any{
+					"locationId": loc.ID,
+					"name": loc.Name,
+				})
+				needsRefresh = true
+				break
+			}
+		}
+
+		if !needsRefresh {
+			gds.logger.Debug("Valid cache hit for digital locations", map[string]any{
+				"userID": userID,
+				"count": len(cachedLocations),
+			})
+			return cachedLocations, nil
+		}
+
+		gds.logger.Debug("Cache hit but subscription data is missing, refreshing from DB", map[string]any{
+			"userID": userID,
+		})
+	} else {
+		gds.logger.Debug("Cache miss for digital locations, fetching from DB", map[string]any{
+			"userID": userID,
+			"error": cacheErr,
+		})
 	}
 
-	// Cache miss or error, get from DB
-	gds.logger.Debug("Cache miss for digital locations, fetching from DB", map[string]any{"userID": userID})
+	// Get fresh data from DB
 	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
 	if err != nil {
 		gds.logger.Error("Failed to fetch digital locations from DB", map[string]any{"error": err})
 		return nil, err
 	}
 
+	// Verify and log subscription details
+	for i, loc := range locations {
+		gds.logger.Debug("Location from DB", map[string]any{
+			"index": i,
+			"id": loc.ID,
+			"name": loc.Name,
+			"service_type": loc.ServiceType,
+			"has_subscription": loc.Subscription != nil,
+		})
+		if loc.ServiceType == "subscription" && loc.Subscription == nil {
+			gds.logger.Warn("Location has subscription type but missing subscription data", map[string]any{
+				"locationId": loc.ID,
+				"name": loc.Name,
+			})
+		}
+	}
+
 	// Cache the results for future requests
 	if cacheErr := gds.cacheWrapper.SetCachedDigitalLocations(ctx, userID, locations); cacheErr != nil {
 		gds.logger.Error("Failed to cache digital locations", map[string]any{"error": cacheErr})
-		// Continue w/ returning the locations from DB
+		// Continue with returning the locations from DB
 	}
 
 	return locations, nil

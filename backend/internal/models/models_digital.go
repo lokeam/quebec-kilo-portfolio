@@ -75,9 +75,14 @@ func (dl *DigitalLocation) ToFrontendDigitalLocation() map[string]interface{} {
 		"isSubscriptionService": dl.IsSubscriptionService(),
 	}
 
+	// Remove subscription object inclusion
+	// if dl.Subscription != nil {
+	// 	result["subscription"] = dl.Subscription
+	// }
+
 	// Add billing information
-    // For non-subscription services, provide defaults
-    if !dl.IsSubscriptionService() {
+  // For non-subscription services, provide defaults
+  if !dl.IsSubscriptionService() {
 			result["billing"] = map[string]interface{}{
 					"cycle": "NA",
 					"fees": map[string]interface{}{

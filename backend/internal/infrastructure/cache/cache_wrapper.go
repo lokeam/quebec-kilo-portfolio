@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"time"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
@@ -103,6 +104,11 @@ func (cw *CacheWrapper) SetCachedResults(
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
+		cw.logger.Error("Cache Wrapper - Failed to marshal data", map[string]any{
+			"cacheKey": cacheKey,
+			"error":    err,
+			"dataType": typeName(data),
+		})
 		return err
 	}
 
@@ -119,6 +125,14 @@ func (cw *CacheWrapper) SetCachedResults(
 	})
 
 	return nil
+}
+
+// Helper function to get the type name of an interface
+func typeName(v interface{}) string {
+	if v == nil {
+		return "nil"
+	}
+	return reflect.TypeOf(v).String()
 }
 
 func (cw *CacheWrapper) DeleteCacheKey(

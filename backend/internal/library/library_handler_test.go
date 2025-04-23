@@ -12,8 +12,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
 /*
@@ -98,7 +98,7 @@ func TestLibraryHandler(t *testing.T) {
 		req.Header.Set(httputils.XRequestIDHeader, "test-request-id")
 
 		// Add userID to context
-		ctx := context.WithValue(req.Context(), authMiddleware.UserIDKey, "test-user-id")
+		ctx := context.WithValue(req.Context(), constants.UserIDKey, "test-user-id")
 		req = req.WithContext(ctx)
 
 		return req, httptest.NewRecorder()

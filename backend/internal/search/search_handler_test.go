@@ -14,9 +14,9 @@ import (
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 	"github.com/lokeam/qko-beta/internal/wishlist"
-	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 )
 
 /*
@@ -57,6 +57,23 @@ func mockSearchResultWithGames(games []models.Game) *searchdef.SearchResult {
 	return &searchdef.SearchResult{
 		Games: games,
 	}
+}
+
+// Helper function to create a request with userID in context
+var createRequestWithUserID = func(method, path, body string) (*http.Request, *httptest.ResponseRecorder) {
+	var req *http.Request
+	if body != "" {
+		req = httptest.NewRequest(method, path, strings.NewReader(body))
+	} else {
+		req = httptest.NewRequest(method, path, nil)
+	}
+	req.Header.Set(httputils.XRequestIDHeader, "test-request-id")
+
+	// Add userID to context
+	ctx := context.WithValue(req.Context(), constants.UserIDKey, "test-user-id")
+	req = req.WithContext(ctx)
+
+	return req, httptest.NewRecorder()
 }
 
 func TestSearchHandler(t *testing.T) {
@@ -138,7 +155,7 @@ func TestSearchHandler(t *testing.T) {
 			testResponseRecorder := httptest.NewRecorder()
 
 			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
 			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
@@ -176,7 +193,7 @@ func TestSearchHandler(t *testing.T) {
 			testResponseRecorder := httptest.NewRecorder()
 
 			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
 			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
@@ -257,7 +274,7 @@ func TestSearchHandler(t *testing.T) {
 			testResponseRecorder := httptest.NewRecorder()
 
 			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
 			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
@@ -300,7 +317,7 @@ func TestSearchHandler(t *testing.T) {
 			testResponseRecorder := httptest.NewRecorder()
 
 			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), authMiddleware.UserIDKey, "test-user-id")
+			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
 			testRequest = testRequest.WithContext(ctx)
 
 			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
