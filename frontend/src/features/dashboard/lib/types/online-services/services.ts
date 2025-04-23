@@ -25,7 +25,8 @@ interface OnlineServiceBilling {
   cycle: string;
   fees: {
     monthly: string;
-    // other fee properties
+    quarterly: string;
+    annual: string;
   };
   renewalDate?: {
     month: string;

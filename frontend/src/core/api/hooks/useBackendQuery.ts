@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useAuth0 } from '@auth0/auth0-react';
+//import { useAuth0 } from '@auth0/auth0-react';
 import type { BackendQueryOptions } from '@/core/api/types/api.types';
 import { AxiosError } from 'axios';
 
@@ -68,7 +68,7 @@ export function useBackendQuery<ResponseData>(
   queryOptions: BackendQueryOptions<ResponseData>
 ) {
   // We're not using Auth0 for now, but keep the import for future use
-  const { getAccessTokenSilently } = useAuth0();
+  // const { getAccessTokenSilently } = useAuth0();
 
   // Create a mock token getter function
   const getMockToken = async () => {

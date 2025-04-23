@@ -10,21 +10,25 @@ import { DrawerContainer } from '@/features/dashboard/components/templates/Drawe
 import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
 import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
+import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 
 // API Hooks and Utilities
 import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
+import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
 
 // Utils
 import { transformDigitalLocationToService } from '@/features/dashboard/lib/utils/service-utils';
 
 export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
-  const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const setServices = useOnlineServicesStore((state) => state.setServices);
   const services = useOnlineServicesStore((state) => state.services);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
+
+  // Get filtered services using the unified hook
+  const filteredServices = useFilteredServices(services);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -81,28 +85,37 @@ export function OnlineServicesPageContent() {
       );
     }
 
-    if (viewMode === 'table') {
-      return <OnlineServicesTable services={services} />;
+    if (filteredServices.length === 0) {
+      return <NoResultsFound />;
     }
 
-    // Grid or list view (cards)
-    return (
-      <div className={`p-4 border rounded-md ${
-        viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4' : ''
-      }`}>
-        <h2 className="text-lg font-semibold">Digital Services</h2>
-        <p className="text-gray-500">{services.length} services found</p>
+    if (viewMode === 'table') {
+      return <OnlineServicesTable services={filteredServices} />;
+    }
 
-        <ul className={`mt-2 ${viewMode === 'grid' ? '' : 'space-y-2'}`}>
-          {services.map((service, index) => (
-            <SingleOnlineServiceCard
-              key={`${service.id}-${index}`}
-              {...service}
-              isWatchedByResizeObserver={index === 0}
-            />
-          ))}
-        </ul>
+    // grid grid-cols-1 gap-4
+    // Grid or list view (cards)
+
+    // LEGACY CONTAINER: p-4 border rounded-md
+    return (
+      <div className="p-4 border rounded-md">
+        <h2 className="text-lg font-semibold">Digital Services</h2>
+        <p className="text-gray-500 mb-4">{filteredServices.length} services found</p>
+        <div className={`grid grid-cols-1 gap-4 ${
+          viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
+          }`}>
+          {/* <ul className={`mt-2 ${viewMode === 'grid' ? '' : 'space-y-2'}`}> */}
+            {filteredServices.map((service, index) => (
+              <SingleOnlineServiceCard
+                key={`${service.id}-${index}`}
+                {...service}
+                isWatchedByResizeObserver={index === 0}
+              />
+            ))}
+          {/* </ul> */}
+        </div>
       </div>
+
     );
   };
 
@@ -124,18 +137,6 @@ export function OnlineServicesPageContent() {
           >
             {/* Replace with actual form component when available */}
             <OnlineServiceForm onClose={handleCloseAddDrawer} />
-          </DrawerContainer>
-
-          {/* Edit Digital Service Button */}
-          <DrawerContainer
-            open={editServiceOpen}
-            onOpenChange={setEditServiceOpen}
-            triggerEditLocation="Edit Digital Services"
-            title="Edit Digital Services"
-            description="Edit your digital services"
-          >
-            {/* Replace with actual service list component when available */}
-            <div>Digital Service List will go here</div>
           </DrawerContainer>
         </div>
       </PageHeadline>

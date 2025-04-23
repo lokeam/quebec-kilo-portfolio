@@ -29,7 +29,7 @@ import type { OnlineService } from '@/features/dashboard/lib/types/online-servic
 
 // Hooks
 import { useOnlineServicesToggleActive, useOnlineServicesIsActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import { isServiceFree } from '@/features/dashboard/lib/utils/online-service-status';
+import { formatCurrency, isServiceFree } from '@/features/dashboard/lib/utils/online-service-status';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
@@ -156,7 +156,15 @@ function OnlineServicesTableRowComponent({
             )
           }
         </TableCell>
-        <TableCell>{service.billing?.fees.monthly}</TableCell>
+        <TableCell>
+          {
+            isFree ? (
+              <span>--</span>
+            ) : (
+              <span>{formatCurrency(service.billing?.fees.monthly || '0')}</span>
+            )
+          }
+        </TableCell>
         <TableCell>
           <PaymentIcon
             type={validatePaymentMethod(

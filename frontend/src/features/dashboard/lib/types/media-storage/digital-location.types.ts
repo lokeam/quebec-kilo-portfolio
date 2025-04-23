@@ -3,8 +3,6 @@
  * Aligns with the backend models for digital locations
  */
 
-import type { Game } from '@/features/dashboard/lib/types/game.types';
-
 /**
  * Subscription model for digital locations
  */
@@ -33,15 +31,19 @@ export interface DigitalLocation {
   updated_at: string;
   logo?: string;
   label?: string;
-  subscription?: {
-    id: number;
-    location_id: string;
-    billing_cycle: string;
-    cost_per_cycle: number;
-    next_payment_date: string;
-    payment_method: string;
-    created_at: string;
-    updated_at: string;
+  isSubscriptionService?: boolean;
+  billing?: {
+    cycle: string;
+    fees: {
+      monthly: string;
+      quarterly: string;
+      annual: string;
+    };
+    paymentMethod: string;
+    renewalDate: {
+      month: string;
+      day: number;
+    };
   };
 }
 

@@ -7,49 +7,49 @@ import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSk
 //import { MediaPageLocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationFormSingle/PhysicalLocationFormSingle';
 
 // Hooks
-import { useNavigate } from 'react-router-dom';
-import { useOnboardingStore } from '@/features/dashboard/lib/stores/onboarding/onboardingStore';
+// import { useNavigate } from 'react-router-dom';
+// import { useOnboardingStore } from '@/features/dashboard/lib/stores/onboarding/onboardingStore';
 
 
-// Types
-import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
-import type { z } from 'zod';
+// // Types
+// import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+// import type { z } from 'zod';
 
 
-// Constants
-import { NAVIGATION_ROUTES } from '@/features/dashboard/lib/types/onboarding/constants';
+// // Constants
+// import { NAVIGATION_ROUTES } from '@/features/dashboard/lib/types/onboarding/constants';
 
 export default function OnboardingPagePhysical() {
-  const navigate = useNavigate();
-  const physicalDraft = useOnboardingStore((state) => state.physicalDraft);
-  const updatePhysicalDraft = useOnboardingStore((state) => state.updatePhysicalDraft);
+  // const navigate = useNavigate();
+  // const physicalDraft = useOnboardingStore((state) => state.physicalDraft);
+  // const updatePhysicalDraft = useOnboardingStore((state) => state.updatePhysicalDraft);
 
   /* Build partial default values */
-  const defaultValues = {
-    locationName: physicalDraft?.name ?? '',
-    locationType: physicalDraft?.locationType ?? '',
-    coordinates: {
-      enabled: Boolean(physicalDraft?.mapCoordinates),
-      value: physicalDraft?.mapCoordinates ?? '',
-    },
-  };
+  // const defaultValues = {
+  //   locationName: physicalDraft?.name ?? '',
+  //   locationType: physicalDraft?.locationType ?? '',
+  //   coordinates: {
+  //     enabled: Boolean(physicalDraft?.mapCoordinates),
+  //     value: physicalDraft?.mapCoordinates ?? '',
+  //   },
+  // };
 
-  const handleFormSuccess = (data: z.infer<typeof FormSchema>) => {
-    console.log('Form data received:', data);
+  // const handleFormSuccess = (data: z.infer<typeof FormSchema>) => {
+  //   console.log('Form data received:', data);
 
-    if (!data) {
-      console.error('No form data received');
-      return;
-    }
+  //   if (!data) {
+  //     console.error('No form data received');
+  //     return;
+  //   }
 
-    updatePhysicalDraft({
-      name: data.locationName,
-      locationType: data.locationType as PhysicalLocationType,
-      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
-    });
+  //   updatePhysicalDraft({
+  //     name: data.locationName,
+  //     locationType: data.locationType as PhysicalLocationType,
+  //     mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
+  //   });
 
-    navigate(NAVIGATION_ROUTES.ONBOARDING_SELECT_PHYSICAL_SUB);
-  }
+  //   navigate(NAVIGATION_ROUTES.ONBOARDING_SELECT_PHYSICAL_SUB);
+  // }
 
   return (
     <ErrorBoundary

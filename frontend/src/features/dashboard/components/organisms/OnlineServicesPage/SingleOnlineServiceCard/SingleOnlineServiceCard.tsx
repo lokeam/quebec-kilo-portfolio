@@ -150,7 +150,7 @@ export const SingleOnlineServiceCard = memo(({
             <div className="absolute inset-0 flex items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
               {isFree ? (
                   <span className="font-medium text-white">
-                    FREE
+                    --
                   </span>
                 ) : (
                 <>

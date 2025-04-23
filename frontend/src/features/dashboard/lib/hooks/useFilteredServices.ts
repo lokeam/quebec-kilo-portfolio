@@ -13,21 +13,22 @@ export function useFilteredServices(services: OnlineService[]) {
 
   return useMemo(() => {
     return services.filter((service) => {
-      // Search filter
+      // Search filter - match against both label and name fields
       const matchesSearch = !searchQuery ||
-        service.label.toLowerCase().includes(searchQuery.toLowerCase());
+        service.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (service.name && service.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Billing cycle filter
       const matchesBillingCycle =
         billingCycleFilters.length === 0 || // if no filters, show all
-        (service.billing?.cycle &&
-         billingCycleFilters.some(filter => filter === service.billing.cycle));
+        (service.billing?.cycle != null &&
+         billingCycleFilters.some(filter => filter === service.billing?.cycle));
 
       // Payment method filter
       const matchesPaymentMethod =
         paymentMethodFilters.length === 0 || // if no filters, show all
-        (service.billing?.paymentMethod &&
-         paymentMethodFilters.some(filter => filter === service.billing.paymentMethod));
+        (service.billing?.paymentMethod != null &&
+         paymentMethodFilters.some(filter => filter === service.billing?.paymentMethod));
       return matchesSearch && matchesBillingCycle && matchesPaymentMethod;
     });
   }, [services, searchQuery, billingCycleFilters, paymentMethodFilters]);

@@ -16,7 +16,7 @@ export function useCreateOnlineService(options?: MutationOptions) {
 
   return useMutation({
     mutationFn: (serviceData: CreateOnlineServiceRequest) => createOnlineService(serviceData),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // Access serviceData from variables parameter
       const serviceData = variables;
 
@@ -51,7 +51,7 @@ export function useUpdateOnlineService(options?: MutationOptions) {
 
   return useMutation({
     mutationFn: (serviceData: CreateOnlineServiceRequest) => updateOnlineService(serviceData),
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // Access original serviceData from variables
       const serviceData = variables;
 
