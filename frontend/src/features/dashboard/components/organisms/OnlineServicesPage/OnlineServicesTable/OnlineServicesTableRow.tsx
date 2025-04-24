@@ -93,6 +93,7 @@ function OnlineServicesTableRowComponent({
 }: OnlineServicesTableRowProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const hasValidLogo = Boolean(service.logo);
   const paymentDate = service.billing?.renewalDate ? `${service.billing.renewalDate.month} ${service.billing.renewalDate.day}` : '--';
@@ -119,23 +120,32 @@ function OnlineServicesTableRowComponent({
 
   const handleDeleteService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
-    console.log('Delete service:', service.name);
     setDeleteDialogOpen(true);
-  }, [service.name]);
+    // Reset error state when opening the dialog
+    setDeleteError(null);
+  }, []);
 
   const handleConfirmDelete = useCallback(() => {
     if (!service.id || !onDelete) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
 
-    // Simulate API call with timeout
-    setTimeout(() => {
+    try {
+      // Call the actual delete function from props
       onDelete(service.id);
-      setIsDeleting(false);
-      setDeleteDialogOpen(false);
-    }, 500);
 
-    // TODO: Wire up to tanstack query mutation
+      // The dialog will be closed after successful deletion
+      // Note: We're not calling setIsDeleting(false) here because
+      // we want the button to stay in loading state until the
+      // dialog is closed after success, which happens through the mutation
+    } catch (err) {
+      // This catch block is for synchronous errors
+      // Most errors will be caught by the mutation's onError
+      setIsDeleting(false);
+      setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
+      console.error("Error deleting service:", err);
+    }
   }, [service.id, onDelete]);
 
   return (
@@ -252,23 +262,29 @@ function OnlineServicesTableRowComponent({
           <DialogHeader>
             <DialogTitle>Delete {service.label}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this service? This action cannot be undone.
+              {deleteError ? (
+                <div className="text-red-500">
+                  {deleteError}
+                </div>
+              ) : (
+                "Are you sure you want to delete this service? This action cannot be undone."
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting}
+              disabled={isDeleting && !deleteError}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={isDeleting}
+              disabled={isDeleting && !deleteError}
             >
-              {isDeleting ? (
+              {isDeleting && !deleteError ? (
                 <>
                   <span className="animate-spin mr-2">⊚</span>
                   Deleting...

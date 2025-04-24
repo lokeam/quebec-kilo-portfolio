@@ -6,6 +6,7 @@ import {
   deleteOnlineService,
   type CreateOnlineServiceRequest
 } from '@/core/api/services/onlineServices.service';
+import { AxiosError } from 'axios';
 
 interface MutationOptions {
   onSuccessCallback?: () => void;
@@ -102,8 +103,38 @@ export function useDeleteOnlineService(options?: MutationOptions) {
         options.onSuccessCallback();
       }
     },
-    onError: (error) => {
-      toast.error('Failed to delete service');
+    onError: (error: AxiosError) => {
+      // Determine the type of error and show appropriate message
+      let errorMessage = 'Failed to delete service';
+      let errorDescription = "Something went wrong. We can't complete this operation now, please try again later.";
+
+      // Handle specific error types
+      if (error.response) {
+        // Server returned an error response (4xx, 5xx)
+        const status = error.response.status;
+
+        if (status === 401 || status === 403) {
+          errorMessage = 'Permission denied';
+          errorDescription = "You don't have permission to delete this service.";
+        } else if (status === 404) {
+          errorMessage = 'Service not found';
+          errorDescription = "The service you're trying to delete doesn't exist or was already deleted.";
+        } else if (status >= 500) {
+          errorMessage = 'Server error';
+          errorDescription = "The server encountered an error. Please try again later.";
+        }
+      } else if (error.request) {
+        // Request was made but no response received (network error)
+        errorMessage = 'Network error';
+        errorDescription = "Couldn't connect to the server. Please check your internet connection.";
+      }
+
+      // Show error toast with appropriate message
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 15000
+      });
+
       console.error('Delete service error:', error);
     }
   });

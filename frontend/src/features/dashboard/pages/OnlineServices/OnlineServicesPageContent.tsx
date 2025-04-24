@@ -14,6 +14,7 @@ import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResu
 
 // API Hooks and Utilities
 import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
+import { useDeleteOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
@@ -29,6 +30,19 @@ export function OnlineServicesPageContent() {
 
   // Get filtered services using the unified hook
   const filteredServices = useFilteredServices(services);
+
+  // Set up the delete mutation
+  const deleteServiceMutation = useDeleteOnlineService({
+    onSuccessCallback: () => {
+      // The query invalidation is handled in the mutation hook
+      // No additional callback needed here
+    }
+  });
+
+  // Handler to delete a service
+  const handleDeleteService = useCallback((serviceId: string) => {
+    deleteServiceMutation.mutate(serviceId);
+  }, [deleteServiceMutation]);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -90,7 +104,7 @@ export function OnlineServicesPageContent() {
     }
 
     if (viewMode === 'table') {
-      return <OnlineServicesTable services={filteredServices} />;
+      return <OnlineServicesTable services={filteredServices} onDelete={handleDeleteService} />;
     }
 
     // grid grid-cols-1 gap-4
@@ -110,6 +124,7 @@ export function OnlineServicesPageContent() {
                 key={`${service.id}-${index}`}
                 {...service}
                 isWatchedByResizeObserver={index === 0}
+                onDelete={handleDeleteService}
               />
             ))}
           {/* </ul> */}
