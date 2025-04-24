@@ -44,7 +44,6 @@ func (dca *DigitalCacheAdapter) SetCachedDigitalLocations(
 	userID string,
 	locations []models.DigitalLocation,
 ) error {
-
 	cacheKey := fmt.Sprintf("digital:%s", userID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
 }

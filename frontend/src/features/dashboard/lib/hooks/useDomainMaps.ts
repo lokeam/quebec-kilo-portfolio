@@ -74,7 +74,7 @@ type LogoComponent = ComponentType<{ className?: string }>;
 export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
   games: {
     amazon_luna: AmazonLunaLogo,
-    applearcade: AppleLogo,
+    apple: AppleLogo,
     blizzard: BlizzardLogo,
     ea: EALogo,
     epic: EpicGamesLogo,
