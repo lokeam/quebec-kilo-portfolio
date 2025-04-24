@@ -35,6 +35,41 @@ import { formatCurrency, isServiceFree } from '@/features/dashboard/lib/utils/on
 import { cn } from '@/shared/components/ui/utils';
 import { validatePaymentMethod } from '@/shared/constants/payment';
 
+// Helper function to get the correct cost based on the billing cycle
+const getCycleBasedCost = (service: OnlineService): string => {
+  // Early return for free services
+  if (!service.billing || isServiceFree(service)) {
+    return "FREE";
+  }
+
+  const { cycle, fees } = service.billing;
+
+  // Safely extract numeric values from string costs
+  const parseCost = (costString: string | undefined): number => {
+    if (!costString) return 0;
+    const numericValue = parseFloat(costString.replace(/[^0-9.]/g, ''));
+    return isNaN(numericValue) ? 0 : numericValue;
+  };
+
+  // Use a simple mapping for direct returns
+  const costMap: Record<string, string> = {
+    "1 year": fees.annual,
+    "3 months": fees.quarterly,
+    "1 month": fees.monthly
+  };
+
+  // Handle the special calculated case for bi-annual
+  if (cycle === "6 months") {
+    const monthlyValue = parseCost(fees.monthly);
+    return monthlyValue > 0
+      ? formatCurrency((monthlyValue * 6).toFixed(2))
+      : fees.monthly; // Fallback to the raw value if parsing failed
+  }
+
+  // Return from mapping or fallback to monthly as default
+  return costMap[cycle] || fees.monthly;
+};
+
 interface OnlineServicesTableRowProps {
   service: OnlineService;
   index: number
@@ -161,7 +196,7 @@ function OnlineServicesTableRowComponent({
             isFree ? (
               <span>--</span>
             ) : (
-              <span>{formatCurrency(service.billing?.fees.monthly || '0')}</span>
+              <span>{getCycleBasedCost(service)}</span>
             )
           }
         </TableCell>
