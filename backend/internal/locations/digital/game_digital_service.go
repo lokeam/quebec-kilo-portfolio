@@ -107,68 +107,31 @@ func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalServi
 
 // GET
 func (gds *GameDigitalService) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-	// Check for cached locations, but make sure to validate they have subscription data if needed
+	// Try to get from cache first
 	cachedLocations, cacheErr := gds.cacheWrapper.GetCachedDigitalLocations(ctx, userID)
 	if cacheErr == nil && cachedLocations != nil && len(cachedLocations) > 0 {
-		// Validate subscription data is present when expected
-		needsRefresh := false
-		for _, loc := range cachedLocations {
-			if loc.ServiceType == "subscription" && loc.Subscription == nil {
-				gds.logger.Debug("Found cached location with subscription type but missing subscription data", map[string]any{
-					"locationId": loc.ID,
-					"name": loc.Name,
-				})
-				needsRefresh = true
-				break
-			}
-		}
-
-		if !needsRefresh {
-			gds.logger.Debug("Valid cache hit for digital locations", map[string]any{
-				"userID": userID,
-				"count": len(cachedLocations),
+			gds.logger.Debug("Cache hit for digital locations", map[string]any{
+					"userID": userID,
+					"count": len(cachedLocations),
 			})
 			return cachedLocations, nil
-		}
+	}
 
-		gds.logger.Debug("Cache hit but subscription data is missing, refreshing from DB", map[string]any{
-			"userID": userID,
-		})
-	} else {
-		gds.logger.Debug("Cache miss for digital locations, fetching from DB", map[string]any{
+	gds.logger.Debug("Cache miss for digital locations, fetching from DB", map[string]any{
 			"userID": userID,
 			"error": cacheErr,
-		})
-	}
+	})
 
 	// Get fresh data from DB
 	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
 	if err != nil {
-		gds.logger.Error("Failed to fetch digital locations from DB", map[string]any{"error": err})
-		return nil, err
+			gds.logger.Error("Failed to fetch digital locations from DB", map[string]any{"error": err})
+			return nil, err
 	}
 
-	// Verify and log subscription details
-	for i, loc := range locations {
-		gds.logger.Debug("Location from DB", map[string]any{
-			"index": i,
-			"id": loc.ID,
-			"name": loc.Name,
-			"service_type": loc.ServiceType,
-			"has_subscription": loc.Subscription != nil,
-		})
-		if loc.ServiceType == "subscription" && loc.Subscription == nil {
-			gds.logger.Warn("Location has subscription type but missing subscription data", map[string]any{
-				"locationId": loc.ID,
-				"name": loc.Name,
-			})
-		}
-	}
-
-	// Cache the results for future requests
+	// Cache the results
 	if cacheErr := gds.cacheWrapper.SetCachedDigitalLocations(ctx, userID, locations); cacheErr != nil {
-		gds.logger.Error("Failed to cache digital locations", map[string]any{"error": cacheErr})
-		// Continue with returning the locations from DB
+			gds.logger.Error("Failed to cache digital locations", map[string]any{"error": cacheErr})
 	}
 
 	return locations, nil
@@ -216,55 +179,68 @@ func (gds *GameDigitalService) FindDigitalLocationByName(ctx context.Context, us
 }
 
 // POST
+// POST
 func (gds *GameDigitalService) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
 	// Add detailed logging
 	gds.logger.Debug("Adding digital location with is_active", map[string]any{
-		"userID": userID,
-		"original_is_active": location.IsActive,
+			"userID": userID,
+			"original_is_active": location.IsActive,
 	})
 
-	// Store original is_active value
+	// Store original is_active value and subscription data
 	originalIsActive := location.IsActive
+	originalSubscription := location.Subscription
 
 	// Validate the location
 	validatedLocation, err := gds.validator.ValidateDigitalLocation(location)
 	if err != nil {
-		return models.DigitalLocation{}, fmt.Errorf("validation failed: %w", err)
+			return models.DigitalLocation{}, fmt.Errorf("validation failed: %w", err)
 	}
 
 	// DEBUG: Log after validation
 	gds.logger.Debug("After validation", map[string]any{
-		"validated_is_active": validatedLocation.IsActive,
-		"original_is_active": originalIsActive,
+			"validated_is_active": validatedLocation.IsActive,
+			"original_is_active": originalIsActive,
 	})
 
 	// CRITICAL FIX: Ensure is_active value is preserved
 	validatedLocation.IsActive = originalIsActive
 
-	// Add to db
+	// CRITICAL: Restore subscription data if it was provided
+	validatedLocation.Subscription = originalSubscription
+
 	createdLocation, err := gds.dbAdapter.AddDigitalLocation(ctx, userID, validatedLocation)
 	if err != nil {
-		gds.logger.Error("Failed to add digital location to DB", map[string]any{"error": err})
-		return models.DigitalLocation{}, err
+			gds.logger.Error("Failed to add digital location to DB", map[string]any{"error": err})
+			return models.DigitalLocation{}, err
 	}
 
-	// Get all locations to update cache
-	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
-	if err != nil {
-		gds.logger.Error("Failed to get updated locations for cache", map[string]any{"error": err})
-		// Don't return error here, just log it
-	} else {
-		// Update the cache with all locations
-		if err := gds.cacheWrapper.SetCachedDigitalLocations(ctx, userID, locations); err != nil {
-			gds.logger.Error("Failed to update locations cache", map[string]any{"error": err})
-			// Don't return error here, just log it
-		}
+	// CRITICAL: Save subscription data if provided
+	if originalSubscription != nil {
+			// Update the location ID in the subscription
+			originalSubscription.LocationID = createdLocation.ID
+
+			// Add the subscription to the database
+			subscription, err := gds.dbAdapter.AddSubscription(ctx, *originalSubscription)
+			if err != nil {
+					gds.logger.Error("Failed to add subscription data", map[string]any{
+							"error": err,
+							"locationID": createdLocation.ID,
+					})
+					// Continue without subscription, just log the error
+			} else {
+					// Add the subscription to the created location
+					createdLocation.Subscription = subscription
+			}
 	}
 
-	// Also cache the individual location
-	if err := gds.cacheWrapper.SetSingleCachedDigitalLocation(ctx, userID, createdLocation); err != nil {
-		gds.logger.Error("Failed to cache individual location", map[string]any{"error": err})
-		// Don't return error here, just log it
+	// Invalidate the cache for this user
+	if err := gds.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+			gds.logger.Error("Failed to invalidate user cache after adding location", map[string]any{
+					"error": err,
+					"userID": userID,
+			})
+			// Continue despite error, since the DB update was successful
 	}
 
 	return createdLocation, nil

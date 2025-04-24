@@ -173,183 +173,95 @@ func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID strin
 }
 
 func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
-	da.logger.Debug("GetUserDigitalLocations called", map[string]any{
-		"userID": userID,
-	})
-
-	// First, let's check if subscriptions exist for this user's locations
-	var locationIDs []string
-	checkSubscriptionsQuery := `
-		SELECT dl.id
-		FROM digital_locations dl
-		JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
-		WHERE dl.user_id = $1
-	`
-	err := da.db.SelectContext(ctx, &locationIDs, checkSubscriptionsQuery, userID)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("error checking subscriptions: %w", err)
-	}
-
-	// Log subscription check results
-	da.logger.Debug("Subscription check", map[string]any{
-		"userID": userID,
-		"locationIDs": locationIDs,
-		"count": len(locationIDs),
-	})
-
-	const getUserDigitalLocationsQuery = `
-		WITH location_games AS (
-			SELECT
-				dl.id as location_id,
-				json_agg(
-					json_build_object(
-						'id', g.id,
-						'name', g.name,
-						'summary', g.summary,
-						'cover_id', g.cover_id,
-						'cover_url', g.cover_url,
-						'first_release_date', g.first_release_date,
-						'rating', g.rating,
-						'platform_names', COALESCE(
-							(
-								SELECT array_agg(p.name ORDER BY p.name)
-								FROM game_platforms gp
-								JOIN platforms p ON p.id = gp.platform_id
-								WHERE gp.game_id = g.id
-							),
-							'{}'
-						),
-						'genre_names', COALESCE(
-							(
-								SELECT array_agg(gn.name ORDER BY gn.name)
-								FROM game_genres gg
-								JOIN genres gn ON gn.id = gg.genre_id
-								WHERE gg.game_id = g.id
-							),
-							'{}'
-						),
-						'theme_names', COALESCE(
-							(
-								SELECT array_agg(t.name ORDER BY t.name)
-								FROM game_themes gt
-								JOIN themes t ON t.id = gt.theme_id
-								WHERE gt.game_id = g.id
-							),
-							'{}'
-						)
-					)
-				) as items
-			FROM digital_locations dl
-			LEFT JOIN digital_game_locations dgl ON dgl.digital_location_id = dl.id
-			LEFT JOIN user_games ug ON ug.id = dgl.user_game_id
-			LEFT JOIN games g ON g.id = ug.game_id
-			WHERE dl.user_id = $1
-			GROUP BY dl.id
-		)
-		SELECT
-			dl.*,
-			COALESCE(lg.items, '[]'::json) as items,
-			dls.id as sub_id,
-			dls.billing_cycle,
-			dls.cost_per_cycle,
-			dls.next_payment_date,
-			dls.payment_method,
-			dls.created_at as sub_created_at,
-			dls.updated_at as sub_updated_at
-		FROM digital_locations dl
-		LEFT JOIN location_games lg ON lg.location_id = dl.id
-		LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
-		WHERE dl.user_id = $1
-		ORDER BY dl.created_at
-	`
-
+	// Define the DigitalLocationJoin struct
 	type DigitalLocationJoin struct {
-		models.DigitalLocation
-		ItemsJSON     []byte    `db:"items"`
-		SubID         *int64    `db:"sub_id"`
-		BillingCycle  *string   `db:"billing_cycle"`
-		CostPerCycle  *float64  `db:"cost_per_cycle"`
-		NextPaymentDate *time.Time `db:"next_payment_date"`
-		PaymentMethod *string   `db:"payment_method"`
-		SubCreatedAt  *time.Time `db:"sub_created_at"`
-		SubUpdatedAt  *time.Time `db:"sub_updated_at"`
+			models.DigitalLocation
+			ItemsJSON     []byte    `db:"items"`
+			SubID         *int64    `db:"sub_id"`
+			BillingCycle  *string   `db:"billing_cycle"`
+			CostPerCycle  *float64  `db:"cost_per_cycle"`
+			NextPaymentDate *time.Time `db:"next_payment_date"`
+			PaymentMethod *string   `db:"payment_method"`
+			SubCreatedAt  *time.Time `db:"sub_created_at"`
+			SubUpdatedAt  *time.Time `db:"sub_updated_at"`
 	}
+
+	// Simple query to get locations with their subscription data
+	// FIXED: Removed the location_games JOIN which doesn't exist
+	query := `
+			SELECT
+					dl.*,
+					'[]'::json as items,
+					dls.id as sub_id,
+					dls.billing_cycle,
+					dls.cost_per_cycle,
+					dls.next_payment_date,
+					dls.payment_method,
+					dls.created_at as sub_created_at,
+					dls.updated_at as sub_updated_at
+			FROM digital_locations dl
+			LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
+			WHERE dl.user_id = $1
+			ORDER BY dl.created_at
+	`
 
 	var locationsJoin []DigitalLocationJoin
-	err = da.db.SelectContext(ctx, &locationsJoin, getUserDigitalLocationsQuery, userID)
+	err := da.db.SelectContext(ctx, &locationsJoin, query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("error getting user digital locations: %w", err)
+			da.logger.Error("Failed to get user digital locations", map[string]any{"error": err})
+			return nil, fmt.Errorf("error getting user digital locations: %w", err)
 	}
 
 	// Log the raw data from database
 	var firstLocationID string
 	var hasSubID bool
 	if len(locationsJoin) > 0 {
-		firstLocationID = locationsJoin[0].ID
-		hasSubID = locationsJoin[0].SubID != nil
+			firstLocationID = locationsJoin[0].ID
+			hasSubID = locationsJoin[0].SubID != nil
 	}
 	da.logger.Debug("Raw location data from DB", map[string]any{
-		"count": len(locationsJoin),
-		"first_location_id": firstLocationID,
-		"first_location_has_sub_id": hasSubID,
+			"count": len(locationsJoin),
+			"first_location_id": firstLocationID,
+			"first_location_has_sub_id": hasSubID,
 	})
 
 	// Convert to DigitalLocation array and unmarshal items
 	locations := make([]models.DigitalLocation, len(locationsJoin))
 	for i, loc := range locationsJoin {
-		if err := json.Unmarshal(loc.ItemsJSON, &loc.Items); err != nil {
-			return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
-		}
-
-		// If subscription data exists, add it to the location
-		if loc.SubID != nil {
-			da.logger.Debug("Found subscription data for location", map[string]any{
-				"locationID": loc.ID,
-				"subID": *loc.SubID,
-				"billingCycle": *loc.BillingCycle,
-				"costPerCycle": *loc.CostPerCycle,
-			})
-
-			loc.Subscription = &models.Subscription{
-				ID:              *loc.SubID,
-				LocationID:      loc.ID,
-				BillingCycle:    *loc.BillingCycle,
-				CostPerCycle:    *loc.CostPerCycle,
-				NextPaymentDate: *loc.NextPaymentDate,
-				PaymentMethod:   *loc.PaymentMethod,
-				CreatedAt:       *loc.SubCreatedAt,
-				UpdatedAt:       *loc.SubUpdatedAt,
+			if err := json.Unmarshal(loc.ItemsJSON, &loc.Items); err != nil {
+					da.logger.Error("Failed to unmarshal items", map[string]any{
+							"location_id": loc.ID,
+							"error": err,
+					})
+					return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
 			}
-		} else if loc.ServiceType == "subscription" {
-			// If this is a subscription service without subscription data, we need to check
-			// if it actually does have a subscription record in the database
-			da.logger.Debug("Location is subscription type but no subscription data found in join", map[string]any{
-				"locationID": loc.ID,
-				"name": loc.Name,
-			})
 
-			// Try to get or create subscription data
-			sub, err := da.EnsureSubscriptionExists(ctx, loc.ID)
-			if err != nil {
-				da.logger.Error("Failed to ensure subscription exists", map[string]any{
-					"locationID": loc.ID,
-					"error": err,
-				})
-				// Continue despite error
-			} else if sub != nil {
-				da.logger.Debug("Added subscription data to location", map[string]any{
-					"locationID": loc.ID,
-					"subID": sub.ID,
-				})
-				loc.Subscription = sub
+			// If subscription data exists, add it to the location
+			if loc.SubID != nil {
+					da.logger.Debug("Found subscription data for location", map[string]any{
+							"locationID": loc.ID,
+							"subID": *loc.SubID,
+							"billingCycle": *loc.BillingCycle,
+							"costPerCycle": *loc.CostPerCycle,
+					})
+
+					loc.Subscription = &models.Subscription{
+							ID:              *loc.SubID,
+							LocationID:      loc.ID,
+							BillingCycle:    *loc.BillingCycle,
+							CostPerCycle:    *loc.CostPerCycle,
+							NextPaymentDate: *loc.NextPaymentDate,
+							PaymentMethod:   *loc.PaymentMethod,
+							CreatedAt:       *loc.SubCreatedAt,
+							UpdatedAt:       *loc.SubUpdatedAt,
+					}
 			}
-		}
 
-		locations[i] = loc.DigitalLocation
+			locations[i] = loc.DigitalLocation
 	}
 
 	da.logger.Debug("GetUserDigitalLocations success", map[string]any{
-		"locations": locations,
+			"locations": locations,
 	})
 
 	return locations, nil
@@ -946,66 +858,16 @@ func (da *DigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, use
 	return games, nil
 }
 
-// EnsureSubscriptionExists creates a subscription record for a location if it doesn't exist
-func (da *DigitalDbAdapter) EnsureSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
-	da.logger.Debug("EnsureSubscriptionExists called", map[string]any{
-		"locationID": locationID,
+func (da *DigitalDbAdapter) ValidateSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
+	da.logger.Debug("ValidateSubscriptionExists called", map[string]any{
+			"locationID": locationID,
 	})
 
-	// First check if subscription already exists
+	// Just check if subscription exists
 	existingSub, err := da.GetSubscription(ctx, locationID)
-	if err == nil && existingSub != nil {
-		da.logger.Debug("Subscription already exists", map[string]any{
-			"locationID": locationID,
-			"subID": existingSub.ID,
-		})
-		return existingSub, nil
-	}
-
-	// Get the location to check if it's a subscription type
-	var location models.DigitalLocation
-	err = da.db.GetContext(ctx, &location, `
-		SELECT * FROM digital_locations WHERE id = $1
-	`, locationID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get location: %w", err)
+			return nil, fmt.Errorf("failed to validate subscription: %w", err)
 	}
 
-	if location.ServiceType != "subscription" {
-		da.logger.Debug("Location is not subscription type, not creating subscription", map[string]any{
-			"locationID": locationID,
-			"serviceType": location.ServiceType,
-		})
-		return nil, nil
-	}
-
-	// Create a default subscription
-	now := time.Now()
-	nextMonth := now.AddDate(0, 1, 0)
-	subscription := models.Subscription{
-		LocationID:      locationID,
-		BillingCycle:    "monthly",
-		CostPerCycle:    9.99,  // Default price
-		NextPaymentDate: nextMonth,
-		PaymentMethod:   "Visa", // Use a valid payment method from the enum
-		CreatedAt:       now,
-		UpdatedAt:       now,
-	}
-
-	// Add to database
-	result, err := da.AddSubscription(ctx, subscription)
-	if err != nil {
-		da.logger.Error("Failed to create default subscription", map[string]any{
-			"locationID": locationID,
-			"error": err,
-		})
-		return nil, err
-	}
-
-	da.logger.Info("Created default subscription for location", map[string]any{
-		"locationID": locationID,
-		"subID": result.ID,
-	})
-
-	return result, nil
+	return existingSub, nil
 }

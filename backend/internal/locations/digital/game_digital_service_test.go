@@ -72,7 +72,7 @@ type MockDigitalDbAdapter struct {
 	AddSubscriptionFunc func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
 	UpdateSubscriptionFunc func(ctx context.Context, subscription models.Subscription) error
 	RemoveSubscriptionFunc func(ctx context.Context, locationID string) error
-	EnsureSubscriptionExistsFunc func(ctx context.Context, locationID string) (*models.Subscription, error)
+	ValidateSubscriptionExistsFunc func(ctx context.Context, locationID string) (*models.Subscription, error)
 
 	// Payment Operations
 	GetPaymentsFunc func(ctx context.Context, locationID string) ([]models.Payment, error)
@@ -152,9 +152,8 @@ func (m *MockDigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, 
 	return m.GetGamesByDigitalLocationIDFunc(ctx, userID, locationID)
 }
 
-// EnsureSubscriptionExists creates a subscription record for a location if it doesn't exist
-func (m *MockDigitalDbAdapter) EnsureSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
-	return m.EnsureSubscriptionExistsFunc(ctx, locationID)
+func (m *MockDigitalDbAdapter) ValidateSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
+	return m.ValidateSubscriptionExistsFunc(ctx, locationID)
 }
 
 // MockDigitalCacheWrapper is a mock implementation of interfaces.DigitalCacheWrapper
@@ -281,7 +280,7 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 		GetGamesByDigitalLocationIDFunc: func(ctx context.Context, userID string, locationID string) ([]models.Game, error) {
 			return []models.Game{{ID: 1, Name: "Test Game"}}, nil
 		},
-		EnsureSubscriptionExistsFunc: func(ctx context.Context, locationID string) (*models.Subscription, error) {
+		ValidateSubscriptionExistsFunc: func(ctx context.Context, locationID string) (*models.Subscription, error) {
 			return &models.Subscription{ID: 1, LocationID: locationID}, nil
 		},
 	}

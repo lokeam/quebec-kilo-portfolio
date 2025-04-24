@@ -105,43 +105,30 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 		validatedLocation.URL = sanitizedURL
 	}
 
-	// Validate service type
+	// Validate service type - simple check, no auto-correction
 	if location.ServiceType != "basic" && location.ServiceType != "subscription" {
-		violations = append(violations, "Invalid service type. Must be 'basic' or 'subscription'")
-	} else if location.ServiceType == "subscription" && location.Subscription == nil {
-		violations = append(violations, "Subscription data is required for subscription service type")
+			violations = append(violations, "Invalid service type. Must be 'basic' or 'subscription'")
 	} else {
-		validatedLocation.ServiceType = location.ServiceType
+			validatedLocation.ServiceType = location.ServiceType
+
+			// SIMPLE validation: If it's subscription type, it MUST have subscription data
+			if location.ServiceType == "subscription" && location.Subscription == nil {
+					violations = append(violations, "Subscription service must have subscription data")
+			}
+
+			// SIMPLE validation: If it's not subscription type, it must NOT have subscription data
+			if location.ServiceType != "subscription" && location.Subscription != nil {
+					violations = append(violations, "Non-subscription service cannot have subscription data")
+			}
 	}
 
-	// Check consistency between service type and subscription
-	if validatedLocation.ServiceType == "subscription" && location.Subscription == nil {
-		v.logger.Warn("Service type is 'subscription' but no subscription details provided", map[string]any{
-			"location_id": location.ID,
-			"name": location.Name,
-		})
-		// Leave as-is (warning only) - frontend should handle providing subscription data
-	} else if validatedLocation.ServiceType != "subscription" && location.Subscription != nil {
-		v.logger.Warn("Subscription details provided but service type is not 'subscription'", map[string]any{
-			"location_id": location.ID,
-			"service_type": validatedLocation.ServiceType,
-			"name": location.Name,
-		})
-		// When subscription data is present but type doesn't match, correct the type
-		validatedLocation.ServiceType = "subscription"
-		v.logger.Debug("Auto-corrected service type to 'subscription' based on presence of subscription data", nil)
-	}
-
-	// Validate subscription if present
-	if location.Subscription != nil {
-		if location.ServiceType != "subscription" {
-			violations = append(violations,
-				"subscription data can only be provided when service_type is 'subscription'")
-		} else if validatedSubscription, err := v.validateSubscription(*location.Subscription); err != nil {
-			violations = append(violations, err.Error())
-		} else {
-			validatedLocation.Subscription = &validatedSubscription
-		}
+	// Validate subscription if present (only for subscription type)
+	if location.Subscription != nil && location.ServiceType == "subscription" {
+			if validatedSubscription, err := v.validateSubscription(*location.Subscription); err != nil {
+					violations = append(violations, err.Error())
+			} else {
+					validatedLocation.Subscription = &validatedSubscription
+			}
 	}
 
 	// Copy other fields that don't need validation

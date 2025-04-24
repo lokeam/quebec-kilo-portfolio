@@ -10,7 +10,6 @@ import type { OnlineService } from '@/features/dashboard/lib/types/online-servic
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 import { logger } from '@/core/utils/logger/logger';
 import {
-  BILLING_CYCLE_MAP,
   DIGITAL_SERVICE_DEFAULTS,
 } from '@/core/api/types/api.types';
 import { mapToApiServiceType, type ServiceType } from '@/shared/constants/service.constants';
@@ -85,17 +84,17 @@ export const createOnlineService = async (serviceData: CreateOnlineServiceReques
     service_type: mapToApiServiceType(serviceData.type as ServiceType),
     is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
     url: serviceData.metadata.service?.url && serviceData.metadata.service.url !== '#'
-      ? serviceData.metadata.service.url
-      : DIGITAL_SERVICE_DEFAULTS.URL,
+        ? serviceData.metadata.service.url
+        : DIGITAL_SERVICE_DEFAULTS.URL,
     ...(serviceData.metadata.service?.isSubscriptionService && {
-      subscription: {
-        billing_cycle: BILLING_CYCLE_MAP[serviceData.metadata.expenseType || ''] || DIGITAL_SERVICE_DEFAULTS.BILLING_CYCLE,
-        cost_per_cycle: serviceData.metadata.cost || 0,
-        next_payment_date: serviceData.metadata.nextPaymentDate?.toISOString() || new Date().toISOString(),
-        payment_method: serviceData.metadata.paymentMethod?.displayName || DIGITAL_SERVICE_DEFAULTS.PAYMENT_METHOD
-      }
+        subscription: {
+            billing_cycle: serviceData.metadata.billingPeriod || serviceData.metadata.expenseType || '1 month',
+            cost_per_cycle: serviceData.metadata.cost || 0,
+            next_payment_date: serviceData.metadata.nextPaymentDate?.toISOString() || new Date().toISOString(),
+            payment_method: serviceData.metadata.paymentMethod?.displayName || serviceData.metadata.service?.billing?.paymentMethod || 'None'
+        }
     })
-  };
+} ;
 
   try {
     const response = await axiosInstance.post<OnlineServiceResponse>(

@@ -8,98 +8,82 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 )
 
-// FormatDigitalLocationToFrontend converts a DigitalLocation model to frontend-compatible format
 func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]interface{} {
 	// Get logo name from service name
 	logoName := getLogoNameFromService(dl.Name)
 
 	result := map[string]interface{}{
-		"id":           dl.ID,
-		"name":         dl.Name,
-		"service_type": dl.ServiceType,
-		"is_active":    dl.IsActive,
-		"url":          dl.URL,
-		"logo":         logoName,
-		"label":        getDisplayName(dl.Name),
-		"created_at":   dl.CreatedAt.Format(time.RFC3339),
-		"updated_at":   dl.UpdatedAt.Format(time.RFC3339),
-		"isSubscriptionService": dl.ServiceType == models.ServiceTypeSubscription || dl.Subscription != nil,
+			"id":           dl.ID,
+			"name":         dl.Name,
+			"service_type": dl.ServiceType,
+			"is_active":    dl.IsActive,
+			"url":          dl.URL,
+			"logo":         logoName,
+			"label":        getDisplayName(dl.Name),
+			"created_at":   dl.CreatedAt.Format(time.RFC3339),
+			"updated_at":   dl.UpdatedAt.Format(time.RFC3339),
+			"isSubscriptionService": dl.ServiceType == models.ServiceTypeSubscription,
 	}
 
-	// Create billing object instead of including subscription
+	// Create billing object
 	if dl.Subscription != nil {
-		// For subscription services with subscription data
-		monthlyCost := formatCurrency(dl.Subscription.CostPerCycle)
-		quarterlyCost := formatCurrency(dl.Subscription.CostPerCycle * 3)
-		annualCost := formatCurrency(dl.Subscription.CostPerCycle * 12)
+			// For subscription services with subscription data
+			monthlyCost := formatCurrency(dl.Subscription.CostPerCycle)
+			quarterlyCost := formatCurrency(dl.Subscription.CostPerCycle * 3)
+			annualCost := formatCurrency(dl.Subscription.CostPerCycle * 12)
 
-		// Map backend billing cycle to frontend format
-		cycle := FormatBillingCycleToFrontend(dl.Subscription.BillingCycle)
+			// Map backend billing cycle to frontend format
+			cycle := FormatBillingCycleToFrontend(dl.Subscription.BillingCycle)
 
-		billingInfo := map[string]interface{}{
-			"cycle": cycle,
-			"fees": map[string]interface{}{
-				"monthly":   monthlyCost,
-				"quarterly": quarterlyCost,
-				"annual":    annualCost,
-			},
-			"paymentMethod": dl.Subscription.PaymentMethod,
-		}
-
-		// Add renewal date if available
-		if !dl.Subscription.NextPaymentDate.IsZero() {
-			month := dl.Subscription.NextPaymentDate.Format("January")
-			day := dl.Subscription.NextPaymentDate.Day()
-
-			billingInfo["renewalDate"] = map[string]interface{}{
-				"month": month,
-				"day":   day,
+			billingInfo := map[string]interface{}{
+					"cycle": cycle,
+					"fees": map[string]interface{}{
+							"monthly":   monthlyCost,
+							"quarterly": quarterlyCost,
+							"annual":    annualCost,
+					},
+					"paymentMethod": dl.Subscription.PaymentMethod,
 			}
-		} else {
-			// Default renewal date
-			billingInfo["renewalDate"] = map[string]interface{}{
-				"month": "January",
-				"day":   1,
-			}
-		}
 
-		result["billing"] = billingInfo
-	} else if dl.ServiceType == models.ServiceTypeSubscription {
-		// Default billing info for subscription services without subscription data
-		result["billing"] = map[string]interface{}{
-			"cycle": "1 month",
-			"fees": map[string]interface{}{
-				"monthly":   "$0.00",
-				"quarterly": "$0.00",
-				"annual":    "$0.00",
-			},
-			"paymentMethod": "None",
-			"renewalDate": map[string]interface{}{
-				"month": "January",
-				"day":   1,
-			},
-		}
+			// Add renewal date if available
+			if !dl.Subscription.NextPaymentDate.IsZero() {
+					month := dl.Subscription.NextPaymentDate.Format("January")
+					day := dl.Subscription.NextPaymentDate.Day()
+
+					billingInfo["renewalDate"] = map[string]interface{}{
+							"month": month,
+							"day":   day,
+					}
+			} else {
+					// Default renewal date
+					billingInfo["renewalDate"] = map[string]interface{}{
+							"month": "January",
+							"day":   1,
+					}
+			}
+
+			result["billing"] = billingInfo
 	} else {
-		// Non-subscription services
-		result["billing"] = map[string]interface{}{
-			"cycle": "NA",
-			"fees": map[string]interface{}{
-				"monthly":   "FREE",
-				"quarterly": "FREE",
-				"annual":    "FREE",
-			},
-			"paymentMethod": "None",
-			"renewalDate": map[string]interface{}{
-				"day":   "NA",
-				"month": "NA",
-			},
-		}
+			// Non-subscription services or subscription services without data (should never happen after validation)
+			result["billing"] = map[string]interface{}{
+					"cycle": "NA",
+					"fees": map[string]interface{}{
+							"monthly":   "FREE",
+							"quarterly": "FREE",
+							"annual":    "FREE",
+					},
+					"paymentMethod": "None",
+					"renewalDate": map[string]interface{}{
+							"day":   "NA",
+							"month": "NA",
+					},
+			}
 	}
 
 	if len(dl.Items) > 0 {
-		result["items"] = dl.Items
+			result["items"] = dl.Items
 	} else {
-		result["items"] = []models.Game{}
+			result["items"] = []models.Game{}
 	}
 
 	return result
