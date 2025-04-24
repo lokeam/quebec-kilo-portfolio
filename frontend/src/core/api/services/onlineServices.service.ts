@@ -134,7 +134,9 @@ export const updateOnlineService = async (serviceData: CreateOnlineServiceReques
     name: serviceData.name,
     service_type: serviceData.type,
     is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
-    url: serviceData.metadata.service?.url || '#',
+    url: serviceData.metadata.service?.url && serviceData.metadata.service.url !== '#'
+      ? serviceData.metadata.service.url
+      : DIGITAL_SERVICE_DEFAULTS.URL,
     ...(serviceData.metadata.service?.isSubscriptionService && {
       subscription: {
         billing_cycle: serviceData.metadata.billingPeriod || serviceData.metadata.expenseType || '1  month',

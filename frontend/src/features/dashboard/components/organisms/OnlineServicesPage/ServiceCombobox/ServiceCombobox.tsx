@@ -1,26 +1,25 @@
-import { useMemo, useCallback, useState } from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/shared/components/ui/utils"
-import { Button } from "@/shared/components/ui/button"
+import { useMemo, useCallback, useState } from 'react';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/shared/components/ui/utils';
+import { Button } from '@/shared/components/ui/button';
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/shared/components/ui/command"
+} from '@/shared/components/ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/shared/components/ui/popover"
-import { useDigitalServicesCatalog } from "@/core/api/queries/useDigitalServicesCatalog"
-import type { DigitalServiceItem } from "@/core/api/services/digitalServices.service"
-import { FALLBACK_SERVICES } from "@/core/api/services/digitalServices.service"
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services'
-import type { ServiceType } from '@/shared/constants/service.constants'
-import type { ServiceTierName } from '@/features/dashboard/lib/types/online-services/tiers'
-import { BILLING_CYCLES } from '@/shared/constants/payment'
+} from '@/shared/components/ui/popover';
+import { useDigitalServicesCatalog } from '@/core/api/queries/useDigitalServicesCatalog';
+import type { DigitalServiceItem } from '@/core/api/services/digitalServices.service';
+import { FALLBACK_SERVICES } from '@/core/api/services/digitalServices.service';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import { SERVICE_STATUS_CODES, SERVICE_TYPES } from '@/shared/constants/service.constants';
+import type { ServiceTierName } from '@/features/dashboard/lib/types/online-services/tiers';
 
 interface ServiceComboboxProps {
   onServiceSelect: (service: OnlineService) => void;
@@ -28,6 +27,38 @@ interface ServiceComboboxProps {
   emptyMessage?: string;
   className?: string;
 }
+
+const transformToOnlineService = (service: DigitalServiceItem): OnlineService => ({
+  id: service.id,
+  name: service.name,
+  label: service.name,
+  logo: service.logo,
+  url: service.url || '#',
+  status: SERVICE_STATUS_CODES.ACTIVE,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  isSubscriptionService: service.isSubscriptionService,
+  type: service.isSubscriptionService ? SERVICE_TYPES.SUBSCRIPTION : SERVICE_TYPES.ONLINE,
+  tier: {
+    currentTier: 'standard' as ServiceTierName,
+    availableTiers: [{
+      id: 'tier-standard',
+      name: 'standard' as ServiceTierName,
+      features: [],
+      isDefault: true
+    }]
+  },
+  features: [],
+  billing: {
+    cycle: 'NA',
+    fees: {
+      monthly: '0',
+      quarterly: '0',
+      annual: '0'
+    },
+    paymentMethod: 'Generic'
+  }
+});
 
 export function ServiceCombobox({
   onServiceSelect,
@@ -60,36 +91,7 @@ export function ServiceCombobox({
     console.log('Original Service:', service);
     setSelectedService(service);
     setOpen(false);
-    // Transform DigitalServiceItem into OnlineService
-    const onlineService: OnlineService = {
-      id: service.id,
-      name: service.name,
-      label: service.name,
-      logo: service.logo,
-      type: service.isSubscriptionService ? 'subscription' : 'online' as ServiceType,
-      isSubscriptionService: service.isSubscriptionService || false,
-      status: 'active',
-      url: '#',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      features: [],
-      tier: {
-        currentTier: 'standard' as ServiceTierName,
-        availableTiers: [{
-          name: 'standard' as ServiceTierName,
-          features: [],
-          id: 'standard',
-          isDefault: true
-        }]
-      },
-      billing: service.isSubscriptionService ? {
-        cycle: BILLING_CYCLES.MONTHLY,
-        fees: {
-          monthly: '0'
-        },
-        paymentMethod: 'Generic'
-      } : undefined
-    };
+    const onlineService = transformToOnlineService(service);
     console.log('Transformed Service:', onlineService);
     onServiceSelect(onlineService);
   }, [onServiceSelect]);

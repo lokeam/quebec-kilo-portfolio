@@ -57,7 +57,7 @@ import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/R
 
 
 // Utils
-import { ServiceCombobox } from '../../ServiceCombobox/ServiceCombobox';
+import { ServiceCombobox } from '../ServiceCombobox/ServiceCombobox';
 import { createServiceType, DIGITAL_SERVICE_DEFAULTS } from '@/core/api/types/api.types';
 
 export type OnlineServiceFormData = {
