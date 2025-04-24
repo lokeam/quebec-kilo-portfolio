@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/locations/digital/formatters"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
@@ -98,7 +99,7 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 	// Convert backend model to frontend-compatible format
 	frontendLocations := make([]map[string]interface{}, len(locations))
 	for i, loc := range locations {
-		frontendLocations[i] = loc.ToFrontendDigitalLocation()
+		frontendLocations[i] = formatters.FormatDigitalLocationToFrontend(&loc)
 	}
 
 	// Log a sample of the transformed data
@@ -193,7 +194,7 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 	}
 
 	// Convert to frontend format
-	frontendLocation := location.ToFrontendDigitalLocation()
+	frontendLocation := formatters.FormatDigitalLocationToFrontend(&location)
 
 	response := struct {
 			Success  bool                   `json:"success"`
@@ -268,6 +269,8 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		subscription.LocationID = digitalLocation.ID
 		subscription.CreatedAt = now
 		subscription.UpdatedAt = now
+		// Format billing cycle to backend format
+		subscription.BillingCycle = formatters.FormatBillingCycleToBackend(subscription.BillingCycle)
 		digitalLocation.Subscription = &subscription
 	}
 
@@ -293,7 +296,7 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 	}
 
 	// Convert to frontend format
-	frontendLocation := createdLocation.ToFrontendDigitalLocation()
+	frontendLocation := formatters.FormatDigitalLocationToFrontend(&createdLocation)
 
 	response := struct {
 			Success  bool                   `json:"success"`
@@ -479,7 +482,7 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 	}
 
 	// Convert to frontend format
-	frontendLocation := updatedLocation.ToFrontendDigitalLocation()
+	frontendLocation := formatters.FormatDigitalLocationToFrontend(&updatedLocation)
 
 	response := struct {
 		Success  bool                   `json:"success"`

@@ -48,7 +48,8 @@ var ValidPaymentMethods = map[string]bool{
 var ValidBillingCycles = map[string]bool{
 	"monthly": true,
 	"quarterly": true,
-	"yearly": true,
+	"bi-annually": true,
+	"annually": true,
 }
 
 type DigitalValidator struct {
@@ -104,15 +105,11 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 		validatedLocation.URL = sanitizedURL
 	}
 
-	// Validate service type first
-	if location.ServiceType == "" {
-		v.logger.Warn("Service type is empty, defaulting to 'basic'", nil)
-		validatedLocation.ServiceType = "basic"
-	} else if !ValidServiceTypes[location.ServiceType] {
-		v.logger.Warn("Invalid service type, defaulting to 'basic'", map[string]any{
-			"provided_type": location.ServiceType,
-		})
-		validatedLocation.ServiceType = "basic"
+	// Validate service type
+	if location.ServiceType != "basic" && location.ServiceType != "subscription" {
+		violations = append(violations, "Invalid service type. Must be 'basic' or 'subscription'")
+	} else if location.ServiceType == "subscription" && location.Subscription == nil {
+		violations = append(violations, "Subscription data is required for subscription service type")
 	} else {
 		validatedLocation.ServiceType = location.ServiceType
 	}
@@ -269,7 +266,7 @@ func (v *DigitalValidator) validateSubscription(subscription models.Subscription
 
 	// Validate payment method
 	if !ValidPaymentMethods[subscription.PaymentMethod] {
-		violations = append(violations, fmt.Sprintf("invalid payment method: %s", subscription.PaymentMethod))
+		violations = append(violations, fmt.Sprintf("Invalid payment method: %s", subscription.PaymentMethod))
 	} else {
 		validatedSubscription.PaymentMethod = subscription.PaymentMethod
 	}
@@ -310,7 +307,7 @@ func (v *DigitalValidator) ValidatePayment(payment models.Payment) (models.Payme
 
 	// Validate payment method
 	if !ValidPaymentMethods[payment.PaymentMethod] {
-		violations = append(violations, fmt.Sprintf("invalid payment method: %s", payment.PaymentMethod))
+		violations = append(violations, fmt.Sprintf("Invalid payment method: %s", payment.PaymentMethod))
 	} else {
 		validatedPayment.PaymentMethod = payment.PaymentMethod
 	}
