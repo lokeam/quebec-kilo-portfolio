@@ -236,6 +236,8 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 					return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
 			}
 
+			locations[i] = loc.DigitalLocation
+
 			// If subscription data exists, add it to the location
 			if loc.SubID != nil {
 					da.logger.Debug("Found subscription data for location", map[string]any{
@@ -245,7 +247,7 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 							"costPerCycle": *loc.CostPerCycle,
 					})
 
-					loc.Subscription = &models.Subscription{
+					locations[i].Subscription = &models.Subscription{
 							ID:              *loc.SubID,
 							LocationID:      loc.ID,
 							BillingCycle:    *loc.BillingCycle,
@@ -256,8 +258,6 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 							UpdatedAt:       *loc.SubUpdatedAt,
 					}
 			}
-
-			locations[i] = loc.DigitalLocation
 	}
 
 	da.logger.Debug("GetUserDigitalLocations success", map[string]any{
