@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
@@ -17,6 +18,7 @@ const (
 	MaxURLLength = 2048
 	MaxTransactionIDLength = 100
 	MaxCostPerCycle = 1000000.0 // Maximum allowed cost per cycle
+	MaxBulkSize = 100 // Maximum number of location IDs allowed in bulk operations
 )
 
 // Valid service types from the catalog
@@ -327,4 +329,149 @@ func (v *DigitalValidator) ValidatePayment(payment models.Payment) (models.Payme
 	}
 
 	return validatedPayment, nil
+}
+
+func (v *DigitalValidator) ValidateDigitalLocationsBulk(
+	locations []models.DigitalLocation,
+) ([]models.DigitalLocation, error) {
+	v.logger.Debug("Validating digital locations in bulk", map[string]any{
+		"count": len(locations),
+	})
+
+	if len(locations) == 0 {
+		return nil, &validationErrors.ValidationError{
+			Field:   "locations",
+			Message: "no locations provided for validation",
+		}
+	}
+
+	var validatedLocations []models.DigitalLocation
+	var violations []string
+
+	for i := 0; i < len(locations); i++ {
+		location := locations[i]
+
+		v.logger.Debug("Validating location in bulk", map[string]any{
+			"index": i,
+			"location_id": location.ID,
+		})
+
+		validatedLocation, err := v.ValidateDigitalLocation(location)
+		if err != nil {
+			// Add the error to violations with index information
+			if validationErr, ok := err.(*validationErrors.ValidationError); ok {
+				violations = append(violations, fmt.Sprintf("location[%d]: %s", i, validationErr.Message))
+			} else {
+				violations = append(violations, fmt.Sprintf("location[%d]: %v", i, err))
+			}
+			continue
+		}
+
+		validatedLocations = append(validatedLocations, validatedLocation)
+	}
+
+	if len(violations) > 0 {
+		v.logger.Debug("Bulk validation failed", map[string]any{
+			"violations": violations,
+			"validated_count": len(validatedLocations),
+			"total_count": len(locations),
+		})
+
+		// If no locations were validated successfully, return an error
+		if len(validatedLocations) == 0 {
+			return nil, &validationErrors.ValidationError{
+				Field:   "locations",
+				Message: fmt.Sprintf("all locations failed validation: %v", violations),
+			}
+		}
+
+		// If some locations were validated successfully, return them with a warning
+		v.logger.Warn("Partial validation success", map[string]any{
+			"validated_count": len(validatedLocations),
+			"total_count": len(locations),
+			"violations": violations,
+		})
+	}
+
+	v.logger.Debug("Bulk validation completed", map[string]any{
+		"validated_count": len(validatedLocations),
+		"total_count": len(locations),
+	})
+
+	return validatedLocations, nil
+}
+
+// ValidateRemoveDigitalLocation validates location IDs for deletion operations.
+// It handles both single and bulk deletion scenarios.
+func (v *DigitalValidator) ValidateRemoveDigitalLocation(
+	userID string,
+	locationIDs []string,
+) error {
+	v.logger.Debug("Validating location IDs for deletion", map[string]any{
+		"userID": userID,
+		"locationIDsCount": len(locationIDs),
+		"isBulkOperation": len(locationIDs) > 1,
+	})
+
+	// Validate userID
+	if userID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "userID",
+			Message: "user ID cannot be empty",
+		}
+	}
+
+	// Validate locationIDs array
+	if len(locationIDs) == 0 {
+		return &validationErrors.ValidationError{
+			Field:   "locationIDs",
+			Message: "no location IDs provided for deletion",
+		}
+	}
+
+	// Enforce maximum number of IDs in bulk operations
+	if len(locationIDs) > MaxBulkSize {
+		return &validationErrors.ValidationError{
+			Field:   "locationIDs",
+			Message: fmt.Sprintf("too many location IDs, maximum allowed is %d", MaxBulkSize),
+		}
+	}
+
+	// Validate each location ID
+	for _, id := range locationIDs {
+		// Check for empty ID
+		if id == "" {
+			return &validationErrors.ValidationError{
+				Field:   "locationIDs",
+				Message: "location ID cannot be empty",
+			}
+		}
+
+		// Validate UUID format
+		if _, err := uuid.Parse(id); err != nil {
+			return &validationErrors.ValidationError{
+				Field:   "locationIDs",
+				Message: fmt.Sprintf("invalid location ID format: %s", id),
+			}
+		}
+	}
+
+	// Check for duplicates
+	seen := make(map[string]bool)
+	for _, id := range locationIDs {
+		if seen[id] {
+			return &validationErrors.ValidationError{
+				Field:   "locationIDs",
+				Message: fmt.Sprintf("duplicate location ID: %s", id),
+			}
+		}
+		seen[id] = true
+	}
+
+	v.logger.Debug("Location IDs validation successful", map[string]any{
+		"userID": userID,
+		"count": len(locationIDs),
+	})
+
+	return nil
 }

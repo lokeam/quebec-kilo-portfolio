@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -23,6 +24,13 @@ type DigitalDbAdapter struct {
 	client   *postgres.PostgresClient
 	db       *sqlx.DB
 	logger   interfaces.Logger
+}
+
+// DeletionResult tracks the results of a bulk deletion operation
+type DeletionResult struct {
+	SuccessCount int64
+	FailedIDs    []string
+	Error        error
 }
 
 func NewDigitalDbAdapter(appContext *appcontext.AppContext) (*DigitalDbAdapter, error) {
@@ -411,6 +419,11 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 		return ErrUnauthorizedLocation
 	}
 
+	// Set default service_type if not provided
+	if location.ServiceType == "" {
+		location.ServiceType = "basic"
+	}
+
 	now := time.Now()
 	query := `
 			UPDATE digital_locations
@@ -464,58 +477,94 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 }
 
 // DELETE
-func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID string, locationID string) error {
+func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+	isBulk := len(locationIDs) > 1
 	da.logger.Debug("RemoveDigitalLocation called", map[string]any{
-		"userID":     userID,
-		"locationID": locationID,
+		"userID":         userID,
+		"locationIDs":    locationIDs,
+		"isBulkOperation": isBulk,
 	})
 
-	return postgres.WithTransaction(
-		ctx,
-		da.db,
-		da.logger,
-		func(tx *sqlx.Tx) error {
-			// First try to find the location by ID or name
-			var id string
-			checkQuery := `
-				SELECT id FROM digital_locations
-				WHERE (
-					(id::text = $1) OR
-					(name = $1) OR
-					(LOWER(name) = LOWER($1))
-				) AND user_id = $2
-			`
+	// Validate input parameters
+	if userID == "" {
+		return 0, fmt.Errorf("user ID cannot be empty")
+	}
 
-			err := tx.QueryRowxContext(ctx, checkQuery, locationID, userID).Scan(&id)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return fmt.Errorf("digital location not found or does not belong to user")
-				}
-				return fmt.Errorf("error checking digital location: %w", err)
-			}
+	if len(locationIDs) == 0 {
+		return 0, fmt.Errorf("no location IDs provided for deletion")
+	}
 
-			// Delete the location using the found ID
-			deleteQuery := `
-				DELETE FROM digital_locations
-				WHERE id = $1 AND user_id = $2
-			`
+	var totalDeleted int64
 
-			result, err := tx.ExecContext(ctx, deleteQuery, id, userID)
-			if err != nil {
-				return fmt.Errorf("error deleting digital location: %w", err)
-			}
+	// Use the transaction utility
+	err := postgres.WithTransaction(ctx, da.db, da.logger, func(tx *sqlx.Tx) error {
+		// First verify all locations exist and belong to the user
+		checkQuery := `
+			SELECT COUNT(*) FROM digital_locations
+			WHERE id = ANY($1) AND user_id = $2
+		`
+		var count int
+		err := tx.QueryRowxContext(ctx, checkQuery, pq.Array(locationIDs), userID).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("error verifying locations: %w", err)
+		}
+		if count != len(locationIDs) {
+			return fmt.Errorf("one or more locations not found or do not belong to user")
+		}
 
-			rowsAffected, err := result.RowsAffected()
-			if err != nil {
-				return fmt.Errorf("error getting rows affected: %w", err)
-			}
+		// Delete all related records and locations in one go
+		deleteQuery := `
+			WITH deleted_related AS (
+				DELETE FROM digital_location_subscriptions
+				WHERE digital_location_id = ANY($1)
+			),
+			deleted_games AS (
+				DELETE FROM digital_game_locations
+				WHERE digital_location_id = ANY($1)
+			),
+			deleted_payments AS (
+				DELETE FROM digital_location_payments
+				WHERE digital_location_id = ANY($1)
+			)
+			DELETE FROM digital_locations
+			WHERE id = ANY($1) AND user_id = $2
+		`
 
-			if rowsAffected == 0 {
-				return fmt.Errorf("digital location not found or not deleted")
-			}
+		// Execute the delete query
+		result, err := tx.ExecContext(ctx, deleteQuery, pq.Array(locationIDs), userID)
+		if err != nil {
+			return fmt.Errorf("error executing delete: %w", err)
+		}
 
-			return nil
+		// Get the number of deleted rows
+		totalDeleted, err = result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error getting rows affected: %w", err)
+		}
+
+		// If not all locations were deleted, return an error
+		if totalDeleted < int64(len(locationIDs)) {
+			return fmt.Errorf("partial deletion: %d of %d locations deleted", totalDeleted, len(locationIDs))
+		}
+
+		da.logger.Debug("RemoveDigitalLocation success", map[string]any{
+			"totalDeleted":    totalDeleted,
+			"isBulkOperation": isBulk,
 		})
+
+		return nil
+	})
+
+	if err != nil {
+		da.logger.Error("RemoveDigitalLocation failed", map[string]any{
+			"error":           err,
+			"totalDeleted":    totalDeleted,
+			"isBulkOperation": isBulk,
+		})
+		return totalDeleted, err
+	}
+
+	return totalDeleted, nil
 }
 
 // FindDigitalLocationByName finds a digital location by name and user ID

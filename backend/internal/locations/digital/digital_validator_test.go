@@ -13,8 +13,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/lokeam/qko-beta/internal/shared/logger"
 	sanitizer "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 )
+
+type MockSanitizer struct{}
+
+func (m *MockSanitizer) SanitizeString(input string) (string, error) {
+	return input, nil
+}
+
+func (m *MockSanitizer) SanitizeSearchQuery(input string) (string, error) {
+	return input, nil
+}
 
 /*
 Behavior:
@@ -339,7 +350,7 @@ func TestDigitalValidator(t *testing.T) {
 	/*
 		GIVEN a subscription with an invalid payment method
 		WHEN validateSubscription() is called
-		THEN the method returns an error stating "invalid payment method"
+		THEN the method returns an error stating "Invalid payment method: Invalid"
 	*/
 	t.Run(`validateSubscription() rejects invalid payment methods`, func(t *testing.T) {
 		testSubscription := models.Subscription{
@@ -355,7 +366,7 @@ func TestDigitalValidator(t *testing.T) {
 			t.Fatalf("expected an error for invalid payment method, but got nil")
 		}
 
-		expectedError := "invalid payment method: Invalid"
+		expectedError := "Invalid payment method: Invalid"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -452,7 +463,7 @@ func TestDigitalValidator(t *testing.T) {
 	/*
 		GIVEN a payment with an invalid payment method
 		WHEN ValidatePayment() is called
-		THEN the method returns an error stating "invalid payment method"
+		THEN the method returns an error stating "Invalid payment method: Invalid"
 	*/
 	t.Run(`ValidatePayment() rejects invalid payment methods`, func(t *testing.T) {
 		testPayment := models.Payment{
@@ -467,7 +478,7 @@ func TestDigitalValidator(t *testing.T) {
 			t.Fatalf("expected an error for invalid payment method, but got nil")
 		}
 
-		expectedError := "invalid payment method: Invalid"
+		expectedError := "Invalid payment method: Invalid"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -565,7 +576,7 @@ func TestDigitalValidator(t *testing.T) {
 	/*
 		GIVEN a location with an invalid service type
 		WHEN ValidateDigitalLocation() is called
-		THEN the method returns an error stating "invalid service type"
+		THEN the method returns an error stating "Invalid service type. Must be 'basic' or 'subscription'"
 	*/
 	t.Run(`ValidateDigitalLocation() rejects invalid service types`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
@@ -580,7 +591,7 @@ func TestDigitalValidator(t *testing.T) {
 			t.Fatalf("expected an error for invalid service type, but got nil")
 		}
 
-		expectedError := "invalid service type"
+		expectedError := "Invalid service type. Must be 'basic' or 'subscription'"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -665,13 +676,17 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 	// Create a fixed time for testing
 	fixedTime := time.Date(2024, 4, 18, 0, 0, 0, 0, time.UTC)
 
-	// Create validator with fixed time source
+	// Create validator with fixed time source and proper logger
 	sanitizer, err := sanitizer.NewSanitizer()
 	require.NoError(t, err)
 
+	log, err := logger.NewLogger()
+	require.NoError(t, err)
+
 	validator := &DigitalValidator{
-		sanitizer: sanitizer,
+		sanitizer:  sanitizer,
 		timeSource: func() time.Time { return fixedTime },
+		logger:     *log,
 	}
 
 	tests := []struct {
@@ -731,7 +746,7 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
 			},
 			wantErr:     true,
-			errContains: "invalid payment method",
+			errContains: "Invalid payment method: invalid",
 		},
 	}
 
@@ -752,4 +767,95 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			assert.Equal(t, tt.subscription.NextPaymentDate, got.NextPaymentDate)
 		})
 	}
+}
+
+func TestValidateRemoveDigitalLocation(t *testing.T) {
+	validator, err := NewDigitalValidator(&MockSanitizer{})
+	if err != nil {
+		t.Fatalf("Failed to create validator: %v", err)
+	}
+
+	t.Run("empty user ID", func(t *testing.T) {
+		err := validator.ValidateRemoveDigitalLocation("", []string{"123e4567-e89b-12d3-a456-426614174000"})
+		if err == nil {
+			t.Error("Expected error for empty user ID")
+		}
+		if !strings.Contains(err.Error(), "user ID cannot be empty") {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("empty location IDs", func(t *testing.T) {
+		err := validator.ValidateRemoveDigitalLocation("user1", []string{})
+		if err == nil {
+			t.Error("Expected error for empty location IDs")
+		}
+		if !strings.Contains(err.Error(), "no location IDs provided") {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("too many location IDs", func(t *testing.T) {
+		ids := make([]string, MaxBulkSize+1)
+		for i := range ids {
+			ids[i] = fmt.Sprintf("123e4567-e89b-12d3-a456-426614174%03d", i)
+		}
+		err := validator.ValidateRemoveDigitalLocation("user1", ids)
+		if err == nil {
+			t.Error("Expected error for too many location IDs")
+		}
+		if !strings.Contains(err.Error(), fmt.Sprintf("too many location IDs, maximum allowed is %d", MaxBulkSize)) {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("empty location ID", func(t *testing.T) {
+		err := validator.ValidateRemoveDigitalLocation("user1", []string{""})
+		if err == nil {
+			t.Error("Expected error for empty location ID")
+		}
+		if !strings.Contains(err.Error(), "location ID cannot be empty") {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("invalid UUID format", func(t *testing.T) {
+		err := validator.ValidateRemoveDigitalLocation("user1", []string{"invalid-uuid"})
+		if err == nil {
+			t.Error("Expected error for invalid UUID format")
+		}
+		if !strings.Contains(err.Error(), "invalid location ID format") {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("duplicate location IDs", func(t *testing.T) {
+		duplicateID := "123e4567-e89b-12d3-a456-426614174000"
+		err := validator.ValidateRemoveDigitalLocation("user1", []string{duplicateID, duplicateID})
+		if err == nil {
+			t.Error("Expected error for duplicate location IDs")
+		}
+		if !strings.Contains(err.Error(), "duplicate location ID") {
+			t.Errorf("Unexpected error message: %v", err)
+		}
+	})
+
+	t.Run("single valid location ID", func(t *testing.T) {
+		err := validator.ValidateRemoveDigitalLocation("user1", []string{"123e4567-e89b-12d3-a456-426614174000"})
+		if err != nil {
+			t.Errorf("Unexpected error for valid location ID: %v", err)
+		}
+	})
+
+	t.Run("multiple valid location IDs", func(t *testing.T) {
+		ids := []string{
+			"123e4567-e89b-12d3-a456-426614174000",
+			"123e4567-e89b-12d3-a456-426614174001",
+			"123e4567-e89b-12d3-a456-426614174002",
+		}
+		err := validator.ValidateRemoveDigitalLocation("user1", ids)
+		if err != nil {
+			t.Errorf("Unexpected error for valid location IDs: %v", err)
+		}
+	})
 }

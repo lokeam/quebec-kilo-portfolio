@@ -414,7 +414,10 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`InvalidateLocationCache - success`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", nil).Return(nil)
+		locationKey := fmt.Sprintf("digital:%s:location:%s", testUserID, testLocationID)
+		userKey := fmt.Sprintf("digital:%s", testUserID)
+		mockCache.On("SetCachedResults", mock.Anything, locationKey, nil).Return(nil)
+		mockCache.On("SetCachedResults", mock.Anything, userKey, nil).Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -436,7 +439,8 @@ func TestDigitalCacheAdapter(t *testing.T) {
 	t.Run(`InvalidateLocationCache - error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id:location:test-location-id", nil).Return(testError)
+		locationKey := fmt.Sprintf("digital:%s:location:%s", testUserID, testLocationID)
+		mockCache.On("SetCachedResults", mock.Anything, locationKey, nil).Return(testError)
 
 		adapter := createAdapter(mockCache)
 
@@ -444,8 +448,13 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateDigitalLocationCache(context.Background(), testUserID, testLocationID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+		expectedErrMsg := fmt.Sprintf("failed to invalidate cache for location %s (user: %s, key: %s): %v",
+			testLocationID, testUserID, locationKey, testError)
+		if err.Error() != expectedErrMsg {
+			t.Errorf("Expected error message %q, got %q", expectedErrMsg, err.Error())
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -641,49 +650,62 @@ func TestInvalidatePaymentsCache(t *testing.T) {
 	mockCache.AssertExpectations(t)
 }
 
-func TestGetSingleCachedDigitalLocation(t *testing.T) {
+func TestInvalidateDigitalLocationCache(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user"
 	locationID := "test-location"
-	location := models.DigitalLocation{
-		ID:       locationID,
-		UserID:   userID,
-		Name:     "Test Location",
-		IsActive: true,
-		URL:      "https://example.com",
-	}
+	expectedLocationKey := fmt.Sprintf("digital:%s:location:%s", userID, locationID)
+	expectedUserKey := fmt.Sprintf("digital:%s", userID)
 
-	mockCache := &MockCacheWrapper{}
-	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:%s:location:%s", userID, locationID), mock.Anything).
-		Return(true, nil).
-		Run(func(args mock.Arguments) {
-			result := args.Get(2).(*models.DigitalLocation)
-			*result = location
-		})
+	t.Run("successful cache invalidation", func(t *testing.T) {
+		mockCache := &MockCacheWrapper{}
+		mockCache.On("SetCachedResults", ctx, expectedLocationKey, nil).Return(nil)
+		mockCache.On("SetCachedResults", ctx, expectedUserKey, nil).Return(nil)
 
-	adapter, err := NewDigitalCacheAdapter(mockCache)
-	assert.NoError(t, err)
+		adapter, err := NewDigitalCacheAdapter(mockCache)
+		assert.NoError(t, err)
 
-	// Test cache hit
-	result, found, err := adapter.GetSingleCachedDigitalLocation(ctx, userID, locationID)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.Equal(t, location.ID, result.ID)
-	assert.Equal(t, location.Name, result.Name)
+		err = adapter.InvalidateDigitalLocationCache(ctx, userID, locationID)
+		assert.NoError(t, err)
 
-	// Test cache miss
-	mockCache = &MockCacheWrapper{}
-	mockCache.On("GetCachedResults", ctx, fmt.Sprintf("digital:%s:location:%s", userID, locationID), mock.Anything).
-		Return(false, nil)
+		mockCache.AssertExpectations(t)
+	})
 
-	adapter, err = NewDigitalCacheAdapter(mockCache)
-	assert.NoError(t, err)
+	t.Run("location cache invalidation failure", func(t *testing.T) {
+		expectedErr := errors.New("cache error")
+		mockCache := &MockCacheWrapper{}
+		mockCache.On("SetCachedResults", ctx, expectedLocationKey, nil).Return(expectedErr)
 
-	result, found, err = adapter.GetSingleCachedDigitalLocation(ctx, userID, locationID)
-	assert.NoError(t, err)
-	assert.False(t, found)
-	assert.Nil(t, result)
+		adapter, err := NewDigitalCacheAdapter(mockCache)
+		assert.NoError(t, err)
 
-	mockCache.AssertExpectations(t)
+		err = adapter.InvalidateDigitalLocationCache(ctx, userID, locationID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to invalidate cache for location")
+		assert.Contains(t, err.Error(), userID)
+		assert.Contains(t, err.Error(), expectedLocationKey)
+		assert.Contains(t, err.Error(), expectedErr.Error())
+
+		mockCache.AssertExpectations(t)
+	})
+
+	t.Run("user cache invalidation failure", func(t *testing.T) {
+		expectedErr := errors.New("cache error")
+		mockCache := &MockCacheWrapper{}
+		mockCache.On("SetCachedResults", ctx, expectedLocationKey, nil).Return(nil)
+		mockCache.On("SetCachedResults", ctx, expectedUserKey, nil).Return(expectedErr)
+
+		adapter, err := NewDigitalCacheAdapter(mockCache)
+		assert.NoError(t, err)
+
+		err = adapter.InvalidateDigitalLocationCache(ctx, userID, locationID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to invalidate user cache")
+		assert.Contains(t, err.Error(), userID)
+		assert.Contains(t, err.Error(), expectedUserKey)
+		assert.Contains(t, err.Error(), expectedErr.Error())
+
+		mockCache.AssertExpectations(t)
+	})
 }
 

@@ -27,7 +27,8 @@ type DigitalService interface {
 	FindDigitalLocationByName(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
 	AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error)
 	UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
-	RemoveDigitalLocation(ctx context.Context, userID, locationID string) error
+	RemoveDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error)
+	RemoveDigitalLocationsBulk(ctx context.Context, userID string, locationIDs []string) (int64, error)
 
 	// Game Management Operations
 	AddGameToDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error
@@ -334,35 +335,59 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	return nil
 }
 
-// DELETE
-func (gds *GameDigitalService) RemoveDigitalLocation(ctx context.Context, userID, locationID string) error {
-	gds.logger.Debug("Removing digital location", map[string]any{"userID": userID, "locationID": locationID})
+// RemoveDigitalLocation removes one or more digital locations for a user.
+// It handles both single and bulk deletion operations.
+func (gds *GameDigitalService) RemoveDigitalLocation(
+	ctx context.Context,
+	userID string,
+	locationIDs []string,
+) (int64, error) {
+	gds.logger.Debug("RemoveDigitalLocation called", map[string]any{
+		"userID":      userID,
+		"locationIDs": locationIDs,
+		"isBulk":      len(locationIDs) > 1,
+	})
 
-	// Remove from database
-	if err := gds.dbAdapter.RemoveDigitalLocation(ctx, userID, locationID); err != nil {
-		gds.logger.Error("Failed to delete digital location from DB", map[string]any{"error": err})
-		return err
+	// Validate input
+	if err := gds.validator.ValidateRemoveDigitalLocation(userID, locationIDs); err != nil {
+		gds.logger.Error("Validation failed for RemoveDigitalLocation", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationIDs": locationIDs,
+		})
+		return 0, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Get updated locations from DB
-	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
+	// Remove locations from database
+	count, err := gds.dbAdapter.RemoveDigitalLocation(ctx, userID, locationIDs)
 	if err != nil {
-		gds.logger.Error("Failed to get updated locations after deletion", map[string]any{"error": err})
-		// Don't return error here, just invalidate caches
-		locations = []models.DigitalLocation{}
+		gds.logger.Error("Failed to remove digital locations from database", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationIDs": locationIDs,
+		})
+		return 0, fmt.Errorf("failed to remove digital locations: %w", err)
 	}
 
-	// Update the cache with current locations
-	if err := gds.cacheWrapper.SetCachedDigitalLocations(ctx, userID, locations); err != nil {
-		gds.logger.Error("Failed to update locations cache after deletion", map[string]any{"error": err})
+	// Invalidate cache for each location
+	for _, locationID := range locationIDs {
+		if err := gds.cacheWrapper.InvalidateDigitalLocationCache(ctx, userID, locationID); err != nil {
+			gds.logger.Error("Failed to invalidate cache for location", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationID": locationID,
+			})
+			// Continue with other invalidations even if one fails
+		}
 	}
 
-	// Invalidate the specific location cache
-	if err := gds.cacheWrapper.InvalidateDigitalLocationCache(ctx, userID, locationID); err != nil {
-		gds.logger.Error("Failed to invalidate location cache", map[string]any{"error": err})
-	}
+	gds.logger.Debug("RemoveDigitalLocation completed successfully", map[string]any{
+		"userID": userID,
+		"locationIDs": locationIDs,
+		"deletedCount": count,
+	})
 
-	return nil
+	return count, nil
 }
 
 // Subscription management
@@ -574,3 +599,5 @@ func (gds *GameDigitalService) GetGamesByDigitalLocationID(ctx context.Context, 
 
 	return games, nil
 }
+
+// isRetryableError determines if an error is retryable

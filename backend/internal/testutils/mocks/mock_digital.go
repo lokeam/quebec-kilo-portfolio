@@ -8,6 +8,7 @@ import (
 
 type MockDigitalValidator struct {
 	ValidateDigitalLocationFunc func(digitalLocation models.DigitalLocation) (models.DigitalLocation, error)
+	ValidateDigitalLocationsBulkFunc func(locations []models.DigitalLocation) ([]models.DigitalLocation, error)
 }
 
 func (m *MockDigitalValidator) ValidateDigitalLocation(
@@ -19,19 +20,31 @@ func (m *MockDigitalValidator) ValidateDigitalLocation(
 	return digitalLocation, nil
 }
 
+func (m *MockDigitalValidator) ValidateDigitalLocationsBulk(
+	locations []models.DigitalLocation,
+) ([]models.DigitalLocation, error) {
+	return m.ValidateDigitalLocationsBulkFunc(locations)
+}
+
 type MockDigitalDbAdapter struct {
 	GetDigitalLocationFunc func(ctx context.Context, userID, digitalLocationID string) (models.DigitalLocation, error)
 	GetDigitalLocationsFunc func(ctx context.Context, userID string) ([]models.DigitalLocation, error)
 	AddDigitalLocationFunc func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) (models.DigitalLocation, error)
 	UpdateDigitalLocationFunc func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) error
-	DeleteDigitalLocationFunc func(ctx context.Context, userID, digitalLocationID string) error
+	RemoveDigitalLocationFunc func(ctx context.Context, userID string, locationIDs []string) (int64, error)
 	FindDigitalLocationByNameFunc func(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
+
+	// Game Management Operations
+	AddGameToDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
+	RemoveGameFromDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
+	GetGamesByDigitalLocationIDFunc func(ctx context.Context, userID string, locationID string) ([]models.Game, error)
 
 	// Subscription Operations
 	GetSubscriptionFunc func(ctx context.Context, locationID string) (*models.Subscription, error)
 	AddSubscriptionFunc func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
 	UpdateSubscriptionFunc func(ctx context.Context, subscription models.Subscription) error
 	RemoveSubscriptionFunc func(ctx context.Context, locationID string) error
+	ValidateSubscriptionExistsFunc func(ctx context.Context, locationID string) (*models.Subscription, error)
 
 	// Payment Operations
 	GetPaymentsFunc func(ctx context.Context, locationID string) ([]models.Payment, error)
@@ -78,9 +91,12 @@ func (m *MockDigitalDbAdapter) UpdateDigitalLocation(
 func (m *MockDigitalDbAdapter) RemoveDigitalLocation(
 	ctx context.Context,
 	userID string,
-	digitalLocationID string,
-) error {
-	return m.DeleteDigitalLocationFunc(ctx, userID, digitalLocationID)
+	locationIDs []string,
+) (int64, error) {
+	if m.RemoveDigitalLocationFunc != nil {
+		return m.RemoveDigitalLocationFunc(ctx, userID, locationIDs)
+	}
+	return 0, nil
 }
 
 // Find by name
@@ -90,6 +106,42 @@ func (m *MockDigitalDbAdapter) FindDigitalLocationByName(
 	name string,
 ) (models.DigitalLocation, error) {
 	return m.FindDigitalLocationByNameFunc(ctx, userID, name)
+}
+
+// Game Management Operations
+func (m *MockDigitalDbAdapter) AddGameToDigitalLocation(
+	ctx context.Context,
+	userID string,
+	locationID string,
+	gameID int64,
+) error {
+	if m.AddGameToDigitalLocationFunc != nil {
+		return m.AddGameToDigitalLocationFunc(ctx, userID, locationID, gameID)
+	}
+	return nil
+}
+
+func (m *MockDigitalDbAdapter) RemoveGameFromDigitalLocation(
+	ctx context.Context,
+	userID string,
+	locationID string,
+	gameID int64,
+) error {
+	if m.RemoveGameFromDigitalLocationFunc != nil {
+		return m.RemoveGameFromDigitalLocationFunc(ctx, userID, locationID, gameID)
+	}
+	return nil
+}
+
+func (m *MockDigitalDbAdapter) GetGamesByDigitalLocationID(
+	ctx context.Context,
+	userID string,
+	locationID string,
+) ([]models.Game, error) {
+	if m.GetGamesByDigitalLocationIDFunc != nil {
+		return m.GetGamesByDigitalLocationIDFunc(ctx, userID, locationID)
+	}
+	return nil, nil
 }
 
 // Subscription Operations
@@ -107,6 +159,16 @@ func (m *MockDigitalDbAdapter) UpdateSubscription(ctx context.Context, subscript
 
 func (m *MockDigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID string) error {
 	return m.RemoveSubscriptionFunc(ctx, locationID)
+}
+
+func (m *MockDigitalDbAdapter) ValidateSubscriptionExists(
+	ctx context.Context,
+	locationID string,
+) (*models.Subscription, error) {
+	if m.ValidateSubscriptionExistsFunc != nil {
+		return m.ValidateSubscriptionExistsFunc(ctx, locationID)
+	}
+	return nil, nil
 }
 
 // Payment Operations
@@ -131,6 +193,7 @@ type MockDigitalCacheWrapper struct {
 	SetSingleCachedDigitalLocationFunc      func(ctx context.Context, userID string, location models.DigitalLocation) error
 	InvalidateUserCacheFunc                 func(ctx context.Context, userID string) error
 	InvalidateDigitalLocationCacheFunc      func(ctx context.Context, userID, digitalLocationID string) error
+	InvalidateDigitalLocationsBulkFunc      func(ctx context.Context, userID string, locationIDs []string) error
 
 	// Subscription caching
 	GetCachedSubscriptionFunc               func(ctx context.Context, locationID string) (*models.Subscription, bool, error)
@@ -190,6 +253,14 @@ func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationCache(
 	digitalLocationID string,
 ) error {
 	return m.InvalidateDigitalLocationCacheFunc(ctx, userID, digitalLocationID)
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationsBulk(
+	ctx context.Context,
+	userID string,
+	locationIDs []string,
+) error {
+	return m.InvalidateDigitalLocationsBulkFunc(ctx, userID, locationIDs)
 }
 
 // Subscription caching

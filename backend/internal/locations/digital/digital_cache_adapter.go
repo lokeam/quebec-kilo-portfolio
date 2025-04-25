@@ -91,8 +91,23 @@ func (dca *DigitalCacheAdapter) InvalidateDigitalLocationCache(
 	userID string,
 	locationID string,
 ) error {
+	// Invalidate the specific location cache
 	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, locationID)
-	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	if err := dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil); err != nil {
+		return fmt.Errorf("failed to invalidate cache for location %s (user: %s, key: %s): %w",
+			locationID, userID, cacheKey, err)
+	}
+
+	// Also invalidate the user's locations list to ensure consistency
+	userCacheKey := fmt.Sprintf("digital:%s", userID)
+	if err := dca.cacheWrapper.SetCachedResults(ctx, userCacheKey, nil); err != nil {
+		return fmt.Errorf("failed to invalidate user cache (user: %s, key: %s): %w",
+			userID, userCacheKey, err)
+	}
+
+	// Log successful cache invalidation
+	fmt.Printf("Successfully invalidated cache for location %s and user %s\n", locationID, userID)
+	return nil
 }
 
 func (dca *DigitalCacheAdapter) GetCachedSubscription(
