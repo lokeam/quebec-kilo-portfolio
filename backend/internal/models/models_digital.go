@@ -20,7 +20,7 @@ type DigitalLocation struct {
 	CreatedAt   time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at" db:"updated_at"`
 	Items       []Game            `json:"items" db:"items"`
-	Subscription *Subscription    `json:"-"`
+	Subscription *Subscription    `json:"subscription,omitempty"`
 }
 
 // Payment model

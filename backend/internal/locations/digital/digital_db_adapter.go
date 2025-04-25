@@ -187,7 +187,6 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 	}
 
 	// Simple query to get locations with their subscription data
-	// FIXED: Removed the location_games JOIN which doesn't exist
 	query := `
 			SELECT
 					dl.*,
@@ -205,6 +204,7 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 			ORDER BY dl.created_at
 	`
 
+	// Execute the query to get raw data
 	var locationsJoin []DigitalLocationJoin
 	err := da.db.SelectContext(ctx, &locationsJoin, query, userID)
 	if err != nil {
@@ -213,55 +213,64 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 	}
 
 	// Log the raw data from database
-	var firstLocationID string
-	var hasSubID bool
 	if len(locationsJoin) > 0 {
-			firstLocationID = locationsJoin[0].ID
-			hasSubID = locationsJoin[0].SubID != nil
+			da.logger.Debug("Raw location data from DB", map[string]any{
+					"count": len(locationsJoin),
+					"first_location_id": locationsJoin[0].ID,
+					"first_location_has_sub_id": locationsJoin[0].SubID != nil,
+			})
+	} else {
+			da.logger.Debug("No locations found for user", map[string]any{"userID": userID})
+			return []models.DigitalLocation{}, nil
 	}
-	da.logger.Debug("Raw location data from DB", map[string]any{
-			"count": len(locationsJoin),
-			"first_location_id": firstLocationID,
-			"first_location_has_sub_id": hasSubID,
-	})
 
-	// Convert to DigitalLocation array and unmarshal items
+	// Create result array with exact size needed
 	locations := make([]models.DigitalLocation, len(locationsJoin))
-	for i, loc := range locationsJoin {
-			if err := json.Unmarshal(loc.ItemsJSON, &loc.Items); err != nil {
+
+	// Process each location safely - using index-based for loop to avoid range variable copy issues
+	for i := 0; i < len(locationsJoin); i++ {
+			// Access the source data directly by index (no temporary variables)
+			source := &locationsJoin[i]
+
+			// Step 1: Build the base location from embedded struct
+			baseLocation := source.DigitalLocation
+
+			// Step 2: Unmarshal items
+			var items []models.Game
+			if err := json.Unmarshal(source.ItemsJSON, &items); err != nil {
 					da.logger.Error("Failed to unmarshal items", map[string]any{
-							"location_id": loc.ID,
+							"location_id": source.ID,
 							"error": err,
 					})
-					return nil, fmt.Errorf("error unmarshaling items for location %s: %w", loc.ID, err)
+					return nil, fmt.Errorf("error unmarshaling items for location %s: %w", source.ID, err)
 			}
+			baseLocation.Items = items
 
-			locations[i] = loc.DigitalLocation
-
-			// If subscription data exists, add it to the location
-			if loc.SubID != nil {
-					da.logger.Debug("Found subscription data for location", map[string]any{
-							"locationID": loc.ID,
-							"subID": *loc.SubID,
-							"billingCycle": *loc.BillingCycle,
-							"costPerCycle": *loc.CostPerCycle,
+			// Step 3: Add subscription if it exists
+			if source.SubID != nil {
+					da.logger.Debug("Adding subscription data to location", map[string]any{
+							"locationID": source.ID,
+							"subID": *source.SubID,
 					})
 
-					locations[i].Subscription = &models.Subscription{
-							ID:              *loc.SubID,
-							LocationID:      loc.ID,
-							BillingCycle:    *loc.BillingCycle,
-							CostPerCycle:    *loc.CostPerCycle,
-							NextPaymentDate: *loc.NextPaymentDate,
-							PaymentMethod:   *loc.PaymentMethod,
-							CreatedAt:       *loc.SubCreatedAt,
-							UpdatedAt:       *loc.SubUpdatedAt,
+					baseLocation.Subscription = &models.Subscription{
+							ID:              *source.SubID,
+							LocationID:      source.ID,
+							BillingCycle:    *source.BillingCycle,
+							CostPerCycle:    *source.CostPerCycle,
+							NextPaymentDate: *source.NextPaymentDate,
+							PaymentMethod:   *source.PaymentMethod,
+							CreatedAt:       *source.SubCreatedAt,
+							UpdatedAt:       *source.SubUpdatedAt,
 					}
 			}
+
+			// Step 4: Add the fully constructed location to results
+			locations[i] = baseLocation
 	}
 
 	da.logger.Debug("GetUserDigitalLocations success", map[string]any{
-			"locations": locations,
+			"count": len(locations),
 	})
 
 	return locations, nil
@@ -607,8 +616,7 @@ func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription
 		"subscription": subscription,
 	})
 
-	query := `
-		UPDATE digital_location_subscriptions
+	query := `		UPDATE digital_location_subscriptions
 		SET billing_cycle = $1,
 			cost_per_cycle = $2,
 			next_payment_date = $3,
