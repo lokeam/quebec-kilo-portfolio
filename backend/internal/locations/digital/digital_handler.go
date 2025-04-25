@@ -354,8 +354,9 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		return
 	}
 
-	var updateReq DigitalLocationRequest
-	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
+	// Unmarshal the request body
+	var req DigitalLocationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			appCtx.Logger.Error("Failed to decode request body", map[string]any{"error": err})
 		httputils.RespondWithError(
 			httputils.NewResponseWriterAdapter(w),
@@ -367,8 +368,24 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		return
 	}
 
+	// Format the billing cycle before proceeding
+	if req.Subscription != nil {
+		req.Subscription.BillingCycle = formatters.FormatBillingCycleToBackend(req.Subscription.BillingCycle)
+	}
+
+	// Convert request to model
+	location := models.DigitalLocation{
+			ID:          locationID,
+			UserID:      userID,
+			Name:        req.Name,
+			ServiceType: req.ServiceType,
+			IsActive:    req.IsActive,
+			URL:         req.URL,
+			Subscription: req.Subscription,
+	}
+
 	// Get existing location
-		location, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+	existingLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
 	if err != nil {
 			appCtx.Logger.Error("Failed to get existing location", map[string]any{"error": err})
 		statusCode := http.StatusInternalServerError
@@ -386,22 +403,24 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 	}
 
 	// Update fields
-	location.Name = updateReq.Name
-	location.ServiceType = updateReq.ServiceType
-	location.IsActive = updateReq.IsActive
-	location.URL = updateReq.URL
+	location.Name = req.Name
+	location.ServiceType = req.ServiceType
+	location.IsActive = req.IsActive
+	location.URL = req.URL
 	location.UpdatedAt = time.Now()
 
 	// Ensure the ID is set from the URL
 	location.ID = locationID
 
 	// Handle subscription
-	if updateReq.Subscription != nil {
-		subscription := *updateReq.Subscription
+	if req.Subscription != nil {
+		subscription := *req.Subscription
 		subscription.LocationID = locationID
 		subscription.UpdatedAt = time.Now()
+		// Format billing cycle to backend format
+		subscription.BillingCycle = formatters.FormatBillingCycleToBackend(subscription.BillingCycle)
 
-		if location.Subscription == nil {
+		if existingLocation.Subscription == nil {
 				// Add new subscription
 			subscription.CreatedAt = time.Now()
 			newSubscription, err := service.AddSubscription(r.Context(), subscription)
@@ -419,8 +438,8 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 			location.Subscription = newSubscription
 		} else {
 			// Update existing subscription
-			subscription.ID = location.Subscription.ID
-			subscription.CreatedAt = location.Subscription.CreatedAt
+			subscription.ID = existingLocation.Subscription.ID
+			subscription.CreatedAt = existingLocation.Subscription.CreatedAt
 			if err := service.UpdateSubscription(r.Context(), subscription); err != nil {
 					appCtx.Logger.Error("Failed to update subscription", map[string]any{"error": err})
 				httputils.RespondWithError(
@@ -434,7 +453,7 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 			}
 			location.Subscription = &subscription
 		}
-	} else if location.Subscription != nil && updateReq.ServiceType != "subscription" {
+	} else if existingLocation.Subscription != nil && req.ServiceType != "subscription" {
 		// Remove subscription if service type changed and no subscription was provided
 		if err := service.RemoveSubscription(r.Context(), locationID); err != nil {
 				appCtx.Logger.Error("Failed to remove subscription", map[string]any{"error": err})

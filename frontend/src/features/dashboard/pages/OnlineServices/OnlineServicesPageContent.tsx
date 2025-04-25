@@ -22,8 +22,15 @@ import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredS
 // Utils
 import { transformDigitalLocationToService } from '@/features/dashboard/lib/utils/service-utils';
 
+// Types
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
+import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
+
 export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
+  const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
+  const [selectedService, setSelectedService] = useState<OnlineService | null>(null);
   const setServices = useOnlineServicesStore((state) => state.setServices);
   const services = useOnlineServicesStore((state) => state.services);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
@@ -43,6 +50,18 @@ export function OnlineServicesPageContent() {
   const handleDeleteService = useCallback((serviceId: string) => {
     deleteServiceMutation.mutate(serviceId);
   }, [deleteServiceMutation]);
+
+  // Handler to edit a service
+  const handleEditService = useCallback((service: OnlineService) => {
+    setSelectedService(service);
+    setEditServiceOpen(true);
+  }, []);
+
+  // Handler to close edit drawer
+  const handleCloseEditDrawer = useCallback(() => {
+    setEditServiceOpen(false);
+    setSelectedService(null);
+  }, []);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -104,7 +123,7 @@ export function OnlineServicesPageContent() {
     }
 
     if (viewMode === 'table') {
-      return <OnlineServicesTable services={filteredServices} onDelete={handleDeleteService} />;
+      return <OnlineServicesTable services={filteredServices} onDelete={handleDeleteService} onEdit={handleEditService} />;
     }
 
     // grid grid-cols-1 gap-4
@@ -122,9 +141,10 @@ export function OnlineServicesPageContent() {
             {filteredServices.map((service, index) => (
               <SingleOnlineServiceCard
                 key={`${service.id}-${index}`}
-                {...service}
-                isWatchedByResizeObserver={index === 0}
+                service={service}
                 onDelete={handleDeleteService}
+                onEdit={() => handleEditService(service)}
+                data-card-sentinel={index === 0}
               />
             ))}
           {/* </ul> */}
@@ -166,6 +186,34 @@ export function OnlineServicesPageContent() {
           {renderContent()}
         </div>
       </div>
+
+      {/* Edit Service Drawer */}
+      <DrawerContainer
+        open={editServiceOpen}
+        onOpenChange={setEditServiceOpen}
+        title="Edit Digital Service"
+        description="Update your digital service details."
+      >
+        {selectedService && (
+          <OnlineServiceForm
+            serviceData={{
+              id: selectedService.id,
+              service: selectedService,
+              expenseType: selectedService.billing?.cycle,
+              cost: selectedService.billing?.fees?.monthly ? parseFloat(selectedService.billing.fees.monthly.replace('$', '')) : 0,
+              billingPeriod: selectedService.billing?.cycle,
+              nextPaymentDate: selectedService.billing?.renewalDate ? new Date(`${selectedService.billing.renewalDate.month} ${selectedService.billing.renewalDate.day}`) : undefined,
+              paymentMethod: typeof selectedService.billing?.paymentMethod === 'string'
+                ? { id: selectedService.billing.paymentMethod, displayName: selectedService.billing.paymentMethod }
+                : selectedService.billing?.paymentMethod as SelectableItem | undefined,
+              is_active: selectedService.status === SERVICE_STATUS_CODES.ACTIVE
+            }}
+            isEditing={true}
+            onClose={handleCloseEditDrawer}
+            onDelete={handleDeleteService}
+          />
+        )}
+      </DrawerContainer>
     </PageMain>
   );
 }

@@ -94,7 +94,7 @@ export const createOnlineService = async (serviceData: CreateOnlineServiceReques
             payment_method: serviceData.metadata.paymentMethod?.displayName || serviceData.metadata.service?.billing?.paymentMethod || 'None'
         }
     })
-} ;
+  };
 
   try {
     const response = await axiosInstance.post<OnlineServiceResponse>(
@@ -128,20 +128,21 @@ export const createOnlineService = async (serviceData: CreateOnlineServiceReques
 export const updateOnlineService = async (serviceData: CreateOnlineServiceRequest): Promise<OnlineServiceResponse> => {
   logger.debug('📝 Updating online service', { serviceData });
 
+  // Transform service data to backend format
   const digitalLocation = {
-    id : serviceData.id,
+    id: serviceData.id,
     name: serviceData.name,
-    service_type: serviceData.type,
+    service_type: mapToApiServiceType(serviceData.type as ServiceType),
     is_active: serviceData.is_active !== undefined ? serviceData.is_active : true,
     url: serviceData.metadata.service?.url && serviceData.metadata.service.url !== '#'
       ? serviceData.metadata.service.url
       : DIGITAL_SERVICE_DEFAULTS.URL,
     ...(serviceData.metadata.service?.isSubscriptionService && {
       subscription: {
-        billing_cycle: serviceData.metadata.billingPeriod || serviceData.metadata.expenseType || '1  month',
+        billing_cycle: serviceData.metadata.billingPeriod || serviceData.metadata.expenseType || '1 month',
         cost_per_cycle: serviceData.metadata.cost || 0,
         next_payment_date: serviceData.metadata.nextPaymentDate?.toISOString() || new Date().toISOString(),
-        payment_method: serviceData.metadata.paymentMethod?.label || 'Unknown'
+        payment_method: serviceData.metadata.paymentMethod?.displayName || serviceData.metadata.service?.billing?.paymentMethod || 'None'
       }
     })
   };

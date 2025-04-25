@@ -76,6 +76,7 @@ interface OnlineServicesTableRowProps {
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
   onDelete?: (id: string) => void;
+  onEdit?: (service: OnlineService) => void;
 };
 
 const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) => {
@@ -89,7 +90,8 @@ function OnlineServicesTableRowComponent({
   service,
   isSelected = false,
   onSelectionChange,
-  onDelete
+  onDelete,
+  onEdit
 }: OnlineServicesTableRowProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -114,9 +116,8 @@ function OnlineServicesTableRowComponent({
 
   const handleEditService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
-    console.log('Edit service:', service.name);
-    // Implement edit functionality
-  }, [service.name]);
+    onEdit?.(service);
+  }, [service, onEdit]);
 
   const handleDeleteService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing

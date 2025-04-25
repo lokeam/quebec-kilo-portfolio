@@ -17,6 +17,7 @@ import { IconTrash } from '@tabler/icons-react'
 interface OnlineServicesTableProps {
   services: OnlineService[]
   onDelete?: (id: string) => void
+  onEdit?: (service: OnlineService) => void
 }
 
 
@@ -32,7 +33,7 @@ const TableHeaderRow: React.FC = () => (
   </TableRow>
 )
 
-export function OnlineServicesTable({ services, onDelete }: OnlineServicesTableProps) {
+export function OnlineServicesTable({ services, onDelete, onEdit }: OnlineServicesTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
 
   // Handle select all checkbox
@@ -100,6 +101,7 @@ export function OnlineServicesTable({ services, onDelete }: OnlineServicesTableP
               isSelected={selectedRows.includes(service.id)}
               onSelectionChange={(checked) => handleRowSelection(service.id, checked)}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))}
         </TableBody>
