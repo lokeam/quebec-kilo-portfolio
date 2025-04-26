@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/locations/digital/formatters"
+	"github.com/lokeam/qko-beta/internal/locations/formatters"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
