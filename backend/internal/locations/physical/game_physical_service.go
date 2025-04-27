@@ -93,9 +93,9 @@ func (gps *GamePhysicalService) GetUserPhysicalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.PhysicalLocation, error) {
-	// Attempt to get cached locations
+	// Try to get from cache first
 	cachedLocations, err := gps.cacheWrapper.GetCachedPhysicalLocations(ctx, userID)
-	if err == nil {
+	if err == nil && cachedLocations != nil {
 		gps.logger.Debug("Cache hit for physical locations", map[string]any{"userID": userID})
 		return cachedLocations, nil
 	}
@@ -108,14 +108,10 @@ func (gps *GamePhysicalService) GetUserPhysicalLocations(
 		return nil, err
 	}
 
-	// Cache the results for future requests
-	if cacheErr := gps.cacheWrapper.SetCachedPhysicalLocations(
-		ctx,
-		userID,
-		locations,
-	); cacheErr != nil {
-		gps.logger.Error("Failed to cache physical locations", map[string]any{"error": cacheErr})
-		// Continue w/ returning the locations from DB
+	// Cache the results
+	if err := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); err != nil {
+		gps.logger.Error("Failed to cache physical locations", map[string]any{"error": err})
+		// Continue with returning locations from DB
 	}
 
 	return locations, nil
@@ -127,11 +123,7 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 	locationID string,
 ) (models.PhysicalLocation, error) {
 	// Try to get from cache
-	cachedLocation, found, err := gps.cacheWrapper.GetSingleCachedPhysicalLocation(
-		ctx,
-		userID,
-		locationID,
-	)
+	cachedLocation, found, err := gps.cacheWrapper.GetSingleCachedPhysicalLocation(ctx, userID, locationID)
 	if err == nil && found {
 		gps.logger.Debug("Cache hit for physical location", map[string]any{
 			"userID": userID,
@@ -146,10 +138,7 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 		"locationID": locationID,
 	})
 
-	location, err := gps.dbAdapter.GetPhysicalLocation(
-		ctx,
-		userID, locationID,
-	)
+	location, err := gps.dbAdapter.GetPhysicalLocation(ctx, userID, locationID)
 	if err != nil {
 		gps.logger.Error("Failed to fetch physical location from DB", map[string]any{"error": err})
 		return models.PhysicalLocation{}, err
@@ -158,7 +147,7 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 	// Cache the location
 	if err := gps.cacheWrapper.SetSingleCachedPhysicalLocation(ctx, userID, location); err != nil {
 		gps.logger.Error("Failed to cache physical location", map[string]any{
-			"error":    err,
+			"error": err,
 			"userID": userID,
 			"locationID": location.ID,
 		})
@@ -187,23 +176,13 @@ func (gps *GamePhysicalService) AddPhysicalLocation(
 		return models.PhysicalLocation{}, err
 	}
 
-	// Get all locations to update cache
-	locations, err := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
-	if err != nil {
-		gps.logger.Error("Failed to get updated locations for cache", map[string]any{"error": err})
-		// Log any errors
-	} else {
-		// Update the cache with all locations
-		if err := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); err != nil {
-			gps.logger.Error("Failed to update locations cache", map[string]any{"error": err})
-			// Log any errors
-		}
-	}
-
-	// Also cache the individual location
-	if err := gps.cacheWrapper.SetSingleCachedPhysicalLocation(ctx, userID, createdLocation); err != nil {
-		gps.logger.Error("Failed to cache individual location", map[string]any{"error": err})
-		// Log any errors
+	// Invalidate the user's locations cache
+	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gps.logger.Error("Failed to invalidate user locations cache", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
+		// Continue despite error, since the DB update was successful
 	}
 
 	return createdLocation, nil
@@ -212,14 +191,9 @@ func (gps *GamePhysicalService) AddPhysicalLocation(
 // UPDATE
 func (gps *GamePhysicalService) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
 	gps.logger.Debug("Updating physical location", map[string]any{
-		"userID":   userID,
+		"userID": userID,
 		"location": location,
 	})
-
-	// Ensure location belongs to user
-	if location.UserID != userID {
-		return models.PhysicalLocation{}, ErrUnauthorizedLocation
-	}
 
 	// Update in database
 	updatedLocation, err := gps.dbAdapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -227,44 +201,21 @@ func (gps *GamePhysicalService) UpdatePhysicalLocation(ctx context.Context, user
 		return models.PhysicalLocation{}, fmt.Errorf("failed to update physical location: %w", err)
 	}
 
-	// Update the individual location cache
-	if err := gps.cacheWrapper.SetSingleCachedPhysicalLocation(ctx, userID, updatedLocation); err != nil {
-		gps.logger.Error("Failed to update physical location in cache", map[string]any{
-			"error":    err,
-			"userID":   userID,
-			"location": updatedLocation,
-		})
-		// Don't return error here as db update was successful
-	}
-
-	// Invalidate the user's locations cache, so next GET will fetch fresh data
+	// Invalidate both the user's locations cache and the specific location cache
 	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		gps.logger.Error("Failed to invalidate user locations cache", map[string]any{
-			"error":  err,
-			"userID": userID,
-		})
-		// Don't return error here as db update was successful
-	}
-
-	// Update full locations cache w/ fresh data:
-	locations, fetchErr := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
-	if fetchErr == nil {
-		if cacheErr := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); cacheErr != nil {
-			gps.logger.Error("Failed to update locations cache after update", map[string]any{
-				"error":  cacheErr,
-				"userID": userID,
-			})
-		}
-	} else {
-		gps.logger.Error("Failed to fetch updated locations after update", map[string]any{
-			"error":  fetchErr,
+			"error": err,
 			"userID": userID,
 		})
 	}
 
-	gps.logger.Debug("UpdatePhysicalLocation success", map[string]any{
-		"location": updatedLocation,
-	})
+	if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, location.ID); err != nil {
+		gps.logger.Error("Failed to invalidate location cache", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationID": location.ID,
+		})
+	}
 
 	return updatedLocation, nil
 }
@@ -276,31 +227,25 @@ func (gps *GamePhysicalService) DeletePhysicalLocation(
 	locationID string,
 ) error {
 	// Remove from database
-	if err := gps.dbAdapter.RemovePhysicalLocation(
-		ctx,
-		userID,
-		locationID,
-	); err != nil {
+	if err := gps.dbAdapter.RemovePhysicalLocation(ctx, userID, locationID); err != nil {
 		gps.logger.Error("Failed to delete physical location from DB", map[string]any{"error": err})
 		return err
 	}
 
-	// Get updated locations from DB
-	locations, err := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
-	if err != nil {
-		gps.logger.Error("Failed to get updated locations after deletion", map[string]any{"error": err})
-		// Don't return error here, just invalidate caches
-		locations = []models.PhysicalLocation{}
+	// Invalidate both the user's locations cache and the specific location cache
+	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gps.logger.Error("Failed to invalidate user locations cache", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
 	}
 
-	// Update the cache w/ current locations
-	if err := gps.cacheWrapper.SetCachedPhysicalLocations(ctx, userID, locations); err != nil {
-		gps.logger.Error("Failed to update locations cache after deletion", map[string]any{"error": err})
-	}
-
-	// Invalidate the specific location cache
 	if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, locationID); err != nil {
-		gps.logger.Error("Failed to invalidate location cache", map[string]any{"error": err})
+		gps.logger.Error("Failed to invalidate location cache", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationID": locationID,
+		})
 	}
 
 	return nil

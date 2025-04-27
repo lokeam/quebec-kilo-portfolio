@@ -43,10 +43,10 @@ func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocations(
 	ctx context.Context,
 	userID string,
 	locations []models.PhysicalLocation,
-	) error {
-		cacheKey := fmt.Sprintf("physical:%s", userID)
-		return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
-	}
+) error {
+	cacheKey := fmt.Sprintf("physical:%s", userID)
+	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
+}
 
 func (pca *PhysicalCacheAdapter) GetSingleCachedPhysicalLocation(
 	ctx context.Context,

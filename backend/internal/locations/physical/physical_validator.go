@@ -15,6 +15,7 @@ import (
 // Validation constants
 const (
 	MaxNameLength     = 100
+	MinNameLength     = 1
 	MaxLabelLength    = 50
 	CoordinatePattern = `^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$`
 )
@@ -74,7 +75,7 @@ func (v *PhysicalValidator) ValidatePhysicalLocation(location models.PhysicalLoc
 	if len(violations) > 0 {
 		return models.PhysicalLocation{}, &validationErrors.ValidationError{
 			Field:   "location",
-			Message: fmt.Sprintf("Physical location validation failed: %v", violations),
+			Message: fmt.Sprintf("Physical location validation failed: %s", strings.Join(violations, "; ")),
 		}
 	}
 
@@ -87,12 +88,18 @@ func (v *PhysicalValidator) validateName(name string) (string, error) {
 	if name == "" {
 		return "", &validationErrors.ValidationError{
 			Field:   "name",
-			Message: "name cannot be empty",
+			Message: "name is required",
 		}
 	}
 
 	// Check name length
 	length := utf8.RuneCountInString(name)
+	if length < MinNameLength {
+		return "", &validationErrors.ValidationError{
+			Field:   "name",
+			Message: fmt.Sprintf("name must be at least %d characters", MinNameLength),
+		}
+	}
 	if length > MaxNameLength {
 		return "", &validationErrors.ValidationError{
 			Field:   "name",
@@ -140,6 +147,14 @@ func (v *PhysicalValidator) validateLabel(label string) (string, error) {
 }
 
 func (v *PhysicalValidator) validateLocationType(locationType string) (string, error) {
+	// Check if location type is empty
+	if locationType == "" {
+		return "", &validationErrors.ValidationError{
+			Field:   "locationType",
+			Message: "location type is required",
+		}
+	}
+
 	// Check if location type is valid
 	isValid := false
 	for _, validType := range ValidLocationTypes {
@@ -179,7 +194,7 @@ func (v *PhysicalValidator) validateMapCoordinates(coordinates string) (string, 
 	if !re.MatchString(coordinates) {
 		return "", &validationErrors.ValidationError{
 			Field:   "mapCoordinates",
-			Message: "map coordinates must be in format latitude,longitude",
+			Message: "map coordinates must be in format latitude,longitude (e.g. 45.5017,-73.5673)",
 		}
 	}
 
