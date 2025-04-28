@@ -104,7 +104,7 @@ interface PhysicalLocationFormSingleProps {
 
 export function PhysicalLocationFormSingle({
   buttonText = "Add Location",
-  defaultValues = {
+defaultValues = {
     locationName: '',
     locationType: '',
     coordinates: {
@@ -115,11 +115,9 @@ export function PhysicalLocationFormSingle({
   locationData,
   isEditing = false,
   onDelete,
+  onSuccess,
 }: PhysicalLocationFormSingleProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // NOTE: do I need to setup router to setup router in order to move user to a new location?
-  //const router = useRouter();
 
   // Setup location manager hook with proper type
   const locationManager = useLocationManager({
@@ -156,22 +154,32 @@ export function PhysicalLocationFormSingle({
   }, [form, isEditing, locationData]);
 
   const handleSubmit = useCallback((data: z.infer<typeof PhysicalLocationFormSchema>) => {
+    // Debug log the form data
+    console.log('[FORM SUBMIT] Raw form data:', data);
+
     // Transform form data to match API expectations
     const locationPayload = {
       id: isEditing && locationData ? locationData.id : undefined,
       name: data.locationName,
       locationType: data.locationType,
+      location_type: data.locationType,
       mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
+      map_coordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
     };
 
+    // Debug log what we're actually sending
+    console.log('[FORM SUBMIT] Sending to API:', locationPayload);
+
+    // Use the locationManager hook for API operations
     if (isEditing && locationData) {
       locationManager.update(locationPayload);
     } else {
       locationManager.create(locationPayload);
     }
 
-    // Note: Don't use toast here as hooks in useLocationManager handle that
-  }, [isEditing, locationData, locationManager]);
+    // Call onSuccess callback if provided
+    if (onSuccess) onSuccess(data);
+  }, [isEditing, locationData, locationManager, onSuccess]);
 
   const handleDelete = useCallback((id: string) => {
     locationManager.delete(id);

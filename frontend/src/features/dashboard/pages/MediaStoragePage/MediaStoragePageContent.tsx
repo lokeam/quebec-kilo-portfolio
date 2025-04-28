@@ -8,15 +8,25 @@ import { PhysicalLocationFormSingle } from '@/features/dashboard/components/orga
 import { PhysicalLocationDrawerList } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationDrawerList/PhysicalLocationDrawerList';
 import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordion';
 
-// Mock Data
+// Mock Data - keeping for digital locations until that's implemented
 import { mediaStoragePageMockData } from '@/features/dashboard/pages/MediaStoragePage/mediaStoragePage.mockdata';
 
-export function MediaStoragePageContent() {
+// Hooks
+import { usePhysicalLocations } from '@/core/api/hooks/usePhysicalLocations';
 
+export function MediaStoragePageContent() {
   const [addLocationOpen, setAddLocationOpen] = useState<boolean>(false);
   const [editLocationOpen, setEditLocationOpen] = useState<boolean>(false);
 
-  const { data: { physicalLocations, digitalLocations }, meta } = mediaStoragePageMockData;
+  // Fetch physical locations with the hook
+  const { data: physicalLocationsData, isLoading: isLoadingPhysicalLocations } = usePhysicalLocations();
+
+  // Use mock data for digital locations until that's implemented
+  const { data: { digitalLocations }, meta } = mediaStoragePageMockData;
+
+  // Ensure we always have an array for physical locations, even if data is still loading
+  const safePhysicalLocations = physicalLocationsData || [];
+
   return (
     <PageMain>
       <PageHeadline>
@@ -45,13 +55,9 @@ export function MediaStoragePageContent() {
             title="Edit Locations"
             description="Edit your physical locations and sublocations"
           >
-            {/* <PhysicalLocationFormList
-              locationData={physicalLocations}
-              onSuccess={() => setEditLocationOpen(false)}
-            /> */}
             <PhysicalLocationDrawerList
               onSuccess={() => setEditLocationOpen(false)}
-              locationData={physicalLocations}
+              locationData={safePhysicalLocations}
             />
           </DrawerContainer>
         </div>
@@ -60,10 +66,11 @@ export function MediaStoragePageContent() {
 
       {/* Physical Locations Accordion */}
       <MediaStoragePageAccordion
-        locationData={physicalLocations}
+        locationData={safePhysicalLocations}
         title="Physical Locations"
         meta={meta}
         type="physical"
+        isLoading={isLoadingPhysicalLocations}
       />
 
       {/* Digital Location Accordion */}

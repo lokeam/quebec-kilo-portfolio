@@ -1,9 +1,13 @@
 import { useMutation, type UseMutationOptions } from '@tanstack/react-query';
-import { useAuth0 } from '@auth0/auth0-react';
+// import { useAuth0 } from '@auth0/auth0-react';
 import type { EnhancedMutationOptions } from '../types/query.types';
 import type { ApiResponse } from '../types/api.types';
 import { AxiosError } from 'axios';
 import type { ApiError } from '../types/api.types';
+import { logger } from '@/core/utils/logger/logger';
+
+// Mock token for development when Auth0 is not configured - same as in useBackendQuery
+const MOCK_AUTH_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
 /**
  * Hook for sending data to the backend (create, update, delete operations).
@@ -69,14 +73,38 @@ export function useBackendMutation<ResponseData, RequestData = unknown>(
   mutationFn: (data: RequestData, token: string) => Promise<ApiResponse<ResponseData>>,
   options?: EnhancedMutationOptions<ResponseData, RequestData>
 ) {
-  const { getAccessTokenSilently } = useAuth0();
+  // We're not using Auth0 for now, but keep the import for future use
+  // const { getAccessTokenSilently } = useAuth0();
+
+  // Use the same mock token getter function as in useBackendQuery
+  const getMockToken = async () => {
+    logger.debug("Using mock token instead of Auth0 for mutation");
+    return MOCK_AUTH_TOKEN;
+  };
 
   const mutation = useMutation({
     ...options,
     mutationFn: async (data: RequestData) => {
-      const token = await getAccessTokenSilently();
-      return mutationFn(data, token);
+      try {
+        // Use mock token instead of Auth0
+        const token = await getMockToken();
+        logger.debug("🔑 Token retrieved for mutation", { tokenPrefix: token.substring(0, 12) + '...' });
+
+        // Log the mutation attempt
+        logger.debug("⚡ Executing mutation function", {
+          dataType: typeof data,
+          dataKeys: data ? Object.keys(data as Record<string, unknown>) : 'none'
+        });
+
+        const result = await mutationFn(data, token);
+        logger.debug("✅ Mutation completed successfully");
+        return result;
+      } catch (error) {
+        logger.error("❌ Error in mutation function", { error });
+        throw error;
+      }
     },
+    retry: 1, // Add a single retry for network glitches
   });
 
   // Return a wrapped version with properly typed mutate function
@@ -91,6 +119,10 @@ export function useBackendMutation<ResponseData, RequestData = unknown>(
         unknown
       >
     ) => {
+      logger.debug("🔄 Mutation initiated", {
+        dataType: typeof data,
+        hasOptions: !!mutateOptions
+      });
       return mutation.mutate(data, mutateOptions);
     }
   };

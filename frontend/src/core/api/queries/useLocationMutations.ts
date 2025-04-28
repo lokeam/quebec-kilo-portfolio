@@ -23,14 +23,33 @@ interface DeleteLocationResponse {
   id: string;
 }
 
+// Define a type that can accept both camelCase and snake_case formats
+interface LocationPayload extends Partial<PhysicalLocation> {
+  location_type?: string;
+  map_coordinates?: string;
+  [key: string]: unknown;
+}
+
 export function useCreateLocationMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
 
-  return useBackendMutation<LocationResponse, Partial<PhysicalLocation>>(
+  return useBackendMutation<LocationResponse, LocationPayload>(
     async (locationData, token) => {
+      // Convert data to match API expectations if needed
+      const apiPayload = {
+        ...locationData,
+        // Ensure we have the right field names for the API
+        location_type: locationData.location_type || locationData.locationType,
+        map_coordinates: locationData.map_coordinates || locationData.mapCoordinates,
+      };
+
+      // Log the request URL and payload for debugging
+      console.log('[DEBUG] Creating physical location with payload:', apiPayload);
+      console.log('[DEBUG] API endpoint:', API_ROUTES.LOCATIONS.CREATE);
+
       return axiosInstance.post(
         API_ROUTES.LOCATIONS.CREATE,
-        locationData,
+        apiPayload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -40,6 +59,9 @@ export function useCreateLocationMutation(onSuccess?: () => void) {
     },
     {
       onSuccess: (data) => {
+        // Log success
+        console.log('[DEBUG] Successfully created location:', data);
+
         // Invalidate all location data
         queryClient.invalidateQueries({
           queryKey: mediaStorageKeys.all,
@@ -56,7 +78,8 @@ export function useCreateLocationMutation(onSuccess?: () => void) {
         onSuccess?.();
       },
       onError: (error) => {
-        // Add error handling
+        // Add detailed error handling
+        console.error('[DEBUG] Failed to create location, error:', error);
         logger.error('Failed to create location:', error);
       }
     }

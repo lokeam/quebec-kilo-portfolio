@@ -47,7 +47,7 @@ interface CustomAxiosInstance {
  */
 const axiosInstance = axios.create({
   baseURL: '/api', // This will proxy through Vite's dev server
-  timeout: 10000,
+  timeout: 30000, // Increase to 30 seconds to match backend timeout
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -86,8 +86,10 @@ axiosInstance.interceptors.request.use(
     logger.debug('🚀 Outgoing request:', {
       url: config.url,
       method: config.method,
+      data: config.data,
       params: config.params,
       headers: config.headers,
+      baseURL: config.baseURL,
     });
     return config;
   },
@@ -99,6 +101,7 @@ axiosInstance.interceptors.response.use(
   (response) => {
     logger.debug('🔄 Response received:', {
       url: response.config.url,
+      method: response.config.method,
       status: response.status,
       data: response.data,
       headers: response.headers,
@@ -107,7 +110,34 @@ axiosInstance.interceptors.response.use(
     return response.data;
   },
 
-  handleAxiosError // Use same error handler
+  (error) => {
+    // Enhance error logging
+    if (error.code === 'ECONNABORTED') {
+      logger.error('⏱️ Request timeout - Timed out waiting for response', {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        method: error.config?.method,
+        timeout: error.config?.timeout,
+        data: error.config?.data,
+      });
+    } else if (error.response) {
+      // Server responded with a status code outside 2xx range
+      logger.error('❌ Server error response:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+        method: error.config?.method,
+      });
+    } else if (error.request) {
+      // Request made but no response received (network error)
+      logger.error('❌ Network error - No response received:', {
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 // We need to trick TypeScript into accepting this modified behavior

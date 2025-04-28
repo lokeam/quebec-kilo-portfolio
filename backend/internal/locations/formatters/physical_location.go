@@ -1,6 +1,7 @@
 package formatters
 
 import (
+	"html"
 	"time"
 
 	"github.com/lokeam/qko-beta/internal/models"
@@ -10,8 +11,8 @@ import (
 func FormatPhysicalLocationToFrontend(pl *models.PhysicalLocation) map[string]interface{} {
 	result := map[string]interface{}{
 		"id":             pl.ID,
-		"name":           pl.Name,
-		"label":          pl.Label,
+		"name":           html.UnescapeString(pl.Name),
+		"label":          html.UnescapeString(pl.Label),
 		"location_type":  pl.LocationType,
 		"map_coordinates": pl.MapCoordinates,
 		"created_at":     pl.CreatedAt.Format(time.RFC3339),
@@ -24,7 +25,7 @@ func FormatPhysicalLocationToFrontend(pl *models.PhysicalLocation) map[string]in
 		for _, subloc := range *pl.SubLocations {
 			formattedSubloc := map[string]interface{}{
 				"id":                  subloc.ID,
-				"name":                subloc.Name,
+				"name":                html.UnescapeString(subloc.Name),
 				"location_type":       subloc.LocationType,
 				"bg_color":            subloc.BgColor,
 				"stored_items":        subloc.StoredItems,

@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from '@/shared/components/ui/accordion';
 import { Avatar } from '@/shared/components/ui/avatar';
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 // Components
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer' ;
@@ -37,20 +38,15 @@ interface MediaStoragePageAccordionProps {
   title: string;
   meta: MediaStorageMetadata;
   type: 'physical' | 'digital';
-}
-
-interface MediaStoragePageAccordionProps {
-  locationData: PhysicalLocation[] | DigitalLocation[];
-  title: string;
-  meta: MediaStorageMetadata;
-  type: 'physical' | 'digital';
+  isLoading?: boolean;
 }
 
 export function MediaStoragePageAccordion({
   locationData,
   title,
   meta,
-  type
+  type,
+  isLoading = false
 }: MediaStoragePageAccordionProps) {
   const [activeCard, setActiveCard] = useState<LocationCardData | null>(null);
   const [openAddDrawer, setOpenAddDrawer] = useState<boolean>(false);
@@ -126,6 +122,13 @@ export function MediaStoragePageAccordion({
         </div>
       </div>
 
+      {isLoading ? (
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : (
       <Accordion
         type="single"
         collapsible
@@ -266,6 +269,7 @@ export function MediaStoragePageAccordion({
           </AccordionItem>
         ))}
       </Accordion>
+      )}
     </div>
   );
 }
