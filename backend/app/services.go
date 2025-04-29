@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/locations/digital"
@@ -23,6 +24,7 @@ type Services struct {
 	Wishlist      services.WishlistService
 	SearchFactory services.SearchServiceFactory
 	SearchMap     services.DomainSearchServices
+	Analytics     analytics.Service
 }
 
 // NewServices initializes all application services
@@ -82,6 +84,13 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 			"error": err,
 		})
 	}
+
+	// Initialize analytics service
+	analyticsService, err := analytics.NewAnalyticsService(appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("initializing analytics service: %w", err)
+	}
+	servicesObj.Analytics = analyticsService
 
 	return servicesObj, nil
 }

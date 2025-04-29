@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/lokeam/qko-beta/app"
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
@@ -183,6 +184,16 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			r.Get("/services/catalog", digitalServicesCatalogHandler)
 		})
 
+		// Analytics
+		r.Route("/analytics", func(r chi.Router) {
+			appContext.Logger.Info("Registering analytics routes", map[string]any{
+				"path": "/api/v1/analytics",
+			})
+
+			// Register routes using the service from the Services struct
+			analytics.RegisterRoutes(r, appContext, svc.Analytics)
+		})
+
 		appContext.Logger.Info("Routes registered", map[string]any{
 			"health":         "/api/v1/health",
 			"search":         "/api/v1/search",
@@ -190,6 +201,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			"physical":       "/api/v1/locations/physical",
 			"sublocations":   "/api/v1/locations/sublocations",
 			"digital":        "/api/v1/locations/digital",
+			"analytics":      "/api/v1/analytics",
 		})
 	})
 
