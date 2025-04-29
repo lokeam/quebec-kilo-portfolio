@@ -55,6 +55,21 @@ export function MediaStoragePageAccordion({
   const [activeCardLocationIndex, setActiveCardLocationIndex] = useState<number | null>(null);
   const domainMaps = useDomainMaps();
 
+  // Debug outputs
+  console.log("MediaStoragePageAccordion rendered:", {
+    type,
+    title,
+    locationCount: locationData?.length || 0,
+    hasData: !!locationData && locationData.length > 0
+  });
+
+  if (locationData && locationData.length > 0) {
+    console.log("First location data:", {
+      name: locationData[0]?.name,
+      isPhysical: isPhysicalLocation(locationData[0])
+    });
+  }
+
   const handleSetActive = (card: LocationCardData, locationIndex: number) => {
     setActiveCard(card);
     setActiveCardLocationIndex(locationIndex);
@@ -112,8 +127,39 @@ export function MediaStoragePageAccordion({
     return locationStats?.total ?? 0;
   }
 
+  // Handle add sublocation button click
+  const handleAddSublocationClick = () => {
+    console.log("Add Sublocation button clicked");
+    setOpenAddDrawer(true);
+  };
+
   return (
     <div className="flex flex-col gap-4 border rounded-md p-4 mb-10">
+      {/*
+        IMPORTANT: Add Sublocation Implementation Notes
+        ----------------------------------------------
+        1. The drawer component below is separate from the button that triggers it
+        2. We use an explicit Button component with onClick handler rather than relying on
+           DrawerContainer's triggerAddLocation prop
+        3. The openAddDrawer state MUST be set to true by a user interaction (via handleAddSublocationClick)
+        4. If this implementation is changed, ensure there remains a clear way for users to add sublocations
+
+        DO NOT:
+        - Remove the Button components that call handleAddSublocationClick
+        - Replace this pattern with just the triggerAddLocation prop
+        - Remove the onClick handler that sets openAddDrawer to true
+      */}
+      <DrawerContainer
+        open={openAddDrawer}
+        onOpenChange={setOpenAddDrawer}
+        title="Add Sublocation"
+        description="Where in your physical location do you keep your games?"
+      >
+        <MediaPageSublocationForm
+          onSuccess={() => setOpenAddDrawer(false)}
+        />
+      </DrawerContainer>
+
       <div className="space-y-2">
         <h2 className='text-2xl font-bold tracking-tight'>{title}</h2>
         <div className="text-sm text-muted-foreground">
@@ -153,6 +199,23 @@ export function MediaStoragePageAccordion({
               </div>
             </AccordionTrigger>
             <AccordionContent>
+              {/*
+                IMPORTANT: Add Sublocation Button
+                -------------------------------
+                This button must be maintained to allow users to add sublocations.
+                It sets openAddDrawer to true, which opens the drawer component defined at the root level.
+                The button is conditionally rendered only for physical locations.
+              */}
+              {type === 'physical' && (
+                <Button
+                  variant="default"
+                  onClick={handleAddSublocationClick}
+                  className="mb-4"
+                >
+                  Add Sublocation to {location.name}
+                </Button>
+              )}
+
               <div className="space-y-4">
                 {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
@@ -195,19 +258,6 @@ export function MediaStoragePageAccordion({
 
                     {/* Action buttons for Add/Edit */}
                     <div className="flex space-x-2 mt-4">
-                      {/* Add Sublocation Drawer */}
-                      <DrawerContainer
-                        open={openAddDrawer}
-                        onOpenChange={setOpenAddDrawer}
-                        triggerAddLocation="Add Sublocation"
-                        title="Add Sublocation"
-                        description="Where in your physical location do you keep your games?"
-                      >
-                        <MediaPageSublocationForm
-                          onSuccess={() => setOpenAddDrawer(false)}
-                        />
-                      </DrawerContainer>
-
                       {/* Edit button with enhanced visual cues */}
                       <Button
                         variant={activeCard && isActiveCardFromCurrentLocation ? "default" : "outline"}

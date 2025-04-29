@@ -39,6 +39,31 @@ import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosit
  * 4. Performance Optimizations:
  *    - MemoizedDrawerHeaderContent: Prevents re-renders of the header content
  *    - MemoizedDrawerFooter: Prevents re-renders of the static footer
+ *
+ * 5. IMPORTANT USAGE PATTERNS:
+ *    This component can be used in two distinct ways:
+ *
+ *    a) Auto-generated trigger buttons (simpler approach):
+ *       - Provide either triggerAddLocation or triggerEditLocation prop
+ *       - Don't provide open/onOpenChange props
+ *       - The component will automatically create a button and handle drawer state
+ *       - Example: <DrawerContainer triggerAddLocation="Add Item">...</DrawerContainer>
+ *
+ *    b) Controlled drawer with external buttons (more flexible):
+ *       - Provide open and onOpenChange props to control drawer state externally
+ *       - Create your own Button component with an onClick handler to set the open state to true
+ *       - Don't use triggerAddLocation or triggerEditLocation with this approach
+ *       - Example:
+ *         const [isOpen, setIsOpen] = useState(false);
+ *         return (
+ *           <>
+ *             <Button onClick={() => setIsOpen(true)}>Open Drawer</Button>
+ *             <DrawerContainer open={isOpen} onOpenChange={setIsOpen}>...</DrawerContainer>
+ *           </>
+ *         )
+ *
+ *    ⚠️ WARNING: Do not mix these approaches! Using both triggerAddLocation/triggerEditLocation AND
+ *    open/onOpenChange can lead to buttons not appearing or drawers not opening correctly.
  */
 
 interface DrawerContainerProps {
