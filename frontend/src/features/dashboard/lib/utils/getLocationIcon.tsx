@@ -16,16 +16,50 @@ type DomainMapsResult = {
   notifications: Record<string, ComponentType<{ className?: string }>>;
 }
 
+/**
+ * Type definition that allows both camelCase and snake_case property access
+ * during the API standardization transition period
+ */
+interface PhysicalLocationWithSnakeCase extends PhysicalLocation {
+  location_type?: string;
+  map_coordinates?: string;
+  sub_locations?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    [key: string]: unknown;
+  }>;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+}
+
+/**
+ * Gets the appropriate icon component for a location
+ *
+ * IMPORTANT: This function handles both snake_case and camelCase properties
+ * for compatibility during the API standardization transition.
+ */
 export const getLocationIcon = (
   location: PhysicalLocation | DigitalLocation,
   type: 'physical' | 'digital',
   domainMaps: DomainMapsResult,
 ) => {
+  console.log('getLocationIcon', location);
+
   const { games, location: locationIcons } = domainMaps;
 
   if (type === 'physical') {
-    const physicalLocation = location as PhysicalLocation;
-    const IconComponent = locationIcons[physicalLocation.locationType];
+    const physicalLocation = location as PhysicalLocationWithSnakeCase;
+
+    // Handle both snake_case and camelCase properties
+    const locationType =
+      // Try camelCase first (preferred)
+      physicalLocation.locationType ||
+      // Fall back to snake_case (legacy)
+      physicalLocation.location_type;
+
+    const IconComponent = locationIcons[locationType || ''];
     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
   } else {
     const digitalLocation = location as DigitalLocation;
