@@ -46,7 +46,7 @@ interface CustomAxiosInstance {
  * @see https://axios-http.com/docs/config_defaults
  */
 const axiosInstance = axios.create({
-  baseURL: '/api', // This will proxy through Vite's dev server
+  baseURL: '/api', // Use Vite's proxy to avoid CORS issues
   timeout: 30000, // Increase to 30 seconds to match backend timeout
   headers: {
     'Content-Type': 'application/json',

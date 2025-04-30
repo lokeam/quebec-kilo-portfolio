@@ -11,38 +11,50 @@ export default defineConfig({
     ]
   },
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1', // Using 127.0.0.1 instead of 0.0.0.0 for better reliability
     port: 3000,
-    // Uncomment below to enable polling if file watch events are unreliable.
-    // watch: { usePolling: true, interval: 500 },
+    strictPort: true, // Added this to fail if port is in use
     hmr: {
-      overlay: false // Disable the HMR overlay if you feel it's impacting performance.
+      protocol: 'ws',
+      host: '127.0.0.1',
+      port: 3000,
+      overlay: false,
+      clientPort: 3000, // Ensure consistent port for HMR
+      timeout: 30000 // Increase timeout to 30 seconds
+    },
+    watch: {
+      usePolling: false, // Set to true if you're having file watching issues
+      interval: 100
     },
     proxy: {
       '/api': {
-        target: 'http://api.localhost',
+        target: 'http://localhost:80',
         changeOrigin: true,
         secure: false,
-        ws: true,
+        headers: {
+          'Host': 'api.localhost'
+        },
         configure: (proxy) => {
           proxy.on('error', (err) => {
             console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         }
       }
     }
   },
   optimizeDeps: {
-    // Pre-bundle critical dependencies to reduce the number of requests.
-    include: ['react', 'react-dom']
-    // You can add additional libraries here.
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@tanstack/react-query',
+      '@auth0/auth0-react'
+    ],
+    force: true // Force dependency optimization
   },
-  // Use a dedicated local cache directory (stored inside the container)
+  build: {
+    sourcemap: true, // Add sourcemaps for better debugging
+    chunkSizeWarningLimit: 1000 // Increase the limit for larger chunks
+  },
   cacheDir: 'node_modules/.vite-cache'
 });
