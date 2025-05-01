@@ -153,21 +153,21 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		// Physical Locations
 		r.Route("/locations/physical", func(r chi.Router) {
 			appContext.Logger.Info("Registering physical location routes", map[string]any{
-        "path": "/api/v1/locations/physical",
+				"path": "/api/v1/locations/physical",
 			})
 
 			// Register routes using the new pattern
-			physical.RegisterPhysicalRoutes(r, appContext, svc.Physical)
+			physical.RegisterPhysicalRoutes(r, appContext, svc.Physical, svc.Analytics)
 		})
 
 		// Sublocations
 		r.Route("/locations/sublocations", func(r chi.Router) {
 			appContext.Logger.Info("Registering sublocation routes", map[string]any{
-        "path": "/api/v1/locations/sublocations",
+				"path": "/api/v1/locations/sublocations",
 			})
 
 			// Register routes using the new pattern
-			sublocation.RegisterSublocationRoutes(r, appContext, svc.Sublocation)
+			sublocation.RegisterSublocationRoutes(r, appContext, svc.Sublocation, svc.Analytics)
 		})
 
 		// Digital Locations

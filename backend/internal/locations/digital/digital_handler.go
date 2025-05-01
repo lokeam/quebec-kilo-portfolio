@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/locations/formatters"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -28,17 +29,22 @@ type DigitalLocationRequest struct {
 }
 
 // RegisterDigitalRoutes registers all digital location routes
-func RegisterDigitalRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.DigitalService) {
+func RegisterDigitalRoutes(
+	r chi.Router,
+	appCtx *appcontext.AppContext,
+	service services.DigitalService,
+	analyticsService analytics.Service,
+) {
 	// Base routes
 	r.Get("/", GetUserDigitalLocations(appCtx, service))
-	r.Post("/", AddDigitalLocation(appCtx, service))
-	r.Delete("/", RemoveDigitalLocation(appCtx, service))  // Handles both single and bulk deletion
+	r.Post("/", AddDigitalLocation(appCtx, service, analyticsService))
+	r.Delete("/", RemoveDigitalLocation(appCtx, service, analyticsService))  // Handles both single and bulk deletion
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", GetDigitalLocation(appCtx, service))
-		r.Put("/", UpdateDigitalLocation(appCtx, service))
-		r.Delete("/", RemoveDigitalLocation(appCtx, service))  // Single deletion via URL param
+		r.Put("/", UpdateDigitalLocation(appCtx, service, analyticsService))
+		r.Delete("/", RemoveDigitalLocation(appCtx, service, analyticsService))  // Single deletion via URL param
 	})
 }
 
@@ -215,7 +221,11 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 }
 
 // AddDigitalLocation handles POST requests for creating a new digital location
-func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
+func AddDigitalLocation(
+	appCtx *appcontext.AppContext,
+	service services.DigitalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -299,6 +309,19 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		// Convert to frontend format
 		frontendLocation := formatters.FormatDigitalLocationToFrontend(&createdLocation)
 
+		// After successful creation, invalidate analytics cache
+		if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
+			analytics.DomainGeneral,
+			analytics.DomainFinancial,
+			analytics.DomainStorage,
+		}); err != nil {
+			appCtx.Logger.Error("Failed to invalidate analytics cache after adding location", map[string]any{
+				"error": err,
+				"userID": userID,
+			})
+			// Continue despite error, since the location was created successfully
+		}
+
 		response := struct {
 			Success  bool                   `json:"success"`
 			Location map[string]interface{} `json:"location"`
@@ -317,7 +340,11 @@ func AddDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 }
 
 // UpdateDigitalLocation handles PUT requests for updating a digital location
-func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
+func UpdateDigitalLocation(
+	appCtx *appcontext.AppContext,
+	service services.DigitalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -504,6 +531,19 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 		// Convert to frontend format
 		frontendLocation := formatters.FormatDigitalLocationToFrontend(&updatedLocation)
 
+		// After successful update, invalidate analytics cache
+		if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
+			analytics.DomainGeneral,
+			analytics.DomainFinancial,
+			analytics.DomainStorage,
+		}); err != nil {
+			appCtx.Logger.Error("Failed to invalidate analytics cache after updating location", map[string]any{
+				"error": err,
+				"userID": userID,
+			})
+			// Continue despite error, since the location was updated successfully
+		}
+
 		response := struct {
 			Success  bool                   `json:"success"`
 			Location map[string]interface{} `json:"location"`
@@ -523,7 +563,11 @@ func UpdateDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 
 // RemoveDigitalLocation handles DELETE requests for removing digital locations
 // It supports both single location deletion (via URL param) and bulk deletion (via request body)
-func RemoveDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
+func RemoveDigitalLocation(
+	appCtx *appcontext.AppContext,
+	service services.DigitalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -576,6 +620,19 @@ func RemoveDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 					statusCode,
 				)
 				return
+			}
+
+			// After successful deletion, invalidate analytics cache
+			if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
+				analytics.DomainGeneral,
+				analytics.DomainFinancial,
+				analytics.DomainStorage,
+			}); err != nil {
+				appCtx.Logger.Error("Failed to invalidate analytics cache after deleting location", map[string]any{
+					"error": err,
+					"userID": userID,
+				})
+				// Continue despite error, since the location was deleted successfully
 			}
 
 			response := struct {
@@ -674,6 +731,19 @@ func RemoveDigitalLocation(appCtx *appcontext.AppContext, service services.Digit
 				statusCode,
 			)
 			return
+		}
+
+		// After successful deletion, invalidate analytics cache
+		if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
+			analytics.DomainGeneral,
+			analytics.DomainFinancial,
+			analytics.DomainStorage,
+		}); err != nil {
+			appCtx.Logger.Error("Failed to invalidate analytics cache after deleting location", map[string]any{
+				"error": err,
+				"userID": userID,
+			})
+			// Continue despite error, since the location was deleted successfully
 		}
 
 		// Log success

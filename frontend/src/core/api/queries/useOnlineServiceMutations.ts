@@ -6,6 +6,7 @@ import {
   deleteOnlineService,
   type CreateOnlineServiceRequest
 } from '@/core/api/services/onlineServices.service';
+import { ANALYTICS_DOMAINS } from '@/core/api/services/analytics.service';
 import { AxiosError } from 'axios';
 
 interface MutationOptions {
@@ -26,6 +27,17 @@ export function useCreateOnlineService(options?: MutationOptions) {
 
       // Invalidate digitalLocations query in order to update the UI
       queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
+
+      // Invalidate analytics queries related to storage and financial data
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.STORAGE]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.FINANCIAL]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.GENERAL]
+      });
 
       // Show success toast
       const serviceName = serviceData.name || "New service";
@@ -62,6 +74,17 @@ export function useUpdateOnlineService(options?: MutationOptions) {
       // Invalidate digitalLocations query in order to update the UI
       queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
 
+      // Invalidate analytics queries related to storage and financial data
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.STORAGE]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.FINANCIAL]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.GENERAL]
+      });
+
       // Show success toast
       toast.success(`${serviceData.name} updated successfully!`, {
         description: "Your service has been successfully updated.",
@@ -91,6 +114,17 @@ export function useDeleteOnlineService(options?: MutationOptions) {
 
       // Invalidate digitalLocations query in order to update the UI
       queryClient.invalidateQueries({ queryKey: [`digitalLocations`] });
+
+      // Invalidate analytics queries related to storage and financial data
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.STORAGE]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.FINANCIAL]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['analytics', ANALYTICS_DOMAINS.GENERAL]
+      });
 
       // Show success toast
       toast.success('Service deleted successfully', {
