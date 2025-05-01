@@ -1,15 +1,14 @@
 package sublocation
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
@@ -25,16 +24,21 @@ type SublocationRequest struct {
 }
 
 // RegisterSublocationRoutes registers all sublocation routes
-func RegisterSublocationRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.SublocationService) {
+func RegisterSublocationRoutes(
+	r chi.Router,
+	appCtx *appcontext.AppContext,
+	service services.SublocationService,
+	analyticsService analytics.Service,
+) {
 	// Base routes
 	r.Get("/", GetSublocations(appCtx, service))
-	r.Post("/", AddSublocation(appCtx, service))
+	r.Post("/", AddSublocation(appCtx, service, analyticsService))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", GetSublocation(appCtx, service))
-		r.Put("/", UpdateSublocation(appCtx, service))
-		r.Delete("/", DeleteSublocation(appCtx, service))
+		r.Put("/", UpdateSublocation(appCtx, service, analyticsService))
+		r.Delete("/", DeleteSublocation(appCtx, service, analyticsService))
 	})
 
 	// Add an explicit endpoint to invalidate physical location caches if needed
@@ -236,9 +240,12 @@ func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 }
 
 // AddSublocation handles POST requests for creating a new sublocation
-func AddSublocation(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+func AddSublocation(
+	appCtx *appcontext.AppContext,
+	service services.SublocationService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
 		userID := httputils.GetUserID(r)
@@ -257,28 +264,9 @@ func AddSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 		}
 
 		appCtx.Logger.Info("Creating sublocation", map[string]any{
-			"requestID":  requestID,
-			"userID":     userID,
+			"requestID": requestID,
+			"userID":    userID,
 		})
-
-		// Read the request body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				errors.New("error reading request body"),
-				http.StatusBadRequest,
-			)
-			return
-		}
-		appCtx.Logger.Debug("Request body", map[string]any{
-			"body": string(body),
-		})
-
-		// Reset the request body
-		r.Body = io.NopCloser(bytes.NewReader(body))
 
 		var locationRequest SublocationRequest
 		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
@@ -324,41 +312,45 @@ func AddSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 		locationID := uuid.New().String()
 		now := time.Now()
 
-		sublocation := models.Sublocation{
+		location := models.Sublocation{
 			ID:                 locationID,
+			UserID:             userID,
 			Name:               locationRequest.Name,
 			LocationType:       locationRequest.LocationType,
 			BgColor:            locationRequest.BgColor,
 			StoredItems:        locationRequest.StoredItems,
-			UserID:             userID,
 			PhysicalLocationID: locationRequest.PhysicalLocationID,
 			CreatedAt:          now,
 			UpdatedAt:          now,
 		}
 
-		createdSublocation, err := service.AddSublocation(r.Context(), userID, sublocation)
+		createdLocation, err := service.AddSublocation(r.Context(), userID, location)
 		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrValidationFailed) {
-				statusCode = http.StatusBadRequest
-			}
-
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
 				err,
-				statusCode,
+				http.StatusInternalServerError,
 			)
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
-			Success     bool                  `json:"success"`
-			Location    models.Sublocation    `json:"location"`
-		} {
-			Success:    true,
-			Location:   createdSublocation,
+			Success     bool              `json:"success"`
+			Sublocation models.Sublocation `json:"sublocation"`
+		}{
+			Success:     true,
+			Sublocation: createdLocation,
 		}
 
 		httputils.RespondWithJSON(
@@ -371,9 +363,8 @@ func AddSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 }
 
 // UpdateSublocation handles PUT requests for updating a sublocation
-func UpdateSublocation(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+func UpdateSublocation(appCtx *appcontext.AppContext, service services.SublocationService, analyticsService analytics.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
 		userID := httputils.GetUserID(r)
@@ -393,9 +384,9 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 
 		locationID := chi.URLParam(r, "id")
 		appCtx.Logger.Info("Updating sublocation", map[string]any{
-			"requestID":    requestID,
-			"userID":       userID,
-			"locationID":   locationID,
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": locationID,
 		})
 
 		if locationID == "" {
@@ -403,7 +394,7 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("location ID is required"),
+				errors.New("id is required"),
 				http.StatusBadRequest,
 			)
 			return
@@ -422,41 +413,43 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 		}
 
 		location := models.Sublocation{
-			ID:             locationID,
-			Name:           locationRequest.Name,
-			LocationType:   locationRequest.LocationType,
-			BgColor:        locationRequest.BgColor,
-			StoredItems:    locationRequest.StoredItems,
-			UserID:         userID,
+			ID:                 locationID,
+			UserID:             userID,
+			Name:               locationRequest.Name,
+			LocationType:       locationRequest.LocationType,
+			BgColor:            locationRequest.BgColor,
+			StoredItems:        locationRequest.StoredItems,
 			PhysicalLocationID: locationRequest.PhysicalLocationID,
-			UpdatedAt:      time.Now(),
+			UpdatedAt:          time.Now(),
 		}
 
 		err := service.UpdateSublocation(r.Context(), userID, location)
 		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrSublocationNotFound) {
-				statusCode = http.StatusNotFound
-			} else if errors.Is(err, ErrValidationFailed) {
-				statusCode = http.StatusBadRequest
-			}
-
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
 				err,
-				statusCode,
+				http.StatusInternalServerError,
 			)
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
-			Success     bool                `json:"success"`
-			Location    models.Sublocation  `json:"location"`
-		} {
-			Success:    true,
-			Location:   location,
+			Success     bool              `json:"success"`
+			Sublocation models.Sublocation `json:"sublocation"`
+		}{
+			Success:     true,
+			Sublocation: location,
 		}
 
 		httputils.RespondWithJSON(
@@ -469,9 +462,12 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 }
 
 // DeleteSublocation handles DELETE requests for removing a sublocation
-func DeleteSublocation(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+func DeleteSublocation(
+	appCtx *appcontext.AppContext,
+	service services.SublocationService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
 		userID := httputils.GetUserID(r)
@@ -491,9 +487,9 @@ func DeleteSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 
 		locationID := chi.URLParam(r, "id")
 		appCtx.Logger.Info("Deleting sublocation", map[string]any{
-			"requestID":    requestID,
-			"userID":       userID,
-			"locationID":   locationID,
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": locationID,
 		})
 
 		if locationID == "" {
@@ -501,7 +497,7 @@ func DeleteSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("location ID is required"),
+				errors.New("id is required"),
 				http.StatusBadRequest,
 			)
 			return
@@ -509,27 +505,33 @@ func DeleteSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 
 		err := service.DeleteSublocation(r.Context(), userID, locationID)
 		if err != nil {
-			statusCode := http.StatusInternalServerError
-			if errors.Is(err, ErrSublocationNotFound) {
-				statusCode = http.StatusNotFound
-			}
-
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
 				err,
-				statusCode,
+				http.StatusInternalServerError,
 			)
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
-			Success    bool      `json:"success"`
-			ID         string    `json:"id"`
-		} {
-			Success:   true,
-			ID:        locationID,
+			Success bool   `json:"success"`
+			ID      string `json:"id"`
+			Message string `json:"message"`
+		}{
+			Success: true,
+			ID:      locationID,
+			Message: "Sublocation deleted successfully",
 		}
 
 		httputils.RespondWithJSON(

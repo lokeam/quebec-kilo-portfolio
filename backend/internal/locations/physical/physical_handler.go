@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/locations/formatters"
@@ -25,16 +26,16 @@ type PhysicalLocationRequest struct {
 }
 
 // RegisterPhysicalRoutes registers all physical location routes
-func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.PhysicalService) {
+func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.PhysicalService, analyticsService analytics.Service) {
 	// Base routes
 	r.Get("/", GetUserPhysicalLocations(appCtx, service))
-	r.Post("/", AddPhysicalLocation(appCtx, service))
+	r.Post("/", AddPhysicalLocation(appCtx, service, analyticsService))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", GetPhysicalLocation(appCtx, service))
-		r.Put("/", UpdatePhysicalLocation(appCtx, service))
-		r.Delete("/", RemovePhysicalLocation(appCtx, service))
+		r.Put("/", UpdatePhysicalLocation(appCtx, service, analyticsService))
+		r.Delete("/", RemovePhysicalLocation(appCtx, service, analyticsService))
 	})
 }
 
@@ -144,7 +145,11 @@ func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 }
 
 // AddPhysicalLocation handles POST requests for creating a new physical location
-func AddPhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+func AddPhysicalLocation(
+	appCtx *appcontext.AppContext,
+	service services.PhysicalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
 
@@ -189,6 +194,15 @@ func AddPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
 			Success  bool                   `json:"success"`
 			Location map[string]interface{} `json:"location"`
@@ -207,7 +221,11 @@ func AddPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 }
 
 // UpdatePhysicalLocation handles PUT requests for updating a physical location
-func UpdatePhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+func UpdatePhysicalLocation(
+	appCtx *appcontext.AppContext,
+	service services.PhysicalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
 
@@ -254,6 +272,15 @@ func UpdatePhysicalLocation(appCtx *appcontext.AppContext, service services.Phys
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
 			Success  bool                   `json:"success"`
 			Location map[string]interface{} `json:"location"`
@@ -272,7 +299,11 @@ func UpdatePhysicalLocation(appCtx *appcontext.AppContext, service services.Phys
 }
 
 // RemovePhysicalLocation handles DELETE requests for removing a physical location
-func RemovePhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+func RemovePhysicalLocation(
+	appCtx *appcontext.AppContext,
+	service services.PhysicalService,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
 
@@ -286,7 +317,7 @@ func RemovePhysicalLocation(appCtx *appcontext.AppContext, service services.Phys
 		}
 
 		locationID := chi.URLParam(r, "id")
-		appCtx.Logger.Info("Deleting physical location", map[string]any{
+		appCtx.Logger.Info("Removing physical location", map[string]any{
 			"requestID":  requestID,
 			"userID":     userID,
 			"locationID": locationID,
@@ -303,12 +334,23 @@ func RemovePhysicalLocation(appCtx *appcontext.AppContext, service services.Phys
 			return
 		}
 
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		response := struct {
 			Success bool   `json:"success"`
 			ID      string `json:"id"`
+			Message string `json:"message"`
 		}{
 			Success: true,
 			ID:      locationID,
+			Message: "Physical location removed successfully",
 		}
 
 		httputils.RespondWithJSON(
