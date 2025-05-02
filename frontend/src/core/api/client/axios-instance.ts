@@ -2,7 +2,7 @@ import axios, { type AxiosRequestConfig, AxiosError, type AxiosResponse } from '
 //import type { AxiosError } from 'axios';
 import type { ApiError } from '@/core/api/types/api.types';
 import { logger } from '@/core/utils/logger/logger';
-import { toCamelCase } from '@/core/api/utils/serialization';
+import { toCamelCase, toSnakeCase } from '@/core/api/utils/serialization';
 
 /**
  * Axios Instance Configuration
@@ -84,6 +84,12 @@ const handleAxiosError = (error: AxiosError<ApiError>) => {
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Convert request data to snake_case if it exists
+    if (config.data) {
+      config.data = toSnakeCase(config.data);
+      console.log('🐍 Converting request data to snake_case');
+    }
+
     logger.debug('🚀 Outgoing request:', {
       url: config.url,
       method: config.method,
@@ -110,7 +116,7 @@ axiosInstance.interceptors.response.use(
 
     // Convert ONLY the response data to camelCase
     const camelCaseData = toCamelCase(response.data);
-    console.log('♻️ Camelcase converted Response data:', camelCaseData);
+    console.log('🐫 camelCase converted Response data:', camelCaseData);
 
     return { ...response, data: camelCaseData };
   },

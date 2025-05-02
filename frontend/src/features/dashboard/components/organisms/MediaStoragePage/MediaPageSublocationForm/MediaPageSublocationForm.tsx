@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
 
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
@@ -99,7 +100,7 @@ export function MediaPageSublocationForm({
   defaultValues = {
     locationName: '',
     locationType: SublocationType.shelf,
-    bgColor: '#000000',
+    bgColor: 'gray',
     coordinates: {
       enabled: false,
       value: undefined,
@@ -153,28 +154,36 @@ export function MediaPageSublocationForm({
   }, [form, isEditing, sublocationData]);
 
   const handleSubmit = async (values: z.infer<typeof SublocationFormSchema>) => {
-    const payload: LocationPayload = {
-      name: values.locationName,
-      locationType: values.locationType,
-      location_type: values.locationType,
-      mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
-      map_coordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
-      bgColor: values.bgColor,
-      bg_color: values.bgColor,
-      physical_location_id: parentLocationId,
-    };
-
-    if (isEditing && sublocationData) {
-      await locationManager.update({
-        ...payload,
-        id: sublocationData.id,
-      });
-    } else {
-      const sublocationPayload: Sublocation = {
-        ...payload,
-        parentLocationId: parentLocationId,
+    try {
+      const payload: LocationPayload = {
+        name: values.locationName,
+        locationType: values.locationType,
+        mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
+        bgColor: values.bgColor,
+        physicalLocationId: parentLocationId,
       };
-      await locationManager.create(sublocationPayload);
+
+      if (isEditing && sublocationData) {
+        await locationManager.update({
+          ...payload,
+          id: sublocationData.id,
+        });
+        toast.success('Sublocation updated successfully');
+      } else {
+        const sublocationPayload: Sublocation = {
+          ...payload,
+          physicalLocationId: parentLocationId,
+        };
+        await locationManager.create(sublocationPayload);
+        toast.success('Sublocation created successfully');
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error: string }>;
+      if (axiosError.response?.data?.error?.includes('already exists')) {
+        toast.error('A sublocation with this name already exists in this physical location');
+      } else {
+        toast.error('Failed to save sublocation. Please try again.');
+      }
     }
   };
 
@@ -290,7 +299,6 @@ export function MediaPageSublocationForm({
                   <SelectItem value="purple">Purple</SelectItem>
                   <SelectItem value="orange">Orange</SelectItem>
                   <SelectItem value="brown">Brown</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
                   <SelectItem value="gray">Gray</SelectItem>
                 </SelectContent>
               </Select>

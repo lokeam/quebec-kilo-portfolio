@@ -42,11 +42,14 @@ var ValidBgColors = []string{
 	"gray",
 }
 
-// SublocationValidator handles validation of sublocation data
+// SublocationValidator implements the interfaces.SublocationValidator interface
 type SublocationValidator struct {
 	sanitizer interfaces.Sanitizer
 	dbAdapter interfaces.SublocationDbAdapter
 }
+
+// Ensure SublocationValidator implements interfaces.SublocationValidator
+var _ interfaces.SublocationValidator = (*SublocationValidator)(nil)
 
 // NewSublocationValidator creates a new sublocation validator
 func NewSublocationValidator(sanitizer interfaces.Sanitizer, dbAdapter interfaces.SublocationDbAdapter) (*SublocationValidator, error) {
@@ -64,7 +67,7 @@ func NewSublocationValidator(sanitizer interfaces.Sanitizer, dbAdapter interface
 	}, nil
 }
 
-// Validation Sublocation validates a sublocation model
+// ValidateSublocation validates a sublocation for creation
 func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
 	var violations []string
 
@@ -93,7 +96,7 @@ func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocati
 		violations = append(violations, err.Error())
 	}
 
-	// Check for duplicate sublocation
+	// Check for duplicate sublocation - ONLY for creation
 	if exists, err := sv.dbAdapter.CheckDuplicateSublocation(
 		context.Background(),
 		sublocation.UserID,
@@ -110,6 +113,44 @@ func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocati
 	}
 
 	return sublocation, nil
+}
+
+// ValidateSublocationUpdate validates a sublocation update by only checking fields that have changed
+func (sv *SublocationValidator) ValidateSublocationUpdate(update, existing models.Sublocation) (models.Sublocation, error) {
+	// Start with the existing sublocation
+	validated := existing
+
+	// Only validate and update fields that have changed
+	if update.Name != "" && update.Name != existing.Name {
+		// Check for duplicate name only if the name is being changed
+		exists, err := sv.dbAdapter.CheckDuplicateSublocation(
+			context.Background(),
+			update.UserID,
+			update.PhysicalLocationID,
+			update.Name,
+		)
+		if err != nil {
+			return models.Sublocation{}, err
+		}
+		if exists {
+			return models.Sublocation{}, fmt.Errorf("a sublocation with this name already exists in this physical location")
+		}
+		validated.Name = update.Name
+	}
+
+	if update.LocationType != "" {
+		validated.LocationType = update.LocationType
+	}
+
+	if update.BgColor != "" {
+		validated.BgColor = update.BgColor
+	}
+
+	if update.StoredItems != existing.StoredItems {
+		validated.StoredItems = update.StoredItems
+	}
+
+	return validated, nil
 }
 
 func (v *SublocationValidator) validateName(name string) error {

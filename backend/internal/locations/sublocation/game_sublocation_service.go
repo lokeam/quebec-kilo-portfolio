@@ -240,8 +240,15 @@ func (gss *GameSublocationService) UpdateSublocation(
 	userID string,
 	sublocation models.Sublocation,
 ) error {
-	// Validate sublocation
-	validatedSublocation, err := gss.validator.ValidateSublocation(sublocation)
+	// First get the existing sublocation
+	existingSublocation, err := gss.dbAdapter.GetSublocation(ctx, userID, sublocation.ID)
+	if err != nil {
+		gss.logger.Error("Failed to get existing sublocation", map[string]any{"error": err})
+		return err
+	}
+
+	// Validate only the fields that are being updated
+	validatedSublocation, err := gss.validator.ValidateSublocationUpdate(sublocation, existingSublocation)
 	if err != nil {
 		gss.logger.Error("Location validation failed", map[string]any{"error": err})
 		return err

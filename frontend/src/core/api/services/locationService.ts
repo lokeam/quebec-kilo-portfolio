@@ -2,7 +2,7 @@ import type { BaseLocation, PhysicalLocation, Sublocation } from '../types/locat
 import { axiosInstance } from '../client/axios-instance';
 import { isPhysicalLocation, isSublocation } from '../types/location';
 import type { AxiosResponse } from 'axios';
-import { toCamelCase, toSnakeCase } from '../utils/serialization';
+import { toCamelCase } from '../utils/serialization';
 
 export class LocationService {
   private static instance: LocationService;
@@ -26,14 +26,12 @@ export class LocationService {
   }
 
   public async createPhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
-    const snakeCaseLocation = toSnakeCase(location);
-    const response: AxiosResponse<PhysicalLocation> = await axiosInstance.post('/v1/locations/physical', snakeCaseLocation);
+    const response: AxiosResponse<PhysicalLocation> = await axiosInstance.post('/v1/locations/physical', location);
     return toCamelCase(response.data);
   }
 
   public async createSublocation(location: Sublocation): Promise<Sublocation> {
-    const snakeCaseLocation = toSnakeCase(location);
-    const response: AxiosResponse<Sublocation> = await axiosInstance.post('/v1/locations/sublocations', snakeCaseLocation);
+    const response: AxiosResponse<Sublocation> = await axiosInstance.post('/v1/locations/sublocations', location);
     return toCamelCase(response.data);
   }
 
@@ -47,14 +45,24 @@ export class LocationService {
   }
 
   public async updatePhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
-    const snakeCaseLocation = toSnakeCase(location);
-    const response: AxiosResponse<PhysicalLocation> = await axiosInstance.put(`/v1/locations/physical/${location.id}`, snakeCaseLocation);
+    const response: AxiosResponse<PhysicalLocation> = await axiosInstance.put(`/v1/locations/physical/${location.id}`, location);
     return toCamelCase(response.data);
   }
 
   public async updateSublocation(location: Sublocation): Promise<Sublocation> {
-    const snakeCaseLocation = toSnakeCase(location);
-    const response: AxiosResponse<Sublocation> = await axiosInstance.put(`/v1/locations/sublocations/${location.id}`, snakeCaseLocation);
+    // Convert camelCase to snake_case for API request
+    const apiPayload = {
+      name: location.name,
+      location_type: location.locationType,
+      map_coordinates: location.mapCoordinates,
+      bg_color: location.bgColor,
+      physical_location_id: location.parentLocationId,
+    };
+
+    const response: AxiosResponse<Sublocation> = await axiosInstance.put(
+      `/v1/locations/sublocations/${location.id}`,
+      apiPayload
+    );
     return toCamelCase(response.data);
   }
 

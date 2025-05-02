@@ -8,6 +8,7 @@ import (
 
 type MockSublocationValidator struct {
 	ValidateSublocationFunc func(sublocation models.Sublocation) (models.Sublocation, error)
+	ValidateSublocationUpdateFunc func(update, existing models.Sublocation) (models.Sublocation, error)
 }
 
 func (m *MockSublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
@@ -15,6 +16,13 @@ func (m *MockSublocationValidator) ValidateSublocation(sublocation models.Subloc
 		return m.ValidateSublocationFunc(sublocation)
 	}
 	return sublocation, nil
+}
+
+func (m *MockSublocationValidator) ValidateSublocationUpdate(update, existing models.Sublocation) (models.Sublocation, error) {
+	if m.ValidateSublocationUpdateFunc != nil {
+		return m.ValidateSublocationUpdateFunc(update, existing)
+	}
+	return update, nil
 }
 
 type MockSublocationDbAdapter struct {

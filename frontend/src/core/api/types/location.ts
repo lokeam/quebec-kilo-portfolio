@@ -12,7 +12,6 @@ export type PhysicalLocation = BaseLocation;
 // Sublocation specific interface
 export interface Sublocation extends BaseLocation {
   parentLocationId: string;
-  physical_location_id?: string;
   bgColor?: string;
 }
 

@@ -29,11 +29,8 @@ export interface LocationPayload {
   name: string;
   locationType: string;
   mapCoordinates?: string;
-  location_type?: string;
-  map_coordinates?: string;
   bgColor?: string;
-  parentLocationId?: string;
-  physical_location_id?: string;
+  physicalLocationId?: string;
   [key: string]: unknown;
 }
 
@@ -42,21 +39,13 @@ export function useCreateLocationMutation(onSuccess?: () => void) {
 
   return useBackendMutation<LocationResponse, LocationPayload>(
     async (locationData, token) => {
-      // Convert data to match API expectations if needed
-      const apiPayload = {
-        ...locationData,
-        // Ensure we have the right field names for the API
-        location_type: locationData.location_type || locationData.locationType,
-        map_coordinates: locationData.map_coordinates || locationData.mapCoordinates,
-      };
-
       // Log the request URL and payload for debugging
-      console.log('[DEBUG] Creating physical location with payload:', apiPayload);
+      console.log('[DEBUG] Creating physical location with payload:', locationData);
       console.log('[DEBUG] API endpoint:', API_ROUTES.LOCATIONS.CREATE);
 
       return axiosInstance.post(
         API_ROUTES.LOCATIONS.CREATE,
-        apiPayload,
+        locationData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -134,9 +123,9 @@ export function useDeleteLocationMutation() {
   const queryClient = useQueryClient();
 
   return useBackendMutation<DeleteLocationResponse, string>(
-    async (locationID, token) => {
+    async (locationId, token) => {
       return axiosInstance.delete(
-        API_ROUTES.LOCATIONS.BY_ID(locationID),
+        API_ROUTES.LOCATIONS.BY_ID(locationId),
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -155,5 +144,5 @@ export function useDeleteLocationMutation() {
         logger.error('Failed to delete location:', error);
       }
     }
-  )
+  );
 }
