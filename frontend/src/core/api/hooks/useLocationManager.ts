@@ -4,6 +4,7 @@ import { useBackendMutation } from './useBackendMutation';
 import { mediaStorageKeys } from '../constants/query-keys/mediaStorage';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ApiResponse } from '../types/api.types';
+import { useQuery } from '@tanstack/react-query';
 
 interface UseLocationManagerOptions {
   type: 'physical' | 'sublocation';
@@ -14,6 +15,19 @@ interface UseLocationManagerOptions {
 export function useLocationManager({ type, onSuccess, onError }: UseLocationManagerOptions) {
   const locationService = LocationService.getInstance();
   const queryClient = useQueryClient();
+
+  const { data: locations } = useQuery({
+    queryKey: type === 'physical' ? mediaStorageKeys.locations.all : mediaStorageKeys.sublocations.all,
+    queryFn: async () => {
+      if (type === 'physical') {
+        const result = await locationService.getPhysicalLocations();
+        return { success: true, data: result };
+      } else {
+        const result = await locationService.getSublocations();
+        return { success: true, data: result };
+      }
+    }
+  });
 
   const createMutation = useBackendMutation<PhysicalLocation | Sublocation, BaseLocation>(
     async (location: BaseLocation) => {
@@ -27,8 +41,9 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
     },
     {
       onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
-        // Invalidate the locations query to trigger a refetch
+        // Invalidate both physical locations and sublocations queries
         queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.sublocations.all });
         onSuccess?.(data.data);
       },
       onError: (error: Error) => {
@@ -49,8 +64,9 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
     },
     {
       onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
-        // Invalidate the locations query to trigger a refetch
+        // Invalidate both physical locations and sublocations queries
         queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.sublocations.all });
         onSuccess?.(data.data);
       },
       onError: (error: Error) => {
@@ -66,8 +82,9 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
     },
     {
       onSuccess: (_, id: string) => {
-        // Invalidate the locations query to trigger a refetch
+        // Invalidate both physical locations and sublocations queries
         queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.sublocations.all });
         onSuccess?.({ id });
       },
       onError: (error: Error) => {
@@ -83,6 +100,7 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    locations: locations?.data || [],
   };
 }
 

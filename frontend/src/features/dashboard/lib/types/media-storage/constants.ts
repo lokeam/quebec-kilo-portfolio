@@ -33,12 +33,12 @@ export type PhysicalLocationType = typeof PhysicalLocationType[keyof typeof Phys
  * @constant SublocationType
  */
 export const SublocationType = {
-  SHELF: 'shelf',
-  CONSOLE: 'console',
-  CABINET: 'cabinet',
-  CLOSET: 'closet',
-  DRAWER: 'drawer',
-  BOX: 'box'
+  shelf: 'shelf',
+  console: 'console',
+  cabinet: 'cabinet',
+  closet: 'closet',
+  drawer: 'drawer',
+  box: 'box'
 } as const;
 
 export type SublocationType = typeof SublocationType[keyof typeof SublocationType];

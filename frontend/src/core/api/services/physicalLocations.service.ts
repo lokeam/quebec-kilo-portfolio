@@ -9,6 +9,7 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
 import { logger } from '@/core/utils/logger/logger';
 import { LocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { AxiosResponse } from 'axios';
 
 interface PhysicalLocationsResponse {
   success: boolean;
@@ -38,23 +39,26 @@ export const getUserPhysicalLocations = async (token?: string): Promise<Physical
       } : undefined
     };
 
-    const response = await axiosInstance.get<PhysicalLocationsResponse>(
+    const response: AxiosResponse<PhysicalLocationsResponse> = await axiosInstance.get(
       '/v1/locations/physical',
       config
     );
 
     logger.debug('Physical locations fetched successfully', {
-      count: response.locations?.length || 0,
-      firstLocation: response.locations?.[0],
-      firstLocationSublocations: response.locations?.[0]?.sublocations
+      count: response.data.locations?.length || 0,
+      firstLocation: response.data.locations?.[0],
+      firstLocationSublocations: response.data.locations?.[0]?.sublocations
     });
 
-    if (!response || !response.success) {
+    if (!response.data || !response.data.success) {
       throw new Error('Invalid response from physical locations API');
     }
 
+    // Ensure we have an array of locations, defaulting to empty array if undefined
+    const locations = response.data.locations || [];
+
     // Ensure each location has the correct type
-    const transformedLocations = (response.locations || []).map(location => ({
+    const transformedLocations = locations.map((location: PhysicalLocation) => ({
       ...location,
       type: LocationType.PHYSICAL
     }));

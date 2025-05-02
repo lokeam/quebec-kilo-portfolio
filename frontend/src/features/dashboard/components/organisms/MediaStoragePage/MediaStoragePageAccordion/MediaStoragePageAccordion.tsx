@@ -37,6 +37,7 @@ import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-stor
 import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
 import type { LocationCardData } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
 import type { MediaStorageMetadata } from '@/features/dashboard/lib/types/media-storage/metadata';
+import type { Sublocation } from '@/features/dashboard/lib/types/media-storage/physical';
 
 // Guards
 import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage/guards';
@@ -220,7 +221,7 @@ export function MediaStoragePageAccordion({
         className="w-full"
         onValueChange={handleAccordionValueChange}
       >
-        {locationData.map((location, index) => (
+        {Array.isArray(locationData) ? locationData.map((location, index) => (
           <AccordionItem key={`item-${index + 1}`} value={`item-${index + 1}`}>
             <AccordionTrigger>
               <div className="flex items-center space-x-3">
@@ -251,30 +252,42 @@ export function MediaStoragePageAccordion({
                   /* For physical locations, render sublocations as cards */
                   <>
                     {/* Render sublocation cards with selection indicator */}
-                    {location.sublocations?.map((sublocation: LocationCardData, cardIndex: number) => (
-                      <div
-                        key={`${location.name}-${cardIndex}`}
-                        className={`relative rounded-lg transition-all ${
-                          activeCard === sublocation && isActiveCardFromCurrentLocation
-                            ? 'ring-2 ring-primary ring-offset-2'
-                            : ''
-                        }`}
-                      >
-                        <MediaStoragePageAccordionCard
-                          card={sublocation}
-                          id={`${location.name}-${cardIndex}`}
-                          setActive={(card) => handleSetActive(card, index)}
-                          isDigital={false}
-                        />
-                        {activeCard === sublocation && isActiveCardFromCurrentLocation && (
-                          <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    {location.sublocations?.map((sublocation: Sublocation, cardIndex: number) => {
+
+                      console.log('sublocation', sublocation);
+                      const cardData: LocationCardData = {
+                        id: sublocation.id,
+                        name: sublocation.name,
+                        description: sublocation.description,
+                        locationType: sublocation.locationType,
+                        bgColor: sublocation.bgColor,
+                        items: sublocation.items,
+                      };
+                      return (
+                        <div
+                          key={`${location.name}-${cardIndex}`}
+                          className={`relative rounded-lg transition-all ${
+                            activeCard?.id === cardData.id && isActiveCardFromCurrentLocation
+                              ? 'ring-2 ring-primary ring-offset-2'
+                              : ''
+                          }`}
+                        >
+                          <MediaStoragePageAccordionCard
+                            card={cardData}
+                            id={`${location.name}-${cardIndex}`}
+                            setActive={(card) => handleSetActive(card, index)}
+                            isDigital={false}
+                          />
+                          {activeCard?.id === cardData.id && isActiveCardFromCurrentLocation && (
+                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
 
                     {/* Add Sublocation button - moved outside the loop */}
                     {type === 'physical' && (
@@ -337,7 +350,7 @@ export function MediaStoragePageAccordion({
                           <MediaPageSublocationForm
                             sublocationData={{
                               ...activeCard,
-                              locationType: activeCard.locationType || SublocationType.SHELF
+                              locationType: activeCard.locationType || SublocationType.shelf
                             }}
                             parentLocationId={locationData[activeLocationIndex].id}
                             isEditing={true}
@@ -399,7 +412,7 @@ export function MediaStoragePageAccordion({
               </div>
             </AccordionContent>
           </AccordionItem>
-        ))}
+        )) : null}
       </Accordion>
       )}
     </div>

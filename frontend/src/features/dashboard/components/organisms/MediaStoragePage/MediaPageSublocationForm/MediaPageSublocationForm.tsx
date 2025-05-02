@@ -49,7 +49,8 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
-import { toSnakeCase } from '@/core/api/utils/serialization';
+import type { LocationPayload } from "@/core/api/queries/useLocationMutations";
+import type { Sublocation } from "@/core/api/types/location";
 
 export const SublocationFormSchema = z.object({
   locationName: z
@@ -60,7 +61,7 @@ export const SublocationFormSchema = z.object({
       message: "Location name must be at least 3 characters long",
     }),
   locationType: z
-    .enum([SublocationType.SHELF, SublocationType.CONSOLE, SublocationType.CABINET, SublocationType.CLOSET, SublocationType.DRAWER, SublocationType.BOX], {
+    .enum([SublocationType.shelf, SublocationType.console, SublocationType.cabinet, SublocationType.closet, SublocationType.drawer, SublocationType.box], {
       required_error: "Please select a location type",
     }),
   bgColor: z
@@ -97,11 +98,11 @@ export function MediaPageSublocationForm({
   onSuccess,
   defaultValues = {
     locationName: '',
-    locationType: SublocationType.SHELF,
-    bgColor: '',
+    locationType: SublocationType.shelf,
+    bgColor: '#000000',
     coordinates: {
       enabled: false,
-      value: '' // Ensure value is never undefined
+      value: undefined,
     }
   },
   buttonText = "Add Sublocation",
@@ -126,8 +127,8 @@ export function MediaPageSublocationForm({
     defaultValues: isEditing && sublocationData
       ? {
           locationName: sublocationData.name || "",
-          locationType: sublocationData.locationType || SublocationType.SHELF,
-          bgColor: sublocationData.bgColor || "",
+          locationType: sublocationData.locationType || SublocationType.shelf,
+          bgColor: sublocationData.bgColor || "#000000",
           coordinates: {
             enabled: !!sublocationData.mapCoordinates,
             value: sublocationData.mapCoordinates || "",
@@ -141,8 +142,8 @@ export function MediaPageSublocationForm({
     if (isEditing && sublocationData) {
       form.reset({
         locationName: sublocationData.name || '',
-        locationType: sublocationData.locationType || SublocationType.SHELF,
-        bgColor: sublocationData.bgColor || '',
+        locationType: sublocationData.locationType || SublocationType.shelf,
+        bgColor: sublocationData.bgColor || '#000000',
         coordinates: {
           enabled: !!sublocationData.mapCoordinates,
           value: sublocationData.mapCoordinates || ''
@@ -152,27 +153,28 @@ export function MediaPageSublocationForm({
   }, [form, isEditing, sublocationData]);
 
   const handleSubmit = async (values: z.infer<typeof SublocationFormSchema>) => {
-    try {
-      const payload = {
-        name: values.locationName,
-        locationType: values.locationType,
-        mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
-        bgColor: values.bgColor,
-        physical_location_id: parentLocationId,
-      };
+    const payload: LocationPayload = {
+      name: values.locationName,
+      locationType: values.locationType,
+      location_type: values.locationType,
+      mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
+      map_coordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
+      bgColor: values.bgColor,
+      bg_color: values.bgColor,
+      physical_location_id: parentLocationId,
+    };
 
-      if (sublocationData) {
-        // For updates, we need to include the id
-        const updatePayload = {
-          ...payload,
-          id: sublocationData.id,
-        };
-        await locationManager.update(toSnakeCase(updatePayload));
-      } else {
-        await locationManager.create(toSnakeCase(payload));
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
+    if (isEditing && sublocationData) {
+      await locationManager.update({
+        ...payload,
+        id: sublocationData.id,
+      });
+    } else {
+      const sublocationPayload: Sublocation = {
+        ...payload,
+        parentLocationId: parentLocationId,
+      };
+      await locationManager.create(sublocationPayload);
     }
   };
 

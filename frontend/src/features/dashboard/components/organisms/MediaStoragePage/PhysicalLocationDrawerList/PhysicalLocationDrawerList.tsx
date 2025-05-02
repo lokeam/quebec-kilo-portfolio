@@ -118,8 +118,8 @@ export function PhysicalLocationDrawerList({ locationData, onSuccess }: Physical
                   <div>
                     <CardTitle>{location.name}</CardTitle>
                     <CardDescription className="flex items-center mt-2">
-                      {renderLocationIcon(location.locationType || location.location_type)}
-                      {getLocationTypeDisplay(location.locationType || location.location_type)}
+                      {renderLocationIcon(location.locationType)}
+                      {getLocationTypeDisplay(location.locationType)}
                     </CardDescription>
                   </div>
                   <div className="flex space-x-2">

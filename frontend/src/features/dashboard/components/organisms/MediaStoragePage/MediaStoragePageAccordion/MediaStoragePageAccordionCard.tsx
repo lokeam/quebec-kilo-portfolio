@@ -59,12 +59,16 @@ export function MediaStoragePageAccordionCard({
         <IconCloudDataConnection className="w-full h-full" />
       );
     } else {
-      const IconComponent = sublocationIcons[card.locationType?.toLowerCase() as Lowercase<SublocationType>];
-      return IconComponent ? (
-        <IconComponent className="w-full h-full" />
-      ) : (
-        <IconCloudDataConnection className="w-full h-full" />
-      );
+      const locationType = card.locationType?.toLowerCase();
+
+
+      console.log('MediaStoragePageAccordionCard', card);
+      const IconComponent = sublocationIcons[locationType as keyof typeof sublocationIcons];
+      if (!IconComponent) {
+        console.warn(`No icon found for location type: ${card.locationType}`);
+        return <IconCloudDataConnection className="w-full h-full" />;
+      }
+      return <IconComponent className="w-full h-full" />;
     }
   };
 

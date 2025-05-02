@@ -1,7 +1,8 @@
-import axios, { type AxiosRequestConfig, AxiosError } from 'axios';
+import axios, { type AxiosRequestConfig, AxiosError, type AxiosResponse } from 'axios';
 //import type { AxiosError } from 'axios';
 import type { ApiError } from '@/core/api/types/api.types';
 import { logger } from '@/core/utils/logger/logger';
+import { toCamelCase } from '@/core/api/utils/serialization';
 
 /**
  * Axios Instance Configuration
@@ -98,7 +99,7 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor
 axiosInstance.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
     logger.debug('🔄 Response received:', {
       url: response.config.url,
       method: response.config.method,
@@ -107,35 +108,18 @@ axiosInstance.interceptors.response.use(
       headers: response.headers,
     });
 
-    return response.data;
+    // Convert ONLY the response data to camelCase
+    const camelCaseData = toCamelCase(response.data);
+    console.log('♻️ Camelcase converted Response data:', camelCaseData);
+
+    return { ...response, data: camelCaseData };
   },
 
   (error) => {
-    // Enhance error logging
-    if (error.code === 'ECONNABORTED') {
-      logger.error('⏱️ Request timeout - Timed out waiting for response', {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-        method: error.config?.method,
-        timeout: error.config?.timeout,
-        data: error.config?.data,
-      });
-    } else if (error.response) {
-      // Server responded with a status code outside 2xx range
-      logger.error('❌ Server error response:', {
-        url: error.config?.url,
-        status: error.response?.status,
-        data: error.response?.data,
-        method: error.config?.method,
-      });
-    } else if (error.request) {
-      // Request made but no response received (network error)
-      logger.error('❌ Network error - No response received:', {
-        url: error.config?.url,
-        method: error.config?.method,
-      });
+    // If there's an error response with data, convert that to camelCase too
+    if (error.response?.data) {
+      error.response.data = toCamelCase(error.response.data);
     }
-
     return Promise.reject(error);
   }
 );

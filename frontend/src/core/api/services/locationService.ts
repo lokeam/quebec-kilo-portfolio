@@ -62,4 +62,14 @@ export class LocationService {
     const endpoint = type === 'physical' ? '/v1/locations/physical' : '/v1/locations/sublocations';
     await axiosInstance.delete(`${endpoint}/${id}`);
   }
+
+  public async getPhysicalLocations(): Promise<PhysicalLocation[]> {
+    const response: AxiosResponse<{ locations: PhysicalLocation[] }> = await axiosInstance.get('/v1/locations/physical');
+    return toCamelCase(response.data.locations);
+  }
+
+  public async getSublocations(): Promise<Sublocation[]> {
+    const response: AxiosResponse<{ locations: Sublocation[] }> = await axiosInstance.get('/v1/locations/sublocations');
+    return toCamelCase(response.data.locations);
+  }
 }

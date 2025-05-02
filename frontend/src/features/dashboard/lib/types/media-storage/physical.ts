@@ -53,21 +53,15 @@ export interface Sublocation {
 export interface PhysicalLocation extends BaseLocation {
   /** Type of physical location (ex: house, apartment) */
   locationType: PhysicalLocationType;
-  /** Legacy snake_case property name */
-  location_type?: PhysicalLocationType;
 
   /** Geographic coordinates of the location */
   mapCoordinates?: string;
-  /** Legacy snake_case property name */
-  map_coordinates?: string;
 
   /** List of storage subdivisions within this location */
   sublocations?: Sublocation[];
 
   /** Parent location ID */
   parentLocationId?: string;
-  /** Legacy snake_case property name */
-  parent_location_id?: string;
 }
 
 /**
