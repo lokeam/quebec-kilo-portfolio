@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { OnlineServicesPageErrorFallback } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageErrorFallback';
 import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSkeleton'
-import { MediaPageSublocationForm, FormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
+import { MediaPageSublocationForm, SublocationFormSchema } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
 
 // Hooks
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { useOnboardingStore } from '@/features/dashboard/lib/stores/onboarding/o
 
 // Types
 import type { z } from 'zod';
-import { SubLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 // Constants
 import { NAVIGATION_ROUTES } from '@/features/dashboard/lib/types/onboarding/constants';
@@ -29,7 +29,7 @@ export default function OnboardingPagePhysicalSublocations() {
     bgColor: physicalDraft?.bgColor ?? '',
   };
 
-  const handleFormSuccess = (data: z.infer<typeof FormSchema>) => {
+  const handleFormSuccess = (data: z.infer<typeof SublocationFormSchema>) => {
     console.log('sublocation form data received', data);
 
     if (!data) {
@@ -39,7 +39,7 @@ export default function OnboardingPagePhysicalSublocations() {
 
     updatePhysicalDraft({
       name: data.locationName,
-      locationType: data.locationType as SubLocationType,
+      locationType: data.locationType as SublocationType,
       bgColor: data.bgColor,
     });
 

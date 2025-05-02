@@ -48,7 +48,7 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'itchio', name: 'itch.io', logo: 'itchio', isSubscriptionService: false, url: 'https://itch.io/' },
   { id: 'meta', name: 'Meta', logo: 'meta', isSubscriptionService: false, url: 'https://www.meta.com/nz/meta-quest-plus/' },
   { id: 'netflix', name: 'Netflix', logo: 'netflix', isSubscriptionService: true, url: 'https://www.netflix.com/' },
-  { id: 'nintendo', name: 'Nintendo', logo: 'nintendo', isSubscriptionService: true, url: 'https://www.nintendo.com/' },
+  { id: 'nintendo', name: 'Nintendo Switch Online', logo: 'nintendo', isSubscriptionService: true, url: 'https://www.nintendo.com/' },
   { id: 'nvidia', name: 'NVIDIA', logo: 'nvidia', isSubscriptionService: true, url: 'https://www.nvidia.com/en-us/geforce-now/' },
   { id: 'primegaming', name: 'Prime Gaming', logo: 'prime', isSubscriptionService: true, url: 'https://gaming.amazon.com/home' },
   { id: 'playstation', name: 'PlayStation Network', logo: 'ps', isSubscriptionService: true, url: 'https://www.playstation.com/en-us/playstation-network/' },

@@ -98,8 +98,8 @@ export function MediaStoragePageAccordion({
       const location = locationData[index];
 
       // If it's a physical location with exactly one sublocation, auto-select it
-      if (isPhysicalLocation(location) && location.subLocations?.length === 1) {
-        setActiveCard(location.subLocations[0]);
+      if (isPhysicalLocation(location) && location.sublocations?.length === 1) {
+        setActiveCard(location.sublocations[0]);
         setActiveCardLocationIndex(index);
       } else {
         // If the active card is from a different location, clear it
@@ -123,8 +123,13 @@ export function MediaStoragePageAccordion({
 
   // Helper function to get total items for a location
   const getLocationItemCount = (location: PhysicalLocation | DigitalLocation) => {
-    const locationStats = meta.counts.items.byLocation[location.label];
-    return locationStats?.total ?? 0;
+    if (isPhysicalLocation(location)) {
+      // For physical locations, count the number of sublocations
+      return location.sublocations?.length || 0;
+    } else {
+      // For digital locations, count the number of items
+      return (location as DigitalLocation).items?.length || 0;
+    }
   }
 
   // Handle add sublocation button click
@@ -156,6 +161,7 @@ export function MediaStoragePageAccordion({
         description="Where in your physical location do you keep your games?"
       >
         <MediaPageSublocationForm
+          parentLocationId="new"
           onSuccess={() => setOpenAddDrawer(false)}
         />
       </DrawerContainer>
@@ -206,22 +212,13 @@ export function MediaStoragePageAccordion({
                 It sets openAddDrawer to true, which opens the drawer component defined at the root level.
                 The button is conditionally rendered only for physical locations.
               */}
-              {type === 'physical' && (
-                <Button
-                  variant="default"
-                  onClick={handleAddSublocationClick}
-                  className="mb-4"
-                >
-                  Add Sublocation to {location.name}
-                </Button>
-              )}
 
               <div className="space-y-4">
                 {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
                   <>
                     {/* Render sublocation cards with selection indicator */}
-                    {location.subLocations?.map((sublocation, cardIndex) => (
+                    {location.sublocations?.map((sublocation: LocationCardData, cardIndex: number) => (
                       <div
                         key={`${location.name}-${cardIndex}`}
                         className={`relative rounded-lg transition-all ${
@@ -243,16 +240,26 @@ export function MediaStoragePageAccordion({
                             </svg>
                           </div>
                         )}
+
+                        {type === 'physical' && (
+                          <Button
+                            variant="default"
+                            onClick={handleAddSublocationClick}
+                            className="my-4"
+                          >
+                            Add Sublocation to {location.name}
+                          </Button>
+                        )}
                       </div>
                     ))}
 
                     {/* Helper text when a sublocation is auto-selected */}
                     {isPhysicalLocation(location) &&
-                     location.subLocations?.length === 1 &&
-                     activeCard === location.subLocations[0] &&
+                     location.sublocations?.length === 1 &&
+                     activeCard === location.sublocations[0] &&
                      isActiveCardFromCurrentLocation && (
                       <div className="text-sm text-muted-foreground italic mb-2">
-                        <span className="font-medium">{activeCard.name}</span> selected. You can edit it using the button below.
+                        <span className="font-medium">{activeCard?.name}</span> selected. You can edit it using the button below.
                       </div>
                     )}
 
@@ -281,9 +288,13 @@ export function MediaStoragePageAccordion({
                         title="Edit Sublocation"
                         description="Update details for this sublocation"
                       >
-                        {activeCard && isActiveCardFromCurrentLocation && (
+                        {activeCard && isActiveCardFromCurrentLocation && activeLocationIndex !== null && (
                           <MediaPageSublocationForm
-                            sublocationData={activeCard}
+                            sublocationData={{
+                              ...activeCard,
+                              locationType: activeCard.locationType || 'physical'
+                            }}
+                            parentLocationId={locationData[activeLocationIndex].id}
                             isEditing={true}
                             buttonText="Update Sublocation"
                             onSuccess={() => {

@@ -26,7 +26,7 @@ export interface LocationItemCounts {
   total: number;
 
   /** Number of items stored in sub-locations */
-  inSubLocations: number;
+  inSublocations: number;
 }
 
 /**
@@ -69,4 +69,11 @@ export interface MediaStorageMetadata {
 
   /** Schema version for backwards compatibility */
   version?: string;
+}
+
+export interface LocationStats {
+  total: number;
+  physical: number;
+  digital: number;
+  inSublocations: number;
 }

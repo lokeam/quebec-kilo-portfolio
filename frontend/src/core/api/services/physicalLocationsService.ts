@@ -14,7 +14,7 @@ export interface PhysicalLocation {
   mapCoordinates: string;
   createdAt: string;
   updatedAt: string;
-  subLocations?: Sublocation[];
+  sublocations?: Sublocation[];
 }
 
 export interface Sublocation {

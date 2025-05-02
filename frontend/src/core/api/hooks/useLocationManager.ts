@@ -1,240 +1,93 @@
-import { useCallback } from 'react';
+import { LocationService } from '../services/locationService';
+import type { BaseLocation, PhysicalLocation, Sublocation } from '../types/location';
+import { useBackendMutation } from './useBackendMutation';
+import { mediaStorageKeys } from '../constants/query-keys/mediaStorage';
+import { QueryClient } from '@tanstack/react-query';
+import type { ApiResponse } from '../types/api.types';
 
-// API Hooks
-import {
-  useCreateLocationMutation,
-  useUpdateLocationMutation,
-  useDeleteLocationMutation
-} from '@/core/api/queries/useLocationMutations';
+// Create a new QueryClient instance
+const queryClient = new QueryClient();
 
-import {
-  useCreateSublocationMutation,
-  useUpdateSublocationMutation,
-  useDeleteSublocationMutation
-} from '@/core/api/queries/useSublocationMutations';
+interface UseLocationManagerOptions {
+  type: 'physical' | 'sublocation';
+  onSuccess?: (data: PhysicalLocation | Sublocation | { id: string }) => void;
+  onError?: (error: Error) => void;
+}
 
-// Guards
-//import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage/guards';
+export function useLocationManager({ type, onSuccess, onError }: UseLocationManagerOptions) {
+  const locationService = LocationService.getInstance();
 
-// Types
-import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
-import type { Sublocation } from '@/features/dashboard/lib/types/media-storage/sublocation';
-import type { LocationType } from '@/features/dashboard/lib/types/media-storage/constants';
-
-// Import response types
-import type { LocationResponse } from '@/core/api/queries/useLocationMutations';
-import type { SublocationResponse } from '@/core/api/queries/useSublocationMutations';
-
-// Utils
-import { toast } from 'sonner';
-import { logger } from '@/core/utils/logger/logger';
-
-// Types
-type LocationBaseData = {
-  id?: string;
-  name: string;
-  [key: string]: unknown;
-};
-
-type PhysicalLocationData = LocationBaseData & {
-  locationType: string;
-  mapCoordinates?: string;
-};
-
-type SublocationData = LocationBaseData & {
-  type: string;
-  parentLocationId: string;
-};
-
-// Specific hook exports for backward compatibility
-export function useLocationUpdate(onSuccess?: () => void) {
-  const updateMutation = useUpdateLocationMutation();
-
-  const updateLocation = useCallback((data: PhysicalLocationData) => {
-    logger.debug('📝 Starting location update:', { data });
-
-    updateMutation.mutate(data as Partial<PhysicalLocation>, {
-      onSuccess: (response) => {
-        logger.debug('✅ Update mutation succeeded:', response);
-        toast.success('Location updated successfully');
-        onSuccess?.();
+  const createMutation = useBackendMutation<PhysicalLocation | Sublocation, BaseLocation>(
+    async (location: BaseLocation) => {
+      const result = await locationService.createLocation(location);
+      return { success: true, data: result };
+    },
+    {
+      onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
+        // Invalidate the locations query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        onSuccess?.(data.data);
       },
-      onError: (error) => {
-        logger.error('❌ Update mutation failed:', error);
-        toast.error(`Failed to update location: ${error.message}`);
+      onError: (error: Error) => {
+        onError?.(error);
       }
-    });
-  }, [updateMutation, onSuccess]);
+    }
+  );
 
-  return {
-    updateLocation,
-    isUpdating: updateMutation.isPending
-  };
-}
-
-export function useLocationDelete(onSuccess?: () => void) {
-  const deleteMutation = useDeleteLocationMutation();
-
-  const deleteLocation = useCallback((locationId: string) => {
-    logger.debug('🗑️ Starting location deletion:', { locationId });
-
-    deleteMutation.mutate(locationId, {
-      onSuccess: (response) => {
-        logger.debug('✅ Delete mutation succeeded:', response);
-        toast.success('Location deleted successfully');
-        onSuccess?.();
+  const updateMutation = useBackendMutation<PhysicalLocation | Sublocation, BaseLocation>(
+    async (location: BaseLocation) => {
+      const result = await locationService.updateLocation(location);
+      return { success: true, data: result };
+    },
+    {
+      onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
+        // Invalidate the locations query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        onSuccess?.(data.data);
       },
-      onError: (error) => {
-        logger.error('❌ Delete mutation failed:', error);
-        toast.error(`Failed to delete location: ${error.message}`);
+      onError: (error: Error) => {
+        onError?.(error);
       }
-    });
-  }, [deleteMutation, onSuccess]);
+    }
+  );
+
+  const deleteMutation = useBackendMutation<void, string>(
+    async (id: string) => {
+      await locationService.deleteLocation(id, type);
+      return { success: true, data: undefined };
+    },
+    {
+      onSuccess: (_, id: string) => {
+        // Invalidate the locations query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
+        onSuccess?.({ id });
+      },
+      onError: (error: Error) => {
+        onError?.(error);
+      }
+    }
+  );
 
   return {
-    deleteLocation,
-    isDeleting: deleteMutation.isPending
+    create: createMutation.mutate,
+    update: updateMutation.mutate,
+    delete: deleteMutation.mutate,
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }
 
-// New unified manager hook
-export interface LocationManagerConfig {
-  type: LocationType;
-  onSuccess?: () => void;
-}
-
-/**
- * A unified hook for managing both physical locations and sublocations
- * with consistent interface for CRUD operations
- */
-export function useLocationManager({ type, onSuccess }: LocationManagerConfig) {
-  // Always initialize all hooks (React rules)
-  const createLocationMutation = useCreateLocationMutation();
-  const updateLocationMutation = useUpdateLocationMutation();
-  const deleteLocationMutation = useDeleteLocationMutation();
-
-  const createSublocationMutation = useCreateSublocationMutation();
-  const updateSublocationMutation = useUpdateSublocationMutation();
-  const deleteSublocationMutation = useDeleteSublocationMutation();
-
-  // Get entity name for messages
-  const entityName = type === 'physical' ? 'location' : 'sublocation';
-
-  // CREATE
-  const create = useCallback((data: PhysicalLocationData | SublocationData) => {
-    // Add direct console log to bypass logger
-    console.log('DIRECT LOG: About to create location/sublocation', data);
-
-    logger.debug(`📝 Starting ${entityName} creation:`, { data });
-
-    if (type === 'physical') {
-      createLocationMutation.mutate(data as Partial<PhysicalLocation>, {
-        onSuccess: (response: { data: LocationResponse }) => {
-          logger.debug(`✅ ${entityName} created successfully:`, response);
-          toast.success(`${entityName} created successfully`);
-          onSuccess?.();
-        },
-        onError: (error: Error) => {
-          logger.error(`❌ Failed to create ${entityName}:`, error);
-          toast.error(`Failed to create ${entityName}: ${error.message}`);
-        }
-      });
-    } else {
-      createSublocationMutation.mutate(data as Partial<Sublocation>, {
-        onSuccess: (response: { data: SublocationResponse }) => {
-          logger.debug(`✅ ${entityName} created successfully:`, response);
-          toast.success(`${entityName} created successfully`);
-          onSuccess?.();
-        },
-        onError: (error: Error) => {
-          logger.error(`❌ Failed to create ${entityName}:`, error);
-          toast.error(`Failed to create ${entityName}: ${error.message}`);
-        }
-      });
-    }
-  }, [type, createLocationMutation, createSublocationMutation, entityName, onSuccess]);
-
-  // UPDATE
-  const update = useCallback((data: PhysicalLocationData | SublocationData) => {
-    logger.debug(`📝 Starting ${entityName} update:`, { data });
-
-    if (type === 'physical') {
-      updateLocationMutation.mutate(data as Partial<PhysicalLocation>, {
-        onSuccess: (response) => {
-          logger.debug(`✅ ${entityName} updated successfully:`, response);
-          toast.success(`${entityName} updated successfully`);
-          onSuccess?.();
-        },
-        onError: (error) => {
-          logger.error(`❌ Failed to update ${entityName}:`, error);
-          toast.error(`Failed to update ${entityName}: ${error.message}`);
-        }
-      });
-    } else {
-      updateSublocationMutation.mutate(data as Partial<Sublocation>, {
-        onSuccess: (response) => {
-          logger.debug(`✅ ${entityName} updated successfully:`, response);
-          toast.success(`${entityName} updated successfully`);
-          onSuccess?.();
-        },
-        onError: (error) => {
-          logger.error(`❌ Failed to update ${entityName}:`, error);
-          toast.error(`Failed to update ${entityName}: ${error.message}`);
-        }
-      });
-    }
-  }, [type, updateLocationMutation, updateSublocationMutation, entityName, onSuccess]);
-
-  // DELETE
-  const deleteItem = useCallback((itemId: string) => {
-    logger.debug(`🗑️ Starting ${entityName} deletion:`, { itemId });
-
-    if (type === 'physical') {
-      deleteLocationMutation.mutate(itemId, {
-        onSuccess: (response) => {
-          logger.debug(`✅ ${entityName} deleted successfully:`, response);
-          toast.success(`${entityName} deleted successfully`);
-          onSuccess?.();
-        },
-        onError: (error) => {
-          logger.error(`❌ Failed to delete ${entityName}:`, error);
-          toast.error(`Failed to delete ${entityName}: ${error.message}`);
-        }
-      });
-    } else {
-      deleteSublocationMutation.mutate(itemId, {
-        onSuccess: (response) => {
-          logger.debug(`✅ ${entityName} deleted successfully:`, response);
-          toast.success(`${entityName} deleted successfully`);
-          onSuccess?.();
-        },
-        onError: (error) => {
-          logger.error(`❌ Failed to delete ${entityName}:`, error);
-          toast.error(`Failed to delete ${entityName}: ${error.message}`);
-        }
-      });
-    }
-  }, [type, deleteLocationMutation, deleteSublocationMutation, entityName, onSuccess]);
-
-  // Status indicators
-  const isCreating = type === 'physical'
-    ? createLocationMutation.isPending
-    : createSublocationMutation.isPending;
-
-  const isUpdating = type === 'physical'
-    ? updateLocationMutation.isPending
-    : updateSublocationMutation.isPending;
-
-  const isDeleting = type === 'physical'
-    ? deleteLocationMutation.isPending
-    : deleteSublocationMutation.isPending;
-
-  return {
-    create,
-    update,
-    delete: deleteItem,
-    isCreating,
-    isUpdating,
-    isDeleting
-  };
-}
+// For backward compatibility
+export const useLocationDelete = (type: 'physical' | 'sublocation', onSuccess?: (data: { id: string }) => void, onError?: (error: Error) => void) => {
+  const { delete: deleteLocation, isDeleting } = useLocationManager({
+    type,
+    onSuccess: (data) => {
+      if ('id' in data && data.id) {
+        onSuccess?.({ id: data.id });
+      }
+    },
+    onError
+  });
+  return { deleteLocation, isDeleting };
+};

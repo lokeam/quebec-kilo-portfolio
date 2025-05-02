@@ -1,3 +1,6 @@
+import type { BaseLocation } from '@/features/dashboard/lib/types/media-storage/base';
+import type { GamePlatform } from '@/features/dashboard/lib/types/media-storage/constants';
+
 /**
  * Types for the digital locations feature
  * Aligns with the backend models for digital locations
@@ -20,30 +23,33 @@ export interface Subscription {
 /**
  * Digital Location model - represents an online service that stores games
  */
-export interface DigitalLocation {
-  id: string;
-  user_id: string;
-  name: string;
-  service_type: string;
-  is_active: boolean;
+export interface DigitalLocation extends BaseLocation {
+  /** Digital platform identifier */
+  platform: GamePlatform;
+
+  /** URL to platform storefront */
   url: string;
-  created_at: string;
-  updated_at: string;
-  logo?: string;
-  label?: string;
-  isSubscriptionService?: boolean;
-  billing?: {
-    cycle: string;
-    fees: {
-      monthly: string;
-      quarterly: string;
-      annual: string;
-    };
-    paymentMethod: string;
-    renewalDate: {
-      month: string;
-      day: number;
-    };
+
+  /** Platform subscription details */
+  subscription?: {
+    isActive: boolean;
+    isFree: boolean;
+    monthlyFee?: string;
+    renewalDate?: Date;
+    benefits?: string[];
+  };
+
+  /** Last synchronization timestamp with the platform */
+  lastSync?: Date;
+
+  /** Storage capacity information */
+  totalStorage?: {
+    /** Amount of storage used */
+    used: number;
+    /** Total available storage */
+    total: number;
+    /** Storage unit (GB or TB) */
+    unit: 'GB' | 'TB';
   };
 }
 
@@ -52,13 +58,13 @@ export interface DigitalLocation {
  */
 export interface CreateDigitalLocationRequest {
   name: string;
-  service_type: string;
-  is_active: boolean;
+  platform: GamePlatform;
   url: string;
   subscription?: {
-    billing_cycle: string;
-    cost_per_cycle: number;
-    next_payment_date: string;
-    payment_method: string;
+    isActive: boolean;
+    isFree: boolean;
+    monthlyFee?: string;
+    renewalDate?: Date;
+    benefits?: string[];
   };
 }

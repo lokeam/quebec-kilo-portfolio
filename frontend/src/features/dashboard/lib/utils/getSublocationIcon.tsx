@@ -1,5 +1,5 @@
 import { Box, Columns, BookOpen, BookmarkIcon } from 'lucide-react';
-import { SubLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 /**
  * Gets an icon component for the specified sublocation type
@@ -7,13 +7,13 @@ import { SubLocationType } from '@/features/dashboard/lib/types/media-storage/co
 export function getSublocationTypeIcon(type: string): JSX.Element {
   // Different icon mapping based on sublocation type
   switch (type) {
-    case SubLocationType.SHELF:
+    case SublocationType.SHELF:
       return <Columns className="h-4 w-4 mr-1" />;
-    case SubLocationType.DRAWER:
+    case SublocationType.DRAWER:
       return <Box className="h-4 w-4 mr-1" />;
-    case SubLocationType.BOX:
+    case SublocationType.BOX:
       return <BookmarkIcon className="h-4 w-4 mr-1" />;
-    case SubLocationType.CABINET:
+    case SublocationType.CABINET:
       return <BookOpen className="h-4 w-4 mr-1" />;
     default:
       return <Box className="h-4 w-4 mr-1" />;

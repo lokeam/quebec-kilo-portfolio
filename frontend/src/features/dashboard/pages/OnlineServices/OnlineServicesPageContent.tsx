@@ -14,6 +14,7 @@ import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResu
 
 // API Hooks and Utilities
 import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
+import { useStorageAnalytics } from '@/core/api/hooks/useAnalyticsData';
 import { useDeleteOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
@@ -24,8 +25,8 @@ import { transformDigitalLocationToService } from '@/features/dashboard/lib/util
 
 // Types
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
+import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
 
 export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
@@ -80,6 +81,13 @@ export function OnlineServicesPageContent() {
   // Fetch digital locations using our hook
   const { data: digitalLocations, isLoading, error } = useDigitalLocations();
 
+  // Fetch storage analytics in parallel
+  const {
+    data: analyticsData,
+    isLoading: analyticsLoading,
+    error: analyticsError
+  } = useStorageAnalytics();
+
   // Transform digital locations to online services format and update store
   useEffect(() => {
     if (digitalLocations) {
@@ -91,6 +99,39 @@ export function OnlineServicesPageContent() {
   const handleCloseAddDrawer = useCallback(() => {
     setAddServiceOpen(false);
   }, []);
+
+  // Analytics summary component
+  const renderAnalyticsSummary = () => {
+    if (analyticsLoading) {
+      return <div className="text-sm text-gray-500">Loading analytics...</div>;
+    }
+
+    if (analyticsError) {
+      return null; // Don't show anything if analytics fail
+    }
+
+    const storageStats = analyticsData?.data?.storage;
+
+    if (!storageStats) {
+      return null;
+    }
+
+    return (
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
+        <h3 className="text-sm font-semibold text-blue-800">Storage Analytics</h3>
+        <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <span className="text-gray-600">Digital Locations:</span>{' '}
+            <span className="font-medium">{storageStats.total_digital_locations}</span>
+          </div>
+          <div>
+            <span className="text-gray-600">Physical Locations:</span>{' '}
+            <span className="font-medium">{storageStats.total_physical_locations}</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Render content based on the selected view mode
   const renderContent = () => {
@@ -133,7 +174,11 @@ export function OnlineServicesPageContent() {
     return (
       <div className="p-4 border rounded-md">
         <h2 className="text-lg font-semibold">Digital Services</h2>
-        <p className="text-gray-500 mb-4">{filteredServices.length} services found</p>
+        <p className="text-gray-500 mb-4">{
+        filteredServices.length === 1
+          ? '1 service found'
+          : `${filteredServices.length} services found`
+        }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
           }`}>
@@ -175,6 +220,9 @@ export function OnlineServicesPageContent() {
           </DrawerContainer>
         </div>
       </PageHeadline>
+
+      {/* Analytics Summary */}
+      {renderAnalyticsSummary()}
 
       {/* Digital Services Display Section */}
       <div className="mt-6">

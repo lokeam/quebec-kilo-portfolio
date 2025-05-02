@@ -8,6 +8,7 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
 import { logger } from '@/core/utils/logger/logger';
+import { LocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 interface PhysicalLocationsResponse {
   success: boolean;
@@ -43,14 +44,28 @@ export const getUserPhysicalLocations = async (token?: string): Promise<Physical
     );
 
     logger.debug('Physical locations fetched successfully', {
-      count: response.locations?.length || 0
+      count: response.locations?.length || 0,
+      firstLocation: response.locations?.[0],
+      firstLocationSublocations: response.locations?.[0]?.sublocations
     });
 
     if (!response || !response.success) {
       throw new Error('Invalid response from physical locations API');
     }
 
-    return response.locations || [];
+    // Ensure each location has the correct type
+    const transformedLocations = (response.locations || []).map(location => ({
+      ...location,
+      type: LocationType.PHYSICAL
+    }));
+
+    logger.debug('Transformed locations', {
+      count: transformedLocations.length,
+      firstLocation: transformedLocations[0],
+      firstLocationSublocations: transformedLocations[0]?.sublocations
+    });
+
+    return transformedLocations;
   } catch (error) {
     logger.error('Failed to fetch physical locations', { error });
     throw error;
@@ -91,7 +106,11 @@ export const getPhysicalLocationById = async (locationId: string, token?: string
       throw new Error(`Failed to fetch physical location with ID: ${locationId}`);
     }
 
-    return response.location;
+    // Ensure the location has the correct type
+    return {
+      ...response.location,
+      type: LocationType.PHYSICAL
+    };
   } catch (error) {
     logger.error('Failed to fetch physical location', { locationId, error });
     throw error;

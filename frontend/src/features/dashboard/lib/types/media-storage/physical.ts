@@ -1,25 +1,25 @@
 import type { BaseLocation } from '@/features/dashboard/lib/types/media-storage/base';
-import type { PhysicalLocationType, SubLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { PhysicalLocationType, SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 import type { GameItem } from '@/features/dashboard/lib/types/media-storage/items';
 
 /**
  * Configuration for subdivisions within physical storage locations.
  * Represents organizational units such as shelves, cabinets + boxes.
  *
- * @interface SubLocation
+ * @interface Sublocation
  */
-export interface SubLocation {
+export interface Sublocation {
   /** Unique identifier for the sub-location */
   id: string;
 
   /** Display name of the sub-location */
   name: string;
 
-  /** Detailed description of the sublocation -- NOTE: determine if this is worthwhile in UAT*/
-  description: string;
+  /** Detailed description of the sublocation */
+  description?: string;
 
   /** Type of storage unit */
-  locationType: SubLocationType;
+  locationType: SublocationType;
 
   /** Items stored in this sub-location */
   items?: GameItem[];
@@ -28,7 +28,19 @@ export interface SubLocation {
   capacity?: number;
 
   /** Whether the sub-location is currently accessible */
-  isAccessible: boolean;
+  isAccessible?: boolean;
+
+  /** Background color for the sub-location */
+  bgColor?: string;
+
+  /** Number of stored items */
+  storedItems?: number;
+
+  /** Timestamp of when the sub-location was created */
+  createdAt?: Date;
+
+  /** Timestamp of when the sub-location was last modified */
+  updatedAt?: Date;
 }
 
 /**
@@ -46,7 +58,7 @@ export interface PhysicalLocation extends BaseLocation {
   mapCoordinates?: string;
 
   /** List of storage subdivisions within this location */
-  subLocations?: SubLocation[];
+  sublocations?: Sublocation[];
 
   /** Parent location ID */
   parentLocationId?: string;

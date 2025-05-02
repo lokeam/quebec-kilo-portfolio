@@ -1,6 +1,6 @@
 import {
   PhysicalLocationType,
-  SubLocationType,
+  SublocationType,
   GamePlatform
 } from '@/features/dashboard/lib/types/media-storage/constants';
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
@@ -29,12 +29,12 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
         mapCoordinates: '40°44\'53.2"N 73°59\'05.6"W',
         createdAt: new Date('2024-01-01'), // Required timestamp
         updatedAt: new Date('2024-01-27'), // Required timestamp
-        subLocations: [
+        sublocations: [
           {
             id: 'bookshelf-a-1', // Required id
             name: 'Bookshelf A',
             description: 'Bookshelf A',
-            locationType: SubLocationType.SHELF,
+            locationType: SublocationType.SHELF,
             items: [
               {
                 id: 'gradius-v-1',
@@ -134,7 +134,7 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
         mapCoordinates: '28°33\'01.1"N 81°29\'30.4"W',
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-27'),
-        subLocations: [
+        sublocations: [
           {
             name: 'Living room media cabinet',
             description: 'Living room media cabinet',
@@ -164,7 +164,7 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
                 hasManual: false
               }
             ],
-            locationType: SubLocationType.CONSOLE,
+            locationType: SublocationType.CONSOLE,
           }
         ],
         items: [],
@@ -607,23 +607,23 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
         byLocation: {
           'condostudy': {
             total: 7,
-            inSubLocations: 7,
+            inSublocations: 7,
           },
           'sistershouse': {
             total: 2,
-            inSubLocations: 2,
+            inSublocations: 2,
           },
           'steam': {
             total: 11,
-            inSubLocations: 0,
+            inSublocations: 0,
           },
           'sony': {
             total: 5,
-            inSubLocations: 0,
+            inSublocations: 0,
           },
           'nintendo': {
             total: 16,
-            inSubLocations: 0,
+            inSublocations: 0,
           },
         },
       },
@@ -664,7 +664,7 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
 //       digital: number;
 //       byLocation: Record<string, {
 //         total: number;
-//         inSubLocations: number;
+//         inSublocations: number;
 //       }>;
 //     };
 //   };
@@ -690,7 +690,7 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
 //         label: 'condostudy',
 //         locationType: PhysicalLocationType.APARTMENT,
 //         mapCoordinates: '40°44\'53.2"N 73°59\'05.6"W',
-//         subLocations: [
+//         sublocations: [
 //           {
 //             name: 'Bookshelf A',
 //             description: 'Bookshelf A',
@@ -748,7 +748,7 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
 //         label: 'sistershouse',
 //         locationType: PhysicalLocationType.HOUSE,
 //         mapCoordinates: '28°33\'01.1"N 81°29\'30.4"W',
-//         subLocations: [
+//         sublocations: [
 //           {
 //             name: 'Living room media cabinet',
 //             description: 'Living room media cabinet',
@@ -1017,23 +1017,23 @@ export const mediaStoragePageMockData: MediaStorageResponse = {
 //         byLocation: {
 //           'condostudy': {
 //             total: 7,
-//             inSubLocations: 7,
+//             inSublocations: 7,
 //           },
 //           'sistershouse': {
 //             total: 2,
-//             inSubLocations: 2,
+//             inSublocations: 2,
 //           },
 //           'steam': {
 //             total: 11,
-//             inSubLocations: 0,
+//             inSublocations: 0,
 //           },
 //           'sony': {
 //             total: 5,
-//             inSubLocations: 0,
+//             inSublocations: 0,
 //           },
 //           'nintendo': {
 //             total: 16,
-//             inSubLocations: 0,
+//             inSublocations: 0,
 //           },
 //         },
 //       },

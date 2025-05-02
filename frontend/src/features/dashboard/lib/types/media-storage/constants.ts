@@ -30,9 +30,9 @@ export type PhysicalLocationType = typeof PhysicalLocationType[keyof typeof Phys
  * Types of storage subdivisions within physical locations.
  * Represents specific storage units or furniture.
  *
- * @constant SubLocationType
+ * @constant SublocationType
  */
-export const SubLocationType = {
+export const SublocationType = {
   SHELF: 'shelf',
   CONSOLE: 'console',
   CABINET: 'cabinet',
@@ -41,7 +41,7 @@ export const SubLocationType = {
   BOX: 'box'
 } as const;
 
-export type SubLocationType = typeof SubLocationType[keyof typeof SubLocationType];
+export type SublocationType = typeof SublocationType[keyof typeof SublocationType];
 
 /**
  * Digital gaming platforms.

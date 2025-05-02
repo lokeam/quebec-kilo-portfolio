@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 
 // Components
@@ -43,7 +42,7 @@ import { Package } from 'lucide-react';
 // Hooks
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 // Zod
 import { z } from 'zod';
@@ -94,6 +93,7 @@ interface MediaPageSublocationFormProps {
   sublocationData?: LocationData; // For editing existing sublocation
   isEditing?: boolean;   // To indicate edit mode
   onDelete?: (id: string) => void;
+  parentLocationId: string; // Required for creating/updating sublocations
 }
 
 export function MediaPageSublocationForm({
@@ -110,9 +110,18 @@ export function MediaPageSublocationForm({
   buttonText = "Add Sublocation",
   sublocationData,
   isEditing = false,
-  onDelete
+  onDelete,
+  parentLocationId,
 }: MediaPageSublocationFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Setup location manager hook for sublocations
+  const locationManager = useLocationManager({
+    type: 'physical',
+    onSuccess: () => {
+      onSuccess?.(form.getValues());
+    }
+  });
 
   /* Specific form components creates their own useForm hook instances */
   const form = useForm<z.infer<typeof SublocationFormSchema>>({
@@ -138,25 +147,27 @@ export function MediaPageSublocationForm({
   }, [form, isEditing, sublocationData]);
 
   const handleSubmit = (data: z.infer<typeof SublocationFormSchema>) => {
-    // Transform form data back to API format if needed
-    onSuccess?.(data);
+    // Transform form data to match API expectations
+    const sublocationPayload = {
+      id: isEditing && sublocationData ? sublocationData.id : undefined,
+      name: data.locationName,
+      locationType: data.locationType,
+      parentLocationId,
+      bgColor: data.bgColor,
+      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
+      physical_location_id: parentLocationId,
+    };
 
-    // Show success message
-    toast(isEditing ? "Sublocation updated successfully" : "New sublocation created successfully", {
-      className: 'bg-green-500 text-white',
-      duration: 2500,
-    });
-
-    // NOTE: for use in transforming data for API
     if (isEditing && sublocationData) {
-      // Example: Call API directly if needed
-      // updateSublocation({
-      //   id: sublocationData.id,
-      //   name: data.locationName,
-      //   type: data.locationType,
-      //   bgColor: data.bgColor,
-      // });
+      locationManager.update(sublocationPayload);
+    } else {
+      locationManager.create(sublocationPayload);
     }
+  };
+
+  const handleDelete = (id: string) => {
+    locationManager.delete(id);
+    setDeleteDialogOpen(false);
   };
 
   return (
@@ -261,12 +272,12 @@ export function MediaPageSublocationForm({
                   <SelectItem value="red">Red</SelectItem>
                   <SelectItem value="blue">Blue</SelectItem>
                   <SelectItem value="green">Green</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
                   <SelectItem value="purple">Purple</SelectItem>
                   <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="yellow">Yellow</SelectItem>
-                  <SelectItem value="gray">Gray</SelectItem>
+                  <SelectItem value="brown">Brown</SelectItem>
                   <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="black">Black</SelectItem>
+                  <SelectItem value="gray">Gray</SelectItem>
                 </SelectContent>
               </Select>
               <FormDescription>
@@ -280,8 +291,19 @@ export function MediaPageSublocationForm({
 
         {/* Form actions */}
         <div className="flex justify-between w-full mt-6">
-        <Button type="submit" className={isEditing && onDelete ? "flex-1" : "w-full"}>
-          {isEditing ? "Update Sublocation" : buttonText}
+        <Button
+          type="submit"
+          className={isEditing && onDelete ? "flex-1" : "w-full"}
+          disabled={locationManager.isCreating || locationManager.isUpdating}
+        >
+          {(locationManager.isCreating || locationManager.isUpdating) ? (
+            <>
+              <span className="animate-spin mr-2">⊚</span>
+              {isEditing ? "Updating..." : "Creating..."}
+            </>
+          ) : (
+            isEditing ? "Update Sublocation" : buttonText
+          )}
         </Button>
 
         {isEditing && onDelete && sublocationData && (
@@ -290,8 +312,9 @@ export function MediaPageSublocationForm({
             variant="destructive"
             className="ml-2"
             onClick={() => setDeleteDialogOpen(true)}
+            disabled={locationManager.isDeleting}
           >
-            Delete
+            {locationManager.isDeleting ? "Deleting..." : "Delete"}
           </Button>
         )}
         </div>
@@ -311,17 +334,23 @@ export function MediaPageSublocationForm({
               <Button
                 variant="outline"
                 onClick={() => setDeleteDialogOpen(false)}
+                disabled={locationManager.isDeleting}
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => {
-                  onDelete(sublocationData.id);
-                  setDeleteDialogOpen(false);
-                }}
+                onClick={() => handleDelete(sublocationData.id)}
+                disabled={locationManager.isDeleting}
               >
-                Delete
+                {locationManager.isDeleting ? (
+                  <>
+                    <span className="animate-spin mr-2">⊚</span>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

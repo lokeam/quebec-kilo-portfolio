@@ -34,6 +34,9 @@ export interface BaseLocation {
 
   /** Additional flexible metadata for the location */
   metadata?: Record<string, unknown>;
+
+  /** Number of items stored in sub-locations */
+  itemsInSublocations: number;
 }
 
 /**
@@ -47,7 +50,7 @@ export interface LocationMetrics {
   totalItems: number;
 
   /** Number of items stored in sub-locations */
-  itemsInSubLocations: number;
+  itemsInSublocations: number;
 
   /** Timestamp of the last metrics update */
   lastUpdated: Date;

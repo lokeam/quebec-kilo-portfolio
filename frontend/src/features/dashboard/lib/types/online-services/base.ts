@@ -1,4 +1,4 @@
-import type { ServiceStatusCode } from '@/shared/constants/service.constants';
+import type { ServiceStatusCode, ServiceType } from '@/shared/constants/service.constants';
 
 /**
  * Core properties shared by all online services.
@@ -14,6 +14,8 @@ export interface BaseOnlineService {
   createdAt: string;
   updatedAt: string;
   isSubscriptionService: boolean;
+  service_type: ServiceType;
+  is_active: boolean;
 };
 
 /**

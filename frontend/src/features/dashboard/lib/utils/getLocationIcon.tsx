@@ -45,8 +45,6 @@ export const getLocationIcon = (
   type: 'physical' | 'digital',
   domainMaps: DomainMapsResult,
 ) => {
-  console.log('getLocationIcon', location);
-
   const { games, location: locationIcons } = domainMaps;
 
   if (type === 'physical') {
@@ -59,11 +57,11 @@ export const getLocationIcon = (
       // Fall back to snake_case (legacy)
       physicalLocation.location_type;
 
-    const IconComponent = locationIcons[locationType || ''];
+    const IconComponent = locationIcons[locationType?.toLowerCase() || ''];
     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
   } else {
     const digitalLocation = location as DigitalLocation;
-    const LogoComponent = games[digitalLocation.label];
+    const LogoComponent = games[digitalLocation.label?.toLowerCase() || ''];
     return LogoComponent ? <LogoComponent className="h-4 w-4" /> : null;
   }
 }
@@ -74,6 +72,6 @@ export const getLocationTypeIcon = (
   domainMaps: DomainMapsResult
 ) => {
   const { location: locationIcons } = domainMaps;
-  const IconComponent = locationIcons[locationType];
+  const IconComponent = locationIcons[locationType.toLowerCase()];
   return IconComponent ? <IconComponent className="h-4 w-4 mr-1" /> : null;
 }

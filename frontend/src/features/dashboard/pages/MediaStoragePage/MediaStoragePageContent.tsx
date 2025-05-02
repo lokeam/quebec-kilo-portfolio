@@ -34,7 +34,6 @@ export function MediaStoragePageContent() {
           <h1 className='text-2xl font-bold tracking-tight'>Media Storage Page</h1>
         </div>
 
-
         <div className='flex items-center space-x-2'>
           {/* Add Physical Location Button */}
           <DrawerContainer
@@ -61,7 +60,6 @@ export function MediaStoragePageContent() {
             />
           </DrawerContainer>
         </div>
-
       </PageHeadline>
 
       {/* Physical Locations Accordion */}

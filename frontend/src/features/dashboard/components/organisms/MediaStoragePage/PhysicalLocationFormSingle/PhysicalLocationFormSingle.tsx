@@ -154,30 +154,20 @@ defaultValues = {
   }, [form, isEditing, locationData]);
 
   const handleSubmit = useCallback((data: z.infer<typeof PhysicalLocationFormSchema>) => {
-    // Debug log the form data
-    console.log('[FORM SUBMIT] Raw form data:', data);
-
     // Transform form data to match API expectations
     const locationPayload = {
       id: isEditing && locationData ? locationData.id : undefined,
       name: data.locationName,
       locationType: data.locationType,
-      location_type: data.locationType,
       mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
-      map_coordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
     };
 
-    // Debug log what we're actually sending
-    console.log('[FORM SUBMIT] Sending to API:', locationPayload);
-
-    // Use the locationManager hook for API operations
     if (isEditing && locationData) {
       locationManager.update(locationPayload);
     } else {
       locationManager.create(locationPayload);
     }
 
-    // Call onSuccess callback if provided
     if (onSuccess) onSuccess(data);
   }, [isEditing, locationData, locationManager, onSuccess]);
 
