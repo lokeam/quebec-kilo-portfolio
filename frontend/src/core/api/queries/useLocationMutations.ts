@@ -24,9 +24,16 @@ interface DeleteLocationResponse {
 }
 
 // Define a type that can accept both camelCase and snake_case formats
-interface LocationPayload extends Partial<PhysicalLocation> {
+export interface LocationPayload {
+  id?: string;
+  name: string;
+  locationType: string;
+  mapCoordinates?: string;
   location_type?: string;
   map_coordinates?: string;
+  bgColor?: string;
+  parentLocationId?: string;
+  physical_location_id?: string;
   [key: string]: unknown;
 }
 

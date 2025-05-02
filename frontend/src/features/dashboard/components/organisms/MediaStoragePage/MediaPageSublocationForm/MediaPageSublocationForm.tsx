@@ -47,6 +47,9 @@ import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 // Zod
 import { z } from 'zod';
 
+import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { LocationPayload } from '@/core/api/queries/useLocationMutations';
+
 export const SublocationFormSchema = z.object({
   locationName: z
     .string({
@@ -56,7 +59,7 @@ export const SublocationFormSchema = z.object({
       message: "Location name must be at least 3 characters long",
     }),
   locationType: z
-    .string({
+    .enum([SublocationType.SHELF, SublocationType.CONSOLE, SublocationType.CABINET, SublocationType.CLOSET, SublocationType.DRAWER, SublocationType.BOX], {
       required_error: "Please select a location type",
     }),
   bgColor: z
@@ -65,21 +68,14 @@ export const SublocationFormSchema = z.object({
     }),
   coordinates: z.object({
     enabled: z.boolean().default(false),
-    value: z.string().optional().superRefine((val, ctx) => {
-      if (val === undefined && (ctx as z.RefinementCtx & { parent: { enabled: boolean } }).parent.enabled) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Coordinates are required when enabled",
-        });
-      }
-    }),
+    value: z.string().optional(),
   }).default({ enabled: false, value: undefined }),
 });
 
 interface LocationData {
   id: string;
   name: string;
-  locationType: string;
+  locationType: SublocationType;
   bgColor?: string;
   mapCoordinates?: string;
   createdAt?: Date;
@@ -100,7 +96,7 @@ export function MediaPageSublocationForm({
   onSuccess,
   defaultValues = {
     locationName: '',
-    locationType: '',
+    locationType: SublocationType.SHELF,
     bgColor: '',
     coordinates: {
       enabled: false,
@@ -128,11 +124,15 @@ export function MediaPageSublocationForm({
     resolver: zodResolver(SublocationFormSchema),
     defaultValues: isEditing && sublocationData
       ? {
-          locationName: sublocationData.name,
-          locationType: sublocationData.locationType,
-          bgColor: sublocationData.bgColor || '',
+          locationName: sublocationData.name || "",
+          locationType: sublocationData.locationType || SublocationType.SHELF,
+          bgColor: sublocationData.bgColor || "",
+          coordinates: {
+            enabled: !!sublocationData.mapCoordinates,
+            value: sublocationData.mapCoordinates || "",
+          },
         }
-      : defaultValues
+      : defaultValues,
   });
 
   // If sublocationData changes and we're in edit mode, update form values
@@ -140,28 +140,39 @@ export function MediaPageSublocationForm({
     if (isEditing && sublocationData) {
       form.reset({
         locationName: sublocationData.name || '',
-        locationType: sublocationData.locationType || '',
+        locationType: sublocationData.locationType || SublocationType.SHELF,
         bgColor: sublocationData.bgColor || '',
+        coordinates: {
+          enabled: !!sublocationData.mapCoordinates,
+          value: sublocationData.mapCoordinates || ''
+        }
       });
     }
   }, [form, isEditing, sublocationData]);
 
-  const handleSubmit = (data: z.infer<typeof SublocationFormSchema>) => {
-    // Transform form data to match API expectations
-    const sublocationPayload = {
-      id: isEditing && sublocationData ? sublocationData.id : undefined,
-      name: data.locationName,
-      locationType: data.locationType,
-      parentLocationId,
-      bgColor: data.bgColor,
-      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined,
-      physical_location_id: parentLocationId,
-    };
+  const handleSubmit = async (values: z.infer<typeof SublocationFormSchema>) => {
+    try {
+      const payload: LocationPayload = {
+        name: values.locationName,
+        locationType: values.locationType,
+        mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
+        bgColor: values.bgColor,
+        parentLocationId: parentLocationId,
+      };
 
-    if (isEditing && sublocationData) {
-      locationManager.update(sublocationPayload);
-    } else {
-      locationManager.create(sublocationPayload);
+      if (sublocationData) {
+        // For updates, we need to include the physical_location_id in snake_case
+        const updatePayload: LocationPayload = {
+          ...payload,
+          id: sublocationData.id,
+          physical_location_id: parentLocationId,
+        };
+        await locationManager.update(updatePayload);
+      } else {
+        await locationManager.create(payload);
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
     }
   };
 

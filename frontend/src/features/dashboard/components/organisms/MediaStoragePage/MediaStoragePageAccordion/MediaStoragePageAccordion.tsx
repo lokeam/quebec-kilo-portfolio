@@ -161,7 +161,7 @@ export function MediaStoragePageAccordion({
         description="Where in your physical location do you keep your games?"
       >
         <MediaPageSublocationForm
-          parentLocationId="new"
+          parentLocationId={activeLocationIndex !== null ? locationData[activeLocationIndex].id : ''}
           onSuccess={() => setOpenAddDrawer(false)}
         />
       </DrawerContainer>
@@ -240,18 +240,19 @@ export function MediaStoragePageAccordion({
                             </svg>
                           </div>
                         )}
-
-                        {type === 'physical' && (
-                          <Button
-                            variant="default"
-                            onClick={handleAddSublocationClick}
-                            className="my-4"
-                          >
-                            Add Sublocation to {location.name}
-                          </Button>
-                        )}
                       </div>
                     ))}
+
+                    {/* Add Sublocation button - moved outside the loop */}
+                    {type === 'physical' && (
+                      <Button
+                        variant="default"
+                        onClick={handleAddSublocationClick}
+                        className="my-4"
+                      >
+                        Add Sublocation to {location.name}
+                      </Button>
+                    )}
 
                     {/* Helper text when a sublocation is auto-selected */}
                     {isPhysicalLocation(location) &&
