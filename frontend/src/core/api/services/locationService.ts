@@ -25,13 +25,13 @@ export class LocationService {
     throw new Error('Invalid location type');
   }
 
-  private async createPhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
+  public async createPhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
     const snakeCaseLocation = toSnakeCase(location);
     const response: AxiosResponse<PhysicalLocation> = await axiosInstance.post('/v1/locations/physical', snakeCaseLocation);
     return toCamelCase(response.data);
   }
 
-  private async createSublocation(location: Sublocation): Promise<Sublocation> {
+  public async createSublocation(location: Sublocation): Promise<Sublocation> {
     const snakeCaseLocation = toSnakeCase(location);
     const response: AxiosResponse<Sublocation> = await axiosInstance.post('/v1/locations/sublocations', snakeCaseLocation);
     return toCamelCase(response.data);
@@ -46,13 +46,13 @@ export class LocationService {
     throw new Error('Invalid location type');
   }
 
-  private async updatePhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
+  public async updatePhysicalLocation(location: PhysicalLocation): Promise<PhysicalLocation> {
     const snakeCaseLocation = toSnakeCase(location);
     const response: AxiosResponse<PhysicalLocation> = await axiosInstance.put(`/v1/locations/physical/${location.id}`, snakeCaseLocation);
     return toCamelCase(response.data);
   }
 
-  private async updateSublocation(location: Sublocation): Promise<Sublocation> {
+  public async updateSublocation(location: Sublocation): Promise<Sublocation> {
     const snakeCaseLocation = toSnakeCase(location);
     const response: AxiosResponse<Sublocation> = await axiosInstance.put(`/v1/locations/sublocations/${location.id}`, snakeCaseLocation);
     return toCamelCase(response.data);

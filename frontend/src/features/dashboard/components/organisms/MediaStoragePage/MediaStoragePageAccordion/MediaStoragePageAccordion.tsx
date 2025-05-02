@@ -17,11 +17,20 @@ import {
 } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
 import { MediaPageSublocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaPageSublocationForm/MediaPageSublocationForm';
 import { Button } from '@/shared/components/ui/button';
-import { PencilIcon } from 'lucide-react';
+import { PencilIcon, Trash2Icon } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { getLocationIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
+import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 // Type
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
@@ -32,6 +41,7 @@ import type { MediaStorageMetadata } from '@/features/dashboard/lib/types/media-
 // Guards
 import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage/guards';
 import { toast } from 'sonner';
+import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 interface MediaStoragePageAccordionProps {
   locationData: PhysicalLocation[] | DigitalLocation[];
@@ -51,9 +61,11 @@ export function MediaStoragePageAccordion({
   const [activeCard, setActiveCard] = useState<LocationCardData | null>(null);
   const [openAddDrawer, setOpenAddDrawer] = useState<boolean>(false);
   const [openEditDrawer, setOpenEditDrawer] = useState<boolean>(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false);
   const [activeLocationIndex, setActiveLocationIndex] = useState<number | null>(null);
   const [activeCardLocationIndex, setActiveCardLocationIndex] = useState<number | null>(null);
   const domainMaps = useDomainMaps();
+  const locationManager = useLocationManager({ type: 'sublocation' });
 
   // Debug outputs
   console.log("MediaStoragePageAccordion rendered:", {
@@ -84,6 +96,27 @@ export function MediaStoragePageAccordion({
     } else {
       // Show a toast notification if no card is selected or if it's from a different location
       toast.error("Please select a sublocation from this location to edit");
+    }
+  };
+
+  // Function to handle deleting a sublocation
+  const handleDeleteClick = () => {
+    // Only allow deleting if the active card belongs to the currently open location
+    if (activeCard && isActiveCardFromCurrentLocation) {
+      setOpenDeleteDialog(true);
+    } else {
+      // Show a toast notification if no card is selected or if it's from a different location
+      toast.error("Please select a sublocation from this location to delete");
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (activeCard && activeLocationIndex !== null) {
+      locationManager.delete(activeCard.id);
+      setOpenDeleteDialog(false);
+      setActiveCard(null);
+      setActiveCardLocationIndex(null);
+      toast.success(`Sublocation ${activeCard.name} deleted successfully`);
     }
   };
 
@@ -265,7 +298,7 @@ export function MediaStoragePageAccordion({
                     )}
 
                     {/* Action buttons for Add/Edit */}
-                    <div className="flex space-x-2 mt-4">
+                    <div className={`flex space-x-2 mt-4 ${location.sublocations?.length === 0 ? 'hidden' : ''}`}>
                       {/* Edit button with enhanced visual cues */}
                       <Button
                         variant={activeCard && isActiveCardFromCurrentLocation ? "default" : "outline"}
@@ -282,6 +315,17 @@ export function MediaStoragePageAccordion({
                         )}
                       </Button>
 
+                      {/* Delete button */}
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteClick}
+                        disabled={!activeCard || !isActiveCardFromCurrentLocation}
+                        className="flex items-center"
+                      >
+                        <Trash2Icon className="h-4 w-4 mr-2" />
+                        Delete Sublocation
+                      </Button>
+
                       {/* Edit Sublocation Drawer - without a trigger */}
                       <DrawerContainer
                         open={openEditDrawer}
@@ -293,7 +337,7 @@ export function MediaStoragePageAccordion({
                           <MediaPageSublocationForm
                             sublocationData={{
                               ...activeCard,
-                              locationType: activeCard.locationType || 'physical'
+                              locationType: activeCard.locationType || SublocationType.SHELF
                             }}
                             parentLocationId={locationData[activeLocationIndex].id}
                             isEditing={true}
@@ -307,6 +351,32 @@ export function MediaStoragePageAccordion({
                         )}
                       </DrawerContainer>
                     </div>
+
+                    {/* Delete Confirmation Dialog */}
+                    <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Delete Sublocation</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to delete the sublocation "{activeCard?.name}"? This action cannot be undone.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => setOpenDeleteDialog(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleConfirmDelete}
+                          >
+                            Delete
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </>
                 ) : (
                   /* For digital locations, show items directly */

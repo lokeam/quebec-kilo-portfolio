@@ -17,8 +17,13 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
 
   const createMutation = useBackendMutation<PhysicalLocation | Sublocation, BaseLocation>(
     async (location: BaseLocation) => {
-      const result = await locationService.createLocation(location);
-      return { success: true, data: result };
+      if (type === 'physical') {
+        const result = await locationService.createPhysicalLocation(location as PhysicalLocation);
+        return { success: true, data: result };
+      } else {
+        const result = await locationService.createSublocation(location as Sublocation);
+        return { success: true, data: result };
+      }
     },
     {
       onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
@@ -34,18 +39,23 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
 
   const updateMutation = useBackendMutation<PhysicalLocation | Sublocation, BaseLocation>(
     async (location: BaseLocation) => {
-      const result = await locationService.updateLocation(location);
-      return { success: true, data: result };
+      if (type === 'physical') {
+        const result = await locationService.updatePhysicalLocation(location as PhysicalLocation);
+        return { success: true, data: result };
+      } else {
+        const result = await locationService.updateSublocation(location as Sublocation);
+        return { success: true, data: result };
+      }
     },
     {
       onSuccess: (data: ApiResponse<PhysicalLocation | Sublocation>) => {
         // Invalidate the locations query to trigger a refetch
         queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
         onSuccess?.(data.data);
-        },
-        onError: (error: Error) => {
+      },
+      onError: (error: Error) => {
         onError?.(error);
-        }
+      }
     }
   );
 
@@ -59,10 +69,10 @@ export function useLocationManager({ type, onSuccess, onError }: UseLocationMana
         // Invalidate the locations query to trigger a refetch
         queryClient.invalidateQueries({ queryKey: mediaStorageKeys.locations.all });
         onSuccess?.({ id });
-        },
+      },
       onError: (error: Error) => {
         onError?.(error);
-        }
+      }
     }
   );
 

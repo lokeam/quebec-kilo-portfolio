@@ -26,7 +26,7 @@ export interface LocationCardData {
   id: string;
   name: string;
   description?: string;
-  locationType?: string;
+  locationType?: SublocationType;
   bgColor?: string;
   items?: GameItem[];
   sublocations?: Sublocation[];

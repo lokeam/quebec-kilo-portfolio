@@ -43,12 +43,13 @@ import { Package } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useLocationManager } from '@/core/api/hooks/useLocationManager';
+import { toast } from 'sonner';
 
 // Zod
 import { z } from 'zod';
 
 import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
-import type { LocationPayload } from '@/core/api/queries/useLocationMutations';
+import { toSnakeCase } from '@/core/api/utils/serialization';
 
 export const SublocationFormSchema = z.object({
   locationName: z
@@ -113,7 +114,7 @@ export function MediaPageSublocationForm({
 
   // Setup location manager hook for sublocations
   const locationManager = useLocationManager({
-    type: 'physical',
+    type: 'sublocation',
     onSuccess: () => {
       onSuccess?.(form.getValues());
     }
@@ -152,24 +153,23 @@ export function MediaPageSublocationForm({
 
   const handleSubmit = async (values: z.infer<typeof SublocationFormSchema>) => {
     try {
-      const payload: LocationPayload = {
+      const payload = {
         name: values.locationName,
         locationType: values.locationType,
         mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
         bgColor: values.bgColor,
-        parentLocationId: parentLocationId,
+        physical_location_id: parentLocationId,
       };
 
       if (sublocationData) {
-        // For updates, we need to include the physical_location_id in snake_case
-        const updatePayload: LocationPayload = {
+        // For updates, we need to include the id
+        const updatePayload = {
           ...payload,
           id: sublocationData.id,
-          physical_location_id: parentLocationId,
         };
-        await locationManager.update(updatePayload);
+        await locationManager.update(toSnakeCase(updatePayload));
       } else {
-        await locationManager.create(payload);
+        await locationManager.create(toSnakeCase(payload));
       }
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -179,6 +179,7 @@ export function MediaPageSublocationForm({
   const handleDelete = (id: string) => {
     locationManager.delete(id);
     setDeleteDialogOpen(false);
+    toast.success('Sublocation deleted successfully');
   };
 
   return (
