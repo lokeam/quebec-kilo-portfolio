@@ -37,7 +37,7 @@ export interface DigitalLocation extends BaseLocation {
     monthlyFee?: string;
     renewalDate?: Date;
     benefits?: string[];
-  };
+    };
 
   /** Last synchronization timestamp with the platform */
   lastSync?: Date;

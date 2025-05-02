@@ -39,7 +39,7 @@ export function PhysicalLocationDrawerList({ locationData, onSuccess }: Physical
   const domainMaps = useDomainMaps();
 
   // Custom action hooks with success callbacks
-  const { deleteLocation, isDeleting } = useLocationDelete(() => {
+  const { deleteLocation, isDeleting } = useLocationDelete('physical', () => {
     setDeleteConfirmOpen(false);
     setLocationToDelete(null);
     onSuccess();
@@ -118,8 +118,8 @@ export function PhysicalLocationDrawerList({ locationData, onSuccess }: Physical
                   <div>
                     <CardTitle>{location.name}</CardTitle>
                     <CardDescription className="flex items-center mt-2">
-                      {renderLocationIcon(location.locationType)}
-                      {getLocationTypeDisplay(location.locationType)}
+                      {renderLocationIcon(location.locationType || location.location_type)}
+                      {getLocationTypeDisplay(location.locationType || location.location_type)}
                     </CardDescription>
                   </div>
                   <div className="flex space-x-2">
@@ -152,8 +152,8 @@ export function PhysicalLocationDrawerList({ locationData, onSuccess }: Physical
               </CardContent>
               <CardFooter className="bg-muted/50 py-2 px-6 text-sm">
                 <div className="flex justify-between w-full">
-                  <span>Created: {location.createdAt.toLocaleDateString()}</span>
-                  <span>Updated: {location.updatedAt.toLocaleDateString()}</span>
+                  <span>Created: {location.createdAt?.toLocaleDateString() || 'N/A'}</span>
+                  <span>Updated: {location.updatedAt?.toLocaleDateString() || 'N/A'}</span>
                 </div>
               </CardFooter>
             </Card>

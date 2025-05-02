@@ -64,7 +64,7 @@ export function useCreateLocationMutation(onSuccess?: () => void) {
 
         // Invalidate all location data
         queryClient.invalidateQueries({
-          queryKey: mediaStorageKeys.all,
+          queryKey: mediaStorageKeys.locations.all,
         });
 
         // Invalidate specific location

@@ -1,6 +1,7 @@
 import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
 import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
 import type { ComponentType } from 'react';
+import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 type DomainMapsResult = {
   games: Record<string, ComponentType<{ className?: string }>>;
@@ -21,7 +22,7 @@ type DomainMapsResult = {
  * during the API standardization transition period
  */
 interface PhysicalLocationWithSnakeCase extends PhysicalLocation {
-  location_type?: string;
+  location_type?: PhysicalLocationType;
   map_coordinates?: string;
   sub_locations?: Array<{
     id: string;
@@ -68,10 +69,11 @@ export const getLocationIcon = (
 
 // Add a new function specifically for handling location types
 export const getLocationTypeIcon = (
-  locationType: string,
+  locationType: string | undefined,
   domainMaps: DomainMapsResult
 ) => {
   const { location: locationIcons } = domainMaps;
+  if (!locationType) return null;
   const IconComponent = locationIcons[locationType.toLowerCase()];
   return IconComponent ? <IconComponent className="h-4 w-4 mr-1" /> : null;
 }

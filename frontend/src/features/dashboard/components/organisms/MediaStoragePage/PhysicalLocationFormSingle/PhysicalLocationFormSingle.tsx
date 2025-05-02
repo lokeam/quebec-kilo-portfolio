@@ -231,16 +231,10 @@ defaultValues = {
                     <span>Office</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="commercialStorage">
+                <SelectItem value="warehouse">
                   <div className="flex items-center gap-2">
                     <Warehouse size={20} color='#fff' className='mr-2'/>
-                    <span>Commercial Storage</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="vehicle">
-                  <div className="flex items-center gap-2">
-                    <IconCar size={25} color='#fff' className='mr-2'/>
-                    <span>Vehicle</span>
+                    <span>Warehouse</span>
                   </div>
                 </SelectItem>
               </SelectContent>
