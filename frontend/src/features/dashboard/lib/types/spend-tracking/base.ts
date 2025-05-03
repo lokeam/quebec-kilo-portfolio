@@ -1,4 +1,4 @@
-import type { Currency, ISO8601Date } from '@/shared/types/types';
+import type { Currency } from '@/shared/types/types';
 import type { SpendTransaction } from '@/features/dashboard/lib/types/spend-tracking/constants';
 import type { PaymentMethodDisplay } from '@/shared/constants/payment';
 import type { PurchasedMediaCategory } from '@/features/dashboard/lib/types/spend-tracking/media';
@@ -22,6 +22,6 @@ export interface BaseSpendTracking {
   spendTransactionType: SpendTransaction;
   paymentMethod: PaymentMethodDisplay;
   mediaType: PurchasedMediaCategory;
-  createdAt: ISO8601Date;
-  updatedAt: ISO8601Date;
+  createdAt: Date;
+  updatedAt: Date;
 };

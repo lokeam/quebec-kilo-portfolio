@@ -80,30 +80,24 @@ export function getLogo(serviceName: string): string | undefined {
  */
 export function transformDigitalLocationToService(location: DigitalLocation): OnlineService {
   // Determine if this is a subscription service
-  const isSubscriptionService = location.subscription?.isActive || false;
-  const isActive = location.subscription?.isActive || false;
-  const serviceType = location.platform as ServiceType;
-
-  // Convert dates to ISO strings if they're Date objects
-  const createdAt = location.createdAt instanceof Date ? location.createdAt.toISOString() : location.createdAt;
-  const updatedAt = location.updatedAt instanceof Date ? location.updatedAt.toISOString() : location.updatedAt;
+  const isSubscriptionService = location.isSubscriptionService || false;
+  const isActive = location.isActive || false;
+  const serviceType = location.serviceType as ServiceType;
 
   return {
     id: location.id,
     name: location.name,
-    // Try to use logo from backend, fallback to derived logo, then default
-    logo: getLogo(location.name) || 'default-logo',
+    logo: location.logo || 'default-logo',
     url: location.url || '#',
     type: serviceType,
     status: isActive ? 'active' as ServiceStatusCode : 'inactive' as ServiceStatusCode,
     features: [],
-    // Use label from backend or fallback to name
     label: location.label || location.name,
-    createdAt,
-    updatedAt,
+    createdAt: location.createdAt,
+    updatedAt: location.updatedAt,
     isSubscriptionService,
-    service_type: serviceType,
-    is_active: isActive,
+    serviceType,
+    isActive,
     tier: {
       currentTier: 'Basic' as ServiceTierName,
       availableTiers: [{
@@ -113,21 +107,18 @@ export function transformDigitalLocationToService(location: DigitalLocation): On
         isDefault: true
       }]
     },
-    billing: location.subscription ? {
-      cycle: location.subscription.isFree ? 'NA' : 'monthly',
+    billing: location.billing ? {
+      cycle: location.billing.cycle || 'NA',
       fees: {
-        monthly: location.subscription.monthlyFee || '0',
-        quarterly: '0',
-        annual: '0'
+        monthly: location.billing.fees?.monthly || '0',
+        quarterly: location.billing.fees?.quarterly || '0',
+        annual: location.billing.fees?.annual || '0'
       },
-      paymentMethod: 'Generic',
-      renewalDate: location.subscription.renewalDate ? {
-        month: location.subscription.renewalDate.toLocaleString('default', { month: 'long' }),
-        day: location.subscription.renewalDate.getDate()
-      } : {
-        month: 'January',
-        day: 1
-      }
+      paymentMethod: location.billing.paymentMethod || 'Generic',
+      renewalDate: location.billing.renewalDate ? {
+        month: location.billing.renewalDate.month,
+        day: location.billing.renewalDate.day
+      } : undefined
     } : undefined
   };
 }

@@ -11,11 +11,11 @@ export interface BaseOnlineService {
   logo: string;
   url: string;
   status: ServiceStatusCode;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   isSubscriptionService: boolean;
-  service_type: ServiceType;
-  is_active: boolean;
+  serviceType: ServiceType;
+  isActive: boolean;
 };
 
 /**

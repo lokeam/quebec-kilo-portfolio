@@ -12,8 +12,8 @@ export interface PhysicalLocation {
   label: string;
   locationType: string;
   mapCoordinates: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
   sublocations?: Sublocation[];
 }
 

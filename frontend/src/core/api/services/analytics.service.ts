@@ -21,64 +21,64 @@ export type AnalyticsDomain = typeof ANALYTICS_DOMAINS[keyof typeof ANALYTICS_DO
 
 // Types from backend analytics_models.go
 export interface GeneralStats {
-  total_games: number;
-  monthly_subscription_cost: number;
-  total_digital_locations: number;
-  total_physical_locations: number;
+  totalGames: number;
+  monthlySubscriptionCost: number;
+  totalDigitalLocations: number;
+  totalPhysicalLocations: number;
 }
 
 export interface FinancialStats {
-  annual_subscription_cost: number;
-  total_services: number;
-  renewals_this_month: number;
+  annualSubscriptionCost: number;
+  totalServices: number;
+  renewalsThisMonth: number;
   services: ServiceDetails[];
 }
 
 export interface ServiceDetails {
   name: string;
-  monthly_fee: number;
-  billing_cycle: string;
-  next_payment: string;
+  monthlyFee: number;
+  billingCycle: string;
+  nextPayment: string;
 }
 
 export interface StorageStats {
-  total_physical_locations: number;
-  total_digital_locations: number;
-  digital_locations: LocationSummary[];
-  physical_locations: LocationSummary[];
+  totalPhysicalLocations: number;
+  totalDigitalLocations: number;
+  digitalLocations: LocationSummary[];
+  physicalLocations: LocationSummary[];
 }
 
 export interface LocationSummary {
   id: string;
   name: string;
-  item_count: number;
-  location_type: string;
-  is_subscription?: boolean;
-  monthly_cost?: number;
+  itemCount: number;
+  locationType: string;
+  isSubscription?: boolean;
+  monthlyCost?: number;
 }
 
 export interface InventoryStats {
-  total_item_count: number;
-  new_item_count: number;
-  platform_counts: PlatformItemCount[];
+  totalItemCount: number;
+  newItemCount: number;
+  platformCounts: PlatformItemCount[];
 }
 
 export interface PlatformItemCount {
   platform: string;
-  item_count: number;
+  itemCount: number;
 }
 
 export interface WishlistStats {
-  total_wishlist_items: number;
-  items_on_sale: number;
-  starred_item?: string;
-  starred_item_price?: number;
-  cheapest_sale_discount?: number;
+  totalWishlistItems: number;
+  itemsOnSale: number;
+  starredItem?: string;
+  starredItemPrice?: number;
+  cheapestSaleDiscount?: number;
 }
 
 export interface AnalyticsResponse {
   success: boolean;
-  user_id: string;
+  userId: string;
   data: {
     general?: GeneralStats;
     financial?: FinancialStats;

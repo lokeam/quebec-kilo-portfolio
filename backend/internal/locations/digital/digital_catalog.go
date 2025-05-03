@@ -89,7 +89,7 @@ var DigitalServicesCatalog = []DigitalServiceCatalogItem{
 	},
 	{
 		ID:                    "nintendo",
-		Name:                  "Nintendo",
+		Name:                  "Nintendo Switch Online",
 		Logo:                  "nintendo",
 		IsSubscriptionService: true,
 		URL:                   "https://www.nintendo.com/",

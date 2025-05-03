@@ -8,10 +8,11 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
 import { logger } from '@/core/utils/logger/logger';
+import type { AxiosResponse } from 'axios';
 
 interface DigitalLocationsResponse {
   success: boolean;
-  user_id: string;
+  userId: string;
   locations: DigitalLocation[];
 }
 
@@ -28,46 +29,7 @@ interface DigitalLocationsResponse {
 export const getUserDigitalLocations = async (token?: string): Promise<DigitalLocation[]> => {
   logger.debug('Fetching user digital locations');
 
-  // Let's try a direct curl-like request for debugging
   try {
-    console.log('⭐ DEBUG: Testing direct API access with curl...');
-    const response = await fetch('/api/v1/locations/digital', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    console.log('⭐ DEBUG: Direct curl test response:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
-      url: response.url
-    });
-
-    const data = await response.text();
-    console.log('⭐ DEBUG: Response body:', data);
-  } catch (error) {
-    console.error('⭐ DEBUG: Direct test failed:', error);
-  }
-
-  try {
-    // DEBUG: Test if we can connect to the API directly using fetch
-    try {
-      logger.debug('--- DEBUG: Attempting direct fetch to API ---');
-      const fetchResp = await fetch('/api/v1/locations/digital', {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      logger.debug('--- DEBUG: Direct fetch response status:', { status: fetchResp.status });
-      const fetchData = await fetchResp.text();
-      logger.debug('--- DEBUG: Direct fetch response data:', { data: fetchData.substring(0, 100) });
-    } catch (fetchErr) {
-      logger.error('--- DEBUG: Direct fetch failed:', { error: fetchErr });
-    }
-
     const config = {
       headers: token ? {
         Authorization: `Bearer ${token}`,
@@ -76,20 +38,20 @@ export const getUserDigitalLocations = async (token?: string): Promise<DigitalLo
       } : undefined
     };
 
-    const response = await axiosInstance.get<DigitalLocationsResponse>(
+    const response: AxiosResponse<DigitalLocationsResponse> = await axiosInstance.get(
       '/v1/locations/digital',
       config
     );
 
     logger.debug('Digital locations fetched successfully', {
-      count: response.locations?.length || 0
+      count: response.data?.locations?.length || 0
     });
 
-    if (!response || !response.success) {
+    if (!response.data || !response.data.success) {
       throw new Error('Invalid response from digital locations API');
     }
 
-    return response.locations || [];
+    return response.data.locations || [];
   } catch (error) {
     logger.error('Failed to fetch digital locations', { error });
     throw error;

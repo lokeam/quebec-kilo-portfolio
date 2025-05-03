@@ -11,13 +11,13 @@ import type { GamePlatform } from '@/features/dashboard/lib/types/media-storage/
  */
 export interface Subscription {
   id: number;
-  location_id: string;
-  billing_cycle: string;
-  cost_per_cycle: number;
-  next_payment_date: string;
-  payment_method: string;
-  created_at: string;
-  updated_at: string;
+  locationId: string;
+  billingCycle: string;
+  costPerCycle: number;
+  nextPaymentDate: string;
+  paymentMethod: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -30,6 +30,39 @@ export interface DigitalLocation extends BaseLocation {
   /** URL to platform storefront */
   url: string;
 
+  /** Service type (basic or subscription) */
+  serviceType: string;
+
+  /** Whether the service is active */
+  isActive: boolean;
+
+  /** Whether the service is a subscription service */
+  isSubscriptionService: boolean;
+
+  /** Service logo identifier */
+  logo: string;
+
+  /** Service display label */
+  label: string;
+
+  /** Service name */
+  name: string;
+
+  /** Billing information */
+  billing?: {
+    cycle: string;
+    fees: {
+      monthly: string;
+      quarterly: string;
+      annual: string;
+    };
+    paymentMethod: string;
+    renewalDate?: {
+      day: number;
+      month: string;
+    };
+  };
+
   /** Platform subscription details */
   subscription?: {
     isActive: boolean;
@@ -37,7 +70,7 @@ export interface DigitalLocation extends BaseLocation {
     monthlyFee?: string;
     renewalDate?: Date;
     benefits?: string[];
-    };
+  };
 
   /** Last synchronization timestamp with the platform */
   lastSync?: Date;

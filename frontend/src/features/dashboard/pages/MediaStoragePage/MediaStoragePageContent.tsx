@@ -8,11 +8,10 @@ import { PhysicalLocationFormSingle } from '@/features/dashboard/components/orga
 import { PhysicalLocationDrawerList } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationDrawerList/PhysicalLocationDrawerList';
 import { MediaStoragePageAccordion } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordion';
 
-// Mock Data - keeping for digital locations until that's implemented
-import { mediaStoragePageMockData } from '@/features/dashboard/pages/MediaStoragePage/mediaStoragePage.mockdata';
-
 // Hooks
 import { usePhysicalLocations } from '@/core/api/hooks/usePhysicalLocations';
+import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
+import { useStorageAnalytics } from '@/core/api/hooks/useAnalyticsData';
 
 export function MediaStoragePageContent() {
   const [addLocationOpen, setAddLocationOpen] = useState<boolean>(false);
@@ -21,11 +20,34 @@ export function MediaStoragePageContent() {
   // Fetch physical locations with the hook
   const { data: physicalLocationsData, isLoading: isLoadingPhysicalLocations } = usePhysicalLocations();
 
-  // Use mock data for digital locations until that's implemented
-  const { data: { digitalLocations }, meta } = mediaStoragePageMockData;
+  // Fetch digital locations with the hook
+  const { data: digitalLocations, isLoading: isLoadingDigitalLocations } = useDigitalLocations();
 
-  // Ensure we always have an array for physical locations, even if data is still loading
+  // Fetch storage analytics
+  const { data: analyticsData } = useStorageAnalytics();
+
+  // Ensure we always have arrays for locations, even if data is still loading
   const safePhysicalLocations = physicalLocationsData || [];
+  const safeDigitalLocations = digitalLocations || [];
+
+  // Extract metadata from analytics
+  const meta = {
+    counts: {
+      locations: {
+        total: (analyticsData?.data?.storage?.totalPhysicalLocations || 0) + (analyticsData?.data?.storage?.totalDigitalLocations || 0),
+        physical: analyticsData?.data?.storage?.totalPhysicalLocations || 0,
+        digital: analyticsData?.data?.storage?.totalDigitalLocations || 0,
+      },
+      items: {
+        total: 0,
+        physical: 0,
+        digital: 0,
+        byLocation: {},
+      },
+    },
+    lastUpdated: new Date(),
+    version: '1.0',
+  };
 
   return (
     <PageMain>
@@ -73,10 +95,11 @@ export function MediaStoragePageContent() {
 
       {/* Digital Location Accordion */}
       <MediaStoragePageAccordion
-        locationData={digitalLocations}
+        locationData={safeDigitalLocations}
         title="Digital Locations"
         meta={meta}
         type="digital"
+        isLoading={isLoadingDigitalLocations}
       />
     </PageMain>
   );
