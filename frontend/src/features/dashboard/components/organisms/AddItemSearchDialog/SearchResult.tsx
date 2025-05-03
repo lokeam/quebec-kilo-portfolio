@@ -3,7 +3,14 @@
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
-import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
+
+// Type Refactor
+import type { Game } from '@/types/game';
+
+// Legacy Types
+//import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
+
+
 import { useAddToLibrary, useAddToWishlist } from '@/core/api/queries/useLibraryMutations';
 
 // Icons
@@ -15,7 +22,7 @@ import { IconHeart } from '@tabler/icons-react';
 
 // New
 type SearchResultProps = {
-  game: WishlistItem;
+  game: Game;
   onAction?: () => void; // Callback to close dialog
 }
 
@@ -28,9 +35,9 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
     addToLibrary.mutate({
       id: Number(game.id),
       name: game.name,
-      cover_url: game.cover_url,
+      cover_url: game.coverUrl,
       rating: game.rating ? Number(game.rating) : undefined,
-      theme_names: game.theme_names ? [...game.theme_names] : undefined,
+      theme_names: game.themeNames ? [...game.themeNames] : undefined,
     })
 
     if (onAction) onAction();
@@ -47,9 +54,9 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
     addToWishList.mutate({
       id: Number(game.id),
       name: game.name,
-      cover_url: game.cover_url,
+      cover_url: game.coverUrl,
       rating: game.rating ? Number(game.rating) : undefined,
-      theme_names: game.theme_names ? [...game.theme_names] : undefined,
+      theme_names: game.themeNames ? [...game.themeNames] : undefined,
     })
 
     if (onAction) onAction();
@@ -61,12 +68,13 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
     // });
   };
 
-  const showLibraryButton = !game.is_in_library;
-  const showWishlistButton = !game.is_in_wishlist;
+  const showLibraryButton = !game.isInLibrary;
+  const showWishlistButton = !game.isInWishlist;
 
+  console.log('SearchResult', game);
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
-      { game.is_in_library && (
+      { game.isInLibrary && (
         <div className="absolute left-0 top-0 bottom-0 z-10">
           <div className="flex h-full items-center">
             <div className="flex items-center bg-[#1A9FFF] h-[34px] overflow-hidden transition-all duration-200 group-hover:w-[120px] w-[34px] rounded-r-md">
@@ -81,7 +89,7 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
       <div className="shrink-0 p-2">
         <div className="relative w-24 md:w-32 p-2">
           <ImageWithFallback
-            src={game.cover_url}
+            src={game.coverUrl}
             alt={`cover image for ${game.name}`}
             width={292}
             height={120}

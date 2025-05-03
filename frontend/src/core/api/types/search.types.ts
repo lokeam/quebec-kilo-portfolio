@@ -1,6 +1,6 @@
-import type { Game } from '@/features/dashboard/lib/types/games/base';
+import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
 
 export interface SearchResponse {
-  games: Game[];
+  games: WishlistItem[];
   total: number;
 }

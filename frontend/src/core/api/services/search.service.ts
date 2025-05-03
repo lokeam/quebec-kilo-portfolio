@@ -6,11 +6,20 @@
  */
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
-import type { SearchResponse } from '@/core/api/types/search.types';
-import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
+
+
+// Type Refactor
+import type { Game } from '@/types/game';
+import type { SearchResponse } from '@/types/api';
+
+// Legacy Types
+//import type { SearchResponse } from '@/core/api/types/search.types';
+//import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
 
 // Debug
 import { logger } from '@/core/utils/logger/logger';
+
+const IGDB_COVER_URL_BASE = 'https://images.igdb.com/igdb/image/upload/t_cover_big/';
 
 /**
  * Searches for media items based on a query string
@@ -18,7 +27,7 @@ import { logger } from '@/core/utils/logger/logger';
  * @async
  * @function searchMediaItems
  * @param {string} query - The search query to find matching media items
- * @returns {Promise<WishlistItem[]>} A promise that resolves to an array of matching wishlist items
+ * @returns {Promise<Game[]>} A promise that resolves to an array of matching wishlist items
  *
  * @throws {Error} If the API request fails or returns an invalid response
  *
@@ -32,29 +41,35 @@ import { logger } from '@/core/utils/logger/logger';
  * }
  * ```
  */
-export const searchMediaItems = async (query: string): Promise<WishlistItem[]> => {
+export const searchMediaItems = async (query: string): Promise<Game[]> => {
   logger.debug('🔍 Searching for media items', { query });
 
   try {
-    const response = await axiosInstance.post<SearchResponse>(
+    const { data } = await axiosInstance.post<{ data: SearchResponse }>(
       '/v1/search',
       { query }
-    ) as unknown as SearchResponse;
+    );
 
     // Debug: Log the full response
-    logger.debug('🔄 Full backend response:', { response });
+    logger.debug('🔄 Full backend response:', { data });
 
     // Ensure the response has the required fields
-    if (!response || typeof response !== 'object') {
-      throw new Error(`Invalid response: Expected an object, got ${JSON.stringify(response)}`);
+    if (!data || typeof data !== 'object') {
+      throw new Error(`Invalid response: Expected an object, got ${JSON.stringify(data)}`);
     }
 
-    // Since your Axios interceptor returns response.data, 'response' is already a SearchResponse
-    if (!response.games || !Array.isArray(response.games)) {
-      throw new Error(`Invalid 'games' field: Expected an array, got ${JSON.stringify(response.games)}`);
+    // The response should have a games array
+    if (!data.games || !Array.isArray(data.games)) {
+      throw new Error(`Invalid 'games' field: Expected an array, got ${JSON.stringify(data.games)}`);
     }
 
-    return response.games; // Return the games array
+    // Transform the response to ensure proper image URLs
+    const games = data.games.map((game: Game) => ({
+      ...game,
+      cover_url: game.coverUrl ? `${IGDB_COVER_URL_BASE}${game.coverUrl}` : ''
+    }));
+
+    return games;
   } catch (error) {
     logger.error('🚨 Search failed:', { error });
     throw error;
