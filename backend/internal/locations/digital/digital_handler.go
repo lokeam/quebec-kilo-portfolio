@@ -53,8 +53,8 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
-
 		userID := httputils.GetUserID(r)
+
 		if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
@@ -104,7 +104,7 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 		}
 
 		// Convert backend model to frontend-compatible format
-		frontendLocations := make([]map[string]interface{}, len(locations))
+		frontendLocations := make([]map[string]any, len(locations))
 		for i, loc := range locations {
 			frontendLocations[i] = formatters.FormatDigitalLocationToFrontend(&loc)
 		}
@@ -118,15 +118,11 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 			})
 		}
 
-		response := struct {
-			Success   bool                    `json:"success"`
-			UserID    string                  `json:"user_id"`
-			Locations []map[string]interface{} `json:"locations"`
+		response := httputils.NewAPIResponse(r, userID, struct {
+			Locations []map[string]any `json:"locations"`
 		}{
-			Success:   true,
-			UserID:    userID,
 			Locations: frontendLocations,
-		}
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -777,73 +773,32 @@ func RemoveDigitalLocation(
 // For backward compatibility - wrapper for the digital service catalog
 func GetDigitalServicesCatalog(appCtx *appcontext.AppContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Create catalog data
-		catalog := []DigitalServiceCatalogItem{
-			{
-				ID:                    "steam",
-				Name:                  "Steam",
-				Logo:                  "steam_logo.png",
-				IsSubscriptionService: false,
-				URL:                   "https://store.steampowered.com/",
-			},
-			{
-				ID:                    "epic",
-				Name:                  "Epic Games Store",
-				Logo:                  "epic_logo.png",
-				IsSubscriptionService: false,
-				URL:                   "https://www.epicgames.com/store/",
-			},
-			{
-				ID:                    "gog",
-				Name:                  "GOG.com",
-				Logo:                  "gog_logo.png",
-				IsSubscriptionService: false,
-				URL:                   "https://www.gog.com/",
-			},
-			{
-				ID:                    "xbox",
-				Name:                  "Xbox Game Pass",
-				Logo:                  "xbox_logo.png",
-				IsSubscriptionService: true,
-				URL:                   "https://www.xbox.com/xbox-game-pass",
-			},
-			{
-				ID:                    "playstation",
-				Name:                  "PlayStation Plus",
-				Logo:                  "playstation_logo.png",
-				IsSubscriptionService: true,
-				URL:                   "https://www.playstation.com/playstation-plus/",
-			},
-			{
-				ID:                    "ea_play",
-				Name:                  "EA Play",
-				Logo:                  "ea_play_logo.png",
-				IsSubscriptionService: true,
-				URL:                   "https://www.ea.com/ea-play",
-			},
-			{
-				ID:                    "ubisoft_plus",
-				Name:                  "Ubisoft+",
-				Logo:                  "ubisoft_plus_logo.png",
-				IsSubscriptionService: true,
-				URL:                   "https://store.ubi.com/ubisoft-plus/",
-			},
-			{
-				ID:                    "nintendo_switch_online",
-				Name:                  "Nintendo Switch Online",
-				Logo:                  "nintendo_switch_online_logo.png",
-				IsSubscriptionService: true,
-				URL:                   "https://www.nintendo.com/switch/online-service/",
-			},
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+					"request_id": requestID,
+			})
+			httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("userID not found in request context"),
+					http.StatusUnauthorized,
+			)
+			return
 		}
 
-		response := struct {
-			Success bool                       `json:"success"`
+		appCtx.Logger.Info("Getting digital services catalog", map[string]any{
+			"requestID": requestID,
+			"userID": userID,
+		})
+
+		response := httputils.NewAPIResponse(r, userID, struct {
 			Catalog []DigitalServiceCatalogItem `json:"catalog"`
 		}{
-			Success: true,
-			Catalog: catalog,
-		}
+			Catalog: DigitalServicesCatalog,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

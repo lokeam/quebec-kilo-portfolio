@@ -11,6 +11,36 @@ import (
 	"github.com/lokeam/qko-beta/internal/shared/core"
 )
 
+type APIResponse struct {
+	// Success indicates whether the request was processed successfully.
+	// This helps frontend code quickly determine if the response contains valid data.
+	Success bool `json:"success"`
+
+	// UserID identifies the user who made the request.
+	// This is useful for debugging and ensuring proper request ownership.
+	UserID string `json:"user_id"`
+
+	// Data contains the actual response payload.
+	// The structure of this field varies depending on the endpoint.
+	Data interface{} `json:"data"`
+
+	// Metadata contains additional information about the response.
+	// This field is optional and may be omitted in some cases.
+	Metadata *Metadata `json:"metadata,omitempty"`
+}
+
+// Metadata contains additional information about the API response.
+// This information is useful for debugging, logging, and tracking requests.
+type Metadata struct {
+	// Timestamp indicates when the response was generated.
+	// This helps track when data was last accessed and is useful for caching strategies.
+	Timestamp string `json:"timestamp"`
+
+	// RequestID is a unique identifier for the request.
+	// This helps trace requests through logs and debug issues across the system.
+	RequestID string `json:"request_id"`
+}
+
 // RespondWithJSON writes a JSON response with provided data + status code.
 // Creates a standarized way to write responses that include:
 //   - Content-Type header management
@@ -92,6 +122,7 @@ func RespondWithJSON(
 
     return nil
 }
+
 
 // RespondWithError creates standard error messages across the app.
 // It matches error types to the right status codes + makes sure that
@@ -175,4 +206,31 @@ func RespondWithError(
 
 	// Use existing respondWithJSON to send response
 	return RespondWithJSON(w, logger, status, response)
+}
+
+
+// NewResponse creates a new API response with the given user ID and data.
+// It automatically adds metadata including a timestamp and request ID.
+//
+// Parameters:
+//   - r: The HTTP request, used to extract the request ID
+//   - userID: The ID of the user making the request
+//   - data: The response payload to be wrapped in the data field
+//
+// Example usage:
+//   response := NewResponse(r, userID, struct {
+//       Locations []map[string]interface{} `json:"locations"`
+//   }{
+//       Locations: frontendLocations,
+//   })
+func NewAPIResponse(r *http.Request, userId string, data any) APIResponse {
+	return APIResponse{
+		Success: true,
+		UserID: userId,
+		Data: data,
+		Metadata: &Metadata{
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+      RequestID: GetRequestID(r),
+		},
+	}
 }
