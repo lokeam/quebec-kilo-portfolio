@@ -8,12 +8,13 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
 import { logger } from '@/core/utils/logger/logger';
-import type { AxiosResponse } from 'axios';
 
 interface DigitalLocationsResponse {
-  success: boolean;
-  userId: string;
   locations: DigitalLocation[];
+}
+
+interface DigitalLocationResponse {
+  location: DigitalLocation;
 }
 
 /**
@@ -38,7 +39,7 @@ export const getUserDigitalLocations = async (token?: string): Promise<DigitalLo
       } : undefined
     };
 
-    const response: AxiosResponse<DigitalLocationsResponse> = await axiosInstance.get(
+    const response = await axiosInstance.get<DigitalLocationsResponse>(
       '/v1/locations/digital',
       config
     );
@@ -46,10 +47,6 @@ export const getUserDigitalLocations = async (token?: string): Promise<DigitalLo
     logger.debug('Digital locations fetched successfully', {
       count: response.data?.locations?.length || 0
     });
-
-    if (!response.data || !response.data.success) {
-      throw new Error('Invalid response from digital locations API');
-    }
 
     return response.data.locations || [];
   } catch (error) {
@@ -81,18 +78,14 @@ export const getDigitalLocationById = async (locationId: string, token?: string)
       } : undefined
     };
 
-    const response = await axiosInstance.get<{ success: boolean; location: DigitalLocation }>(
+    const response = await axiosInstance.get<DigitalLocationResponse>(
       `/v1/locations/digital/${locationId}`,
       config
     );
 
     logger.debug('Digital location fetched successfully', { locationId });
 
-    if (!response || !response.success) {
-      throw new Error(`Failed to fetch digital location with ID: ${locationId}`);
-    }
-
-    return response.location;
+    return response.data.location;
   } catch (error) {
     logger.error('Failed to fetch digital location', { locationId, error });
     throw error;

@@ -77,15 +77,11 @@ export interface WishlistStats {
 }
 
 export interface AnalyticsResponse {
-  success: boolean;
-  userId: string;
-  data: {
-    general?: GeneralStats;
-    financial?: FinancialStats;
-    storage?: StorageStats;
-    inventory?: InventoryStats;
-    wishlist?: WishlistStats;
-  };
+  general?: GeneralStats;
+  financial?: FinancialStats;
+  storage?: StorageStats;
+  inventory?: InventoryStats;
+  wishlist?: WishlistStats;
 }
 
 /**
@@ -127,11 +123,7 @@ export const getAnalyticsData = async (
       dataKeys: Object.keys(response.data || {})
     });
 
-    if (!response || !response.success) {
-      throw new Error('Invalid response from analytics API');
-    }
-
-    return response;
+    return response.data;
   } catch (error) {
     logger.error('Failed to fetch analytics data', { domains, error });
     throw error;
