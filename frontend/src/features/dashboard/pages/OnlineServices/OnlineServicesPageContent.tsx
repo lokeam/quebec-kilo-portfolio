@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 
 // Template Components
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -13,15 +13,11 @@ import { OnlineServiceForm } from '@/features/dashboard/components/organisms/Onl
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 
 // API Hooks and Utilities
-import { useDigitalLocations } from '@/core/api/hooks/useDigitalLocations';
+import { useGetAllDigitalLocations, useDeleteDigitalLocation } from '@/core/api/queries/useDigitalLocations';
 import { useStorageAnalytics } from '@/core/api/hooks/useAnalyticsData';
-import { useDeleteOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
-
-// Utils
-import { transformDigitalLocationToService } from '@/features/dashboard/lib/utils/service-utils';
 
 // Types
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
@@ -32,20 +28,16 @@ export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const [selectedService, setSelectedService] = useState<OnlineService | null>(null);
-  const setServices = useOnlineServicesStore((state) => state.setServices);
-  const services = useOnlineServicesStore((state) => state.services);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
+
+  // Fetch digital locations using our hook - now returns OnlineService[] directly
+  const { data: services = [], isLoading, error } = useGetAllDigitalLocations();
 
   // Get filtered services using the unified hook
   const filteredServices = useFilteredServices(services);
 
   // Set up the delete mutation
-  const deleteServiceMutation = useDeleteOnlineService({
-    onSuccessCallback: () => {
-      // The query invalidation is handled in the mutation hook
-      // No additional callback needed here
-    }
-  });
+  const deleteServiceMutation = useDeleteDigitalLocation();
 
   // Handler to delete a service
   const handleDeleteService = useCallback((serviceId: string) => {
@@ -78,23 +70,12 @@ export function OnlineServicesPageContent() {
     }
   });
 
-  // Fetch digital locations using our hook
-  const { data: digitalLocations, isLoading, error } = useDigitalLocations();
-
   // Fetch storage analytics in parallel
   const {
     data: analyticsData,
     isLoading: analyticsLoading,
     error: analyticsError
   } = useStorageAnalytics();
-
-  // Transform digital locations to online services format and update store
-  useEffect(() => {
-    if (digitalLocations) {
-      const transformedServices = digitalLocations.map(transformDigitalLocationToService);
-      setServices(transformedServices);
-    }
-  }, [digitalLocations, setServices]);
 
   const handleCloseAddDrawer = useCallback(() => {
     setAddServiceOpen(false);
@@ -110,7 +91,7 @@ export function OnlineServicesPageContent() {
       return null; // Don't show anything if analytics fail
     }
 
-    const storageStats = analyticsData?.data?.storage;
+    const storageStats = analyticsData?.storage;
 
     if (!storageStats) {
       return null;
@@ -122,11 +103,11 @@ export function OnlineServicesPageContent() {
         <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Digital Locations:</span>{' '}
-            <span className="font-medium">{storageStats.total_digital_locations}</span>
+            <span className="font-medium">{storageStats.totalDigitalLocations}</span>
           </div>
           <div>
             <span className="text-gray-600">Physical Locations:</span>{' '}
-            <span className="font-medium">{storageStats.total_physical_locations}</span>
+            <span className="font-medium">{storageStats.totalPhysicalLocations}</span>
           </div>
         </div>
       </div>
@@ -167,40 +148,31 @@ export function OnlineServicesPageContent() {
       return <OnlineServicesTable services={filteredServices} onDelete={handleDeleteService} onEdit={handleEditService} />;
     }
 
-    // grid grid-cols-1 gap-4
-    // Grid or list view (cards)
-
-    // LEGACY CONTAINER: p-4 border rounded-md
     return (
       <div className="p-4 border rounded-md">
         <h2 className="text-lg font-semibold">Digital Services</h2>
         <p className="text-gray-500 mb-4">{
-        filteredServices.length === 1
-          ? '1 service found'
-          : `${filteredServices.length} services found`
+          filteredServices.length === 1
+            ? '1 service found'
+            : `${filteredServices.length} services found`
         }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
-          }`}>
-          {/* <ul className={`mt-2 ${viewMode === 'grid' ? '' : 'space-y-2'}`}> */}
-            {filteredServices.map((service, index) => (
-              <SingleOnlineServiceCard
-                key={`${service.id}-${index}`}
-                service={service}
-                onDelete={handleDeleteService}
-                onEdit={() => handleEditService(service)}
-                data-card-sentinel={index === 0}
-              />
-            ))}
-          {/* </ul> */}
+        }`}>
+          {filteredServices.map((service, index) => (
+            <SingleOnlineServiceCard
+              key={`${service.id}-${index}`}
+              service={service}
+              onDelete={handleDeleteService}
+              onEdit={() => handleEditService(service)}
+              data-card-sentinel={index === 0}
+            />
+          ))}
         </div>
       </div>
-
     );
   };
 
-
-  console.log("NON REFACTOR PAGE");
   return (
     <PageMain>
       <PageHeadline>
@@ -209,7 +181,6 @@ export function OnlineServicesPageContent() {
         </div>
 
         <div className='flex items-center space-x-2'>
-          {/* Add Digital Service Button */}
           <DrawerContainer
             open={addServiceOpen}
             onOpenChange={setAddServiceOpen}
@@ -217,7 +188,6 @@ export function OnlineServicesPageContent() {
             title="Digital Service"
             description="Tell us about your digital service."
           >
-            {/* Replace with actual form component when available */}
             <OnlineServiceForm onClose={handleCloseAddDrawer} />
           </DrawerContainer>
         </div>
@@ -228,10 +198,7 @@ export function OnlineServicesPageContent() {
 
       {/* Digital Services Display Section */}
       <div className="mt-6">
-        {/* Add a toolbar for filtering/searching services */}
         <OnlineServicesToolbar />
-
-        {/* Loading, Error and Data States */}
         <div className="mt-4 space-y-4">
           {renderContent()}
         </div>

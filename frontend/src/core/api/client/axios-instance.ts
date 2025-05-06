@@ -88,7 +88,7 @@ axiosInstance.interceptors.request.use(
     // Example: attach auth token
     // const token = getAuthToken();
     // if (token) config.headers['Authorization'] = `Bearer ${token}`;
-    logger.debug('→ Request', {
+    logger.debug('❓ INTERCEPTOR Request 📢', {
       method: config.method,
       url: config.url,
       data: config.data,
@@ -102,7 +102,7 @@ axiosInstance.interceptors.request.use(
 // Response interceptor: log responses and handle errors
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    logger.debug('← Response', {
+    logger.debug('❗️ INTERCEPTOR Response 🔊', {
       status: response.status,
       url: response.config.url,
     });

@@ -4,19 +4,23 @@
 
 import { useBackendQuery } from '@/core/api/hooks/useBackendQuery';
 import { getUserDigitalLocations, getDigitalLocationById } from '@/core/api/services/mediaStorage.service';
+import { adaptDigitalLocationToService } from '@/core/api/adapters/digitalLocation.adapter';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 import { type DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
 
 /**
  * Hook to fetch all digital locations for the current user.
+ * Transforms API responses into the format expected by the UI components.
  *
- * @returns Query result with digital locations data, loading state, and error information
+ * @returns Query result with transformed digital locations data, loading state, and error information
  */
 export function useDigitalLocations() {
-  return useBackendQuery<DigitalLocation[]>({
+  return useBackendQuery<OnlineService[]>({
     queryKey: ['digitalLocations'],
     queryFn: async (getToken) => {
       const token = await getToken();
-      return getUserDigitalLocations(token);
+      const locations = await getUserDigitalLocations(token);
+      return locations.map(adaptDigitalLocationToService);
     },
   });
 }
