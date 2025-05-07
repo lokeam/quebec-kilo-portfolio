@@ -1,5 +1,6 @@
 import axios, { type AxiosResponse, AxiosError } from 'axios';
-import type { ApiError } from '@/core/api/types/api.types';
+import type { ApiError } from '@/types/api.types.refactor';
+
 import { logger } from '@/core/utils/logger/logger';
 import { toCamelCase, toSnakeCase } from '@/core/api/utils/serialization';
 

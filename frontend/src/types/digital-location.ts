@@ -28,3 +28,17 @@ export interface UpdateDigitalLocationInput {
   isActive?: boolean;
   url?: string;
 }
+
+/**
+ * Subscription model for digital locations
+ */
+export interface Subscription {
+  id: number;
+  locationId: string;
+  billingCycle: string;
+  costPerCycle: number;
+  nextPaymentDate: string;
+  paymentMethod: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
