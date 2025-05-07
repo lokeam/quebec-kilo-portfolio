@@ -2,7 +2,9 @@ package analytics
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"html"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -183,63 +185,63 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 		return nil, fmt.Errorf("failed to get location counts: %w", err)
 	}
 
-	// Get digital locations with item counts
-	digitalLocations := []LocationSummary{}
-	rows, err := r.db.QueryxContext(ctx, `
-		SELECT
-			l.id,
-			l.name,
-			COUNT(dgl.id) as item_count,
-			l.service_type as location_type,
-			CASE WHEN s.id IS NOT NULL THEN true ELSE false END as is_subscription,
-			COALESCE(CASE
-				WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle
-				WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle / 3
-				WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
-				ELSE 0
-			END, 0) as monthly_cost
-		FROM digital_locations l
-		LEFT JOIN digital_game_locations dgl ON l.id = dgl.digital_location_id
-		LEFT JOIN digital_location_subscriptions s ON l.id = s.digital_location_id
-		WHERE l.user_id = $1
-		GROUP BY l.id, l.name, l.service_type, s.id, s.billing_cycle, s.cost_per_cycle
-		ORDER BY item_count DESC`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get digital locations: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var location LocationSummary
-		err := rows.Scan(
-			&location.ID,
-			&location.Name,
-			&location.ItemCount,
-			&location.LocationType,
-			&location.IsSubscription,
-			&location.MonthlyCost,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan digital location: %w", err)
-		}
-		digitalLocations = append(digitalLocations, location)
-	}
-	stats.DigitalLocations = digitalLocations
-
-	// Get physical locations with item counts
+	// Get physical locations with sublocations and items
 	physicalLocations := []LocationSummary{}
-	rows, err = r.db.QueryxContext(ctx, `
+	rows, err := r.db.QueryxContext(ctx, `
+		WITH physical_location_data AS (
+			SELECT
+				l.id,
+				l.name,
+				l.location_type,
+				l.map_coordinates,
+				l.created_at,
+				l.updated_at,
+				COUNT(DISTINCT pgl.id) as item_count
+			FROM physical_locations l
+			LEFT JOIN sublocations sl ON l.id = sl.physical_location_id
+			LEFT JOIN physical_game_locations pgl ON sl.id = pgl.sublocation_id
+			WHERE l.user_id = $1
+			GROUP BY l.id, l.name, l.location_type, l.map_coordinates, l.created_at, l.updated_at
+		)
 		SELECT
-			l.id,
-			l.name,
-			COUNT(pgl.id) as item_count,
-			l.location_type
-		FROM physical_locations l
-		LEFT JOIN sublocations sl ON l.id = sl.physical_location_id
-		LEFT JOIN physical_game_locations pgl ON sl.id = pgl.sublocation_id
-		WHERE l.user_id = $1
-		GROUP BY l.id, l.name, l.location_type
-		ORDER BY item_count DESC`, userID)
+			pld.*,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', sl.id,
+						'name', sl.name,
+						'location_type', sl.location_type,
+						'bg_color', sl.bg_color,
+						'stored_items', sl.stored_items,
+						'created_at', sl.created_at,
+						'updated_at', sl.updated_at,
+						'items', COALESCE(
+							(
+								SELECT json_agg(
+									json_build_object(
+										'id', ug.id,
+										'name', g.name,
+										'platform', p.name,
+										'acquired_date', ug.added_at
+									)
+								)
+								FROM physical_game_locations pgl
+								JOIN user_games ug ON pgl.user_game_id = ug.id
+								JOIN games g ON ug.game_id = g.id
+								JOIN game_platforms gp ON g.id = gp.game_id
+								JOIN platforms p ON gp.platform_id = p.id
+								WHERE pgl.sublocation_id = sl.id
+							),
+							'[]'::json
+						)
+					)
+				) FILTER (WHERE sl.id IS NOT NULL),
+				'[]'::json
+			) as sublocations
+		FROM physical_location_data pld
+		LEFT JOIN sublocations sl ON pld.id = sl.physical_location_id
+		GROUP BY pld.id, pld.name, pld.location_type, pld.map_coordinates, pld.created_at, pld.updated_at, pld.item_count
+		ORDER BY pld.name`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get physical locations: %w", err)
 	}
@@ -247,18 +249,121 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 
 	for rows.Next() {
 		var location LocationSummary
+		var sublocationsJSON []byte
 		err := rows.Scan(
 			&location.ID,
 			&location.Name,
-			&location.ItemCount,
 			&location.LocationType,
+			&location.MapCoordinates,
+			&location.CreatedAt,
+			&location.UpdatedAt,
+			&location.ItemCount,
+			&sublocationsJSON,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan physical location: %w", err)
 		}
+
+		// Unescape HTML entities in the name
+		location.Name = html.UnescapeString(location.Name)
+
+		// Parse sublocations JSON and unescape HTML entities in sublocation names using index-based loop
+		if err := json.Unmarshal(sublocationsJSON, &location.Sublocations); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal sublocations: %w", err)
+		}
+
+		// Unescape HTML entities in sublocation names using index-based loop
+		for i := 0; i < len(location.Sublocations); i++ {
+			location.Sublocations[i].Name = html.UnescapeString(location.Sublocations[i].Name)
+		}
+
 		physicalLocations = append(physicalLocations, location)
 	}
 	stats.PhysicalLocations = physicalLocations
+
+	// Get digital locations with items
+	digitalLocations := []LocationSummary{}
+	rows, err = r.db.QueryxContext(ctx, `
+		WITH digital_location_data AS (
+			SELECT
+				l.id,
+				l.name,
+				l.service_type as location_type,
+				l.is_active,
+				l.url,
+				l.created_at,
+				l.updated_at,
+				COUNT(DISTINCT dgl.id) as item_count,
+				CASE WHEN s.id IS NOT NULL THEN true ELSE false END as is_subscription,
+				COALESCE(CASE
+					WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle
+					WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle / 3
+					WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
+					ELSE 0
+				END, 0) as monthly_cost
+			FROM digital_locations l
+			LEFT JOIN digital_game_locations dgl ON l.id = dgl.digital_location_id
+			LEFT JOIN digital_location_subscriptions s ON l.id = s.digital_location_id
+			WHERE l.user_id = $1
+			GROUP BY l.id, l.name, l.service_type, l.is_active, l.url, l.created_at, l.updated_at, s.id, s.billing_cycle, s.cost_per_cycle
+		)
+		SELECT
+			dld.*,
+			COALESCE(
+				(
+					SELECT json_agg(
+						json_build_object(
+							'id', ug.id,
+							'name', g.name,
+							'platform', p.name,
+							'acquired_date', ug.added_at
+						)
+					)
+					FROM digital_game_locations dgl
+					JOIN user_games ug ON dgl.user_game_id = ug.id
+					JOIN games g ON ug.game_id = g.id
+					JOIN game_platforms gp ON g.id = gp.game_id
+					JOIN platforms p ON gp.platform_id = p.id
+					WHERE dgl.digital_location_id = dld.id
+				),
+				'[]'::json
+			) as items
+		FROM digital_location_data dld
+		ORDER BY dld.name`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get digital locations: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var location LocationSummary
+		var itemsJSON []byte
+		err := rows.Scan(
+			&location.ID,
+			&location.Name,
+			&location.LocationType,
+			&location.IsActive,
+			&location.URL,
+			&location.CreatedAt,
+			&location.UpdatedAt,
+			&location.ItemCount,
+			&location.IsSubscription,
+			&location.MonthlyCost,
+			&itemsJSON,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan digital location: %w", err)
+		}
+
+		// Unescape HTML entities in the name
+		location.Name = html.UnescapeString(location.Name)
+
+		if err := json.Unmarshal(itemsJSON, &location.Items); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal items: %w", err)
+		}
+		digitalLocations = append(digitalLocations, location)
+	}
+	stats.DigitalLocations = digitalLocations
 
 	return stats, nil
 }

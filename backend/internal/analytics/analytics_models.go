@@ -1,5 +1,9 @@
 package analytics
 
+import (
+	"time"
+)
+
 // GeneralStats contains high-level metrics about the user's library
 type GeneralStats struct {
 	TotalGames              int     `json:"total_games" db:"total_games"`
@@ -32,15 +36,42 @@ type StorageStats struct {
 	PhysicalLocations      []LocationSummary  `json:"physical_locations"`
 }
 
-// LocationSummary provides a summary of a storage location
+// LocationSummary represents a summary of a storage location
 type LocationSummary struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	ItemCount   int    `json:"item_count"`
-	LocationType string `json:"location_type"`
-	// For digital locations only
-	IsSubscription bool    `json:"is_subscription,omitempty"`
-	MonthlyCost    float64 `json:"monthly_cost,omitempty"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	LocationType    string    `json:"location_type"`
+	ItemCount       int       `json:"item_count"`
+	IsSubscription  bool      `json:"is_subscription,omitempty"`
+	MonthlyCost     float64   `json:"monthly_cost,omitempty"`
+	MapCoordinates  string    `json:"map_coordinates,omitempty"`
+	IsActive        bool      `json:"is_active,omitempty"`
+	URL             string    `json:"url,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	Sublocations    []SublocationSummary `json:"sublocations,omitempty"`
+	Items           []ItemSummary        `json:"items,omitempty"`
+}
+
+// SublocationSummary represents a summary of a sublocation
+type SublocationSummary struct {
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	LocationType string        `json:"location_type"`
+	BgColor     string         `json:"bg_color"`
+	StoredItems int           `json:"stored_items"`
+	CreatedAt   time.Time     `json:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at"`
+	Items       []ItemSummary `json:"items,omitempty"`
+}
+
+// ItemSummary represents a summary of a game item
+type ItemSummary struct {
+	ID             int       `json:"id"`
+	Name           string    `json:"name"`
+	Platform       string    `json:"platform"`
+	PlatformVersion string   `json:"platform_version"`
+	AcquiredDate   time.Time `json:"acquired_date"`
 }
 
 // InventoryStats contains information about items by various criteria
