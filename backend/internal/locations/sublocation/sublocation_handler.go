@@ -149,13 +149,13 @@ func GetSublocations(appCtx *appcontext.AppContext, service services.Sublocation
 			return
 		}
 
-		response := struct {
-			Success        bool                    `json:"success"`
-			Sublocations   []models.Sublocation    `json:"sublocations"`
-		} {
-			Success: true,
+		data := struct {
+			Sublocations  []models.Sublocation   `json:"sublocations"`
+		}{
 			Sublocations: locations,
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -222,13 +222,13 @@ func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 			return
 		}
 
-		response := struct {
-			Success    bool                 `json:"success"`
-			Location   models.Sublocation   `json:"location"`
-		} {
-			Success:  true,
-			Location: sublocation,
+		data := struct {
+			Location    models.Sublocation   `json:"location"`
+		}{
+			Location:   sublocation,
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -345,13 +345,13 @@ func AddSublocation(
 			})
 		}
 
-		response := struct {
-			Success     bool              `json:"success"`
-			Sublocation models.Sublocation `json:"sublocation"`
+		data := struct {
+			Sublocation   models.Sublocation    `json:"sublocation"`
 		}{
-			Success:     true,
-			Sublocation: createdLocation,
+			Sublocation:  createdLocation,
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -444,13 +444,13 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 			})
 		}
 
-		response := struct {
-			Success     bool              `json:"success"`
-			Sublocation models.Sublocation `json:"sublocation"`
+		data := struct {
+			Sublocation    models.Sublocation    `json:"sublocation"`
 		}{
-			Success:     true,
-			Sublocation: location,
+			Sublocation:   location,
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -524,15 +524,15 @@ func DeleteSublocation(
 			})
 		}
 
-		response := struct {
-			Success bool   `json:"success"`
-			ID      string `json:"id"`
-			Message string `json:"message"`
+		data := struct {
+			ID        string  `json:"id"`
+			Message   string  `json:"message"`
 		}{
-			Success: true,
-			ID:      locationID,
-			Message: "Sublocation deleted successfully",
+			ID:       locationID,
+			Message:  "Sublocation deleted successfully",
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

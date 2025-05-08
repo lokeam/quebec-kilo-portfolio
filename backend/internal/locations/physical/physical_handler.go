@@ -76,15 +76,15 @@ func GetUserPhysicalLocations(appCtx *appcontext.AppContext, service services.Ph
 			return
 		}
 
-		response := struct {
-			Success   bool                     `json:"success"`
-			UserID    string                   `json:"user_id"`
-			Locations []map[string]interface{} `json:"locations"`
-		}{
-			Success:   true,
-			UserID:    userID,
-			Locations: formatters.FormatPhysicalLocationsToFrontend(locations),
+		data := struct {
+			UserID      string                  `json:"user_id"`
+			Locations   []map[string]any        `json:"locations"`
+		} {
+			UserID:      userID,
+			Locations:   formatters.FormatPhysicalLocationsToFrontend(locations),
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -127,13 +127,13 @@ func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 			return
 		}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
+		data := struct {
+			Location map[string]any     `json:"location"`
 		}{
-			Success:  true,
 			Location: formatters.FormatPhysicalLocationToFrontend(&location),
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -203,13 +203,13 @@ func AddPhysicalLocation(
 			})
 		}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
-		}{
-			Success:  true,
+		data := struct {
+			Location map[string]any        `json:"location"`
+		} {
 			Location: formatters.FormatPhysicalLocationToFrontend(&createdLocation),
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -281,13 +281,13 @@ func UpdatePhysicalLocation(
 			})
 		}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
-		}{
-			Success:  true,
+		data := struct {
+			Location map[string]any        `json:"location"`
+		} {
 			Location: formatters.FormatPhysicalLocationToFrontend(&updatedLocation),
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -343,15 +343,15 @@ func RemovePhysicalLocation(
 			})
 		}
 
-		response := struct {
-			Success bool   `json:"success"`
-			ID      string `json:"id"`
-			Message string `json:"message"`
-		}{
-			Success: true,
+		data := struct {
+			ID      string   `json:"id"`
+			Message string   `json:"message"`
+		} {
 			ID:      locationID,
 			Message: "Physical location removed successfully",
 		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

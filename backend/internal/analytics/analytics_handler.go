@@ -86,15 +86,7 @@ func GetAnalytics(appCtx *appcontext.AppContext, service Service) http.HandlerFu
 		}
 
 		// Create the response structure
-		response := struct {
-			Success bool              `json:"success"`
-			UserID  string            `json:"user_id"`
-			Data    map[string]any    `json:"data"`
-		}{
-			Success: true,
-			UserID:  userID,
-			Data:    data,
-		}
+		response := httputils.NewAPIResponse(r, userID, data)
 
 		// Respond with analytics data
 		httputils.RespondWithJSON(
