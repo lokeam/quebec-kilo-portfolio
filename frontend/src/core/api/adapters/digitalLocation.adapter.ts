@@ -1,24 +1,24 @@
-import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { DigitalLocation } from '@/types/domain/digital-location';
+import type { OnlineService as DomainOnlineService } from '@/types/domain/online-service';
 import { SERVICE_STATUS_CODES, SERVICE_TYPES } from '@/shared/constants/service.constants';
 
 /**
- * Transforms a DigitalLocation from the API into the format expected by SingleOnlineServiceCard
+ * Transforms a DigitalLocation from the API into the domain OnlineService format
  */
-export const adaptDigitalLocationToService = (location: DigitalLocation): OnlineService => ({
+export const adaptDigitalLocationToService = (location: DigitalLocation): DomainOnlineService => ({
   id: location.id,
   name: location.name,
-  label: location.label,
-  logo: location.logo,
-  url: location.url,
-  status: location.isActive ? SERVICE_STATUS_CODES.ACTIVE : SERVICE_STATUS_CODES.INACTIVE,
+  label: location.name,
+  logo: '',
+  url: '',
+  status: SERVICE_STATUS_CODES.ACTIVE,
   createdAt: new Date(location.createdAt),
   updatedAt: new Date(location.updatedAt),
-  isSubscriptionService: location.isSubscriptionService,
-  serviceType: location.serviceType === 'subscription' ? SERVICE_TYPES.SUBSCRIPTION : SERVICE_TYPES.ONLINE,
-  isActive: location.isActive,
-  type: location.serviceType === 'subscription' ? SERVICE_TYPES.SUBSCRIPTION : SERVICE_TYPES.ONLINE,
-  billing: location.billing || {
+  isSubscriptionService: false,
+  serviceType: SERVICE_TYPES.ONLINE,
+  isActive: true,
+  type: SERVICE_TYPES.ONLINE,
+  billing: {
     cycle: 'monthly',
     fees: {
       monthly: '0',
@@ -28,7 +28,7 @@ export const adaptDigitalLocationToService = (location: DigitalLocation): Online
     paymentMethod: 'None'
   },
   tier: {
-    currentTier: 'standard',
+    currentTier: 'standard' as const,
     availableTiers: [{
       id: 'tier-standard',
       name: 'standard',
@@ -36,5 +36,6 @@ export const adaptDigitalLocationToService = (location: DigitalLocation): Online
       isDefault: true
     }]
   },
-  features: []
+  features: [],
+  games: location.items
 });

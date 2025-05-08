@@ -1,64 +1,220 @@
-import type { DigitalLocation, PhysicalLocation, StorageAnalytics } from '@/types/api/storage';
-import type { LocationCardData } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
-import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { PhysicalLocation as DomainPhysicalLocation } from '@/types/domain/physical-location';
+import type { PhysicalLocation as UIPhysicalLocation } from '@/types/api/storage';
+import type { Sublocation as DomainSublocation } from '@/types/domain/sublocation';
+import type { LocationCardData } from '@/types/domain/location-card';
+import type { GameItem as DomainGameItem } from '@/types/domain/game-item';
+import type { UIGameItem } from '@/types/api/storage';
+import { SublocationType } from '@/types/domain/location-types';
+import type { DigitalLocation as DomainDigitalLocation } from '@/types/domain/digital-location';
+import type { UIDigitalLocation } from '@/types/api/storage';
+import type { GamePlatform } from '@/types/domain/game-platform';
 
 /**
  * Media Storage Adapter
- * Handles transformations for all media storage related data from API to frontend
+ * Handles transformations for physical storage locations and their sublocations
+ * from API response format to frontend component format
  */
+
+interface SublocationMetadata {
+  bgColor?: string;
+  shelf?: string;
+  box?: string;
+  notes?: string;
+}
+
+interface DigitalLocationMetadata {
+  url?: string;
+  isActive?: boolean;
+  isSubscriptionService?: boolean;
+  billing?: {
+    monthlyFee?: string;
+    nextRenewalDate?: string;
+  };
+  features?: string[];
+  storage?: {
+    used: number;
+    total: number;
+    unit: 'GB' | 'TB';
+  };
+}
+
+/**
+ * Transforms a sublocation into card data format
+ * @param sublocation - The sublocation to transform
+ * @returns LocationCardData object for the sublocation
+ */
+function adaptSublocationToCardData(sublocation: DomainSublocation): LocationCardData {
+  const metadata = sublocation.metadata as SublocationMetadata;
+  return {
+    id: sublocation.id,
+    name: sublocation.name,
+    description: sublocation.description as string | undefined,
+    locationType: sublocation.type as SublocationType,
+    bgColor: metadata?.bgColor,
+    items: (sublocation.items || []) as DomainGameItem[],
+  };
+}
 
 /**
  * Transforms a physical location's sublocations into card data format
+ * @param location - The physical location containing sublocations
+ * @returns Array of LocationCardData objects for each sublocation
  */
-function adaptPhysicalLocationToCardData(location: PhysicalLocation): LocationCardData[] {
-  return location.sublocations.map(sublocation => ({
-    id: sublocation.id,
-    name: sublocation.name,
-    locationType: sublocation.location_type as SublocationType,
-    bgColor: sublocation.bg_color,
-    items: [], // TODO: Add items when available in API response
-  }));
+export function adaptPhysicalLocationToCardData(location: DomainPhysicalLocation): LocationCardData[] {
+  if (!location.sublocations) {
+    return [];
+  }
+
+  return location.sublocations.map(sublocation => adaptSublocationToCardData(sublocation));
 }
 
 /**
- * Transforms a digital location into card data format
+ * Transforms a physical location into a format suitable for the frontend
+ * @param location - The physical location to transform
+ * @returns Transformed physical location with card data
  */
-function adaptDigitalLocationToCardData(location: DigitalLocation): LocationCardData {
+export function adaptPhysicalLocation(location: DomainPhysicalLocation) {
+  return {
+    ...location,
+    cardData: adaptPhysicalLocationToCardData(location),
+  };
+}
+
+/**
+ * Transforms an array of physical locations into a format suitable for the frontend
+ * @param locations - Array of physical locations to transform
+ * @returns Array of transformed physical locations with card data
+ */
+export function adaptPhysicalLocations(locations: DomainPhysicalLocation[]) {
+  return locations.map(location => adaptPhysicalLocation(location));
+}
+
+/**
+ * Transforms a sublocation into a format suitable for the frontend
+ * @param sublocation - The sublocation to transform
+ * @returns Transformed sublocation with card data
+ */
+export function adaptSublocation(sublocation: DomainSublocation) {
+  return {
+    ...sublocation,
+    cardData: adaptSublocationToCardData(sublocation),
+  };
+}
+
+/**
+ * Transforms an array of sublocations into a format suitable for the frontend
+ * @param sublocations - Array of sublocations to transform
+ * @returns Array of transformed sublocations with card data
+ */
+export function adaptSublocations(sublocations: DomainSublocation[]) {
+  return sublocations.map(sublocation => adaptSublocation(sublocation));
+}
+
+/**
+ * Converts a domain GameItem to a UI GameItem
+ */
+function adaptDomainToUIGameItem(item: DomainGameItem): UIGameItem {
+  return {
+    ...item,
+    type: 'digital' as const
+  };
+}
+
+/**
+ * Converts a domain DigitalLocation to a UI DigitalLocation
+ */
+export function adaptDomainToUIDigitalLocation(location: DomainDigitalLocation): UIDigitalLocation {
+  const metadata = location.metadata as DigitalLocationMetadata;
   return {
     id: location.id,
     name: location.name,
-    locationType: SublocationType.box, // Default to box for digital locations
-    items: [], // TODO: Add items when available in API response
+    label: location.name.toLowerCase().replace(/\s+/g, '-'),
+    type: 'digital' as const,
+    description: location.description,
+    platform: location.type as GamePlatform,
+    url: metadata?.url || '',
+    subscription: {
+      isActive: metadata?.isActive || false,
+      isFree: !metadata?.isSubscriptionService,
+      monthlyFee: metadata?.billing?.monthlyFee,
+      renewalDate: metadata?.billing?.nextRenewalDate ? new Date(metadata.billing.nextRenewalDate) : undefined,
+      benefits: metadata?.features || []
+    },
+    lastSync: location.updatedAt ? new Date(location.updatedAt) : undefined,
+    totalStorage: metadata?.storage,
+    createdAt: new Date(location.createdAt),
+    updatedAt: new Date(location.updatedAt),
+    items: (location.items || []).map(adaptDomainToUIGameItem),
+    itemsInSublocations: 0
   };
 }
 
 /**
- * Transforms a location (physical or digital) into card data format
+ * Converts a UI DigitalLocation to a domain DigitalLocation
  */
-export function adaptLocationToCardData(
-  location: PhysicalLocation | DigitalLocation,
-  type: 'physical' | 'digital'
-): LocationCardData[] {
-  if (type === 'physical') {
-    return adaptPhysicalLocationToCardData(location as PhysicalLocation);
-  }
-  return [adaptDigitalLocationToCardData(location as DigitalLocation)];
-}
-
-/**
- * Transforms storage analytics data into a format suitable for the frontend
- */
-export function adaptStorageAnalytics(analytics: StorageAnalytics) {
+export function adaptUIToDomainDigitalLocation(location: UIDigitalLocation): DomainDigitalLocation {
   return {
-    digitalLocations: analytics.storage.digital_locations.map(location => ({
-      ...location,
-      cardData: adaptDigitalLocationToCardData(location)
-    })),
-    physicalLocations: analytics.storage.physical_locations.map(location => ({
-      ...location,
-      cardData: adaptPhysicalLocationToCardData(location)
-    })),
-    totalDigitalLocations: analytics.storage.total_digital_locations,
-    totalPhysicalLocations: analytics.storage.total_physical_locations
+    id: location.id,
+    name: location.name,
+    description: location.description,
+    type: location.platform,
+    metadata: {
+      url: location.url,
+      isActive: location.subscription?.isActive,
+      isSubscriptionService: !location.subscription?.isFree,
+      billing: {
+        monthlyFee: location.subscription?.monthlyFee,
+        nextRenewalDate: location.subscription?.renewalDate?.toISOString()
+      },
+      features: location.subscription?.benefits,
+      storage: location.totalStorage
+    },
+    createdAt: location.createdAt.toISOString(),
+    updatedAt: location.updatedAt.toISOString(),
+    items: location.items || []
   };
+}
+
+/**
+ * Converts an array of domain DigitalLocations to UI DigitalLocations
+ */
+export function adaptDomainToUIDigitalLocations(locations: DomainDigitalLocation[]): UIDigitalLocation[] {
+  return locations.map(adaptDomainToUIDigitalLocation);
+}
+
+/**
+ * Converts an array of UI DigitalLocations to domain DigitalLocations
+ */
+export function adaptUIToDomainDigitalLocations(locations: UIDigitalLocation[]): DomainDigitalLocation[] {
+  return locations.map(adaptUIToDomainDigitalLocation);
+}
+
+/**
+ * Transforms a domain PhysicalLocation to a UI PhysicalLocation
+ */
+export function adaptDomainToUIPhysicalLocation(location: DomainPhysicalLocation): UIPhysicalLocation {
+  return {
+    id: location.id,
+    name: location.name,
+    created_at: location.createdAt.toISOString(),
+    updated_at: location.updatedAt.toISOString(),
+    item_count: location.sublocations?.reduce((total, sublocation) => total + (sublocation.items?.length || 0), 0) || 0,
+    location_type: location.type as 'house' | 'apartment' | 'office' | 'warehouse' | 'vehicle',
+    sublocations: location.sublocations?.map((sublocation: DomainSublocation) => ({
+      id: sublocation.id,
+      name: sublocation.name,
+      bg_color: (sublocation.metadata?.bgColor || 'gray') as 'red' | 'green' | 'blue' | 'orange' | 'gold' | 'purple' | 'brown' | 'gray',
+      created_at: sublocation.createdAt.toISOString(),
+      updated_at: sublocation.updatedAt.toISOString(),
+      location_type: sublocation.type as 'shelf' | 'console' | 'cabinet' | 'closet' | 'drawer' | 'box' | 'device',
+      stored_items: sublocation.items?.length || 0
+    })) || []
+  };
+}
+
+/**
+ * Transforms an array of domain PhysicalLocations to UI PhysicalLocations
+ */
+export function adaptDomainToUIPhysicalLocations(locations: DomainPhysicalLocation[]): UIPhysicalLocation[] {
+  return locations.map(adaptDomainToUIPhysicalLocation);
 }

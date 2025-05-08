@@ -13,7 +13,7 @@ import type { AxiosResponse } from 'axios';
 
 interface PhysicalLocationsResponse {
   success: boolean;
-  user_id: string;
+  userId: string;
   locations: PhysicalLocation[];
 }
 
@@ -106,13 +106,13 @@ export const getPhysicalLocationById = async (locationId: string, token?: string
 
     logger.debug('Physical location fetched successfully', { locationId });
 
-    if (!response || !response.success) {
+    if (!response.data || !response.data.success) {
       throw new Error(`Failed to fetch physical location with ID: ${locationId}`);
     }
 
     // Ensure the location has the correct type
     return {
-      ...response.location,
+      ...response.data.location,
       type: LocationType.PHYSICAL
     };
   } catch (error) {

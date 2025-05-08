@@ -6,7 +6,7 @@
 
 import { axiosInstance } from '../client/axios-instance';
 import { logger } from '@/core/utils/logger/logger';
-import type { DigitalLocation, CreateDigitalLocationRequest } from '@/features/dashboard/lib/types/media-storage/digital-location.types';
+import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/domain/digital-location';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -50,6 +50,38 @@ export const digitalLocationService = {
       return response.data.locations;
     } catch (error) {
       logger.error('Error fetching digital locations', { error });
+      throw error;
+    }
+  },
+
+  /**
+   * Fetches a specific digital location by ID
+   */
+  async getLocationById(id: string): Promise<DigitalLocation> {
+    try {
+      logger.debug('Fetching digital location by ID', { id });
+
+      const response = await axiosInstance.get<ApiResponse<DigitalLocation>>(
+        `/v1/locations/digital/${id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.data?.success) {
+        throw new Error('Failed to fetch digital location');
+      }
+
+      logger.debug('Digital location fetched successfully', {
+        id: response.data.data.id
+      });
+
+      return response.data.data;
+    } catch (error) {
+      logger.error('Error fetching digital location', { error, id });
       throw error;
     }
   },

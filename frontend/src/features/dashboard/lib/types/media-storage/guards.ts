@@ -1,7 +1,5 @@
-import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
-import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
-import type { StorageLocation } from '@/features/dashboard/lib/types/media-storage/aggregates';
-import { LocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 /**
  * Type guard functions for media storage locations.
@@ -11,39 +9,39 @@ import { LocationType } from '@/features/dashboard/lib/types/media-storage/const
 /**
  * Determines if storage location is a brick and mortar.
  *
- * @param {StorageLocation} location - The location to check
+ * @param {PhysicalLocation | DigitalLocation} location - The location to check
  * @returns {boolean} True if the location is a physical location
  *
  * @example
  * ```typescript
  * if (isPhysicalLocation(location)) {
  *   // location is typed as PhysicalLocation
- *   console.log(location.locationType);
+ *   console.log(location.type);
  * }
  * ```
  */
 export const isPhysicalLocation = (
-  location: StorageLocation
+  location: PhysicalLocation | DigitalLocation
 ): location is PhysicalLocation => {
-  return location.type === LocationType.PHYSICAL;
+  return 'sublocations' in location;
 };
 
 /**
  * Determines if a storage location is a digital location.
  *
- * @param {StorageLocation} location - The location to check
+ * @param {PhysicalLocation | DigitalLocation} location - The location to check
  * @returns {boolean} True if the location is a digital location
  *
  * @example
  * ```typescript
  * if (isDigitalLocation(location)) {
  *   // location is typed as DigitalLocation
- *   console.log(location.platform);
+ *   console.log(location.type);
  * }
  * ```
  */
 export const isDigitalLocation = (
-  location: StorageLocation
+  location: PhysicalLocation | DigitalLocation
 ): location is DigitalLocation => {
-  return location.type === LocationType.DIGITAL;
+  return 'items' in location;
 };
