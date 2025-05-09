@@ -1,7 +1,6 @@
-import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
-import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 import type { ComponentType } from 'react';
-import { PhysicalLocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 type DomainMapsResult = {
   games: Record<string, ComponentType<{ className?: string }>>;
@@ -18,28 +17,7 @@ type DomainMapsResult = {
 }
 
 /**
- * Type definition that allows both camelCase and snake_case property access
- * during the API standardization transition period
- */
-interface PhysicalLocationWithSnakeCase extends PhysicalLocation {
-  location_type?: PhysicalLocationType;
-  map_coordinates?: string;
-  sub_locations?: Array<{
-    id: string;
-    name: string;
-    description?: string;
-    [key: string]: unknown;
-  }>;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string;
-}
-
-/**
  * Gets the appropriate icon component for a location
- *
- * IMPORTANT: This function handles both snake_case and camelCase properties
- * for compatibility during the API standardization transition.
  */
 export const getLocationIcon = (
   location: PhysicalLocation | DigitalLocation,
@@ -49,20 +27,12 @@ export const getLocationIcon = (
   const { games, location: locationIcons } = domainMaps;
 
   if (type === 'physical') {
-    const physicalLocation = location as PhysicalLocationWithSnakeCase;
-
-    // Handle both snake_case and camelCase properties
-    const locationType =
-      // Try camelCase first (preferred)
-      physicalLocation.locationType ||
-      // Fall back to snake_case (legacy)
-      physicalLocation.location_type;
-
-    const IconComponent = locationIcons[locationType?.toLowerCase() || ''];
+    const physicalLocation = location as PhysicalLocation;
+    const IconComponent = locationIcons[physicalLocation.type?.toLowerCase() || ''];
     return IconComponent ? <IconComponent className="h-4 w-4" /> : null;
   } else {
     const digitalLocation = location as DigitalLocation;
-    const LogoComponent = games[digitalLocation.label?.toLowerCase() || ''];
+    const LogoComponent = games[digitalLocation.type?.toLowerCase() || ''];
     return LogoComponent ? <LogoComponent className="h-4 w-4" /> : null;
   }
 }

@@ -32,17 +32,17 @@ import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { getLocationIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
 import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
-// Type
-import type { PhysicalLocation } from '@/features/dashboard/lib/types/media-storage/physical';
-import type { DigitalLocation } from '@/features/dashboard/lib/types/media-storage/digital';
-import type { LocationCardData } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/MediaStoragePageAccordionCard';
-import type { MediaStorageMetadata } from '@/features/dashboard/lib/types/media-storage/metadata';
-import type { Sublocation } from '@/features/dashboard/lib/types/media-storage/physical';
+// Types
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { DigitalLocation } from '@/types/domain/digital-location';
+import type { LocationCardData } from '@/types/domain/location-card';
+import type { MediaStorageMetadata } from '@/types/api/storage';
+import type { Sublocation } from '@/types/domain/sublocation';
+import type { GameItem } from '@/types/domain/game-item';
 
 // Guards
 import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage/guards';
 import { toast } from 'sonner';
-import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 
 interface MediaStoragePageAccordionProps {
   locationData: PhysicalLocation[] | DigitalLocation[];
@@ -133,7 +133,20 @@ export function MediaStoragePageAccordion({
 
       // If it's a physical location with exactly one sublocation, auto-select it
       if (isPhysicalLocation(location) && location.sublocations?.length === 1) {
-        setActiveCard(location.sublocations[0]);
+        const sublocation = location.sublocations[0];
+        const cardData: LocationCardData = {
+          id: sublocation.id,
+          name: sublocation.name,
+          description: sublocation.description,
+          locationType: sublocation.type,
+          bgColor: sublocation.metadata?.bgColor,
+          items: sublocation.items as GameItem[],
+          sublocations: [],
+          mapCoordinates: sublocation.metadata?.notes,
+          createdAt: sublocation.createdAt,
+          updatedAt: sublocation.updatedAt
+        };
+        setActiveCard(cardData);
         setActiveCardLocationIndex(index);
       } else {
         // If the active card is from a different location, clear it
@@ -174,20 +187,6 @@ export function MediaStoragePageAccordion({
 
   return (
     <div className="flex flex-col gap-4 border rounded-md p-4 mb-10">
-      {/*
-        IMPORTANT: Add Sublocation Implementation Notes
-        ----------------------------------------------
-        1. The drawer component below is separate from the button that triggers it
-        2. We use an explicit Button component with onClick handler rather than relying on
-           DrawerContainer's triggerAddLocation prop
-        3. The openAddDrawer state MUST be set to true by a user interaction (via handleAddSublocationClick)
-        4. If this implementation is changed, ensure there remains a clear way for users to add sublocations
-
-        DO NOT:
-        - Remove the Button components that call handleAddSublocationClick
-        - Replace this pattern with just the triggerAddLocation prop
-        - Remove the onClick handler that sets openAddDrawer to true
-      */}
       <DrawerContainer
         open={openAddDrawer}
         onOpenChange={setOpenAddDrawer}
@@ -239,29 +238,23 @@ export function MediaStoragePageAccordion({
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              {/*
-                IMPORTANT: Add Sublocation Button
-                -------------------------------
-                This button must be maintained to allow users to add sublocations.
-                It sets openAddDrawer to true, which opens the drawer component defined at the root level.
-                The button is conditionally rendered only for physical locations.
-              */}
-
               <div className="space-y-4">
                 {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
                   <>
                     {/* Render sublocation cards with selection indicator */}
                     {location.sublocations?.map((sublocation: Sublocation, cardIndex: number) => {
-
-                      console.log('sublocation', sublocation);
                       const cardData: LocationCardData = {
                         id: sublocation.id,
                         name: sublocation.name,
                         description: sublocation.description,
-                        locationType: sublocation.locationType,
-                        bgColor: sublocation.bgColor,
-                        items: sublocation.items,
+                        locationType: sublocation.type,
+                        bgColor: sublocation.metadata?.bgColor,
+                        items: sublocation.items as GameItem[],
+                        sublocations: [],
+                        mapCoordinates: sublocation.metadata?.notes,
+                        createdAt: sublocation.createdAt,
+                        updatedAt: sublocation.updatedAt
                       };
                       return (
                         <div
@@ -303,7 +296,7 @@ export function MediaStoragePageAccordion({
                     {/* Helper text when a sublocation is auto-selected */}
                     {isPhysicalLocation(location) &&
                      location.sublocations?.length === 1 &&
-                     activeCard === location.sublocations[0] &&
+                     activeCard?.id === location.sublocations[0].id &&
                      isActiveCardFromCurrentLocation && (
                       <div className="text-sm text-muted-foreground italic mb-2">
                         <span className="font-medium">{activeCard?.name}</span> selected. You can edit it using the button below.
@@ -350,7 +343,7 @@ export function MediaStoragePageAccordion({
                           <MediaPageSublocationForm
                             sublocationData={{
                               ...activeCard,
-                              locationType: activeCard.locationType || SublocationType.shelf
+                              locationType: activeCard.locationType
                             }}
                             parentLocationId={locationData[activeLocationIndex].id}
                             isEditing={true}

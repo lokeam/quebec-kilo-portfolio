@@ -15,23 +15,11 @@ import { motion } from 'framer-motion';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 
 // Types
-import type { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
-import type { Sublocation } from '@/features/dashboard/lib/types/media-storage/physical';
-import type { GameItem } from '@/features/dashboard/lib/types/media-storage/items';
+import type { Sublocation } from '@/types/domain/sublocation';
+import type { LocationCardData } from '@/types/domain/location-card';
 
 // Icons
 import { IconCloudDataConnection } from '@tabler/icons-react';
-
-export interface LocationCardData {
-  id: string;
-  name: string;
-  description?: string;
-  locationType?: SublocationType;
-  bgColor?: string;
-  items?: GameItem[];
-  sublocations?: Sublocation[];
-  platform?: string;
-}
 
 interface MediaStoragePageAccordionCardProps {
   card: LocationCardData;
@@ -60,7 +48,6 @@ export function MediaStoragePageAccordionCard({
       );
     } else {
       const locationType = card.locationType?.toLowerCase();
-
 
       console.log('MediaStoragePageAccordionCard', card);
       const IconComponent = sublocationIcons[locationType as keyof typeof sublocationIcons];
