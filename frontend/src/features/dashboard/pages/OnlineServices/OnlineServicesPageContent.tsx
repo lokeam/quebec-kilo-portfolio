@@ -13,28 +13,53 @@ import { OnlineServiceForm } from '@/features/dashboard/components/organisms/Onl
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 
 // API Hooks and Utilities
-import { useGetAllDigitalLocations, useDeleteDigitalLocation } from '@/core/api/queries/useDigitalLocations';
+import { useOnlineServices, useDeleteDigitalLocation } from '@/core/api/queries/digitalMediaStorage.queries';
 import { useStorageAnalytics } from '@/core/api/hooks/useAnalyticsData';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
+import { adaptDomainToLegacyService, adaptLegacyToDomainService } from '@/core/api/adapters/digitalLocation.adapter';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { OnlineService as DomainOnlineService } from '@/types/domain/online-service';
+import type { OnlineService as LegacyOnlineService } from '@/features/dashboard/lib/types/online-services/services';
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
+
+// Skeleton Components
+const TableSkeleton = () => (
+  <div className="w-full">
+    <div className="h-[72px] border rounded-md mb-2 bg-slate-100 animate-pulse" />
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-[72px] border rounded-md bg-slate-100 animate-pulse" />
+      ))}
+    </div>
+  </div>
+);
+
+const CardSkeleton = () => (
+  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+    {[1, 2, 3].map((i) => (
+      <div
+        key={i}
+        className="h-[100px] border rounded-md bg-gradient-to-b from-slate-100 to-slate-200 animate-pulse"
+      />
+    ))}
+  </div>
+);
 
 export function OnlineServicesPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
-  const [selectedService, setSelectedService] = useState<OnlineService | null>(null);
+  const [selectedService, setSelectedService] = useState<DomainOnlineService | null>(null);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
   // Fetch digital locations using our hook - now returns OnlineService[] directly
-  const { data: services = [], isLoading, error } = useGetAllDigitalLocations();
+  const { data: services = [], isLoading, error } = useOnlineServices();
 
-  // Get filtered services using the unified hook
-  const filteredServices = useFilteredServices(services);
+  // Get filtered services using the unified hook and convert to legacy format
+  const filteredServices = useFilteredServices(services.map(adaptDomainToLegacyService));
 
   // Set up the delete mutation
   const deleteServiceMutation = useDeleteDigitalLocation();
@@ -45,8 +70,8 @@ export function OnlineServicesPageContent() {
   }, [deleteServiceMutation]);
 
   // Handler to edit a service
-  const handleEditService = useCallback((service: OnlineService) => {
-    setSelectedService(service);
+  const handleEditService = useCallback((service: LegacyOnlineService) => {
+    setSelectedService(adaptLegacyToDomainService(service));
     setEditServiceOpen(true);
   }, []);
 
@@ -117,11 +142,7 @@ export function OnlineServicesPageContent() {
   // Render content based on the selected view mode
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="p-4 border rounded-md">
-          <p className="text-gray-500">Loading digital services...</p>
-        </div>
-      );
+      return viewMode === 'table' ? <TableSkeleton /> : <CardSkeleton />;
     }
 
     if (error) {

@@ -6,38 +6,58 @@ import { DialogTrigger } from '@/shared/components/ui/dialog';
 
 // Components
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
-import { SearchResult } from '@/features/dashboard/components/organisms/AddItemSearchDialog/SearchResult';
+import { SearchSection } from './SearchSection/SearchSection';
+import { ResultsSection } from './ResultsSection/ResultsSection';
+import { ActionsSection } from './ActionsSection/ActionsSection';
 
 // Hooks
 import { useDebounce } from '@/shared/hooks/useDebounce';
-import { useMediaItemSearch } from '@/core/api/queries/useMediaItemSearch';
+import { useGameSearch } from '@/core/api/queries/gameSearch.queries';
 
 // Icons
 import { SearchIcon } from 'lucide-react';
 
-// Types
-//import type { Game } from '@/types/types/domain.types';
-
 export function AddItemSearchDialog() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
 
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
-  const { data: games, isLoading, error } = useMediaItemSearch(debouncedSearchQuery);
+  const { data, isLoading, error } = useGameSearch({
+    query: debouncedSearchQuery,
+    filters: {},
+    sortBy: 'rating',
+    sortOrder: 'desc'
+  });
 
   const handleOpenChange = useCallback((open: boolean) => {
-    setIsOpen(open)
-    if (!open) setSearchQuery('')
+    setIsOpen(open);
+    if (!open) {
+      setSearchQuery('');
+      setSelectedGames(new Set());
+    }
   }, []);
 
   const handleSearchQueryChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value)
+    setSearchQuery(event.target.value);
   }, []);
 
-  // Close dialog when action is taken
-  const handleAction = () => {
+  const handleGameSelect = useCallback((gameId: string) => {
+    setSelectedGames(prev => {
+      const next = new Set(prev);
+      if (next.has(gameId)) {
+        next.delete(gameId);
+      } else {
+        next.add(gameId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleConfirm = useCallback(() => {
+    // TODO: Implement confirmation logic
     setIsOpen(false);
-  }
+  }, []);
 
   return (
     <SearchDialog
@@ -56,29 +76,34 @@ export function AddItemSearchDialog() {
         </DialogTrigger>
       }
     >
-      {isLoading ? (
-        <SearchDialogSkeleton />
-      ) : error ? (
-        <div className="text-red-500 p-4">
-          We're having trouble with search. Please try again later.
-        </div>
-      ) : games?.length === 0 ? (
-        <div className="text-muted-foreground p-4 text-center">
-          {debouncedSearchQuery ? 'No games found' : 'Start typing to search for games'}
-        </div>
-      ) : (
-        games?.map((game, index) => (
-          <SearchResult
-            key={`${game?.name}-${index}`}
-            // name={game?.name ?? ''}
-            game={game}
-            onAction={handleAction}
-            // cover_url={game?.cover_url ?? ''}
-            // is_in_library={game?.is_in_library ?? false}
-            // is_in_wishlist={game?.is_in_wishlist ?? false}
-          />
-        ))
-      )}
+      <div className="flex flex-col gap-4">
+        <SearchSection onSearch={setSearchQuery} />
+
+        {isLoading ? (
+          <SearchDialogSkeleton />
+        ) : error ? (
+          <div className="text-red-500 p-4">
+            We're having trouble with search. Please try again later.
+          </div>
+        ) : data?.results.length === 0 ? (
+          <div className="text-muted-foreground p-4 text-center">
+            {debouncedSearchQuery ? 'No games found' : 'Start typing to search for games'}
+          </div>
+        ) : (
+          <>
+            <ResultsSection
+              results={data?.results}
+              isLoading={isLoading}
+              error={error instanceof Error ? error : null}
+              onSelect={handleGameSelect}
+            />
+            <ActionsSection
+              selectedGames={selectedGames}
+              onConfirm={handleConfirm}
+            />
+          </>
+        )}
+      </div>
     </SearchDialog>
   );
 }
