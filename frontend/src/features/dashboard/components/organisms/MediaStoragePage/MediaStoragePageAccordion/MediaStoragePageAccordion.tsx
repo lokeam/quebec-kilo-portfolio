@@ -37,7 +37,6 @@ import type { PhysicalLocation } from '@/types/domain/physical-location';
 import type { DigitalLocation } from '@/types/domain/digital-location';
 import type { LocationCardData } from '@/types/domain/location-card';
 import type { MediaStorageMetadata } from '@/types/api/storage';
-import type { Sublocation } from '@/types/domain/sublocation';
 import type { GameItem } from '@/types/domain/game-item';
 
 // Guards
@@ -243,14 +242,14 @@ export function MediaStoragePageAccordion({
                   /* For physical locations, render sublocations as cards */
                   <>
                     {/* Render sublocation cards with selection indicator */}
-                    {location.sublocations?.map((sublocation: Sublocation, cardIndex: number) => {
+                    {location.sublocations?.map((sublocation, cardIndex) => {
                       const cardData: LocationCardData = {
                         id: sublocation.id,
                         name: sublocation.name,
                         description: sublocation.description,
                         locationType: sublocation.type,
                         bgColor: sublocation.metadata?.bgColor,
-                        items: sublocation.items as GameItem[],
+                        items: (sublocation.items || []) as GameItem[],
                         sublocations: [],
                         mapCoordinates: sublocation.metadata?.notes,
                         createdAt: sublocation.createdAt,

@@ -55,6 +55,20 @@ export interface LocationSummary {
   locationType: string;
   isSubscription?: boolean;
   monthlyCost?: number;
+  sublocations?: {
+    id: string;
+    name: string;
+    type: string;
+    items: unknown[];
+    metadata?: {
+      bgColor?: string;
+      notes?: string;
+    };
+    created_at: string;
+    updated_at: string;
+  }[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface InventoryStats {

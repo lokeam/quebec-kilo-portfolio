@@ -4,7 +4,7 @@ import type { PhysicalLocation } from '@/types/domain/physical-location';
 import type { DigitalLocation } from '@/types/domain/digital-location';
 import type { GamePlatform } from '@/types/domain/game-platform';
 import { GamePlatform as GamePlatformEnum } from '@/types/domain/game-platform';
-import { PhysicalLocationType } from '@/types/domain/location-types';
+import { PhysicalLocationType, SublocationType } from '@/types/domain/location-types';
 
 export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponse): MediaStorageMetadata {
   const storage = analyticsData.storage;
@@ -69,22 +69,34 @@ export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponse
   };
 }
 
-export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsResponse): PhysicalLocation[] {
+export const adaptAnalyticsToPhysicalLocations = (
+  analyticsData: AnalyticsResponse
+): PhysicalLocation[] => {
   if (!analyticsData.storage?.physicalLocations) {
     return [];
   }
 
-  return analyticsData.storage.physicalLocations.map(loc => ({
-    id: loc.id,
-    name: loc.name,
-    type: PhysicalLocationType.HOUSE, // Default to HOUSE since we don't have this info
+  return analyticsData.storage.physicalLocations.map(location => ({
+    id: location.id,
+    name: location.name,
+    type: location.locationType as PhysicalLocationType,
     description: undefined,
     metadata: undefined,
-    sublocations: [], // Analytics data doesn't include sublocations
-    createdAt: new Date(),
-    updatedAt: new Date()
+    sublocations: location.sublocations?.map(subloc => ({
+      id: subloc.id,
+      name: subloc.name,
+      type: subloc.type as SublocationType,
+      parentLocationId: location.id,
+      description: undefined,
+      metadata: subloc.metadata,
+      items: subloc.items || [],
+      createdAt: new Date(subloc.created_at),
+      updatedAt: new Date(subloc.updated_at)
+    })) || [],
+    createdAt: new Date(location.created_at),
+    updatedAt: new Date(location.updated_at)
   }));
-}
+};
 
 export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsResponse): DigitalLocation[] {
   if (!analyticsData.storage?.digitalLocations) {
