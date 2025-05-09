@@ -13,7 +13,6 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
-	"github.com/lokeam/qko-beta/internal/shared/worker"
 )
 
 // GameSearchService processes search requests by validating and sanitizing the query,
@@ -181,11 +180,20 @@ func (s *GameSearchService) searchWithTokenRefresh(
 		})
 
 		// Attempt to refresh token
-		if refreshErr := s.refreshToken(ctx); refreshErr != nil {
+		newToken, refreshErr := s.refreshToken(ctx)
+		if refreshErr != nil {
 			s.logger.Error("Failed to refresh token", map[string]any{
 				"error": refreshErr,
 			})
 			return nil, fmt.Errorf("failed to refresh token: %w", refreshErr)
+		}
+
+		// Update the token in the IGDB client
+		if err := s.adapter.UpdateToken(newToken); err != nil {
+			s.logger.Error("Failed to update token in IGDB client", map[string]any{
+				"error": err,
+			})
+			return nil, fmt.Errorf("failed to update token in IGDB client: %w", err)
 		}
 
 		s.logger.Info("Token refreshed successfully, retrying search request", nil)
@@ -210,39 +218,17 @@ func IAuthError(err error) bool {
 				 strings.Contains(strings.ToLower(err.Error()), "authentication")
 }
 
-// Trigger a token refresh using existing worker jobs
-func (s *GameSearchService) refreshToken(ctx context.Context) error {
-	// Get config values
-	clientID := s.config.IGDB.ClientID
-	clientSecret := s.config.IGDB.ClientSecret
-	authURL := s.config.IGDB.AuthURL
-	redisKey := s.config.IGDB.AccessTokenKey
-
-	// Get the token via retry logic
-	token, err := worker.GetTwitchTokenWithRetry(
+// refreshToken refreshes the Twitch token and returns the new token
+func (s *GameSearchService) refreshToken(ctx context.Context) (string, error) {
+	token, err := s.appContext.TwitchTokenRetriever.GetToken(
 		ctx,
-		clientID,
-		clientSecret,
-		authURL,
+		s.appContext.Config.IGDB.ClientID,
+		s.appContext.Config.IGDB.ClientSecret,
+		s.appContext.Config.IGDB.AuthURL,
 		s.logger,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to refresh token: %w", err)
+		return "", fmt.Errorf("failed to refresh token: %w", err)
 	}
-
-	// Save the token with refresh logic
-	if err := worker.UpdateTwitchTokenJob(
-		ctx,
-		redisKey,
-		s.appContext.RedisClient,
-		s.appContext.MemCache,
-		*token,
-		s.logger,
-	); err != nil {
-		return fmt.Errorf("failed to save refreshed token: %w", err)
-	}
-
-	s.logger.Info("Successfully refreshed and saved Twitch token", nil)
-
-	return nil
+	return token, nil
 }

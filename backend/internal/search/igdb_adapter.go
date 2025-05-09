@@ -89,17 +89,16 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 		"limit": limit,
 	})
 
-
 	// Log the query being sent to IGDB
 	igdbQuery := fmt.Sprintf(IGDBGameQueryTemplate, query, limit)
 	a.logger.Debug("IGDB Query", map[string]any{
-			"query": igdbQuery,
+		"query": igdbQuery,
 	})
 
 	// Call the IGDB API
 	gameDetails, err := a.client.SearchGames(igdbQuery)
 	if err != nil {
-			return nil, err
+		return nil, err
 	}
 
 	// Convert the IGDB Backend Response to what is expected by the Frontend
@@ -119,45 +118,13 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 	}
 
 	return games, nil
+}
 
-
-	// // Wrap the API call within the circuit breaker.
-	// result, err := a.breaker.Execute(func() (interface{}, error) {
-	// 	// Call the underlying IGDB client.
-	// 	games, err := a.client.SearchGames(query)
-	// 	a.logger.Info("IGDB Adapter - SearchGames result", map[string]any{
-	// 		"games": games,
-	// 		"err":   err,
-	// 	})
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("IGDB search failed: %w", err)
-	// 	}
-	// 	return games, nil
-	// })
-
-	// if err != nil {
-	// 	// Differentiate between a circuit breaker open error and a normal API error.
-	// 	if errors.Is(err, gobreaker.ErrOpenState) {
-	// 		return nil, fmt.Errorf("circuit breaker is open: %w", err)
-	// 	}
-	// 	return nil, fmt.Errorf("search failed: %w", err)
-	// }
-
-	// // Type assertion to the expected result type.
-	// games, ok := result.([]*igdb.Game)
-	// a.logger.Info("IGDB Adapter - SearchGames parsed result", map[string]any{
-	// 	"games": games,
-	// 	"ok":    ok,
-	// })
-	// if !ok {
-	// 	return nil, errors.New("unexpected result type from IGDB API")
-	// }
-
-	// // Optionally, apply the limit here if the underlying client does not support it directly.
-	// if len(games) > limit {
-	// 	games = games[:limit]
-	// }
-
-	// return games, nil
-	//return nil, nil
+// UpdateToken updates the token in the underlying IGDB client
+func (a *IGDBAdapter) UpdateToken(token string) error {
+	if a.client == nil {
+		return fmt.Errorf("IGDB client is nil")
+	}
+	a.client.UpdateToken(token)
+	return nil
 }

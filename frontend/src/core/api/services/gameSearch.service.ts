@@ -10,23 +10,13 @@ import { logger } from '@/core/utils/logger/logger';
 import type { SearchResponse } from '@/types/api/search';
 import type { SearchCriteria } from '@/types/domain/search';
 
-// Standard response type for all API calls
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  metadata: {
-    timestamp: string;
-    request_id: string;
-  };
-}
-
 /**
  * Searches for games based on the provided criteria
  *
  * @async
  * @function searchGames
  * @param {SearchCriteria} criteria - The search criteria including query, filters, and sorting options
- * @returns {Promise<SearchResponse>} A promise that resolves to the raw API response
+ * @returns {Promise<SearchResponse>} A promise that resolves to the search response
  * @throws {Error} If the API request fails or returns an invalid response
  *
  * @example
@@ -53,7 +43,7 @@ export const searchGames = async (
   logger.debug('🔍 Searching for games', { criteria });
 
   try {
-    const response = await axiosInstance.post<ApiResponse<SearchResponse>>(
+    const response = await axiosInstance.post<SearchResponse>(
       '/v1/search',
       {
         query: criteria.query,
@@ -66,11 +56,11 @@ export const searchGames = async (
     );
 
     logger.debug('🔄 Search response received', {
-      totalResults: response.data.data.total,
-      resultCount: response.data.data.games.length
+      totalResults: response.data.total,
+      resultCount: response.data.games.length
     });
 
-    return response.data.data;
+    return response.data;
   } catch (error) {
     logger.error('🚨 Game search failed', { error });
     throw error;

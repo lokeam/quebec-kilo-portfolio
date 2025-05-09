@@ -6,7 +6,6 @@ import { DialogTrigger } from '@/shared/components/ui/dialog';
 
 // Components
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
-import { SearchSection } from './SearchSection/SearchSection';
 import { ResultsSection } from './ResultsSection/ResultsSection';
 import { ActionsSection } from './ActionsSection/ActionsSection';
 
@@ -17,7 +16,7 @@ import { useGameSearch } from '@/core/api/queries/gameSearch.queries';
 // Icons
 import { SearchIcon } from 'lucide-react';
 
-export function AddItemSearchDialog() {
+export function GameSearchAndSelectDialog() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
@@ -77,8 +76,6 @@ export function AddItemSearchDialog() {
       }
     >
       <div className="flex flex-col gap-4">
-        <SearchSection onSearch={setSearchQuery} />
-
         {isLoading ? (
           <SearchDialogSkeleton />
         ) : error ? (

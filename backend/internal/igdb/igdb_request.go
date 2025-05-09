@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -44,7 +45,25 @@ func (c *IGDBClient) makeRequest(endpoint string, query string, result interface
 
     c.logger.Info("igdb client - makeRequest - response: ", map[string]any{"resp": resp})
 
-    if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+    // Read the response body ONCE then store it
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        c.logger.Error("igdb client - makeRequest - failed to read response body: %w", map[string]any{"error": err})
+        return fmt.Errorf("failed to read response body: %w", err)
+    }
+
+    c.logger.Info("igdb client - makeRequest - response received", map[string]any{
+        "status": resp.StatusCode,
+        "body":   string(body),
+    })
+
+    // Use the stored body for status code check
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("IGDB API error (status %d): %s", resp.StatusCode, string(body))
+    }
+
+    // Use the same stored body for decoding
+    if err := json.Unmarshal(body, result); err != nil {
         c.logger.Error("igdb client - makeRequest - failed to decode response: %w", map[string]any{"error": err})
         return fmt.Errorf("failed to decode response: %w", err)
     }
@@ -58,4 +77,9 @@ func buildIDQuery(ids []int64, fields string) string {
         strIDs = append(strIDs, fmt.Sprintf("%d", id))
     }
     return fmt.Sprintf("fields %s; where id = (%s);", fields, strings.Join(strIDs, ","))
+}
+
+// UpdateToken updates the client's authentication token
+func (c *IGDBClient) UpdateToken(token string) {
+    c.token = token
 }

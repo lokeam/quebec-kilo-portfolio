@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { addItemSearchDialogMockData } from '@/features/dashboard/components/organisms/AddItemSearchDialog/addItemSearchDialog.mockdata';
+import { gameSearchAndSelectDialogMockData } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/gameSearchAndSelectDialog.mockdata';
 import type { Game } from '@/types/types/domain.types';
 
 export interface UseSearchGamesResult {
@@ -25,7 +25,7 @@ export function useSearchGames(searchQuery: string): UseSearchGamesResult {
     // Simulate network delay
     const timeoutId = setTimeout(() => {
       try {
-        const filteredGames = addItemSearchDialogMockData.filter(game =>
+        const filteredGames = gameSearchAndSelectDialogMockData.games.filter(game =>
           game.name.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setGames(filteredGames);

@@ -205,7 +205,6 @@ func NewSearchHandler(
 			response.Games[i].IsInWishlist = containsGame(wishlist, game.ID)
 		}
 
-
 		// If no games found, return an empty response
 		if response.Games == nil {
 			response.Games = []models.Game{}
@@ -215,8 +214,10 @@ func NewSearchHandler(
 			"response": response,
 		})
 
-		// 12. Return the search response as JSON.
-		httputils.RespondWithJSON(w, appCtx.Logger, http.StatusOK, response)
+		// 12. Return the search response as JSON with the expected structure
+		apiResponse := httputils.NewAPIResponse(r, userID, response)
+
+		httputils.RespondWithJSON(w, appCtx.Logger, http.StatusOK, apiResponse)
 	}
 }
 

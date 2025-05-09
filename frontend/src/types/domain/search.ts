@@ -26,6 +26,8 @@ export interface SearchCriteria {
   };
   sortBy?: 'relevance' | 'name' | 'rating' | 'releaseDate';
   sortOrder?: 'asc' | 'desc';
+  page?: number;          // Page number (0-based)
+  limit?: number;         // Number of results per page
 }
 
 /**

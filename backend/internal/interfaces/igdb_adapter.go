@@ -12,4 +12,5 @@ type IGDBAdapter interface {
 		query string,
 		limit int,
 	) ([]*models.Game, error)
+	UpdateToken(token string) error
 }
