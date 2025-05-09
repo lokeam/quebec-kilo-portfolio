@@ -38,8 +38,9 @@ export function MediaStoragePageAccordionCard({
   const { sublocation: sublocationIcons, games: gameIcons } = useDomainMaps();
 
   // Get the icon based on the location type
-  const getLocationIcon = () => {
+  const getAccordionCardLocationIcon = () => {
     if (isDigital) {
+      console.log('MediaStoragePageAccordionCard, digital location:', card);
       const IconComponent = gameIcons[card.platform?.toLowerCase() || ''];
       return IconComponent ? (
         <IconComponent className="w-full h-full" />
@@ -49,7 +50,7 @@ export function MediaStoragePageAccordionCard({
     } else {
       const locationType = card.locationType?.toLowerCase();
 
-      console.log('MediaStoragePageAccordionCard', card);
+      //console.log('MediaStoragePageAccordionCard, physical location:', card);
       const IconComponent = sublocationIcons[locationType as keyof typeof sublocationIcons];
       if (!IconComponent) {
         console.warn(`No icon found for location type: ${card.locationType}`);
@@ -72,7 +73,7 @@ export function MediaStoragePageAccordionCard({
               <CardHeader className="flex flex-row items-center gap-4">
                 <motion.div layoutId={`image-${card.name}-${id}`} className="w-14 h-14">
                   <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
-                    {getLocationIcon()}
+                    {getAccordionCardLocationIcon()}
                   </div>
                 </motion.div>
                 <div>

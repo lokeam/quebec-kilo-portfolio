@@ -34,6 +34,27 @@ export interface FinancialStats {
   services: ServiceDetails[];
 }
 
+export interface LocationSummary {
+  id: string;
+  name: string;
+  itemCount: number;
+  locationType: string;
+  isSubscription?: boolean;
+  monthlyCost?: number;
+  mapCoordinates?: string;
+  sublocations?: {
+    id: string;
+    name: string;
+    locationType: string;
+    bgColor?: string;
+    storedItems: number;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ServiceDetails {
   name: string;
   monthlyFee: number;
@@ -48,28 +69,7 @@ export interface StorageStats {
   physicalLocations: LocationSummary[];
 }
 
-export interface LocationSummary {
-  id: string;
-  name: string;
-  itemCount: number;
-  locationType: string;
-  isSubscription?: boolean;
-  monthlyCost?: number;
-  sublocations?: {
-    id: string;
-    name: string;
-    type: string;
-    items: unknown[];
-    metadata?: {
-      bgColor?: string;
-      notes?: string;
-    };
-    created_at: string;
-    updated_at: string;
-  }[];
-  created_at: string;
-  updated_at: string;
-}
+
 
 export interface InventoryStats {
   totalItemCount: number;

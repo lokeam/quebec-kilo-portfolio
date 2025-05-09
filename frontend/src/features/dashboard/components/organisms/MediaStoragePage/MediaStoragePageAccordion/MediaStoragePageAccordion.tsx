@@ -29,7 +29,7 @@ import {
 
 // Hooks
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
-import { getLocationIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
+import { getDigitalOrPhysicalLocationIcon } from '@/features/dashboard/lib/utils/getLocationIcon';
 import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 // Types
@@ -225,7 +225,7 @@ export function MediaStoragePageAccordion({
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8 bg-muted flex items-center justify-center">
                   <div className="flex items-center justify-center w-full h-full">
-                    {getLocationIcon(location, type, domainMaps)}
+                    {getDigitalOrPhysicalLocationIcon(location, type, domainMaps)}
                   </div>
                 </Avatar>
                 <div className="flex flex-col items-start">

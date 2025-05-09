@@ -82,16 +82,20 @@ export const adaptAnalyticsToPhysicalLocations = (
     type: location.locationType as PhysicalLocationType,
     description: undefined,
     metadata: undefined,
+    mapCoordinates: location.mapCoordinates,
     sublocations: location.sublocations?.map(subloc => ({
       id: subloc.id,
       name: subloc.name,
-      type: subloc.type as SublocationType,
+      type: subloc.locationType as SublocationType,
       parentLocationId: location.id,
       description: undefined,
-      metadata: subloc.metadata,
-      items: subloc.items || [],
-      createdAt: new Date(subloc.created_at),
-      updatedAt: new Date(subloc.updated_at)
+      metadata: {
+        bgColor: subloc.bgColor,
+        notes: undefined
+      },
+      items: [],
+      createdAt: new Date(subloc.createdAt),
+      updatedAt: new Date(subloc.updatedAt)
     })) || [],
     createdAt: new Date(location.created_at),
     updatedAt: new Date(location.updated_at)
