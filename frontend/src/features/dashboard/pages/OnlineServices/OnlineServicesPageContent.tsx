@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
 // Template Components
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -6,25 +6,19 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 // Components
 import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
-import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
-import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 
 // API Hooks and Utilities
-import { useOnlineServices, useDeleteDigitalLocation } from '@/core/api/queries/digitalMediaStorage.queries';
-import { useStorageAnalytics } from '@/core/api/hooks/useAnalyticsData';
+import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
-import { adaptDomainToLegacyService, adaptLegacyToDomainService } from '@/core/api/adapters/digitalLocation.adapter';
+import { adaptDigitalLocationToService } from '@/core/api/adapters/digitalLocation.adapter';
 
 // Types
-import type { OnlineService as DomainOnlineService } from '@/types/domain/online-service';
-import type { OnlineService as LegacyOnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
-import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
+import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -50,35 +44,25 @@ const CardSkeleton = () => (
 );
 
 export function OnlineServicesPageContent() {
-  const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
-  const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
-  const [selectedService, setSelectedService] = useState<DomainOnlineService | null>(null);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
-  // Fetch digital locations using our hook - now returns OnlineService[] directly
-  const { data: services = [], isLoading, error } = useOnlineServices();
+  // Fetch digital locations using analytics
+  const { data: storageData, isLoading, error } = useStorageAnalytics();
 
-  // Get filtered services using the unified hook and convert to legacy format
-  const filteredServices = useFilteredServices(services.map(adaptDomainToLegacyService));
-
-  // Set up the delete mutation
-  const deleteServiceMutation = useDeleteDigitalLocation();
+  // Get filtered services using the unified hook
+  const services = storageData?.digitalLocations?.map(adaptDigitalLocationToService) || [];
+  const filteredServices = useFilteredServices(services);
 
   // Handler to delete a service
   const handleDeleteService = useCallback((serviceId: string) => {
-    deleteServiceMutation.mutate(serviceId);
-  }, [deleteServiceMutation]);
-
-  // Handler to edit a service
-  const handleEditService = useCallback((service: LegacyOnlineService) => {
-    setSelectedService(adaptLegacyToDomainService(service));
-    setEditServiceOpen(true);
+    // TODO: Implement delete functionality
+    console.log('Delete service:', serviceId);
   }, []);
 
-  // Handler to close edit drawer
-  const handleCloseEditDrawer = useCallback(() => {
-    setEditServiceOpen(false);
-    setSelectedService(null);
+  // Handler to edit a service
+  const handleEditService = useCallback((service: OnlineService) => {
+    // TODO: Implement edit functionality
+    console.log('Edit service:', service);
   }, []);
 
   // Set up card label width for responsive design
@@ -94,50 +78,6 @@ export function OnlineServicesPageContent() {
       wide: '200px'
     }
   });
-
-  // Fetch storage analytics in parallel
-  const {
-    data: analyticsData,
-    isLoading: analyticsLoading,
-    error: analyticsError
-  } = useStorageAnalytics();
-
-  const handleCloseAddDrawer = useCallback(() => {
-    setAddServiceOpen(false);
-  }, []);
-
-  // Analytics summary component
-  const renderAnalyticsSummary = () => {
-    if (analyticsLoading) {
-      return <div className="text-sm text-gray-500">Loading analytics...</div>;
-    }
-
-    if (analyticsError) {
-      return null; // Don't show anything if analytics fail
-    }
-
-    const storageStats = analyticsData?.storage;
-
-    if (!storageStats) {
-      return null;
-    }
-
-    return (
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-100 rounded-md">
-        <h3 className="text-sm font-semibold text-blue-800">Storage Analytics</h3>
-        <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Digital Locations:</span>{' '}
-            <span className="font-medium">{storageStats.totalDigitalLocations}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Physical Locations:</span>{' '}
-            <span className="font-medium">{storageStats.totalPhysicalLocations}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Render content based on the selected view mode
   const renderContent = () => {
@@ -186,7 +126,7 @@ export function OnlineServicesPageContent() {
               service={service}
               onDelete={handleDeleteService}
               onEdit={() => handleEditService(service)}
-              data-card-sentinel={index === 0}
+              isWatchedByResizeObserver={index === 0}
             />
           ))}
         </div>
@@ -200,22 +140,7 @@ export function OnlineServicesPageContent() {
         <div className="flex items-center">
           <h1 className='text-2xl font-bold tracking-tight'>Online Services</h1>
         </div>
-
-        <div className='flex items-center space-x-2'>
-          <DrawerContainer
-            open={addServiceOpen}
-            onOpenChange={setAddServiceOpen}
-            triggerAddLocation="Add Digital Service"
-            title="Digital Service"
-            description="Tell us about your digital service."
-          >
-            <OnlineServiceForm onClose={handleCloseAddDrawer} />
-          </DrawerContainer>
-        </div>
       </PageHeadline>
-
-      {/* Analytics Summary */}
-      {renderAnalyticsSummary()}
 
       {/* Digital Services Display Section */}
       <div className="mt-6">
@@ -224,34 +149,6 @@ export function OnlineServicesPageContent() {
           {renderContent()}
         </div>
       </div>
-
-      {/* Edit Service Drawer */}
-      <DrawerContainer
-        open={editServiceOpen}
-        onOpenChange={setEditServiceOpen}
-        title="Edit Digital Service"
-        description="Update your digital service details."
-      >
-        {selectedService && (
-          <OnlineServiceForm
-            serviceData={{
-              id: selectedService.id,
-              service: selectedService,
-              expenseType: selectedService.billing?.cycle,
-              cost: selectedService.billing?.fees?.monthly ? parseFloat(selectedService.billing.fees.monthly.replace('$', '')) : 0,
-              billingPeriod: selectedService.billing?.cycle,
-              nextPaymentDate: selectedService.billing?.renewalDate ? new Date(`${selectedService.billing.renewalDate.month} ${selectedService.billing.renewalDate.day}`) : undefined,
-              paymentMethod: typeof selectedService.billing?.paymentMethod === 'string'
-                ? { id: selectedService.billing.paymentMethod, displayName: selectedService.billing.paymentMethod }
-                : selectedService.billing?.paymentMethod as SelectableItem | undefined,
-              is_active: selectedService.status === SERVICE_STATUS_CODES.ACTIVE
-            }}
-            isEditing={true}
-            onClose={handleCloseEditDrawer}
-            onDelete={handleDeleteService}
-          />
-        )}
-      </DrawerContainer>
     </PageMain>
   );
 }
