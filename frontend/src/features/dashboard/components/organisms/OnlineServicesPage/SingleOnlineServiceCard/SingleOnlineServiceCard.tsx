@@ -1,9 +1,8 @@
 import { memo, useCallback, useState } from 'react';
 
 // Custom Components
-import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
 import { Badge } from "@/shared/components/ui/badge";
-import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
 // Shadcn Components
 import { Card } from "@/shared/components/ui/card"
@@ -16,13 +15,10 @@ import {
   DialogHeader,
   DialogDescription
 } from '@/shared/components/ui/dialog';
-// import {
-//   DrawerContainer
-// } from '@/features/dashboard/components/templates/DrawerContainer';
 
 // Icons
 import { Power } from 'lucide-react'
-import { IconCloudDataConnection, IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Utils
 import {
@@ -51,7 +47,6 @@ export const SingleOnlineServiceCard = memo(({
   onEdit,
   isWatchedByResizeObserver
 }: SingleOnlineServiceCardProps) => {
-  console.log('SingleOnlineServiceCard - logo', service.logo);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -60,7 +55,6 @@ export const SingleOnlineServiceCard = memo(({
     t?.name?.toLowerCase() === service.tier?.currentTier?.toLowerCase()
   );
 
-  const hasValidLogo = Boolean(service.logo);
   const isFree = isServiceFree(service);
   const showRenewalBadge = service.status !== SERVICE_STATUS_CODES.ACTIVE &&
     !isFree &&
@@ -115,15 +109,7 @@ export const SingleOnlineServiceCard = memo(({
         <div className="flex items-center justify-between min-w-0 w-full">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
-              {hasValidLogo ? (
-                <SVGLogo
-                  domain="games"
-                  name={service.logo as LogoName<'games'>}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <IconCloudDataConnection className="w-full h-full" />
-              )}
+              <DigitalLocationIcon name={service.name} className="w-full h-full" />
             </div>
             <div className="flex flex-col">
               <span
