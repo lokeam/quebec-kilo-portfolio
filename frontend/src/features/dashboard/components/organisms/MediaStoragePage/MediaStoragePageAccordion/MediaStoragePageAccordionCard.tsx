@@ -12,7 +12,8 @@ import {
 
 // Utils
 import { motion } from 'framer-motion';
-import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
+import { getPhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
 // Types
 import type { Sublocation } from '@/types/domain/sublocation';
@@ -35,29 +36,15 @@ export function MediaStoragePageAccordionCard({
   setActive,
   isDigital,
 }: MediaStoragePageAccordionCardProps) {
-  const { sublocation: sublocationIcons, games: gameIcons } = useDomainMaps();
-
   // Get the icon based on the location type
   const getAccordionCardLocationIcon = () => {
+    console.log('MediaStoragePageAccordionCard rendering:', { card });
     if (isDigital) {
-      console.log('MediaStoragePageAccordionCard, digital location:', card);
-      const IconComponent = gameIcons[card.platform?.toLowerCase() || ''];
-      return IconComponent ? (
-        <IconComponent className="w-full h-full" />
-      ) : (
-        <IconCloudDataConnection className="w-full h-full" />
-      );
-    } else {
-      const locationType = card.locationType?.toLowerCase();
-
-      //console.log('MediaStoragePageAccordionCard, physical location:', card);
-      const IconComponent = sublocationIcons[locationType as keyof typeof sublocationIcons];
-      if (!IconComponent) {
-        console.warn(`No icon found for location type: ${card.locationType}`);
-        return <IconCloudDataConnection className="w-full h-full" />;
-      }
-      return <IconComponent className="w-full h-full" />;
+      return <DigitalLocationIcon name={card.platform} className="w-full h-full" />;
     }
+    return getPhysicalLocationIcon(card.locationType) || (
+      <IconCloudDataConnection className="w-full h-full" />
+    );
   };
 
   return (

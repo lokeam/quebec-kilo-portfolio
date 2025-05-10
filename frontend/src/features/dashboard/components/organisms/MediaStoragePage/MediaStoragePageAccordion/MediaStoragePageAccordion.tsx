@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Shadcn UI Components
 import {
@@ -29,8 +29,10 @@ import {
 import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
 import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
 
+// Utils
+import { getLogo } from '@/features/dashboard/lib/utils/service-utils';
+
 // Hooks
-import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 // Types
@@ -65,16 +67,12 @@ export function MediaStoragePageAccordion({
   const [openDeleteDialog, setOpenDeleteDialog] = useState<boolean>(false);
   const [activeLocationIndex, setActiveLocationIndex] = useState<number | null>(null);
   const [activeCardLocationIndex, setActiveCardLocationIndex] = useState<number | null>(null);
-  const domainMaps = useDomainMaps();
   const locationManager = useLocationManager({ type: 'sublocation' });
 
-  // Debug outputs
-  console.log("MediaStoragePageAccordion rendered:", {
-    type,
-    title,
-    locationCount: locationData?.length || 0,
-    hasData: !!locationData && locationData.length > 0
-  });
+  // Debug logging
+  useEffect(() => {
+    console.log('MediaStoragePageAccordion props:', { locationData, title, meta, type, isLoading });
+  }, [locationData, title, meta, type, isLoading]);
 
   if (locationData && locationData.length > 0) {
     console.log("First location data:", {
@@ -229,7 +227,7 @@ export function MediaStoragePageAccordion({
                     {type === 'digital' ? (
                       <SVGLogo
                         domain="games"
-                        name={(location as DigitalLocation).logo as LogoName<'games'>}
+                        name={getLogo((location as DigitalLocation).name) as LogoName<'games'>}
                         className="h-4 w-4"
                       />
                     ) : (
@@ -251,10 +249,11 @@ export function MediaStoragePageAccordion({
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4">
+                {console.log('Rendering content for location:', location.name, 'isPhysical:', isPhysicalLocation(location))}
                 {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
                   <>
-                    {/* Render sublocation cards with selection indicator */}
+                    {console.log('Rendering physical location:', location.name)}
                     {location.sublocations?.map((sublocation, cardIndex) => {
                       const cardData: LocationCardData = {
                         id: sublocation.id,
@@ -397,22 +396,51 @@ export function MediaStoragePageAccordion({
                     </Dialog>
                   </>
                 ) : (
-                  /* For digital locations, show items directly */
-                  <div className="space-y-2 pl-8">
-                    {(location as DigitalLocation).items?.map((item, index) => (
-                      <div
-                        key={`${item.label}-${index}`}
-                        className="flex items-center justify-between py-2"
-                      >
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.platform.charAt(0).toUpperCase() + item.platform.slice(1)} {item.platformVersion}
-                          </p>
+                  /* For digital locations, use the card component for consistent rendering */
+                  <>
+                    {console.log('Rendering digital location:', location.name, 'items:', (location as DigitalLocation).items)}
+                    {(location as DigitalLocation).items?.map((item, index) => {
+                      // Debug logging for each digital item
+                      useEffect(() => {
+                        console.log('Processing digital item:', item);
+                      }, [item]);
+
+                      const cardData: LocationCardData = {
+                        id: item.id,
+                        name: item.name,
+                        description: `${item.platform} ${item.platformVersion}`,
+                        locationType: 'shelf',
+                        platform: item.platform,
+                        items: [item],
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                      };
+                      return (
+                        <div
+                          key={`${location.name}-${index}`}
+                          className={`relative rounded-lg transition-all ${
+                            activeCard?.id === cardData.id && isActiveCardFromCurrentLocation
+                              ? 'ring-2 ring-primary ring-offset-2'
+                              : ''
+                          }`}
+                        >
+                          <MediaStoragePageAccordionCard
+                            card={cardData}
+                            id={`${location.name}-${index}`}
+                            setActive={(card) => handleSetActive(card, index)}
+                            isDigital={true}
+                          />
+                          {activeCard?.id === cardData.id && isActiveCardFromCurrentLocation && (
+                            <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full p-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
             </AccordionContent>
