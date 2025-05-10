@@ -47,12 +47,97 @@ import { isPhysicalLocation } from '@/features/dashboard/lib/types/media-storage
 import { toast } from 'sonner';
 
 interface MediaStoragePageAccordionProps {
-  locationData: PhysicalLocation[] | DigitalLocation[];
+  locationData: (PhysicalLocation | DigitalLocation)[];
   title: string;
   meta: MediaStorageMetadata;
   type: 'physical' | 'digital';
   isLoading?: boolean;
 }
+
+/**
+ * MediaStoragePageAccordion
+ *
+ * Data Flow Documentation
+ * ======================
+ *
+ * 1. Input Data
+ * ------------
+ * Props:
+ * - locationData: Array of PhysicalLocation | DigitalLocation
+ *   - PhysicalLocation: Contains sublocations (shelves, drawers, etc.)
+ *   - DigitalLocation: Contains items (games, media, etc.)
+ * - type: 'physical' | 'digital' - Determines rendering mode
+ * - onAddLocation: Callback for adding new locations
+ * - onEditLocation: Callback for editing existing locations
+ * - onDeleteLocation: Callback for deleting locations
+ *
+ * 2. Internal State
+ * ----------------
+ * Active Selection State:
+ * - activeCard: Currently selected card (LocationCardData | null)
+ * - activeLocationIndex: Index of the location containing the active card
+ * - activeCardLocationIndex: Index of the card within its location
+ *
+ * Modal States:
+ * - openAddDrawer: Controls visibility of add location drawer
+ * - openEditDrawer: Controls visibility of edit location drawer
+ * - openDeleteDialog: Controls visibility of delete confirmation dialog
+ *
+ * 3. Data Transformations
+ * ---------------------
+ * Location Type Detection:
+ * - isPhysicalLocation: Checks if location has sublocations
+ * - isDigitalLocation: Checks if location has items
+ *
+ * Icon Selection:
+ * - getAccordionCardLocationIcon: Returns appropriate icon based on location type
+ * - SVGLogo: Renders the selected icon with proper styling
+ *
+ * 4. Action Flow
+ * ------------
+ * Card Selection:
+ * 1. User clicks a card
+ * 2. handleSetActive updates activeCard and activeLocationIndex
+ * 3. UI updates to show selected state
+ *
+ * Location Management:
+ * 1. Add: Opens drawer -> User inputs data -> onAddLocation called
+ * 2. Edit: Opens drawer -> User modifies data -> onEditLocation called
+ * 3. Delete: Opens dialog -> User confirms -> onDeleteLocation called
+ *
+ * 5. Render Flow
+ * ------------
+ * Main Render:
+ * 1. Maps through locationData
+ * 2. For each location:
+ *    - Renders AccordionItem
+ *    - Shows location icon based on type
+ *    - Renders location name
+ *
+ * Content Render:
+ * 1. If physical location:
+ *    - Maps through sublocations
+ *    - Renders each as a card
+ * 2. If digital location:
+ *    - Maps through items
+ *    - Renders each as a card
+ *
+ * 6. Current Pain Points
+ * -------------------
+ * - Unsafe type assertions (as DigitalLocation, as PhysicalLocation)
+ * - Complex nested conditionals in render logic
+ * - Multiple related state variables that could be combined
+ * - No error handling or fallbacks
+ * - Limited debugging capabilities
+ *
+ * 7. Dependencies
+ * -------------
+ * - Accordion components (AccordionItem, AccordionTrigger, AccordionContent)
+ * - SVGLogo for icon rendering
+ * - LocationCardData type for card information
+ * - PhysicalLocation and DigitalLocation types
+ */
+
 
 export function MediaStoragePageAccordion({
   locationData,
@@ -249,12 +334,14 @@ export function MediaStoragePageAccordion({
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-4">
-                {console.log('Rendering content for location:', location.name, 'isPhysical:', isPhysicalLocation(location))}
+
                 {isPhysicalLocation(location) ? (
                   /* For physical locations, render sublocations as cards */
                   <>
-                    {console.log('Rendering physical location:', location.name)}
-                    {location.sublocations?.map((sublocation, cardIndex) => {
+                    {location.sublocations?.map((sublocation, cardIndex): JSX.Element => {
+                      // Debug logging moved outside JSX
+                      console.log('Rendering physical location:', location.name);
+
                       const cardData: LocationCardData = {
                         id: sublocation.id,
                         name: sublocation.name,
@@ -398,12 +485,9 @@ export function MediaStoragePageAccordion({
                 ) : (
                   /* For digital locations, use the card component for consistent rendering */
                   <>
-                    {console.log('Rendering digital location:', location.name, 'items:', (location as DigitalLocation).items)}
-                    {(location as DigitalLocation).items?.map((item, index) => {
-                      // Debug logging for each digital item
-                      useEffect(() => {
-                        console.log('Processing digital item:', item);
-                      }, [item]);
+                    {(location as DigitalLocation).items?.map((item, index): JSX.Element => {
+                      // Debug logging moved outside JSX
+                      console.log('Rendering digital location:', location.name, 'items:', (location as DigitalLocation).items);
 
                       const cardData: LocationCardData = {
                         id: item.id,
@@ -415,6 +499,7 @@ export function MediaStoragePageAccordion({
                         createdAt: new Date(),
                         updatedAt: new Date()
                       };
+
                       return (
                         <div
                           key={`${location.name}-${index}`}
