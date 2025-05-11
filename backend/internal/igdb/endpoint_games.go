@@ -28,19 +28,30 @@ func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
 
     c.logger.Debug("igdb client - SearchGames - results with details: ", map[string]any{"results": results})
 
-    // Convert GameDetails back to Game
-    convertedGames := make([]*models.Game, len(results))
-    for i, detail := range results {
-        convertedGames[i] = &models.Game{
-            ID:              detail.ID,
-            Name:            detail.Name,
-            Summary:         detail.Summary,
-            CoverURL:        detail.CoverURL,
-            Rating:          detail.Rating,
-            PlatformNames:   detail.PlatformNames,
-            GenreNames:      detail.GenreNames,
-            ThemeNames:      detail.ThemeNames,
+    // Convert GameDetails back to Game and filter out games without cover URLs
+    var convertedGames []*models.Game
+    for i := 0; i < len(results); i++ {
+        detail := results[i]
+        // Skip games without cover URLs
+        if detail.CoverURL == "" {
+            c.logger.Debug("igdb client - SearchGames - skipping game without cover URL", map[string]any{
+                "gameID": detail.ID,
+                "name": detail.Name,
+            })
+            continue
         }
+
+        convertedGames = append(convertedGames, &models.Game{
+            ID:                detail.ID,
+            Name:              detail.Name,
+            Summary:           detail.Summary,
+            CoverURL:          detail.CoverURL,
+            FirstReleaseDate:  detail.FirstReleaseDate,
+            Rating:            detail.Rating,
+            PlatformNames:     detail.PlatformNames,
+            GenreNames:        detail.GenreNames,
+            ThemeNames:        detail.ThemeNames,
+        })
     }
 
     return convertedGames, nil
@@ -150,17 +161,18 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.Game
     var results []*types.GameDetails
     for _, game := range games {
         details := &types.GameDetails{
-            ID:      game.ID,
-            Name:    game.Name,
-            Summary: game.Summary,
-            Rating:  game.Rating,
-            CoverURL: game.CoverURL,
-            Platforms: []types.Platform{},
-            PlatformNames: []string{},
-            Genres: []types.Genre{},
-            GenreNames: []string{},
-            Themes: []types.Theme{},
-            ThemeNames: []string{},
+            ID:                 game.ID,
+            Name:               game.Name,
+            Summary:            game.Summary,
+            FirstReleaseDate:   game.FirstReleaseDate,
+            Rating:             game.Rating,
+            CoverURL:           game.CoverURL,
+            Platforms:          []types.Platform{},
+            PlatformNames:      []string{},
+            Genres:             []types.Genre{},
+            GenreNames:         []string{},
+            Themes:             []types.Theme{},
+            ThemeNames:         []string{},
         }
 
         c.logger.Debug("igdb client - GetGameDetailsBySearch - populated genres", map[string]any{

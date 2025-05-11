@@ -1,6 +1,7 @@
+import type { SearchResponse } from '@/types/api/search';
 import type { Game } from '@/types/domain/game';
 import type { SearchResult, SearchMetadata } from '@/types/domain/search';
-import type { SearchResponse } from '@/types/api/search';
+import { logger } from '@/core/utils/logger/logger';
 
 /**
  * Adapter for transforming game search data between API and domain types
@@ -10,19 +11,36 @@ export const gameSearchResultAdapter = {
    * Transforms API search response to domain search results
    */
   toDomain: (response: SearchResponse): { results: SearchResult[]; metadata: SearchMetadata } => {
-    const results: SearchResult[] = response.games.map(game => ({
-      game,
-      relevance: 1.0, // Default relevance score
-      matchType: 'exact', // Default match type
-      matchedFields: ['name'], // Default matched fields
-    }));
+    console.log('Raw API response:', response);
+
+    const results = response.games.map(game => {
+      console.log('Transforming game:', game);
+      const transformedGame: Game = {
+        id: game.id,
+        name: game.name,
+        coverUrl: game.coverUrl,
+        firstReleaseDate: game.firstReleaseDate,
+        rating: game.rating,
+        themeNames: game.themeNames,
+        isInLibrary: game.isInLibrary,
+        isInWishlist: game.isInWishlist,
+      };
+      console.log('Transformed game:', transformedGame);
+
+      return {
+        game: transformedGame,
+        relevance: 1.0,
+        matchType: 'exact' as const,
+        matchedFields: ['name'],
+      };
+    });
 
     const metadata: SearchMetadata = {
       totalResults: response.total,
-      pageSize: response.games.length,
-      currentPage: 0, // Default to first page
-      totalPages: Math.ceil(response.total / response.games.length),
-      executionTime: 0, // This should come from the API
+      pageSize: response.pageSize,
+      currentPage: response.page,
+      totalPages: response.totalPages,
+      executionTime: 0,
       timestamp: new Date().toISOString(),
     };
 
@@ -55,11 +73,22 @@ export const gameSearchResultAdapter = {
    * Transforms a game to a search result display model
    * Used by the SearchResult component
    */
-  toDisplayModel: (game: Game) => ({
-    id: game.id,
-    name: game.name,
-    coverUrl: game.coverUrl,
-    isInLibrary: game.isInLibrary ?? false,
-    isInWishlist: game.isInWishlist ?? false,
-  }),
+  toDisplayModel: (game: Game) => {
+    const displayModel = {
+      id: game.id,
+      name: game.name,
+      coverUrl: game.coverUrl,
+      firstReleaseDate: game.firstReleaseDate,
+      isInLibrary: game.isInLibrary ?? false,
+      isInWishlist: game.isInWishlist ?? false,
+    };
+
+    logger.debug('🔍 Created display model', {
+      original: game,
+      displayModel,
+      firstReleaseDate: displayModel.firstReleaseDate,
+    });
+
+    return displayModel;
+  },
 };

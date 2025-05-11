@@ -4,8 +4,20 @@ import type { Game } from '../domain/game';
  * Response type for search API endpoints
  */
 export interface SearchResponse {
-  games: Game[];
+  games: Array<{
+    id: number;
+    name: string;
+    coverUrl?: string;
+    firstReleaseDate?: number;
+    rating?: number;
+    themeNames?: string[];
+    isInLibrary?: boolean;
+    isInWishlist?: boolean;
+  }>;
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 /**

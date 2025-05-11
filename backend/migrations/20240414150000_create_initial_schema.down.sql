@@ -19,14 +19,6 @@ DROP INDEX IF EXISTS idx_physical_locations_user_id;
 DROP INDEX IF EXISTS idx_user_games_game_id;
 DROP INDEX IF EXISTS idx_user_games_user_id;
 
--- Drop game relationship tables
-DROP TABLE IF EXISTS game_themes;
-DROP TABLE IF EXISTS game_genres;
-DROP TABLE IF EXISTS game_platforms;
-DROP TABLE IF EXISTS themes;
-DROP TABLE IF EXISTS genres;
-DROP TABLE IF EXISTS platforms;
-
 -- Drop tables in reverse order of creation
 DROP TABLE IF EXISTS wishlist;
 DROP TABLE IF EXISTS expenses;
@@ -38,6 +30,12 @@ DROP TABLE IF EXISTS physical_game_locations;
 DROP TABLE IF EXISTS sublocations;
 DROP TABLE IF EXISTS physical_locations;
 DROP TABLE IF EXISTS user_games;
+DROP TABLE IF EXISTS game_themes;
+DROP TABLE IF EXISTS game_genres;
+DROP TABLE IF EXISTS game_platforms;
+DROP TABLE IF EXISTS themes;
+DROP TABLE IF EXISTS genres;
+DROP TABLE IF EXISTS platforms;
 DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS schema_migrations;

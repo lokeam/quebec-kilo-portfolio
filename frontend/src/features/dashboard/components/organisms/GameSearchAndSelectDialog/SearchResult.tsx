@@ -1,15 +1,13 @@
-
 // Components
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
 
 // Type Refactor
-import type { Game } from '@/types/game';
+import type { Game } from '@/types/domain/game';
 
 // Legacy Types
 //import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
-
 
 import { useAddToLibrary, useAddToWishlist } from '@/core/api/queries/useLibraryMutations';
 
@@ -26,10 +24,21 @@ type SearchResultProps = {
   onAction?: () => void; // Callback to close dialog
 }
 
+// Helper function to format release date
+const formatReleaseDate = (timestamp?: number): string => {
+  if (!timestamp) return '';
+  const date = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
+  return `(${date.getFullYear()})`;
+};
 
 export function SearchResult({ game, onAction}: SearchResultProps) {
   const addToLibrary = useAddToLibrary();
   const addToWishList = useAddToWishlist();
+
+  // Debug the game object and firstReleaseDate
+  console.log('Game object:', game);
+  console.log('First release date:', game.firstReleaseDate);
+  console.log('Formatted date:', game.firstReleaseDate ? formatReleaseDate(game.firstReleaseDate) : 'No date');
 
   const handleAddToLibrary = () => {
     addToLibrary.mutate({
@@ -71,7 +80,6 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
   const showLibraryButton = !game.isInLibrary;
   const showWishlistButton = !game.isInWishlist;
 
-  console.log('SearchResult', game);
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
       { game.isInLibrary && (
@@ -102,6 +110,11 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
         <div className="flex-1 min-w-0"> {/* nested min-w-0 for text truncation */}
           <h3 className="font-medium text-white text-wrap max-w-[140px] max-h-[48px] md:max-w-full md:max-h-unset truncate">
             {game.name}
+            {game.firstReleaseDate && (
+              <time className="text-gray-400 text-sm font-normal ml-1" dateTime={new Date(game.firstReleaseDate * 1000).toISOString()}>
+                {formatReleaseDate(game.firstReleaseDate)}
+              </time>
+            )}
           </h3>
         </div>
 

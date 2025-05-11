@@ -3,6 +3,8 @@ import type { MediaStorageMetadata } from '@/types/api/storage';
 import type { PhysicalLocation } from '@/types/domain/physical-location';
 import type { DigitalLocation } from '@/types/domain/digital-location';
 import type { GamePlatform } from '@/types/domain/game-platform';
+import type { GameItem } from '@/types/domain/game-item';
+import type { Sublocation } from '@/types/domain/sublocation';
 import { GamePlatform as GamePlatformEnum } from '@/types/domain/game-platform';
 import { PhysicalLocationType, SublocationType } from '@/types/domain/location-types';
 
@@ -146,4 +148,79 @@ export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsRespons
       updatedAt: new Date().toISOString()
     };
   });
+}
+
+// New types for UI components
+export interface LocationCardData {
+  id: string;
+  name: string;
+  description?: string;
+  locationType: string;
+  bgColor?: string;
+  items: GameItem[];
+  sublocations: Sublocation[];
+  mapCoordinates?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  platform?: string; // For digital locations
+}
+
+// Transform physical location to card data
+export function adaptPhysicalLocationToCardData(location: PhysicalLocation): LocationCardData[] {
+  return (location.sublocations || []).map(subloc => ({
+    id: subloc.id,
+    name: subloc.name,
+    description: subloc.description,
+    locationType: subloc.type,
+    bgColor: subloc.metadata?.bgColor,
+    items: (subloc.items || []) as GameItem[],
+    sublocations: [],
+    mapCoordinates: subloc.metadata?.notes,
+    createdAt: subloc.createdAt,
+    updatedAt: subloc.updatedAt
+  }));
+}
+
+// Transform digital location to card data
+export function adaptDigitalLocationToCardData(location: DigitalLocation): LocationCardData {
+  return {
+    id: location.id,
+    name: location.name,
+    description: location.description,
+    locationType: location.type,
+    items: (location.items || []) as GameItem[],
+    sublocations: [],
+    createdAt: new Date(location.createdAt),
+    updatedAt: new Date(location.updatedAt),
+    platform: location.type // For digital locations, type is the platform
+  };
+}
+
+// Transform analytics data to UI-ready format
+export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponse): {
+  physicalCards: LocationCardData[];
+  digitalCards: LocationCardData[];
+  metadata: MediaStorageMetadata;
+} {
+  const physicalLocations = adaptAnalyticsToPhysicalLocations(analyticsData);
+  const digitalLocations = adaptAnalyticsToDigitalLocations(analyticsData);
+
+  // Transform physical locations to card data
+  const physicalCards = physicalLocations.flatMap(loc =>
+    adaptPhysicalLocationToCardData(loc)
+  );
+
+  // Transform digital locations to card data
+  const digitalCards = digitalLocations.map(loc =>
+    adaptDigitalLocationToCardData(loc)
+  );
+
+  // Get metadata
+  const metadata = adaptAnalyticsToStorageMetadata(analyticsData);
+
+  return {
+    physicalCards,
+    digitalCards,
+    metadata
+  };
 }

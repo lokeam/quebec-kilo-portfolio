@@ -32,6 +32,8 @@ CREATE TABLE games (
 CREATE TABLE platforms (
     id BIGINT PRIMARY KEY,  -- IGDB ID
     name VARCHAR(255) NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('console', 'pc', 'mobile')),
+    model VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -81,6 +83,8 @@ CREATE TABLE user_games (
     id SERIAL PRIMARY KEY,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     game_id BIGINT REFERENCES games(id) ON DELETE CASCADE,
+    game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
+    favorite BOOLEAN NOT NULL DEFAULT false,
     added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, game_id)
 );
@@ -146,12 +150,15 @@ CREATE TYPE payment_method_type AS ENUM (
 );
 
 -- Create digital_locations table
-CREATE TABLE IF NOT EXISTS digital_locations (
+CREATE TABLE digital_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     service_type digital_service_type NOT NULL DEFAULT 'basic',
     is_active BOOLEAN NOT NULL DEFAULT true,
+    -- Disk size fields with proper constraints
+    disk_size_value DECIMAL(10,2) CHECK (disk_size_value >= 0),
+    disk_size_unit VARCHAR(10) CHECK (disk_size_unit IN ('KB', 'MB', 'GB', 'TB')),
     url TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
