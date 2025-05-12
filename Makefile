@@ -60,7 +60,7 @@
 #
 # ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -568,3 +568,41 @@ migrate-down:
 	@echo "$(BLUE)Rolling back database migrations...$(RESET)"
 	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150000_create_initial_schema.down.sql
 	@echo "$(GREEN)Migrations rolled back successfully$(RESET)"
+
+# Recreate: Forcefully stop everything, remove all containers, networks, and volumes, and start fresh
+# Usage: make recreate
+recreate:
+	@echo "$(BLUE)Forcefully stopping everything...$(RESET)"
+	docker compose --env-file .env.dev down -v
+	docker volume prune -f
+	@echo "$(GREEN)Starting backend fresh...$(RESET)"
+	docker compose --env-file .env.dev up -d
+	@echo "$(GREEN)Backend recreated successfully.$(RESET)"
+
+# Nuclear: Complete system cleanup to resolve disk space issues
+# Usage: make nuclear
+nuclear:
+	@echo "$(RED)⚠️  WARNING: This will remove ALL Docker resources on your system!$(RESET)"
+	@echo "$(YELLOW)Are you sure you want to proceed? [y/N]$(RESET)"
+	@read -r response; \
+	if [[ ! "$$response" =~ ^[Yy]$$ ]]; then \
+		echo "$(BLUE)Nuclear cleanup cancelled$(RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Stopping all containers...$(RESET)"
+	docker compose --env-file .env.dev down -v
+	@echo "$(BLUE)Removing all stopped containers...$(RESET)"
+	docker container prune -f
+	@echo "$(BLUE)Removing all unused networks...$(RESET)"
+	docker network prune -f
+	@echo "$(BLUE)Removing all unused volumes...$(RESET)"
+	docker volume prune -f
+	@echo "$(BLUE)Removing all unused images...$(RESET)"
+	docker image prune -af
+	@echo "$(BLUE)Removing all build cache...$(RESET)"
+	docker builder prune -af
+	@echo "$(BLUE)Removing all unused data...$(RESET)"
+	docker system prune -af --volumes
+	@echo "$(GREEN)Starting backend fresh...$(RESET)"
+	docker compose --env-file .env.dev up -d traefik api postgres redis mailhog
+	@echo "$(GREEN)Nuclear cleanup complete. Backend services should be fresh and clean.$(RESET)"
