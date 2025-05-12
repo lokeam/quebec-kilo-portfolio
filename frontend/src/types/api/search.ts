@@ -11,6 +11,7 @@ export interface SearchResponse {
     firstReleaseDate?: number;
     rating?: number;
     themeNames?: string[];
+    platformNames?: string[];
     isInLibrary?: boolean;
     isInWishlist?: boolean;
   }>;

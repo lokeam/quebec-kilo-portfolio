@@ -116,6 +116,18 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
               </time>
             )}
           </h3>
+          {game.platformNames && game.platformNames.length > 0 && (
+            <div className="text-gray-400 text-sm mt-1">
+              {game.platformNames.map((platform, index) => (
+                <span key={platform}>
+                  {platform}
+                  {index < game.platformNames!.length - 1 && (
+                    <span className="mx-1">/</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {

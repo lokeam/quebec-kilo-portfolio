@@ -22,6 +22,7 @@ export const gameSearchResultAdapter = {
         firstReleaseDate: game.firstReleaseDate,
         rating: game.rating,
         themeNames: game.themeNames,
+        platformNames: game.platformNames,
         isInLibrary: game.isInLibrary,
         isInWishlist: game.isInWishlist,
       };
