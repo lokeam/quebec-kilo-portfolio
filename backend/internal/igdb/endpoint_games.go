@@ -26,7 +26,7 @@ func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
         return nil, err
     }
 
-    c.logger.Debug("igdb client - SearchGames - results with details: ", map[string]any{"results": results})
+    //c.logger.Debug("igdb client - SearchGames - results with details: ", map[string]any{"results": results})
 
     // Convert GameDetails back to Game and filter out games without cover URLs
     var convertedGames []*models.Game
@@ -41,6 +41,24 @@ func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
             continue
         }
 
+        // Create a new GameType with the data from IGDB
+        // gameType := types.GameType{
+        //     DisplayText:   detail.GameType.Type,
+        //     NormalizedText: strings.ToLower(strings.ReplaceAll(detail.GameType.Type, " ", "_")),
+        // }
+        gameType := types.GameType{
+            ID: detail.GameType.ID,
+            Type: detail.GameType.Type,
+            DisplayText: types.GameTypes[detail.GameType.ID].DisplayText,
+            NormalizedText: types.GameTypes[detail.GameType.ID].NormalizedText,
+        }
+
+        // Log the game type data for debugging
+        c.logger.Debug("Creating new GameType UPDATED", map[string]any{
+            "gameID": detail.ID,
+            "gameType": gameType,
+        })
+
         convertedGames = append(convertedGames, &models.Game{
             ID:                detail.ID,
             Name:              detail.Name,
@@ -51,6 +69,7 @@ func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
             PlatformNames:     detail.PlatformNames,
             GenreNames:        detail.GenreNames,
             ThemeNames:        detail.ThemeNames,
+            GameType:          gameType,
         })
     }
 
@@ -58,7 +77,7 @@ func (c *IGDBClient) SearchGames(query string) ([]*models.Game, error) {
 }
 
 func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.GameDetails, error) {
-    c.logger.Info("igdb client - GetGameDetailsBySearch called with games", map[string]any{"games": games})
+    //c.logger.Info("igdb client - GetGameDetailsBySearch called with games", map[string]any{"games": games})
 
     // Collect unique IDs for covers, genres, and platforms.
     coverIDsSet := make(map[int64]struct{})
@@ -79,12 +98,6 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.Game
         for _, themeID := range game.Themes {
             themeIDsSet[themeID] = struct{}{}
         }
-
-        // Log raw game themes
-        c.logger.Debug("igdb client - GetGameDetailsBySearch - raw game themes", map[string]any{
-            "gameID": game.ID,
-            "themes": game.Themes,
-        })
     }
 
     // Convert sets to slices.
@@ -135,7 +148,6 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.Game
         c.logger.Debug("igdb client - GetGameDetailsBySearch - themes fetched", map[string]any{"themes": themes})
     }
 
-
     // Create cover map for quick lookup
     coverMap := make(map[int64]types.Cover)
     for _, cover := range covers {
@@ -173,14 +185,17 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.Game
             GenreNames:         []string{},
             Themes:             []types.Theme{},
             ThemeNames:         []string{},
+            GameType: types.IGDBGameType{
+                ID:   game.GameType.ID,
+                Type: game.GameType.Type,
+            },
         }
 
-        c.logger.Debug("igdb client - GetGameDetailsBySearch - populated genres", map[string]any{
-            "gameID":      details.ID,
-            "genres":      details.Genres,
-            "genreNames":  details.GenreNames,
-            "themes":      details.Themes,
-            "themeNames":  details.ThemeNames,
+        // Log the raw game type data from IGDB response
+        c.logger.Debug("Creating new GameType in GetGameDetailsBySearch", map[string]any{
+            "id": game.GameType.ID,
+            "type": game.GameType.Type,
+            "rawGameType": game.GameType,
         })
 
         // Handle cover mapping
@@ -237,25 +252,7 @@ func (c *IGDBClient) GetGameDetailsBySearch(games []*models.Game) ([]*types.Game
             }
         }
 
-        c.logger.Debug("igdb client - GetGameDetailsBySearch - populated genres", map[string]any{
-            "gameID":      details.ID,
-            "genres":      details.Genres,
-            "genreNames":  details.GenreNames,
-            "themes":      details.Themes,
-            "themeNames":  details.ThemeNames,
-        })
-
         results = append(results, details)
-    }
-
-    for _, result := range results {
-        c.logger.Debug("igdb client - GetGameDetailsBySearch - final GameDetails", map[string]any{
-            "gameID":      result.ID,
-            "genres":      result.Genres,
-            "genreNames":  result.GenreNames,
-            "themes":      result.Themes,
-            "themeNames":  result.ThemeNames,
-        })
     }
 
     return results, nil

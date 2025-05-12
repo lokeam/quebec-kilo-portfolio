@@ -2,6 +2,12 @@
  * Domain type for Game entities
  * Represents a game in the system with all its properties
  */
+
+export interface GameType {
+  displayText: string;
+  normalizedText: string;
+}
+
 export interface Game {
   id: number;
   name: string;
@@ -14,6 +20,7 @@ export interface Game {
   platforms?: number[];
   genres?: number[];
   themes?: number[];
+  gameType?: GameType;
   isInLibrary?: boolean;
   isInWishlist?: boolean;
   platformNames?: string[];

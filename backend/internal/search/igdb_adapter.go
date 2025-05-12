@@ -25,7 +25,7 @@ import (
 		- platforms
 */
 const (
-	IGDBGameQueryTemplate = `fields id,name,summary,first_release_date,rating,cover,genres,themes,game_modes,platforms; search "%s"; limit %d;`
+	IGDBGameQueryTemplate = `fields id,name,summary,first_release_date,rating,cover,genres,themes,game_modes,platforms,game_type.id,game_type.type; search "%s"; limit %d;`
 )
 
 // IGDBAdapter wraps the IGDB client and adds circuit breaker protection and logging.
@@ -104,7 +104,7 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 	// Convert the IGDB Backend Response to what is expected by the Frontend
 	var games []*models.Game
 	for _, details := range gameDetails {
-		games = append(games, &models.Game{
+		game := &models.Game{
 			ID:                    details.ID,
 			Name:                  details.Name,
 			Summary:               details.Summary,
@@ -114,7 +114,10 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 			PlatformNames:         details.PlatformNames,
 			GenreNames:            details.GenreNames,
 			ThemeNames:            details.ThemeNames,
-		})
+			GameType:              details.GameType,
+		}
+
+		games = append(games, game)
 	}
 
 	return games, nil

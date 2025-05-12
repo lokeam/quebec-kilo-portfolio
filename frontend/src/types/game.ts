@@ -1,4 +1,10 @@
 // src/types/game.ts
+
+interface GameType {
+  display_text: string;
+  normalized_text: string;
+}
+
 export interface Game {
   id: number;
   name: string;
@@ -11,6 +17,8 @@ export interface Game {
   platforms?: number[];
   genres?: number[];
   themes?: number[];
+  gameTypeId?: number;
+  gameType?: GameType;
   isInLibrary?: boolean;
   isInWishlist?: boolean;
   platformNames?: string[];

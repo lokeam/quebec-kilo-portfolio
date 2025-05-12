@@ -14,6 +14,10 @@ export interface SearchResponse {
     platformNames?: string[];
     isInLibrary?: boolean;
     isInWishlist?: boolean;
+    gameType?: {
+      displayText: string;
+      normalizedText: string;
+    };
   }>;
   total: number;
   page: number;

@@ -29,6 +29,11 @@ type Theme struct {
     Name string   `json:"name"`
 }
 
+type IGDBGameType struct {
+    ID   int    `json:"id"`
+    Type string `json:"type"`
+}
+
 type GameDetails struct {
     ID                int64      `json:"id"`
     Name              string     `json:"name"`
@@ -43,4 +48,5 @@ type GameDetails struct {
     PlatformNames     []string   `json:"platform_names,omitempty"`
     Themes            []Theme    `json:"themes"`
     ThemeNames        []string   `json:"theme_names"`
+    GameType          IGDBGameType `json:"game_type"`
 }

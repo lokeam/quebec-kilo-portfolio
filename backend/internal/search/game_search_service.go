@@ -13,6 +13,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // GameSearchService processes search requests by validating and sanitizing the query,
@@ -155,6 +156,11 @@ func convertIGDBGame(g models.Game) models.Game {
 		PlatformNames:       g.PlatformNames,
 		GenreNames:          g.GenreNames,
 		ThemeNames:          g.ThemeNames,
+		GameType:            g.GameType,
+		GameTypeResponse:    types.GameTypeResponse{
+			DisplayText:    g.GameType.DisplayText,
+			NormalizedText: g.GameType.NormalizedText,
+		},
 	}
 }
 

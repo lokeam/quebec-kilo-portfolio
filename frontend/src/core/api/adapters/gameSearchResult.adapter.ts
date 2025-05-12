@@ -25,6 +25,7 @@ export const gameSearchResultAdapter = {
         platformNames: game.platformNames,
         isInLibrary: game.isInLibrary,
         isInWishlist: game.isInWishlist,
+        gameType: game.gameType,
       };
       console.log('Transformed game:', transformedGame);
 
@@ -82,6 +83,7 @@ export const gameSearchResultAdapter = {
       firstReleaseDate: game.firstReleaseDate,
       isInLibrary: game.isInLibrary ?? false,
       isInWishlist: game.isInWishlist ?? false,
+      gameType: game.gameType,
     };
 
     logger.debug('🔍 Created display model', {

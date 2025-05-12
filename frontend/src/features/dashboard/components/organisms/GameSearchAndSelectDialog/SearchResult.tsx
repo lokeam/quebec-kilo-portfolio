@@ -1,6 +1,7 @@
 // Components
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
+import { Badge } from '@/shared/components/ui/badge';
 import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
 
 // Type Refactor
@@ -29,6 +30,20 @@ const formatReleaseDate = (timestamp?: number): string => {
   if (!timestamp) return '';
   const date = new Date(timestamp * 1000); // Convert Unix timestamp to milliseconds
   return `(${date.getFullYear()})`;
+};
+
+// Helper function to get badge variant based on game type
+const getGameTypeBadgeVariant = (normalizedText?: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
+  switch (normalizedText) {
+    case 'main':
+      return 'default';
+    case 'dlc':
+      return 'secondary';
+    case 'expansion':
+      return 'destructive';
+    default:
+      return 'outline';
+  }
 };
 
 export function SearchResult({ game, onAction}: SearchResultProps) {
@@ -108,14 +123,16 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
 
       <div className="flex flex-1 min-w-0 items-center pr-2">
         <div className="flex-1 min-w-0"> {/* nested min-w-0 for text truncation */}
-          <h3 className="font-medium text-white text-wrap max-w-[140px] max-h-[48px] md:max-w-full md:max-h-unset truncate">
-            {game.name}
-            {game.firstReleaseDate && (
-              <time className="text-gray-400 text-sm font-normal ml-1" dateTime={new Date(game.firstReleaseDate * 1000).toISOString()}>
-                {formatReleaseDate(game.firstReleaseDate)}
-              </time>
-            )}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium text-white text-wrap max-w-[140px] max-h-[48px] md:max-w-full md:max-h-unset truncate">
+              {game.name}
+              {game.firstReleaseDate && (
+                <time className="text-gray-400 text-sm font-normal ml-1" dateTime={new Date(game.firstReleaseDate * 1000).toISOString()}>
+                  {formatReleaseDate(game.firstReleaseDate)}
+                </time>
+              )}
+            </h3>
+          </div>
           {game.platformNames && game.platformNames.length > 0 && (
             <div className="text-gray-400 text-sm mt-1">
               {game.platformNames.map((platform, index) => (
@@ -126,6 +143,13 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
                   )}
                 </span>
               ))}
+            </div>
+          )}
+          {game.gameType && (
+            <div className="text-gray-400 text-sm mt-3">
+              <Badge variant={getGameTypeBadgeVariant(game.gameType.normalizedText)}>
+                {game.gameType.displayText}
+              </Badge>
             </div>
           )}
         </div>
