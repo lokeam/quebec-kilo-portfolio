@@ -127,7 +127,7 @@ func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) 
 	}
 
 	// Convert responses to games
-	games := convertResponsesToGames(responses)
+	games := a.convertResponsesToGames(responses)
 
 	a.logger.Info("Successfully retrieved games from IGDB", map[string]any{
 		"count": len(games),
@@ -152,47 +152,74 @@ func (a *IGDBAdapter) UpdateToken(token string) error {
 //   - Basic game information
 //   - Nested data like platforms, genres, and themes
 //   - Game type information
-func convertResponsesToGames(responses []*types.IGDBResponse) []*models.Game {
+func (a *IGDBAdapter) convertResponsesToGames( responses []*types.IGDBResponse) []*models.Game {
 	games := make([]*models.Game, 0, len(responses))
+
 	for _, resp := range responses {
+		// Guard against missing/malformed payload - skip if game_type, coverURL or platforms are missing
+		if resp.GameType.Type == "" ||
+			resp.Cover.URL == "" ||
+			len(resp.Platforms) == 0 {
+				continue
+		}
+
+		// Look up labels for game_type ID
+		gameTypeResponseField := getGameType(resp.GameType.ID)
+
+		// Build full GameType value for DB
+		gameTypeforDB := types.GameType{
+			ID:               resp.GameType.ID,
+			Type:             resp.GameType.Type,
+			DisplayText:      gameTypeResponseField.DisplayText,
+			NormalizedText:   gameTypeResponseField.NormalizedText,
+		}
+
+		// Build GameTypeResponse for frontend JSON
+		gameTypeforResponse := types.GameTypeResponse{
+			DisplayText:       gameTypeforDB.DisplayText,
+			NormalizedText:    gameTypeforDB.NormalizedText,
+		}
+
 		gameResponse := &models.Game{
 			ID:               resp.ID,
 			Name:             resp.Name,
 			Summary:          resp.Summary,
+			CoverURL:         resp.Cover.URL,
 			FirstReleaseDate: resp.FirstReleaseDate,
 			Rating:           resp.Rating,
-			CoverURL:         resp.Cover.URL,
-			PlatformNames:    make([]string, len(resp.Platforms)),
-			GenreNames:       make([]string, len(resp.Genres)),
-			ThemeNames:       make([]string, len(resp.Themes)),
-			GameType:         convertGameType(resp.GameType),
+
+			// Fill both DB and JSON fields
+			GameType:         gameTypeforDB,
+			GameTypeResponse: gameTypeforResponse,
+
+			PlatformNames: make([]string, len(resp.Platforms)),
+			GenreNames:    make([]string, len(resp.Genres)),
+			ThemeNames:    make([]string, len(resp.Themes)),
 		}
 
-		// Convert platform names
 		for i, pl := range resp.Platforms {
 			gameResponse.PlatformNames[i] = pl.Name
 		}
-
-		// Convert genre names
 		for i, ge := range resp.Genres {
 			gameResponse.GenreNames[i] = ge.Name
 		}
-
-		// Convert theme names
 		for i, th := range resp.Themes {
 			gameResponse.ThemeNames[i] = th.Name
 		}
 
 		games = append(games, gameResponse)
 	}
+
 	return games
 }
 
-// Helper fn - convertGameType converts an IGDB game type to our application's game type.
-// This is needed because IGDB's response format doesn't exactly match our model.
-func convertGameType(igdbType types.IGDBResponseGameType) types.GameType {
-	return types.GameType{
-			ID:   int(igdbType.ID),
-			Type: igdbType.Type,
+// Helper fn - getGameType looks up the game type in the types.GameTypes map
+// Returns the corresponding types.GameType obj containing display text
+// and normalized text for the frontend response.
+// If the game type is not found, it returns a zero value.
+func getGameType(id int64) types.GameType {
+	if gameType, exists := types.GameTypes[id]; exists {
+		return gameType
 	}
+	return types.GameType{} // Return zero value if not found
 }

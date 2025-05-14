@@ -2,19 +2,19 @@ package types
 
 // GameType represents a game type with its display and normalized text
 type GameType struct {
-	ID             int    `json:"id"`
+	ID             int64    `json:"id"`
   Type           string `json:"type"`
-	DisplayText    string `json:"displayText"`
-	NormalizedText string `json:"normalizedText"`
+	DisplayText    string `json:"display_text"`
+	NormalizedText string `json:"normalized_text"`
 }
 
 type GameTypeResponse struct {
-	DisplayText    string `json:"displayText"`
-	NormalizedText string `json:"normalizedText"`
+	DisplayText    string `json:"display_text"`
+	NormalizedText string `json:"normalized_text"`
 }
 
 // GameTypes maps IGDB game type IDs to their display and normalized text
-var GameTypes = map[int]GameType{
+var GameTypes = map[int64]GameType{
 	0:  {DisplayText: "Main Game", NormalizedText: "main"},
 	1:  {DisplayText: "DLC Addon", NormalizedText: "dlc"},
 	2:  {DisplayText: "Expansion", NormalizedText: "expansion"},
@@ -30,20 +30,4 @@ var GameTypes = map[int]GameType{
 	12: {DisplayText: "Fork", NormalizedText: "fork"},
 	13: {DisplayText: "Pack", NormalizedText: "pack"},
 	14: {DisplayText: "Update", NormalizedText: "update"},
-}
-
-// GetGameType returns the GameType for a given ID, or a zero value if not found
-func GetGameType(id int) GameType {
-	if gameType, exists := GameTypes[id]; exists {
-		return gameType
-	}
-	return GameType{} // Return zero value if not found
-}
-
-func (gt GameType) ConvertToGameTypeResponse() GameTypeResponse {
-	gameType := GameTypes[gt.ID]
-    return GameTypeResponse{
-        DisplayText: gameType.DisplayText,
-        NormalizedText: gameType.NormalizedText,
-    }
 }

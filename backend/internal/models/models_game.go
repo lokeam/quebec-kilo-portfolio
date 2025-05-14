@@ -16,9 +16,9 @@ type Game struct {
 	Platforms        []int64   `json:"platforms,omitempty" db:"platforms"`
 	Genres           []int64   `json:"genres,omitempty" db:"genres"`
 	Themes           []int64   `json:"themes,omitempty" db:"themes"`
-	GameType         types.GameType `json:"-" db:"game_type_id"`
-	GameTypeResponse types.GameTypeResponse `json:"game_type" db:"-"`
-	IsInLibrary      bool      `json:"is_in_library" db:"-"` // Use db:"-" for fields not in the database
+	GameType         types.GameType `json:"-" db:"game_type_id"`        // used when saving to the database
+	GameTypeResponse types.GameTypeResponse `json:"game_type" db:"-"`   // sent as JSON to the frontend
+	IsInLibrary      bool      `json:"is_in_library" db:"-"`            // Use db:"-" for fields not in the database
 	IsInWishlist     bool      `json:"is_in_wishlist" db:"-"`
 
 	// NOTE: These fields won't be stored directly in the games table
