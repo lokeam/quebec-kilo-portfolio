@@ -39,3 +39,11 @@ func GetGameType(id int) GameType {
 	}
 	return GameType{} // Return zero value if not found
 }
+
+func (gt GameType) ConvertToGameTypeResponse() GameTypeResponse {
+	gameType := GameTypes[gt.ID]
+    return GameTypeResponse{
+        DisplayText: gameType.DisplayText,
+        NormalizedText: gameType.NormalizedText,
+    }
+}

@@ -2,13 +2,27 @@ package igdb
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
+// Helper fn - makeRequest handles the actual HTTP communication with the IGDB API.
+// It:
+//   1. Creates and sends an HTTP POST request to IGDB
+//   2. Adds required headers (Client-ID and Authorization)
+//   3. Handles the response and any errors
+//   4. Unmarshals the JSON response into the provided result
+//
+// The function is used by all IGDB API calls to ensure consistent:
+//   - Error handling
+//   - Logging
+//   - Authentication
+//   - Response processing
 func (c *IGDBClient) makeRequest(endpoint string, query string, result interface{}) error {
     if c == nil {
         return fmt.Errorf("IGDBClient is nil")
@@ -17,7 +31,8 @@ func (c *IGDBClient) makeRequest(endpoint string, query string, result interface
     c.logger.Info("igdb client - makeRequest called with endpoint: %s and query: %s",
         map[string]any{"endpoint": endpoint, "query": query})
 
-    url := fmt.Sprintf("%s/%s", IGDB_API_URL, endpoint)
+    // Use the IGDB API URL in igdb_constants file to make requests
+    url := fmt.Sprintf("%s/%s", BASE_IGDB_API_URL, endpoint)
 
     req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(query)))
     if err != nil {
@@ -71,15 +86,43 @@ func (c *IGDBClient) makeRequest(endpoint string, query string, result interface
     return nil
 }
 
-func buildIDQuery(ids []int64, fields string) string {
-    var strIDs []string
-    for _, id := range ids {
-        strIDs = append(strIDs, fmt.Sprintf("%d", id))
+// ExecuteQuery executes a query against the IGDB API and returns the results.
+// It:
+//   1. Takes a QueryBuilder to construct the query
+//   2. Builds the query string
+//   3. Makes the request to IGDB
+//   4. Returns the results as a slice of pointers to IGDBResponse
+//
+// The function uses makeRequest to handle the actual HTTP communication
+// and ensures proper error handling and logging.
+func (c *IGDBClient) ExecuteQuery(ctx context.Context, queryBuilder *QueryBuilder) ([]*types.IGDBResponse, error) {
+    if c == nil {
+        return nil, fmt.Errorf("IGDBClient is nil")
     }
-    return fmt.Sprintf("fields %s; where id = (%s);", fields, strings.Join(strIDs, ","))
+
+    if queryBuilder == nil {
+        return nil, fmt.Errorf("query is nil")
+    }
+
+    // Build the query string
+    queryStr, err := queryBuilder.Build()
+    if err != nil {
+        return nil, fmt.Errorf("failed to build query: %w", err)
+    }
+
+   // Make the request with a slice of pointers, allows unmarshaler to create pointers directly
+    var responses []*types.IGDBResponse
+    if err := c.makeRequest("games", queryStr, &responses); err != nil {
+        return nil, fmt.Errorf("failed to execute query: %w", err)
+    }
+
+    return responses, nil
 }
 
-// UpdateToken updates the client's authentication token
+
+// UpdateToken updates the client's authentication token.
+// This is needed because IGDB tokens expire and need to be refreshed
+// to maintain API access.
 func (c *IGDBClient) UpdateToken(token string) {
     c.token = token
 }

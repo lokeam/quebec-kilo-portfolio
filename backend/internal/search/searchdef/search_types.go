@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultPageSize = 20
+	DefaultPageSize = 30
 	MaxPageSize     = 50
 )
 
@@ -82,7 +82,7 @@ func NewSearchResult() *SearchResult {
 	return &SearchResult{
 		Games: make([]models.Game, 0),
 		Meta:  SearchMeta{
-			ResultsPerPage: 20,
+			ResultsPerPage: 30,
 		},
 	}
 }

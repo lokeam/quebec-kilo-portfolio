@@ -8,6 +8,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/igdb"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/sony/gobreaker"
 )
 
@@ -25,19 +26,27 @@ import (
 		- platforms
 */
 const (
-	IGDBGameQueryTemplate = `fields id,name,summary,first_release_date,rating,cover,genres,themes,game_modes,platforms,game_type.id,game_type.type; search "%s"; limit %d;`
+	IGDBGameQueryTemplate = `fields id,name,summary,first_release_date,rating,cover,genres,themes,platforms,game_type.id,game_type.type; search "%s"; limit %d;`
 )
 
 // IGDBAdapter wraps the IGDB client and adds circuit breaker protection and logging.
+// It acts as a bridge between our application's game search functionality and the IGDB API.
+// The adapter pattern allows us to:
+//   - Convert between IGDB's response format and our application's game model
+//   - Add logging and error handling
+//   - Implement caching if needed
+//   - Make the IGDB API easier to use in our application
 type IGDBAdapter struct {
 	client  *igdb.IGDBClient             // Underlying IGDB client.
-	breaker *gobreaker.CircuitBreaker // Circuit breaker to protect IGDB calls.
-	logger  interfaces.Logger         // Logger interface.
+	breaker *gobreaker.CircuitBreaker    // Circuit breaker to protect IGDB calls.
+	logger  interfaces.Logger            // Logger interface.
 }
 
 // NewIGDBAdapter creates a new IGDBAdapter instance.
-// It retrieves the Twitch token required by IGDB, creates an IGDB client,
-// and sets up the circuit breaker with appropriate settings.
+// It sets up the connection to IGDB by:
+//   1. Getting a Twitch token (required for IGDB authentication)
+//   2. Creating an IGDB client with the token
+//   3. Setting up logging
 func NewIGDBAdapter(appContext *appcontext.AppContext) (*IGDBAdapter, error) {
 	appContext.Logger.Debug("NewIGDBAdapter called", map[string]any{"appContext": appContext})
 
@@ -81,53 +90,109 @@ func NewIGDBAdapter(appContext *appcontext.AppContext) (*IGDBAdapter, error) {
 	}, nil
 }
 
-// SearchGames wraps the IGDB client's SearchGames method using the circuit breaker.
-// It logs the request and response, and returns an error if the circuit is open or the call fails.
+// SearchGames searches for games in the IGDB database.
+// It:
+//   1. Creates a query using the QueryBuilder
+//   2. Executes the query against IGDB
+//   3. Converts the IGDB response into our application's game model
+//   4. Handles any errors that occur during the process
+//
+// The query includes:
+//   - Basic game information (id, name, summary)
+//   - Release date and rating
+//   - Cover image URL
+//   - Platform, genre, and theme names
+//   - Game type information
 func (a *IGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*models.Game, error) {
-	a.logger.Info("IGDB Adapter - SearchGames called", map[string]any{
+	a.logger.Info("IGDB Adapter - UPDATED SearchGames called", map[string]any{
 		"query": query,
 		"limit": limit,
 	})
 
-	// Log the query being sent to IGDB
-	igdbQuery := fmt.Sprintf(IGDBGameQueryTemplate, query, limit)
-	a.logger.Debug("IGDB Query", map[string]any{
-		"query": igdbQuery,
-	})
+	// Create query builder with logger
+	queryBuilder := igdb.NewIGDBQueryBuilder(a.logger).
+        Search(query).
+        Fields(igdb.DefaultGameFields...).
+        Where(igdb.GameTypeFilter).
+        Limit(limit)
 
-	// Call the IGDB API
-	gameDetails, err := a.client.SearchGames(igdbQuery)
+	// Execute the query
+	responses, err := a.client.ExecuteQuery(ctx, queryBuilder)
 	if err != nil {
+		a.logger.Error("Failed to execute IGDB query", map[string]any{
+			"error": err,
+			"query": query,
+		})
 		return nil, err
 	}
 
-	// Convert the IGDB Backend Response to what is expected by the Frontend
-	var games []*models.Game
-	for _, details := range gameDetails {
-		game := &models.Game{
-			ID:                    details.ID,
-			Name:                  details.Name,
-			Summary:               details.Summary,
-			CoverURL:              details.CoverURL,
-			FirstReleaseDate:      details.FirstReleaseDate,
-			Rating:                details.Rating,
-			PlatformNames:         details.PlatformNames,
-			GenreNames:            details.GenreNames,
-			ThemeNames:            details.ThemeNames,
-			GameType:              details.GameType,
-		}
+	// Convert responses to games
+	games := convertResponsesToGames(responses)
 
-		games = append(games, game)
-	}
+	a.logger.Info("Successfully retrieved games from IGDB", map[string]any{
+		"count": len(games),
+	})
 
 	return games, nil
 }
 
-// UpdateToken updates the token in the underlying IGDB client
+
+// UpdateToken updates the authentication token used by the IGDB client.
+// This is needed because IGDB tokens expire and need to be refreshed.
 func (a *IGDBAdapter) UpdateToken(token string) error {
 	if a.client == nil {
 		return fmt.Errorf("IGDB client is nil")
 	}
 	a.client.UpdateToken(token)
 	return nil
+}
+
+// Helper fn - convertResponsesToGames converts IGDB API responses into our application's game model.
+// It handles the conversion of:
+//   - Basic game information
+//   - Nested data like platforms, genres, and themes
+//   - Game type information
+func convertResponsesToGames(responses []*types.IGDBResponse) []*models.Game {
+	games := make([]*models.Game, 0, len(responses))
+	for _, resp := range responses {
+		gameResponse := &models.Game{
+			ID:               resp.ID,
+			Name:             resp.Name,
+			Summary:          resp.Summary,
+			FirstReleaseDate: resp.FirstReleaseDate,
+			Rating:           resp.Rating,
+			CoverURL:         resp.Cover.URL,
+			PlatformNames:    make([]string, len(resp.Platforms)),
+			GenreNames:       make([]string, len(resp.Genres)),
+			ThemeNames:       make([]string, len(resp.Themes)),
+			GameType:         convertGameType(resp.GameType),
+		}
+
+		// Convert platform names
+		for i, pl := range resp.Platforms {
+			gameResponse.PlatformNames[i] = pl.Name
+		}
+
+		// Convert genre names
+		for i, ge := range resp.Genres {
+			gameResponse.GenreNames[i] = ge.Name
+		}
+
+		// Convert theme names
+		for i, th := range resp.Themes {
+			gameResponse.ThemeNames[i] = th.Name
+		}
+
+		games = append(games, gameResponse)
+	}
+	return games
+}
+
+// Helper fn - convertGameType converts an IGDB game type to our application's game type.
+// This is needed because IGDB's response format doesn't exactly match our model.
+func convertGameType(igdbType types.IGDBResponseGameType) types.GameType {
+	return types.GameType{
+			ID:   int(igdbType.ID),
+			Type: igdbType.Type,
+	}
 }
