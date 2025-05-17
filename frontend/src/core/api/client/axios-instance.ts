@@ -1,5 +1,5 @@
 import axios, { type AxiosResponse, AxiosError } from 'axios';
-import type { ApiError } from '@/types/api.types.refactor';
+import type { ApiError } from '@/types/api/response';
 
 import { logger } from '@/core/utils/logger/logger';
 import { toCamelCase, toSnakeCase } from '@/core/api/utils/serialization';
@@ -86,9 +86,12 @@ const handleAxiosError = (error: AxiosError<ApiError>): Promise<never> => {
 // Request interceptor: attach auth token, log requests
 axiosInstance.interceptors.request.use(
   config => {
-    // Example: attach auth token
+    // NOTE: REPLACE WITH ACTUAL AUTH0 TOKEN
     // const token = getAuthToken();
-    // if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    // if (token) {
+    //   config.headers = config.headers || {};
+    //   config.headers['Authorization'] = `Bearer ${token}`;
+    // }
     logger.debug('❓ INTERCEPTOR Request 📢', {
       method: config.method,
       url: config.url,

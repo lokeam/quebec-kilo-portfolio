@@ -1,30 +1,24 @@
 export interface CreateLibraryGameRequest {
-  /** Name of the digital location */
-  name: string;
+  /** Name of the game */
+  gameId: number;
 
   /** Type of digital location */
-  type: string;
-
-  /** Optional description */
-  description?: string;
-
-  /** Optional metadata */
-  metadata?: CreateLibraryGameMetadata;
+  gamesByPlatformAndLocation: CreateLibraryGameRequestLocationEntry[];
 }
 
 /**
  * Metadata for a digital location
  */
-export interface CreateLibraryGameMetadata {
-  /** Platform-specific identifier */
-  platformId?: string;
+export interface CreateLibraryGameRequestLocationEntry {
+  /** Platform-specific name */
+  platformName?: string;
 
-  /** Platform-specific username */
-  username?: string;
+  /** Platform-specific type. May be either digital or physical */
+  type: 'digital' | 'physical';
 
-  /** Platform-specific API key or token */
-  apiKey?: string;
-
-  /** Additional platform-specific metadata */
-  [key: string]: unknown;
+  /** Platform-specific location ID */
+  location: {
+    sublocationId?: string;
+    digitalLocationId?: string;
+  };
 }
