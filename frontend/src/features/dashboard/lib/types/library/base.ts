@@ -7,8 +7,8 @@ import type { BaseLocation, StorageUnit } from '@/shared/types/location';
  */
 export interface BaseMediaItem {
   id: string;
-  title: string;
-  imageUrl: string;
+  name: string;
+  coverUrl: string;
   favorite: boolean;
   dateAdded: ISO8601Date;
 }

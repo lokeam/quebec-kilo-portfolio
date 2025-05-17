@@ -74,6 +74,8 @@ export function SearchDialog({
   footer,
   trigger,
 }: SearchDialogProps) {
+
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger}

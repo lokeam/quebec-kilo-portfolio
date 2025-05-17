@@ -8,6 +8,7 @@ import { DialogTrigger } from '@/shared/components/ui/dialog';
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
 import { ResultsSection } from './ResultsSection/ResultsSection';
 import { ActionsSection } from './ActionsSection/ActionsSection';
+import { Loading } from '@/shared/components/ui/loading/Loading';
 
 // Hooks
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -15,8 +16,13 @@ import { useGameSearch } from '@/core/api/queries/gameSearch.queries';
 
 // Icons
 import { SearchIcon } from 'lucide-react';
+import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 
 export function GameSearchAndSelectDialog() {
+  const { data: storageData, isLoading: isStorageDataLoading, error: storageDataError } = useStorageAnalytics({ enabled: true});
+
+  console.log('storageData from analytics', storageData);
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
@@ -58,6 +64,9 @@ export function GameSearchAndSelectDialog() {
     setIsOpen(false);
   }, []);
 
+  if (isStorageDataLoading) return <Loading />;
+  if (storageDataError) return <div>Error loading storage data</div>;
+
   return (
     <SearchDialog
       open={isOpen}
@@ -93,6 +102,8 @@ export function GameSearchAndSelectDialog() {
               isLoading={isLoading}
               error={error instanceof Error ? error : null}
               onSelect={handleGameSelect}
+              physicalLocations={storageData?.physicalLocations}
+              digitalLocations={storageData?.digitalLocations}
             />
             <ActionsSection
               selectedGames={selectedGames}

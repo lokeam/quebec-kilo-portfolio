@@ -5,13 +5,24 @@
  */
 
 import { keepPreviousData } from '@tanstack/react-query';
-import { useAPIQuery } from './useAPIQuery';
-import { searchGames } from '../services/gameSearch.service';
-import type { SearchCriteria, SearchResult, SearchMetadata } from '@/types/domain/search';
+
+// utils
 import { logger } from '@/core/utils/logger/logger';
-import { QUERY_GARBAGE_COLLECTION_TIME, QUERY_STALE_TIME } from '../config';
-import { gameSearchResultAdapter } from '../adapters/gameSearchResult.adapter';
-// import type { SearchResponse } from '@/types/api/search';
+
+// services
+import { searchGames } from '@/core/api/services/gameSearch.service';
+
+// base query hook
+import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
+
+// adapters
+import { gameSearchResultAdapter } from '@/core/api/adapters/gameSearchResult.adapter';
+
+// types
+import type { SearchCriteria, SearchResult, SearchMetadata } from '@/types/domain/search';
+
+// constants
+import { QUERY_GARBAGE_COLLECTION_TIME, QUERY_STALE_TIME } from '@/core/api/config';
 
 /**
  * Query key factory for game search queries

@@ -1,17 +1,38 @@
+import { useState } from 'react';
+
 // Components
-import { SearchResult } from '../SearchResult';
+import { SearchResult } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/SearchResult';
+import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
+import { AddGameToLibraryForm } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
 
 // Types
 import type { SearchResult as SearchResultType } from '@/types/domain/search';
+import type { Game } from '@/types/domain/game';
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 interface ResultsSectionProps {
   results?: SearchResultType[];
   isLoading: boolean;
   error: Error | null;
   onSelect: (gameId: string) => void;
+  physicalLocations?: PhysicalLocation[];
+  digitalLocations?: DigitalLocation[];
 }
 
-export function ResultsSection({ results, isLoading, error, onSelect }: ResultsSectionProps) {
+export function ResultsSection({
+  results,
+  isLoading,
+  error,
+  onSelect,
+  physicalLocations,
+  digitalLocations,
+}: ResultsSectionProps) {
+  const [selectedGameWithDrawerOpen, setSelectedGameWithDrawerOpen] = useState<Game | null>(null);
+
+  const handleAddGameToLibrary = (game: Game) => setSelectedGameWithDrawerOpen(game);
+  const handleCloseDrawer = () => setSelectedGameWithDrawerOpen(null);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -32,6 +53,9 @@ export function ResultsSection({ results, isLoading, error, onSelect }: ResultsS
 
   if (!results) return null;
 
+  console.log('ResultsSection, physicalLocations', physicalLocations);
+  console.log('ResultsSection, digitalLocations', digitalLocations);
+
   return (
     <div className="space-y-4">
       {results.map((result) => (
@@ -39,8 +63,30 @@ export function ResultsSection({ results, isLoading, error, onSelect }: ResultsS
           key={result.game.id}
           game={result.game}
           onAction={() => onSelect(String(result.game.id))}
+          onAddToLibrary={handleAddGameToLibrary}
         />
       ))}
+
+      <DrawerContainer
+        open={!!selectedGameWithDrawerOpen}
+        onOpenChange={open => {
+          console.log('Drawer onOpenChanged called with: ', open);
+          if (!open) handleCloseDrawer();
+        }}
+        title=""
+        description=""
+      >
+        {
+          selectedGameWithDrawerOpen && (
+            <AddGameToLibraryForm
+              selectedGame={selectedGameWithDrawerOpen}
+              physicalLocations={physicalLocations ?? []}
+              digitalLocations={digitalLocations ?? []}
+            />
+          )
+        }
+
+      </DrawerContainer>
     </div>
   );
 }

@@ -10,7 +10,9 @@ import type { Game } from '@/types/domain/game';
 // Legacy Types
 //import type { WishlistItem } from '@/features/dashboard/lib/types/wishlist/base';
 
-import { useAddToLibrary, useAddToWishlist } from '@/core/api/queries/useLibraryMutations';
+// NOTE: Commented out because we don't have a way to add to library or wishlist yet
+// Replace these legacy hooks with the new ones when we have them
+// import { useAddToLibrary, useAddToWishlist } from '@/core/api/queries/useLibraryMutations';
 
 // Icons
 import { LibraryBig } from 'lucide-react';
@@ -23,6 +25,7 @@ import { IconHeart } from '@tabler/icons-react';
 type SearchResultProps = {
   game: Game;
   onAction?: () => void; // Callback to close dialog
+  onAddToLibrary?: (game: Game) => void;
 }
 
 // Helper function to format release date
@@ -46,24 +49,30 @@ const getGameTypeBadgeVariant = (normalizedText?: string): 'default' | 'secondar
   }
 };
 
-export function SearchResult({ game, onAction}: SearchResultProps) {
-  const addToLibrary = useAddToLibrary();
-  const addToWishList = useAddToWishlist();
+export function SearchResult({
+  game,
+  onAction,
+  onAddToLibrary,
+}: SearchResultProps) {
+  // const addToLibrary = useAddToLibrary();
+  // const addToWishList = useAddToWishlist();
 
   // Debug the game object and firstReleaseDate
+  console.log('--------------------------------');
+  console.log('SearchResult onAddToLibrary: ', onAddToLibrary);
+  console.log('--------------------------------');
   console.log('Game object:', game);
   console.log('First release date:', game.firstReleaseDate);
   console.log('Formatted date:', game.firstReleaseDate ? formatReleaseDate(game.firstReleaseDate) : 'No date');
 
   const handleAddToLibrary = () => {
-    addToLibrary.mutate({
-      id: Number(game.id),
-      name: game.name,
-      cover_url: game.coverUrl,
-      rating: game.rating ? Number(game.rating) : undefined,
-      theme_names: game.themeNames ? [...game.themeNames] : undefined,
-    })
+    console.log('Adding to library fired for selected game:', game);
 
+    if (onAddToLibrary) {
+      onAddToLibrary(game);
+    }
+
+    // Optinally call onAction to close dialog or handle other side effect
     if (onAction) onAction();
 
     // Move this to mutation success
@@ -75,13 +84,7 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
   };
 
   const handleAddToWishlist = () => {
-    addToWishList.mutate({
-      id: Number(game.id),
-      name: game.name,
-      cover_url: game.coverUrl,
-      rating: game.rating ? Number(game.rating) : undefined,
-      theme_names: game.themeNames ? [...game.themeNames] : undefined,
-    })
+    console.log('Adding to wishlist', game);
 
     if (onAction) onAction();
 
@@ -93,7 +96,8 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
   };
 
   const showLibraryButton = !game.isInLibrary;
-  const showWishlistButton = !game.isInWishlist;
+  // Mods are free, so we don't need to show the wishlist button
+  const showWishlistButton = !game.isInWishlist && game.gameType?.normalizedText !== 'mod';
 
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
@@ -157,12 +161,14 @@ export function SearchResult({ game, onAction}: SearchResultProps) {
         {
           (
             <div className="flex shrink-0 gap-1 mt-1 ml-2">
+            {/* Add to Library Button */}
               {showLibraryButton && (
                 <Button variant="outline" onClick={handleAddToLibrary}>
                   <LibraryBig className="w-5 h-5" />
                   <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to library</span>
                 </Button>
               )}
+            {/* Add to Wishlist Button */}
               {showWishlistButton && (
                 <Button variant="outline" onClick={handleAddToWishlist}>
                   <IconHeart className="w-5 h-5" />

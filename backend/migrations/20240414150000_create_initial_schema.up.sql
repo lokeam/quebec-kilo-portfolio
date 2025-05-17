@@ -81,12 +81,17 @@ CREATE TABLE game_themes (
 -- Create user_games table
 CREATE TABLE user_games (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    game_id BIGINT REFERENCES games(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    game_id BIGINT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    platform_id BIGINT NOT NULL REFERENCES platforms(id) ON DELETE CASCADE,
     game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
     favorite BOOLEAN NOT NULL DEFAULT false,
-    added_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, game_id)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, game_id, platform_id),
+    -- Ensure platform is valid for this game
+    CONSTRAINT valid_game_platform
+        FOREIGN KEY (game_id, platform_id)
+        REFERENCES game_platforms(game_id, platform_id)
 );
 
 -- Create physical_locations table
@@ -123,6 +128,17 @@ CREATE TABLE physical_game_locations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_game_id, sublocation_id)
 );
+
+-- Add constraint to physical_game_locations
+ALTER TABLE physical_game_locations
+ADD CONSTRAINT valid_physical_game
+    CHECK (
+        EXISTS (
+            SELECT 1 FROM user_games ug
+            WHERE ug.id = user_game_id
+            AND ug.game_type = 'physical'
+        )
+    );
 
 -- Create digital service types enum
 CREATE TYPE digital_service_type AS ENUM (
@@ -198,6 +214,17 @@ CREATE TABLE digital_game_locations (
     UNIQUE(user_game_id, digital_location_id)
 );
 
+-- Add constraint to digital_game_locations
+ALTER TABLE digital_game_locations
+ADD CONSTRAINT valid_digital_game
+    CHECK (
+        EXISTS (
+            SELECT 1 FROM user_games ug
+            WHERE ug.id = user_game_id
+            AND ug.game_type = 'digital'
+        )
+    );
+
 -- Create expenses table
 CREATE TABLE expenses (
     id SERIAL PRIMARY KEY,
@@ -230,6 +257,7 @@ CREATE TABLE wishlist (
 -- Create foreign key indexes
 CREATE INDEX idx_user_games_user_id ON user_games(user_id);
 CREATE INDEX idx_user_games_game_id ON user_games(game_id);
+CREATE INDEX idx_user_games_platform_id ON user_games(platform_id);
 CREATE INDEX idx_physical_locations_user_id ON physical_locations(user_id);
 CREATE INDEX idx_sublocations_user_id ON sublocations(user_id);
 CREATE INDEX idx_sublocations_physical_location_id ON sublocations(physical_location_id);
