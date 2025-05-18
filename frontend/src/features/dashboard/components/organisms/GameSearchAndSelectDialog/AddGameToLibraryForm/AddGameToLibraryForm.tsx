@@ -24,6 +24,7 @@ import { MultiSelect } from '@/shared/components/ui/MultiSelect/MultiSelect';
 // Hooks
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useCreateLibraryGame } from '@/core/api/queries/gameLibrary.queries';
 
 import { cn } from '@/shared/components/ui/utils';
 
@@ -45,7 +46,7 @@ interface AddToLibraryFormLocationEntry {
   };
 }
 
-interface AddToLibraryFormPayload {
+export interface AddToLibraryFormPayload {
   gameId: number;
   gamesByPlatformAndLocation: AddToLibraryFormLocationEntry[];
 }
@@ -104,12 +105,14 @@ interface AddGameToLibraryFormProps {
   selectedGame: Game;
   physicalLocations: PhysicalLocation[];
   digitalLocations: DigitalLocation[];
+  onClose?: () => void;
 }
 
 export function AddGameToLibraryForm({
   selectedGame,
   physicalLocations,
   digitalLocations,
+  onClose,
 }: AddGameToLibraryFormProps) {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
@@ -126,14 +129,15 @@ export function AddGameToLibraryForm({
   const selectedLocations = form.watch('selectedLocations');
   const selectedLocationsCount = Object.values(selectedLocations).filter(Boolean).length;
 
-  const onSubmit = (data: z.infer<typeof AddGameToLibraryFormSchema>) => {
+  const createMutation = useCreateLibraryGame();
+
+  const onSubmit = async (data: z.infer<typeof AddGameToLibraryFormSchema>) => {
     try {
       setIsFormSubmitting(true);
       const { gameLocations } = data;
 
       // Transform data to an efficient payload
       const gamesByPlatformAndLocation = Object.entries(gameLocations).flatMap(([locationId, platforms]) => {
-        // Determine if this is a digital location
         const isDigital = digitalLocations.some(loc => loc.id === locationId);
 
         // Map each platform to an entry
@@ -148,11 +152,13 @@ export function AddGameToLibraryForm({
 
       const payload: AddToLibraryFormPayload = {
         gameId: selectedGame.id,
-        gamesByPlatformAndLocation
+        gamesByPlatformAndLocation,
       };
 
-      // TODO: Replace with proper library post query
-      console.log('Form Payload:', payload);
+      await createMutation.mutateAsync(payload);
+
+      if (onClose) onClose();
+
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
@@ -349,7 +355,7 @@ export function AddGameToLibraryForm({
           <Button
             type="submit"
             className="w-full md:w-auto"
-            disabled={!form.formState.isValid || !selectedStorageType || isFormSubmitting}
+            disabled={!form.formState.isValid || !selectedStorageType || isFormSubmitting || createMutation.isPending}
           >
             {isFormSubmitting
               ? 'Adding to Library...'
