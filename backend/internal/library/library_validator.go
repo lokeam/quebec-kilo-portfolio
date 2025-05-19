@@ -75,39 +75,56 @@ func (lv *LibraryValidator) ValidateUserID(userID string) error {
 }
 
 // Validate game object for adding to library
-func (lv *LibraryValidator) ValidateGame(game models.Game) error {
+func (lv *LibraryValidator) ValidateGame(game models.LibraryGame) error {
 	// Initialize slice to collect validation errors
 	var violations []string
 
-	// Validate ID
-	if err := lv.ValidateGameID(game.ID); err != nil {
+	// Validate IGDB GameID
+	if err := lv.ValidateGameID(game.GameID); err != nil {
 		violations = append(violations, err.Error())
 	}
 
-	// Validate Name
-	if err := lv.ValidateGameName(game.Name); err != nil {
+	// Validate GameName
+	if err := lv.ValidateGameName(game.GameName); err != nil {
 		violations = append(violations, err.Error())
 	}
 
-	// Validate Summary (optional)
-	if game.Summary != "" {
-		if err := lv.ValidateGameSummary(game.Summary); err != nil {
+	// Validate GameCoverURL
+	if game.GameCoverURL != "" {
+		if err := lv.validateURL(game.GameCoverURL); err != nil {
 			violations = append(violations, err.Error())
 		}
 	}
 
-	// Validate CoverURL (optional)
-	if game.CoverURL != "" {
-		if err := lv.validateURL(game.CoverURL); err != nil {
+	// Validate GameType
+	if err := lv.validateGameType(game.GameType); err != nil {
+		violations = append(violations, err.Error())
+	}
+
+	// Validate CoverURL
+	if game.GameCoverURL != "" {
+		if err := lv.validateURL(game.GameCoverURL); err != nil {
 			violations = append(violations, err.Error())
 		}
 	}
 
-	// Validate Rating (optional)
-	if game.Rating > 0 {
-		if err := lv.validateRating(game.Rating); err != nil {
-			violations = append(violations, err.Error())
-		}
+	// Validate Rating
+	if err := lv.validateGameRating(game.GameRating); err != nil {
+		violations = append(violations, err.Error())
+}
+
+	// Validate GameThemeNames
+	if err := lv.validateGameThemeNames(game.GameThemeNames); err != nil {
+		violations = append(violations, err.Error())
+	}
+
+	if err := lv.validateGameReleaseDate(game.GameFirstReleaseDate); err != nil {
+		violations = append(violations, err.Error())
+	}
+
+	// Validate PlatformLocations
+	if err := lv.validatePlatformLocations(game.PlatformLocations); err != nil {
+		violations = append(violations, err.Error())
 	}
 
 	if len(violations) > 0 {
@@ -225,6 +242,171 @@ func (lv *LibraryValidator) validateRating(rating float64) error {
 		return &validationErrors.ValidationError{
 			Field: "rating",
 			Message: "rating must be between 0 and 100",
+		}
+	}
+
+	return nil
+}
+
+func (lv *LibraryValidator) validateGameType(gameType models.LibraryGameType) error {
+	if gameType.DisplayText == "" {
+		return &validationErrors.ValidationError{
+			Field: "gameType.displayText",
+			Message: "game type display text cannot be empty",
+		}
+	}
+
+	if gameType.NormalizedText == "" {
+		return &validationErrors.ValidationError{
+			Field: "gameType.normalizedText",
+			Message: "game type normalized text cannot be empty",
+		}
+	}
+
+	// Sanitize both fields
+	sanitizedDisplayText, err := lv.sanitizer.SanitizeString(gameType.DisplayText)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field: "gameType.displayText",
+			Message: fmt.Sprintf("invalid game type display text: %v", err),
+		}
+	}
+
+	sanitizedNormalizedText, err := lv.sanitizer.SanitizeString(gameType.NormalizedText)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field: "gameType.normalizedText",
+			Message: fmt.Sprintf("invalid game type normalized text: %v", err),
+		}
+	}
+
+	if sanitizedDisplayText != gameType.DisplayText || sanitizedNormalizedText != gameType.NormalizedText {
+		return &validationErrors.ValidationError{
+			Field: "gameType",
+			Message: "game type contains invalid characters",
+		}
+	}
+
+	return nil
+}
+
+func (lv *LibraryValidator) validateGameThemeNames(themes []string) error {
+	if len(themes) == 0 {
+			return nil // Themes are optional
+	}
+
+	for i, theme := range themes {
+			if theme == "" {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("gameThemeNames[%d]", i),
+							Message: "theme name cannot be empty",
+					}
+			}
+
+			sanitizedTheme, err := lv.sanitizer.SanitizeString(theme)
+			if err != nil {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("gameThemeNames[%d]", i),
+							Message: fmt.Sprintf("invalid theme name: %v", err),
+					}
+			}
+
+			if sanitizedTheme != theme {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("gameThemeNames[%d]", i),
+							Message: "theme name contains invalid characters",
+					}
+			}
+	}
+
+	return nil
+}
+
+func (lv *LibraryValidator) validatePlatformLocations(locations []models.CreateLibraryGameLocation) error {
+	if len(locations) == 0 {
+			return &validationErrors.ValidationError{
+					Field: "platformLocations",
+					Message: "at least one platform location is required",
+			}
+	}
+
+	for i, loc := range locations {
+			// Validate PlatformName
+			if loc.PlatformName == "" {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].platformName", i),
+							Message: "platform name cannot be empty",
+					}
+			}
+
+			// Validate Type
+			if loc.Type != "digital" && loc.Type != "physical" {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].type", i),
+							Message: "type must be either 'digital' or 'physical'",
+					}
+			}
+
+			// Validate LocationID
+			if loc.Location.SublocationID == "" && loc.Location.DigitalLocationID == "" {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].locationId", i),
+							Message: "location ID cannot be empty",
+					}
+			}
+
+			// Sanitize fields
+			sanitizedPlatform, err := lv.sanitizer.SanitizeString(loc.PlatformName)
+			if err != nil {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].platformName", i),
+							Message: fmt.Sprintf("invalid platform name: %v", err),
+					}
+			}
+
+			sanitizedSublocation, err := lv.sanitizer.SanitizeString(loc.Location.SublocationID)
+			if err != nil {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].locationId", i),
+							Message: fmt.Sprintf("invalid location ID: %v", err),
+					}
+			}
+
+			sanitizedDigitalLocation, err := lv.sanitizer.SanitizeString(loc.Location.DigitalLocationID)
+			if err != nil {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d].locationId", i),
+							Message: fmt.Sprintf("invalid location ID: %v", err),
+					}
+			}
+
+			if sanitizedPlatform != loc.PlatformName || sanitizedSublocation != loc.Location.SublocationID || sanitizedDigitalLocation != loc.Location.DigitalLocationID {
+					return &validationErrors.ValidationError{
+							Field: fmt.Sprintf("platformLocations[%d]", i),
+							Message: "platform location contains invalid characters",
+					}
+			}
+	}
+
+	return nil
+}
+
+func (lv *LibraryValidator) validateGameRating(rating float64) error {
+	if rating < 0 || rating > 100 {
+		return &validationErrors.ValidationError{
+			Field: "gameRating",
+			Message: "rating must be between 0 and 100",
+		}
+	}
+
+	return nil
+}
+
+func (lv *LibraryValidator) validateGameReleaseDate(releaseDate int64) error {
+	if releaseDate < 0 {
+		return &validationErrors.ValidationError{
+			Field: "gameFirstReleaseDate",
+			Message: "release date cannot be negative",
 		}
 	}
 

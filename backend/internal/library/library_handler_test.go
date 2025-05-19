@@ -37,10 +37,10 @@ import (
 */
 
 type MockLibraryService struct {
-	GetLibraryItemsResult        []models.Game
-	GetLibraryItemsError         error
+	GetAllLibraryGamesResult     []models.Game
+	GetAllLibraryGamesError      error
 
-	AddGameToLibraryError        error
+	CreateLibraryGameError        error
 	MostRecentlyAddedGame        *models.Game
 
 	DeleteGameError              error
@@ -53,25 +53,25 @@ type MockLibraryService struct {
 }
 
 // Mock library service methods
-func (m *MockLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
-	return m.GetLibraryItemsResult, m.GetLibraryItemsError
+func (m *MockLibraryService) GetAllLibraryGames(ctx context.Context, userID string) ([]models.Game, error) {
+	return m.GetAllLibraryGamesResult, m.GetAllLibraryGamesError
 }
 
 func (m *MockLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error) {
 	return m.GetGameByIDResult, m.GetGameByIDError
 }
 
-func (m *MockLibraryService) AddGameToLibrary(ctx context.Context, userID string, game models.Game) error {
+func (m *MockLibraryService) CreateLibraryGame(ctx context.Context, userID string, game models.Game) error {
 	m.MostRecentlyAddedGame = &game // NOTE: I don't understand why this works
-	return m.AddGameToLibraryError
+	return m.CreateLibraryGameError
 }
 
-func (m *MockLibraryService) DeleteGameFromLibrary(ctx context.Context, userID string, gameID int64) error {
+func (m *MockLibraryService) DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error {
 	m.MostRecentlyDeletedGameID = gameID
 	return m.DeleteGameError
 }
 
-func (m *MockLibraryService) UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error {
+func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.Game) error {
 	return m.UpdateGameError
 }
 
@@ -158,7 +158,7 @@ func TestLibraryHandler(t *testing.T) {
 	/*
 		GIVEN an HTTP GET request with a valid user ID
 		WHEN the LibraryHandler is called
-		THEN the library service's GetLibraryItems method is called
+		THEN the library service's GetAllLibraryGames method is called
 		AND a JSON response with the library items is returned
 	*/
 	t.Run(`GET - Library Items Successfully`, func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestLibraryHandler(t *testing.T) {
 			{ ID: 2, Name: "Game 2" },
 		}
 		mockService := &MockLibraryService{
-			GetLibraryItemsResult: games,
+			GetAllLibraryGamesResult: games,
 		}
 
 		// Create handler
@@ -219,7 +219,7 @@ func TestLibraryHandler(t *testing.T) {
 	/*
 		GIVEN an HTTP POST request with a valid game in the body
 		WHEN the LibraryHandler is called
-		THEN the library service's AddGameToLibrary method is called with the game
+		THEN the library service's CreateLibraryGame method is called with the game
 		AND a JSON response with success is returned
 	*/
 	t.Run(`POST - Library Items Service Error`, func(t *testing.T) {
@@ -319,7 +319,7 @@ func TestLibraryHandler(t *testing.T) {
 	t.Run(`POST - Add Game to Library Service Error`, func(t *testing.T) {
 		// Create mock service with error
 		mockService := &MockLibraryService{
-			AddGameToLibraryError: errors.New("service error"),
+			CreateLibraryGameError: errors.New("service error"),
 		}
 
 		// Create handler
@@ -348,7 +348,7 @@ func TestLibraryHandler(t *testing.T) {
 	/*
 		GIVEN an HTTP DELETE request with a valid game ID
 		WHEN the LibraryHandler is called
-		THEN the library service's DeleteGameFromLibrary method is called with the ID
+		THEN the library service's DeleteLibraryGame method is called with the ID
 		AND a JSON response with success is returned
 	*/
 	t.Run(`DELETE - Delete Game from Library Successfully`, func(t *testing.T) {
@@ -374,7 +374,7 @@ func TestLibraryHandler(t *testing.T) {
 
 		// Validate that service was called with correct ID
 		if mockService.MostRecentlyDeletedGameID != 123 {
-			t.Errorf("Expected DeleteGameFromLibrary to be called with ID 123, got %d", mockService.MostRecentlyDeletedGameID)
+			t.Errorf("Expected DeleteLibraryGame to be called with ID 123, got %d", mockService.MostRecentlyDeletedGameID)
 		}
 
 		// Validate response body

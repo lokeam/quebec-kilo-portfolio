@@ -107,8 +107,8 @@ func TestLibraryCacheAdapter(t *testing.T) {
 		if len(games) != 1 {
 			t.Errorf("Expected 1 game, got %d", len(games))
 		}
-		if games[0].ID != testGameID {
-			t.Errorf("Expected game ID %d, got %d", testGameID, games[0].ID)
+		if games[0].GameID != testGameID {
+			t.Errorf("Expected game ID %d, got %d", testGameID, games[0].GameID)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -235,8 +235,8 @@ func TestLibraryCacheAdapter(t *testing.T) {
 		}
 		if game == nil {
 			t.Errorf("Expected non-nil game")
-		} else if game.ID != testGameID {
-			t.Errorf("Expected game ID %d, got %d", testGameID, game.ID)
+		} else if game.GameID != testGameID {
+			t.Errorf("Expected game ID %d, got %d", testGameID, game.GameID)
 		}
 		mockCache.AssertExpectations(t)
 	})

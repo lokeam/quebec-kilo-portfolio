@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Use the DomainLibraryServices from the services package
@@ -36,6 +36,9 @@ func NewLibraryHandler(
 	appCtx *appcontext.AppContext,
 	libraryServices DomainLibraryServices,
 ) http.HandlerFunc {
+
+	adapter := NewLibraryRequestAdapter()
+	responseAdapter := NewLibraryResponseAdapter()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		appCtx.Logger.Info("LibraryHandler ServeHTTP called", map[string]any{
@@ -93,7 +96,7 @@ func NewLibraryHandler(
 			})
 
 			// Get user's library from service
-			games, err := service.GetLibraryItems(r.Context(), userID)
+			games, physicalLocations, digitalLocations, err := service.GetAllLibraryGames(r.Context(), userID)
 			if err != nil {
 				httputils.RespondWithError(
 					httputils.NewResponseWriterAdapter(w),
@@ -105,24 +108,12 @@ func NewLibraryHandler(
 				return
 			}
 
-			// Format response to game objects
-			gameResponses := make([]struct {
-				ID   int64  `json:"id"`
-				Name string `json:"name"`
-			}, len(games))
-
-			for i, game := range games {
-				gameResponses[i].ID = game.ID
-				gameResponses[i].Name = game.Name
-			}
-
-			response := struct {
-				Success bool `json:"success"`
-				Games   any  `json:"games"`
-			}{
-				Success: true,
-				Games:   gameResponses,
-			}
+			// Use response adapter to format response
+			response := responseAdapter.AdaptToLibraryResponse(
+				games,
+				physicalLocations,
+				digitalLocations,
+			)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -147,17 +138,8 @@ func NewLibraryHandler(
 				"body":      string(bodyBytes),
 			})
 
-			// Parse request body using a temporary struct that matches the test JSON
-			var tempGame struct {
-				ID              int64    `json:"id"`
-				Name            string   `json:"name"`
-				Summary         string   `json:"summary"`
-				CoverURL        string   `json:"cover_url"`
-				FirstReleaseDate string   `json:"first_release_date"`
-				PlatformNames   []string `json:"platform_names"`
-				GenreNames      []string `json:"genre_names"`
-				ThemeNames      []string `json:"theme_names"`
-			}
+			// Parse request body using a temporary struct that matches the API contract in library-types.ts
+			var tempGame types.CreateLibraryGameRequest
 
 			if err := json.NewDecoder(r.Body).Decode(&tempGame); err != nil {
 				// Enhanced error logging for more context
@@ -173,18 +155,14 @@ func NewLibraryHandler(
 				return
 			}
 
-			gameRequest := models.Game{
-				ID:              tempGame.ID,
-				Name:            tempGame.Name,
-				Summary:         tempGame.Summary,
-				CoverURL:        tempGame.CoverURL,
-				PlatformNames:   tempGame.PlatformNames,
-				GenreNames:      tempGame.GenreNames,
-				ThemeNames:      tempGame.ThemeNames,
-			}
+			libraryGame := adapter.AdaptToLibraryGameModel(tempGame)
 
 			// Use service to add game to library
-			if err := service.AddGameToLibrary(r.Context(), userID, gameRequest); err != nil {
+			if err := service.CreateLibraryGame(
+				r.Context(),
+				userID,
+				libraryGame,
+			); err != nil {
 				httputils.RespondWithError(
 					httputils.NewResponseWriterAdapter(w),
 					appCtx.Logger,
@@ -195,23 +173,29 @@ func NewLibraryHandler(
 				return
 			}
 
-			// Format response to match frontend expectations
-			response := struct {
-				Success bool `json:"success"`
-				Game    struct {
-					ID   int64  `json:"id"`
-					Name string `json:"name"`
-				} `json:"game"`
-			}{
-				Success: true,
-				Game: struct {
-					ID   int64  `json:"id"`
-					Name string `json:"name"`
-				}{
-					ID:   gameRequest.ID,
-					Name: gameRequest.Name,
-				},
+			// Get the newly created game to return in response
+			game, physicalLocations, digitalLocations, err := service.GetSingleLibraryGame(
+				r.Context(),
+				userID,
+				libraryGame.GameID,
+			)
+			if err != nil {
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					err,
+					http.StatusInternalServerError,
+				)
+				return
 			}
+
+			// Use response adapter to format single game response
+			response := responseAdapter.AdaptToSingleGameResponse(
+				game,
+				physicalLocations,
+				digitalLocations,
+			)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -256,7 +240,11 @@ func NewLibraryHandler(
 			}
 
 			// Call service to delete game from library
-			if err := service.DeleteGameFromLibrary(r.Context(), userID, gameIDint64); err != nil {
+			if err := service.DeleteLibraryGame(
+				r.Context(),
+				userID,
+				gameIDint64,
+			); err != nil {
 				// Check for specific error types
 				if errors.Is(err, ErrGameNotFound) {
 					httputils.RespondWithError(
@@ -307,3 +295,5 @@ func NewLibraryHandler(
 		}
 	}
 }
+
+

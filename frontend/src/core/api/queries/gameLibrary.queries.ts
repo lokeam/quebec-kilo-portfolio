@@ -1,4 +1,3 @@
-
 // Tanstack query
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -12,10 +11,10 @@ import {
   createLibraryGame,
   updateLibraryGame,
   deleteLibraryGame,
-} from '@/core/api/services/gameLibrary.service'
+} from '@/core/api/services/gameLibrary.service';
 
 // adapters
-import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.adapter';
+import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.adapter.ts';
 
 // type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
@@ -35,7 +34,7 @@ export const gameLibraryKeys = {
 /**
  * Hook to fetch all games in the library
  */
-export const useGetGameLibrary = () => {
+export const useGetAllLibraryGames = () => {
   return useAPIQuery<Game[]>({
     queryKey: gameLibraryKeys.lists(),
     queryFn: async () => {
@@ -87,10 +86,9 @@ export const useUpdateLibraryGame = () => {
       updateLibraryGame(id, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: gameLibraryKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: gameLibraryKeys.detail(String(data.id)) });
     },
   })
-
 };
 
 /*

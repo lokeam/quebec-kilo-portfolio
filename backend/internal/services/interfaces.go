@@ -5,6 +5,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // DigitalService defines operations for managing digital locations
@@ -53,16 +54,33 @@ type SublocationService interface {
 
 // LibraryService defines operations for managing the game library
 type LibraryService interface {
-	GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error)
-	AddGameToLibrary(ctx context.Context, userID string, game models.Game) error
-	DeleteGameFromLibrary(ctx context.Context, userID string, gameID int64) error
-	GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error)
-	UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error
+	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	GetAllLibraryGames(
+		ctx context.Context,
+		userID string,
+	) (
+		[]types.LibraryGameDBResult,
+		[]types.LibraryGamePhysicalLocationDBResponse,
+		[]types.LibraryGameDigitalLocationDBResponse,
+		error,
+	)
+	GetSingleLibraryGame(
+		ctx context.Context,
+		userID string,
+		gameID int64,
+	) (
+		types.LibraryGameDBResult,
+		[]types.LibraryGamePhysicalLocationDBResponse,
+		[]types.LibraryGameDigitalLocationDBResponse,
+		error,
+	)
+	UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 }
 
 // WishlistService defines operations for managing the wishlist
 type WishlistService interface {
-	GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error)
+	GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error)
 }
 
 // SearchService defines operations for searching

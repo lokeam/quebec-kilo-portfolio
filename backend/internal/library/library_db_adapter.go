@@ -15,6 +15,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/postgres"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type LibraryDbAdapter struct {
@@ -62,70 +63,178 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 //   - nil if the operation was successful or the game wasn't found
 //   - ErrGameNotFound if the game doesn't exist in the user's library
 //   - Another error if a database error occurred
-func (la *LibraryDbAdapter) GetUserGame(ctx context.Context, userID string, gameID int64) (models.Game, bool, error) {
+func (la *LibraryDbAdapter) GetUserGame(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+) (types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, bool, error) {
 	la.logger.Debug("LibraryDbAdapter - GetUserGame called", map[string]any{
 		"userID": userID,
 		"gameID": gameID,
 	})
 
-	query := `
-		SELECT g.id, g.name, g.summary, g.cover_url, g.first_release_date, g.rating,
-			   g.platform_names, g.genre_names, g.theme_names
-		FROM user_library ul
-		JOIN games g ON ul.game_id = g.id
-		WHERE ul.user_id = $1 AND g.id = $2
-		LIMIT 1
+	// 1. Get basic game info and library status
+	gameQuery := `
+	SELECT
+			g.id,
+			g.name,
+			g.cover_url,
+			g.first_release_date,
+			g.rating,
+			ug.favorite,
+			w.id IS NOT NULL as is_in_wishlist,
+			ug.game_type as game_type_display,
+			LOWER(ug.game_type) as game_type_normalized
+	FROM games g
+	JOIN user_games ug ON g.id = ug.game_id
+	LEFT JOIN wishlist w ON g.id = w.game_id AND w.user_id = $1
+	WHERE ug.user_id = $1 AND g.id = $2
+	LIMIT 1
+`
+
+	var game types.LibraryGameDBResult
+	err := la.db.GetContext(ctx, &game, gameQuery, userID, gameID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return types.LibraryGameDBResult{}, nil, nil, false, ErrGameNotFound
+		}
+		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying user game: %w", err)
+	}
+
+	// 2. Get physical locations
+	physicalQuery := `
+		SELECT
+			ug.game_id,
+			pl.name as location_name,
+			pl.location_type,
+			sl.name as sublocation_name,
+			sl.location_type as sublocation_type,
+			sl.bg_color as sublocation_bg_color,
+			p.name as platform_name
+		FROM user_games ug
+		JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+		JOIN sublocations sl ON pgl.sublocation_id = sl.id
+		JOIN physical_locations pl ON sl.physical_location_id = pl.id
+		JOIN platforms p ON ug.platform_id = p.id
+		WHERE ug.user_id = $1 AND ug.game_id = $2
 	`
 
-	// Scanner util handles manual scanning of array columns
-	row := la.db.QueryRowxContext(ctx, query, userID, gameID)
-	game, err := la.scanner.ScanGame(row)
-
-	// Check if error is pgx.ErrNoRows
-	if errors.Is(err, pgx.ErrNoRows) {
-		return models.Game{}, false, ErrGameNotFound
+	var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
+	if err := la.db.SelectContext(ctx, &physicalLocations, physicalQuery, userID, gameID); err != nil {
+		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying physical locations: %w", err)
 	}
 
-	if err != nil {
-		return models.Game{}, false, fmt.Errorf("error querying user game: %w", err)
+	// 3. Get digital locations
+	digitalQuery := `
+		SELECT
+			ug.game_id,
+			dl.name as location_name,
+			dl.name as normalized_name,
+			p.name as platform_name
+		FROM user_games ug
+		JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+		JOIN digital_locations dl ON dgl.digital_location_id = dl.id
+		JOIN platforms p ON ug.platform_id = p.id
+		WHERE ug.user_id = $1 AND ug.game_id = $2
+	`
+
+	var digitalLocations []types.LibraryGameDigitalLocationDBResponse
+	if err := la.db.SelectContext(ctx, &digitalLocations, digitalQuery, userID, gameID); err != nil {
+		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying digital locations: %w", err)
 	}
 
-	return game, true, nil
+	return game, physicalLocations, digitalLocations, true, nil
 }
 
-func (la *LibraryDbAdapter) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
-	la.logger.Debug("LibraryDbAdapter - GetUserLibraryItems called", map[string]any{
+// GetAllLibraryGames retrieves all games in a user's library with their locations
+func (la *LibraryDbAdapter) GetAllLibraryGames(
+	ctx context.Context,
+	userID string,
+) ([]types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, error) {
+	la.logger.Debug("LibraryDbAdapter - GetAllLibraryGames called", map[string]any{
 		"userID": userID,
 	})
 
-	// Todo: change user_library to whatever the table is called
-	query := `
-		SELECT g.id, g.name, g.summary, g.cover_url, g.first_release_date, g.rating,
-		       g.platform_names, g.genre_names, g.theme_names
-		FROM user_library ul
-		JOIN games g ON ul.game_id = g.id
-		WHERE ul.user_id = $1
+	// 1. Get basic game info and library status
+	gameQuery := `
+	SELECT
+			g.id,
+			g.name,
+			g.cover_url,
+			g.first_release_date,
+			g.rating,
+			ug.favorite,
+			w.id IS NOT NULL as is_in_wishlist,
+			ug.game_type as game_type_display,
+			LOWER(ug.game_type) as game_type_normalized
+	FROM games g
+	JOIN user_games ug ON g.id = ug.game_id
+	LEFT JOIN wishlist w ON g.id = w.game_id AND w.user_id = $1
+	WHERE ug.user_id = $1
+`
+
+	var games []types.LibraryGameDBResult
+	if err := la.db.SelectContext(ctx, &games, gameQuery, userID); err != nil {
+		return nil, nil, nil, fmt.Errorf("error querying user library games: %w", err)
+	}
+
+	// 2. Get physical locations
+	physicalQuery := `
+		SELECT
+			ug.game_id,
+			pl.name as location_name,
+			pl.location_type,
+			sl.name as sublocation_name,
+			sl.location_type as sublocation_type,
+			sl.bg_color as sublocation_bg_color,
+			p.name as platform_name
+		FROM user_games ug
+		JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+		JOIN sublocations sl ON pgl.sublocation_id = sl.id
+		JOIN physical_locations pl ON sl.physical_location_id = pl.id
+		JOIN platforms p ON ug.platform_id = p.id
+		WHERE ug.user_id = $1
 	`
 
-	// Scanner util handles manual scanning of array columns
-	rows, err := la.db.QueryxContext(ctx, query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("error querying user library: %w", err)
+	var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
+	if err := la.db.SelectContext(ctx, &physicalLocations, physicalQuery, userID); err != nil {
+		return nil, nil, nil, fmt.Errorf("error querying physical locations: %w", err)
 	}
-	defer rows.Close()
 
-	return la.scanner.ScanGames(rows)
+	// 3. Get digital locations
+	digitalQuery := `
+		SELECT
+			ug.game_id,
+			dl.name as location_name,
+			dl.name as normalized_name,
+			p.name as platform_name
+		FROM user_games ug
+		JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+		JOIN digital_locations dl ON dgl.digital_location_id = dl.id
+		JOIN platforms p ON ug.platform_id = p.id
+		WHERE ug.user_id = $1
+	`
+
+	var digitalLocations []types.LibraryGameDigitalLocationDBResponse
+	if err := la.db.SelectContext(ctx, &digitalLocations, digitalQuery, userID); err != nil {
+		return nil, nil, nil, fmt.Errorf("error querying digital locations: %w", err)
+	}
+
+	return games, physicalLocations, digitalLocations, nil
 }
 
-func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
-	// Just delegate to the existing method
-	return la.GetLibraryItems(ctx, userID)
+// GetUserLibraryItems is an alias for GetAllLibraryGames to maintain backward compatibility
+func (la *LibraryDbAdapter) GetUserLibraryItems(
+	ctx context.Context,
+	userID string,
+) ([]types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, error) {
+	return la.GetAllLibraryGames(ctx, userID)
 }
 
 // PUT
-func (la *LibraryDbAdapter) UpdateGameInLibrary(ctx context.Context, game models.Game) error {
-	la.logger.Debug("LibraryDbAdapter - UpdateGameInLibrary called", map[string]any{
-		"gameID": game.ID,
+func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.LibraryGame) error {
+	la.logger.Debug("LibraryDbAdapter - UpdateLibraryGame called", map[string]any{
+		"gameID": game.GameID,
 	})
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
@@ -144,15 +253,13 @@ func (la *LibraryDbAdapter) UpdateGameInLibrary(ctx context.Context, game models
 
 		// Wrap Go slices in special type that knows how to convert to PostgreSql array syntax
 		_, err := tx.ExecContext(ctx, query,
-			game.Name,
-			game.Summary,
-			game.CoverURL,
-			game.FirstReleaseDate,
-			game.Rating,
-			pq.Array(game.PlatformNames),
-			pq.Array(game.GenreNames),
-			pq.Array(game.ThemeNames),
-			game.ID,
+			game.GameName,
+			game.GameCoverURL,
+			game.GameFirstReleaseDate,
+			game.GameRating,
+			pq.Array(game.PlatformLocations),
+			pq.Array(game.GameThemeNames),
+			game.GameID,
 		)
 		if err != nil {
 			return fmt.Errorf("error updating game: %w", err)
@@ -163,39 +270,70 @@ func (la *LibraryDbAdapter) UpdateGameInLibrary(ctx context.Context, game models
 }
 
 // POST
-func (la *LibraryDbAdapter) AddGameToLibrary(ctx context.Context, userID string, gameID int64) error {
-	la.logger.Info("LibraryDbAdapter - AddGameToLibrary called", map[string]any{
+func (la *LibraryDbAdapter) CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
+	la.logger.Info("LibraryDbAdapter - CreateLibraryGame called", map[string]any{
 		"userID": userID,
-		"gameID": gameID,
+		"gameID": game.GameID,
 	})
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		// First check if game exists in table, if not add it
 		var gameExists bool
-		err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)", gameID).Scan(&gameExists)
+		err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)", game.GameID).Scan(&gameExists)
 		if err != nil {
 			return fmt.Errorf("error checking if game exists: %w", err)
 		}
 
+		// Insert game if it doesn't exist
 		if !gameExists {
-			// Insert game if its not there
 			_, err := tx.ExecContext(ctx, `
-				INSERT INTO games (id, name, summary, cover_url, first_release_date, rating, platform_names, genre_names, theme_names)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-			`, gameID, "", "", "", "", "", "", "", "")
+					INSERT INTO games (id, name, cover_url, first_release_date, rating)
+					VALUES ($1, $2, $3, $4, $5)
+			`, game.GameID, game.GameName, game.GameCoverURL, game.GameFirstReleaseDate, game.GameRating)
 			if err != nil {
-				return fmt.Errorf("error inserting game: %w", err)
+					return fmt.Errorf("error inserting game: %w", err)
 			}
-		}
+	}
 
-		// Add to user's library if it doesn't already exist
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO user_library (user_id, game_id, added_at)
-			VALUES ($1, $2, NOW())
-			ON CONFLICT (user_id, game_id) DO NOTHING
-		`, userID, gameID)
-		if err != nil {
-			return fmt.Errorf("error adding game to user library: %w", err)
+		// For each platform location:
+		for i := 0; i < len(game.PlatformLocations); i++ {
+			location := game.PlatformLocations[i]
+
+			// 3a. Get platform ID from name
+			var platformID int64
+			err := tx.QueryRowContext(ctx, `
+					SELECT id FROM platforms WHERE name = $1
+			`, location.PlatformName).Scan(&platformID)
+			if err != nil {
+					return fmt.Errorf("error getting platform ID for %s at index %d: %w", location.PlatformName, i, err)
+			}
+
+			// 3b. Insert user_game entry
+			var userGameID int
+			err = tx.QueryRowContext(ctx, `
+					INSERT INTO user_games (user_id, game_id, platform_id, game_type)
+					VALUES ($1, $2, $3, $4)
+					RETURNING id
+			`, userID, game.GameID, platformID, location.Type).Scan(&userGameID)
+			if err != nil {
+					return fmt.Errorf("error inserting user game at index %d: %w", i, err)
+			}
+
+			// 3c. Insert location mapping
+			if location.Type == "physical" {
+				_, err = tx.ExecContext(ctx, `
+						INSERT INTO physical_game_locations (user_game_id, sublocation_id)
+						VALUES ($1, $2)
+				`, userGameID, location.Location.SublocationID)
+			} else {
+					_, err = tx.ExecContext(ctx, `
+							INSERT INTO digital_game_locations (user_game_id, digital_location_id)
+							VALUES ($1, $2)
+					`, userGameID, location.Location.DigitalLocationID)
+			}
+			if err != nil {
+					return fmt.Errorf("error inserting game location at index %d: %w", i, err)
+			}
 		}
 
 		return nil
@@ -211,7 +349,7 @@ func (la *LibraryDbAdapter) RemoveGameFromLibrary(ctx context.Context, userID st
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		_, err := tx.ExecContext(ctx, `
-			DELETE FROM user_library
+			DELETE FROM user_games
 			WHERE user_id = $1 AND game_id = $2
 		`, userID, gameID)
 		if err != nil {
@@ -232,7 +370,7 @@ func (la *LibraryDbAdapter) IsGameInLibrary(ctx context.Context, userID string, 
 	var exists bool
 	query := `
 		SELECT EXISTS(
-			SELECT 1 FROM user_library
+			SELECT 1 FROM user_games
 			WHERE user_id = $1 AND game_id = $2
 		)
 	`

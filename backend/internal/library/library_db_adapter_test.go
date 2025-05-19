@@ -28,10 +28,10 @@ import (
 	- GetUserGame successfully retrieves a game
 	- GetUserGame returns false when game not found
 	- GetUserGame handles database errors
-	- GetLibraryItems successfully retrieves all games
+	- GetAllLibraryGames successfully retrieves all games
 	- GetLibraryItems handles database errors
-	- AddGameToLibrary successfully adds a new game
-	- AddGameToLibrary handles existing games
+	- CreateLibraryGame successfully adds a new game
+	- CreateLibraryGame handles existing games
 	- RemoveGameFromLibrary successfully removes a game
 	- IsGameInLibrary correctly identifies if a game is in library
 */
@@ -178,7 +178,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the database query is successful
 		THEN the adapter returns all games
 	*/
-	t.Run(`GetLibraryItems - Successfully retrieves all games`, func(t *testing.T) {
+	t.Run(`GetAllLibraryGames - Successfully retrieves all games`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -206,7 +206,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 
 		// Execute
-		games, err := adapter.GetLibraryItems(context.Background(), userID)
+		games, err := adapter.GetAllLibraryGames(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -225,7 +225,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the database returns an error
 		THEN the adapter returns the error
 	*/
-	t.Run("GetLibraryItems handles database errors", func(t *testing.T) {
+	t.Run("GetAllLibraryGames handles database errors", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -242,7 +242,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute
-		_, err = adapter.GetLibraryItems(context.Background(), userID)
+		_, err = adapter.GetAllLibraryGames(context.Background(), userID)
 
 		// Verify
 		if err == nil {
@@ -262,7 +262,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the game doesn't already exist in the database
 		THEN the adapter adds the game to the database and the user's library
 	*/
-	t.Run("AddGameToLibrary - Successfully adds a new game", func(t *testing.T) {
+	t.Run("CreateLibraryGame - Successfully adds a new game", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -295,7 +295,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.AddGameToLibrary(context.Background(), userID, gameID)
+		err = adapter.CreateLibraryGame(context.Background(), userID, gameID)
 
 		// Verify
 		if err != nil {
@@ -312,7 +312,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the game already exists in the database
 		THEN the adapter only adds the game to the user's library
 	*/
-	t.Run("AddGameToLibrary - Handles existing games", func(t *testing.T) {
+	t.Run("CreateLibraryGame - Handles existing games", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -340,7 +340,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.AddGameToLibrary(context.Background(), userID, gameID)
+		err = adapter.CreateLibraryGame(context.Background(), userID, gameID)
 
 		// Verify
 		if err != nil {
@@ -435,7 +435,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the database operation is successful
 		THEN the adapter updates the game information
 	*/
-	t.Run("UpdateGameInLibrary successfully updates a game", func(t *testing.T) {
+	t.Run("UpdateLibraryGame successfully updates a game", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -477,7 +477,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.UpdateGameInLibrary(context.Background(), game)
+		err = adapter.UpdateLibraryGame(context.Background(), game)
 
 		// Verify
 		if err != nil {

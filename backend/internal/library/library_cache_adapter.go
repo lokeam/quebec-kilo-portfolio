@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
-	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type LibraryCacheAdapter struct {
@@ -20,67 +20,100 @@ func NewLibraryCacheAdapter(
 	}, nil
 }
 
-func (lca *LibraryCacheAdapter) GetCachedLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
+type cachedLibraryItems struct {
+	Games             []types.LibraryGameDBResult
+	PhysicalLocations []types.LibraryGamePhysicalLocationDBResponse
+	DigitalLocations  []types.LibraryGameDigitalLocationDBResponse
+}
+
+func (lca *LibraryCacheAdapter) GetCachedLibraryItems(
+	ctx context.Context,
+	userID string,
+) ([]types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, error) {
 	cacheKey := fmt.Sprintf("library:%s", userID)
 
-	var games []models.Game
-	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &games)
+	var items cachedLibraryItems
+	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &items)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	if cacheHit {
-		return games, nil
+		return items.Games, items.PhysicalLocations, items.DigitalLocations, nil
 	}
 
-	return nil, nil
+	return nil, nil, nil, nil
 }
 
 func (lca *LibraryCacheAdapter) SetCachedLibraryItems(
 	ctx context.Context,
 	userID string,
-	games []models.Game,
+	games []types.LibraryGameDBResult,
+	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
+	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) error {
 	cacheKey := fmt.Sprintf("library:%s", userID)
-	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, games)
+
+	items := cachedLibraryItems{
+		Games:             games,
+		PhysicalLocations: physicalLocations,
+		DigitalLocations:  digitalLocations,
+	}
+
+	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, items)
+}
+
+type cachedGame struct {
+	Game             types.LibraryGameDBResult
+	PhysicalLocations []types.LibraryGamePhysicalLocationDBResponse
+	DigitalLocations  []types.LibraryGameDigitalLocationDBResponse
 }
 
 func (lca *LibraryCacheAdapter) GetCachedGame(
 	ctx context.Context,
 	userID string,
 	gameID int64,
-) (*models.Game, bool, error) {
+) (types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, bool, error) {
 	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
 
-	var game models.Game
-	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &game)
+	var item cachedGame
+	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &item)
 	if err != nil {
-		return nil, false, ErrDatabaseConnection
+		return types.LibraryGameDBResult{}, nil, nil, false, err
 	}
 
 	if cacheHit {
-		return &game, true, nil
+		return item.Game, item.PhysicalLocations, item.DigitalLocations, true, nil
 	}
 
-	return nil, false, nil
+	return types.LibraryGameDBResult{}, nil, nil, false, nil
 }
 
 func (lca *LibraryCacheAdapter) SetCachedGame(
 	ctx context.Context,
 	userID string,
-	game models.Game,
-	) error {
+	game types.LibraryGameDBResult,
+	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
+	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
+) error {
 	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, game.ID)
-	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, game)
+
+	item := cachedGame{
+		Game:             game,
+		PhysicalLocations: physicalLocations,
+		DigitalLocations:  digitalLocations,
 	}
+
+	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, item)
+}
 
 // Invalidates all cache entries for a specific user
 func (lca *LibraryCacheAdapter) InvalidateUserCache(
 	ctx context.Context,
 	userID string,
-	) error {
-		cacheKey := fmt.Sprintf("library:%s:game", userID)
-		return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+) error {
+	cacheKey := fmt.Sprintf("library:%s", userID)
+	return lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
 
 // Invalidates cache for a specific game
@@ -88,7 +121,7 @@ func (lca *LibraryCacheAdapter) InvalidateGameCache(
 	ctx context.Context,
 	userID string,
 	gameID int64,
-	) error {
-		cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
-		return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
-	}
+) error {
+	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
+	return lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
+}

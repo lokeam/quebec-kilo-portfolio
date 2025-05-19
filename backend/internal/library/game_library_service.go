@@ -10,6 +10,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type GameLibraryService struct {
@@ -22,11 +23,30 @@ type GameLibraryService struct {
 }
 
 type LibraryService interface {
-	GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error)
-	AddGameToLibrary(ctx context.Context, userID string, game models.Game) error
-	DeleteGameFromLibrary(ctx context.Context, userID string, gameID int64) error
-	GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error)
-	UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error
+	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	GetAllLibraryGames(
+		ctx context.Context,
+		userID string,
+	) (
+		[]types.LibraryGameDBResult,
+		[]types.LibraryGamePhysicalLocationDBResponse,
+		[]types.LibraryGameDigitalLocationDBResponse,
+		error,
+	)
+	GetSingleLibraryGame(
+		ctx context.Context,
+		userID string,
+		gameID int64,
+	) (
+		types.LibraryGameDBResult,
+		[]types.LibraryGamePhysicalLocationDBResponse,
+		[]types.LibraryGameDigitalLocationDBResponse,
+		error,
+	)
+	UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
+
+
 }
 
 // Constructor that properly initializes the adapter
@@ -92,80 +112,121 @@ func NewGameLibraryService(appContext *appcontext.AppContext) (*GameLibraryServi
 	}, nil
 }
 
-// GET
-func (ls *GameLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
+// GetAllLibraryGames retrieves all games in a user's library
+func (ls *GameLibraryService) GetAllLibraryGames(
+	ctx context.Context,
+	userID string,
+) (
+	[]types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	error,
+) {
 	// Validate the user ID
 	if err := ls.validator.ValidateUserID(userID); err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	// Attempt to get items from cache
-	cachedGames, err := ls.cacheWrapper.GetCachedLibraryItems(ctx, userID)
-	if err == nil && cachedGames != nil {
+	games, physicalLocations, digitalLocations, err := ls.cacheWrapper.GetCachedLibraryItems(ctx, userID)
+	if err == nil && games != nil {
 		ls.logger.Debug("Cache hit for library items", map[string]any{"userID": userID})
-		return cachedGames, nil
+		return games, physicalLocations, digitalLocations, nil
 	}
 
 	// On cache miss, get from db
 	ls.logger.Debug("Cache miss for user library, fetching from db", map[string]any{"userID": userID})
-	games, err := ls.dbAdapter.GetUserLibraryItems(ctx, userID)
+	games, physicalLocations, digitalLocations, err = ls.dbAdapter.GetUserLibraryItems(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	// Cache the results
-	if err := ls.cacheWrapper.SetCachedLibraryItems(ctx, userID, games); err != nil {
+	if err := ls.cacheWrapper.SetCachedLibraryItems(
+		ctx,
+		userID,
+		games,
+		physicalLocations,
+		digitalLocations,
+	); err != nil {
 		ls.logger.Error("Failed to cache library items", map[string]any{"error": err})
 	}
 
-	return games, nil
+	return games, physicalLocations, digitalLocations, nil
 }
 
-func (ls *GameLibraryService) GetUserGame(ctx context.Context, userID string, gameID int64) (models.Game, bool, error) {
+// GetUserGame retrieves a single game from a user's library
+func (ls *GameLibraryService) GetUserGame(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+) (
+	types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	bool,
+	error,
+) {
 	// Validate inputs
 	if err := ls.validator.ValidateUserID(userID); err != nil {
-		return models.Game{}, false, err
+		return types.LibraryGameDBResult{}, nil, nil, false, err
 	}
 	if err := ls.validator.ValidateGameID(gameID); err != nil {
-		return models.Game{}, false, err
+		return types.LibraryGameDBResult{}, nil, nil, false, err
 	}
 
 	// Try to get cache first
-	cachedGame, found, err := ls.cacheWrapper.GetCachedGame(ctx, userID, gameID)
+	game, physicalLocations, digitalLocations, found, err := ls.cacheWrapper.GetCachedGame(ctx, userID, gameID)
 	if err == nil && found {
-		ls.logger.Debug("Cache hit for user game", map[string]any{"userID": userID, "gameID": gameID})
-		return *cachedGame, true, nil
+		ls.logger.Debug("Cache hit for user game", map[string]any{
+			"userID": userID,
+			"gameID": gameID,
+		})
+		return game, physicalLocations, digitalLocations, true, nil
 	}
 
 	// Cache miss, get from db
-	ls.logger.Debug("Cache miss for user game, fetching from database", map[string]any{"userID": userID, "gameID": gameID})
-	game, found, err := ls.dbAdapter.GetUserGame(ctx, userID, gameID)
+	ls.logger.Debug("Cache miss for user game, fetching from database", map[string]any{
+		"userID": userID,
+		"gameID": gameID,
+	})
+	game, physicalLocations, digitalLocations, found, err = ls.dbAdapter.GetUserGame(ctx, userID, gameID)
 	if err != nil {
-		return models.Game{}, false, err
+		return types.LibraryGameDBResult{}, nil, nil, false, err
 	}
 
 	if found {
 		// Cache the results
-		if err := ls.cacheWrapper.SetCachedGame(ctx, userID, game); err != nil {
+		if err := ls.cacheWrapper.SetCachedGame(
+			ctx,
+			userID,
+			game,
+			physicalLocations,
+			digitalLocations,
+		); err != nil {
 			ls.logger.Error("Failed to cache user game", map[string]any{"error": err})
 		}
 	}
 
-	return game, found, nil
+	return game, physicalLocations, digitalLocations, found, nil
 }
 
 // POST
-func (ls *GameLibraryService) AddGameToLibrary(ctx context.Context, userID string, game models.Game) error {
+func (ls *GameLibraryService) CreateLibraryGame(
+	ctx context.Context,
+	userID string,
+	game models.LibraryGame,
+) error {
 	// Validate inputs
 	if err := ls.validator.ValidateUserID(userID); err != nil {
 		return err
 	}
-	if err := ls.validator.ValidateGameID(game.ID); err != nil {
+	if err := ls.validator.ValidateGameID(game.GameID); err != nil {
 		return err
 	}
 
 	// Add to db
-	if err := ls.dbAdapter.AddGameToLibrary(ctx, userID, game.ID); err != nil {
+	if err := ls.dbAdapter.CreateLibraryGame(ctx, userID, game); err != nil {
 		return err
 	}
 
@@ -178,7 +239,11 @@ func (ls *GameLibraryService) AddGameToLibrary(ctx context.Context, userID strin
 }
 
 // DELETE
-func (ls *GameLibraryService) DeleteGameFromLibrary(ctx context.Context, userID string, gameID int64) error {
+func (ls *GameLibraryService) DeleteLibraryGame(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+) error {
 	// Validate inputs
 	if err := ls.validator.ValidateUserID(userID); err != nil {
 		return err
@@ -203,21 +268,34 @@ func (ls *GameLibraryService) DeleteGameFromLibrary(ctx context.Context, userID 
 	return nil
 }
 
-func (ls *GameLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error) {
+func (ls *GameLibraryService) GetSingleLibraryGame(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+) (
+	types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	error,
+) {
 	// Single database call to get the game while verifying ownership
-	game, exists, err := ls.dbAdapter.GetUserGame(ctx, userID, gameID)
+	game, physicalLocations, digitalLocations, exists, err := ls.dbAdapter.GetUserGame(ctx, userID, gameID)
 	if err != nil {
-		return models.Game{}, err
+		return types.LibraryGameDBResult{}, nil, nil, err
 	}
 
 	if !exists {
-		return models.Game{}, ErrGameNotFound
+		return types.LibraryGameDBResult{}, nil, nil, ErrGameNotFound
 	}
 
-	return game, nil
+	return game, physicalLocations, digitalLocations, nil
 }
 
-func (ls *GameLibraryService) UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error {
+func (ls *GameLibraryService) UpdateLibraryGame(
+	ctx context.Context,
+	userID string,
+	game models.LibraryGame,
+) error {
 	// NOTE: May need implementation if I want to support updating game metadata
 	return errors.New("not implemented")
 }

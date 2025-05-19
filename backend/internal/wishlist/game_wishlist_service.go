@@ -13,7 +13,7 @@ type GameWishlistService struct {
 }
 
 type WishlistService interface {
-	GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error)
+	GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error)
 }
 
 func NewGameWishlistService(appContext *appcontext.AppContext) (*GameWishlistService, error) {
@@ -22,7 +22,7 @@ func NewGameWishlistService(appContext *appcontext.AppContext) (*GameWishlistSer
 	}, nil
 }
 
-func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error) {
+func (w *GameWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error) {
 	// TODO: Implement, return an empty list for testing
-	return []models.Game{}, nil
+	return []models.LibraryGame{}, nil
 }
