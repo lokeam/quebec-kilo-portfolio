@@ -51,9 +51,13 @@ import { cn } from "@/shared/components/ui/utils";
 interface MultiSelectProps {
   mainPlaceholder?: string;
   secondaryPlaceholder?: string;
-  platformNames: string[];
-  value?: string[];
-  onChange?: (value: string[]) => void;
+
+  platformNames?: string[];
+  platforms?: Array<{ id: number; name: string }>;
+  value?: Array<{id: number, name: string}>;
+  //value?: string[];
+  //onChange?: (value: string[]) => void;
+  onChange?: (value: Array<{id: number, name: string}>) => void;
   onBlur?: () => void;
   name?: string;
 }
@@ -61,22 +65,23 @@ interface MultiSelectProps {
 export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(({
   mainPlaceholder,
   secondaryPlaceholder,
-  platformNames,
+  platforms,
   value: controlledValue,
   onChange,
   onBlur,
   name,
 }, ref) => {
   const [open, setOpen] = useState(false);
-  const [internalValue, setInternalValue] = useState<string[]>([]);
+  //const [internalValue, setInternalValue] = useState<string[]>([]);
+  const [internalValue, setInternalValue] = useState<Array<{id: number, name: string}>>([]);
 
   // Use controlled value if provided, otherwise use internal state
   const value = controlledValue ?? internalValue;
 
-  const handleSetValue = (mSelectValue: string) => {
-    const newValue = value.includes(mSelectValue)
-      ? value.filter((item) => item !== mSelectValue)
-      : [...value, mSelectValue];
+  const handleSetValue = (platform: {id: number, name: string}) => {
+    const newValue = value.some(v => v.id === platform.id)
+      ? value.filter((item) => item.id !== platform.id)
+      : [...value, platform];
 
     if (onChange) {
       onChange(newValue);
@@ -99,13 +104,12 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(({
           >
             <div className="flex gap-2 justify-start">
               {value?.length ?
-                  value.map((val, i) => (
-                      <div
-                        key={i}
-                        className="px-2 py-1 rounded-md border bg-slate-600 text-xs font-medium">
-                          {/* {platformNames?.find((platform: string) => platform === val)?.label} */}
-                          {val}
-                      </div>
+                  value.map((platform, i) => (
+                    <div
+                      key={i}
+                      className="px-2 py-1 rounded-md border bg-slate-600 text-xs font-medium">
+                      {platform.name}
+                    </div>
                   ))
                   : mainPlaceholder || `Which game version are you adding?`}
             </div>
@@ -115,13 +119,13 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(({
       <PopoverContent className="w-full p-0">
         <Command>
             <CommandInput placeholder={secondaryPlaceholder || "Available platforms"} />
-            <CommandEmpty>No framework found.</CommandEmpty>
+            <CommandEmpty>No platforms found.</CommandEmpty>
             <CommandGroup>
               <CommandList>
-                {platformNames?.map((platform: string) => (
+                {platforms?.map((platform) => (
                   <CommandItem
-                    key={platform}
-                    value={platform}
+                    key={platform.id}
+                    value={platform.name}
                     onSelect={() => {
                         handleSetValue(platform)
                     }}
@@ -129,10 +133,10 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value.includes(platform) ? "opacity-100" : "opacity-0"
+                        value.some(v => v.id === platform.id) ? "opacity-100" : "opacity-0"  // Instead of value.includes(platform)
                       )}
                     />
-                    {platform}
+                    {platform.name}
                   </CommandItem>
                 ))}
               </CommandList>

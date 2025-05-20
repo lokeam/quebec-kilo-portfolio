@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib" // NOTE: this registers pgx with database/sql
 	"github.com/jmoiron/sqlx"
@@ -299,37 +300,81 @@ func (la *LibraryDbAdapter) CreateLibraryGame(ctx context.Context, userID string
 		for i := 0; i < len(game.PlatformLocations); i++ {
 			location := game.PlatformLocations[i]
 
-			// 3a. Get platform ID from name
-			var platformID int64
-			err := tx.QueryRowContext(ctx, `
-					SELECT id FROM platforms WHERE name = $1
-			`, location.PlatformName).Scan(&platformID)
+			// Ensure platform exists
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO platforms (id, name, category, model)
+				VALUES ($1, $2, $3, $4)
+				ON CONFLICT (id) DO NOTHING
+			`, location.PlatformID, location.PlatformName,
+			getPlatformCategory(location.PlatformName),
+			getPlatformModel(location.PlatformName))
 			if err != nil {
-					return fmt.Errorf("error getting platform ID for %s at index %d: %w", location.PlatformName, i, err)
+			return fmt.Errorf("error ensuring platform exists at index %d: %w", i, err)
 			}
 
-			// 3b. Insert user_game entry
+			// Ensure game-platform combination exists
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO game_platforms (game_id, platform_id)
+				VALUES ($1, $2)
+				ON CONFLICT (game_id, platform_id) DO NOTHING
+			`, game.GameID, location.PlatformID)
+			if err != nil {
+			return fmt.Errorf("error ensuring game-platform combination at index %d: %w", i, err)
+			}
+
+			// Insert user_game entry
 			var userGameID int
 			err = tx.QueryRowContext(ctx, `
 					INSERT INTO user_games (user_id, game_id, platform_id, game_type)
 					VALUES ($1, $2, $3, $4)
 					RETURNING id
-			`, userID, game.GameID, platformID, location.Type).Scan(&userGameID)
+			`, userID, game.GameID, location.PlatformID, location.Type).Scan(&userGameID)
 			if err != nil {
-					return fmt.Errorf("error inserting user game at index %d: %w", i, err)
+					if strings.Contains(err.Error(), "unique constraint") {
+							// If this game+platform already exists, get its ID
+							err = tx.QueryRowContext(ctx, `
+									SELECT id FROM user_games
+									WHERE user_id = $1 AND game_id = $2 AND platform_id = $3
+							`, userID, game.GameID, location.PlatformID).Scan(&userGameID)
+							if err != nil {
+									return fmt.Errorf("error finding existing user game at index %d: %w", i, err)
+							}
+					} else {
+							return fmt.Errorf("error inserting user game at index %d: %w", i, err)
+					}
 			}
 
-			// 3c. Insert location mapping
+			// Insert location mapping
 			if location.Type == "physical" {
+				// First get the sublocation UUID by name
+				var sublocationID uuid.UUID
+				err = tx.QueryRowContext(ctx, `
+						SELECT id FROM sublocations
+						WHERE id = $1 AND user_id = $2
+				`, location.Location.SublocationID, userID).Scan(&sublocationID)
+				if err != nil {
+						return fmt.Errorf("error finding sublocation at index %d: %w", i, err)
+				}
+
 				_, err = tx.ExecContext(ctx, `
 						INSERT INTO physical_game_locations (user_game_id, sublocation_id)
 						VALUES ($1, $2)
-				`, userGameID, location.Location.SublocationID)
+				`, userGameID, sublocationID)
 			} else {
+					// First get the digital location UUID by name
+					var digitalLocationID uuid.UUID
+					err = tx.QueryRowContext(ctx, `
+							SELECT id FROM digital_locations
+							WHERE id = $1 AND user_id = $2
+					`, location.Location.DigitalLocationID, userID).Scan(&digitalLocationID)
+					if err != nil {
+							return fmt.Errorf("error finding digital location at index %d: %w", i, err)
+					}
+
 					_, err = tx.ExecContext(ctx, `
 							INSERT INTO digital_game_locations (user_game_id, digital_location_id)
 							VALUES ($1, $2)
-					`, userGameID, location.Location.DigitalLocationID)
+					`, userGameID, digitalLocationID)
 			}
 			if err != nil {
 					return fmt.Errorf("error inserting game location at index %d: %w", i, err)
@@ -381,4 +426,21 @@ func (la *LibraryDbAdapter) IsGameInLibrary(ctx context.Context, userID string, 
 	}
 
 	return exists, nil
+}
+
+// Helper function to determine platform category
+func getPlatformCategory(platformName string) string {
+	switch {
+	case strings.Contains(strings.ToLower(platformName), "pc"):
+			return "pc"
+	case strings.Contains(strings.ToLower(platformName), "mobile"):
+			return "mobile"
+	default:
+			return "console"
+	}
+}
+
+// Helper function to determine platform model
+func getPlatformModel(platformName string) string {
+	return platformName // For now, use the platform name as the model
 }

@@ -1,5 +1,10 @@
 import type { Game } from '../domain/game';
 
+interface SearchResponsePlatform {
+  id: number;
+  name: string;
+}
+
 /**
  * Response type for search API endpoints
  */
@@ -11,7 +16,7 @@ export interface SearchResponse {
     firstReleaseDate?: number;
     rating?: number;
     themeNames?: string[];
-    platformNames?: string[];
+    platforms: SearchResponsePlatform[];  // Array of platform objects with id and name
     isInLibrary?: boolean;
     isInWishlist?: boolean;
     gameType?: {

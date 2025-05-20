@@ -28,8 +28,8 @@ const LIBRARY_ENDPOINT = '/v1/library';
  * Usage:
  *   return apiRequest('getAllGames', () => axios.get(...));
  */
-export const getAllGames = (): Promise<Game[]> =>
-  apiRequest('getAllGames', () =>
+export const getAllLibraryGames = (): Promise<Game[]> =>
+  apiRequest('getAllLibraryGames', () =>
     axiosInstance
       .get<ApiResponse<Game[]>>(LIBRARY_ENDPOINT)
       .then(response => response.data.data)
@@ -48,7 +48,7 @@ export const getAllGames = (): Promise<Game[]> =>
  * Usage:
  *   return apiRequest('getGameById', () => axios.get(...));
  */
-export const getGameById = (id: string): Promise<Game> =>
+export const getLibraryGameById = (id: string): Promise<Game> =>
   apiRequest(`getGameById(${id})`, () =>
     axiosInstance
       .get<ApiResponse<Game>>(`${LIBRARY_ENDPOINT}/${id}`)
@@ -69,7 +69,7 @@ export const getGameById = (id: string): Promise<Game> =>
  * Usage:
  *   return apiRequest('createGame', () => axios.post(...));
  */
-export const createGame = (data: CreateLibraryGameRequest): Promise<Game> =>
+export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<Game> =>
   apiRequest('createGame', () =>
     axiosInstance
       .post<ApiResponse<Game>>(LIBRARY_ENDPOINT, data)
@@ -90,7 +90,7 @@ export const createGame = (data: CreateLibraryGameRequest): Promise<Game> =>
  * Usage:
  *   return apiRequest('updateGame', () => axios.put(...));
  */
-export const updateGame = (id: string, data: Partial<CreateLibraryGameRequest>): Promise<Game> =>
+export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameRequest>): Promise<Game> =>
   apiRequest(`updateGame(${id})`, () =>
     axiosInstance
       .put<ApiResponse<Game>>(`${LIBRARY_ENDPOINT}/${id}`, data)
@@ -111,7 +111,7 @@ export const updateGame = (id: string, data: Partial<CreateLibraryGameRequest>):
  * Usage:
  *   return apiRequest('deleteGame', () => axios.put(...));
  */
-export const deleteGame = (id: string): Promise<void> =>
+export const deleteLibraryGame = (id: string): Promise<void> =>
   apiRequest(`deleteGame(${id})`, () =>
     axiosInstance
       .delete<ApiResponse<void>>(`${LIBRARY_ENDPOINT}/${id}`)

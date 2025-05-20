@@ -137,12 +137,12 @@ export function SearchResult({
               )}
             </h3>
           </div>
-          {game.platformNames && game.platformNames.length > 0 && (
+          {game.platforms && game.platforms.length > 0 && (
             <div className="text-gray-400 text-sm mt-1">
-              {game.platformNames.map((platform, index) => (
-                <span key={platform}>
-                  {platform}
-                  {index < game.platformNames!.length - 1 && (
+              {game.platforms.map((platform, index) => (
+                <span key={platform.id}>
+                  {platform.name}
+                  {index < game.platforms!.length - 1 && (
                     <span className="mx-1">/</span>
                   )}
                 </span>

@@ -39,6 +39,7 @@ interface AddToLibraryFormStorageOption {
 
 interface AddToLibraryFormLocationEntry {
   platformName: string;
+  platformId: number;
   type: 'physical' | 'digital';
   location: {
     sublocationId?: string;
@@ -47,8 +48,17 @@ interface AddToLibraryFormLocationEntry {
 }
 
 export interface AddToLibraryFormPayload {
-  gameId: number;
+  gameId: number; // IGDB game ID
+  gameName: string;
+  gameCoverUrl: string;
+  gameFirstReleaseDate: number;
+  gameType: {
+    displayText: string;
+    normalizedText: string;
+  };
+  gameThemeNames: string[];
   gamesByPlatformAndLocation: AddToLibraryFormLocationEntry[];
+  gameRating: number;
 }
 
 
@@ -71,7 +81,10 @@ export const AddGameToLibraryFormSchema = z.object({
     (locations) => Object.values(locations).some(loc => loc === true),
     { message: 'Please select at least one location' }
   ),
-  gameLocations: z.record(z.array(z.string())).refine(
+  gameLocations: z.record(z.array(z.object({
+    id: z.number(),
+    name: z.string(),
+  }))).refine(
     (locations) => Object.values(locations).some(loc => loc.length > 0),
     { message: 'Please select at least one platform for a location' }
   )
@@ -140,19 +153,28 @@ export function AddGameToLibraryForm({
       const gamesByPlatformAndLocation = Object.entries(gameLocations).flatMap(([locationId, platforms]) => {
         const isDigital = digitalLocations.some(loc => loc.id === locationId);
 
-        // Map each platform to an entry
-        return platforms.map((platformName): AddToLibraryFormLocationEntry => ({
-          platformName,
+        return platforms.map((platform): AddToLibraryFormLocationEntry => ({
+          platformName: platform.name,
+          platformId: platform.id,
           type: isDigital ? 'digital' : 'physical',
           location: isDigital
             ? { digitalLocationId: locationId }
-            : { sublocationId: locationId }
+            : { sublocationId: locationId },
         }));
       });
 
       const payload: AddToLibraryFormPayload = {
         gameId: selectedGame.id,
+        gameName: selectedGame.name,
+        gameCoverUrl: selectedGame.coverUrl || '',
+        gameFirstReleaseDate: selectedGame.firstReleaseDate || 0,
+        gameType: selectedGame.gameType || {
+          displayText: '',
+          normalizedText: ''
+        },
+        gameThemeNames: selectedGame.themeNames || [],
         gamesByPlatformAndLocation,
+        gameRating: selectedGame.rating || 0,
       };
 
       await createMutation.mutateAsync(payload);
@@ -306,7 +328,7 @@ export function AddGameToLibraryForm({
                                   name={`gameLocations.${digiLocation.id}`}
                                   mainPlaceholder="Which game version are you adding?"
                                   secondaryPlaceholder="Available platforms"
-                                  platformNames={selectedGame.platformNames || []}
+                                  platforms={selectedGame.platforms || []}
                                 />
                               </div>
                             )
@@ -333,7 +355,7 @@ export function AddGameToLibraryForm({
                                     name={`gameLocations.${sublocation.id}`}
                                     mainPlaceholder="Which game version are you adding?"
                                     secondaryPlaceholder="Available platforms"
-                                    platformNames={selectedGame.platformNames || []}
+                                    platforms={selectedGame.platforms || []}
                                   />
                                 </div>
                               )
@@ -354,7 +376,7 @@ export function AddGameToLibraryForm({
         <div className="mt-6">
           <Button
             type="submit"
-            className="w-full md:w-auto"
+            className="w-full"
             disabled={!form.formState.isValid || !selectedStorageType || isFormSubmitting || createMutation.isPending}
           >
             {isFormSubmitting

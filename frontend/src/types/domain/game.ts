@@ -8,6 +8,11 @@ export interface GameType {
   normalizedText: string;
 }
 
+export interface PlatformInfo {
+  id: number;
+  name: string;
+}
+
 export interface Game {
   id: number;
   name: string;
@@ -17,13 +22,13 @@ export interface Game {
   coverUrl?: string;
   firstReleaseDate?: number;
   rating?: number;
-  platforms?: number[];
+  platforms: PlatformInfo[];  // Array of platform objects with id and name
   genres?: number[];
   themes?: number[];
   gameType?: GameType;
   isInLibrary?: boolean;
   isInWishlist?: boolean;
-  platformNames?: string[];
+  platformNames?: string[];  // Keep for backward compatibility
   genreNames?: string[];
   themeNames?: string[];
   platform?: string;
