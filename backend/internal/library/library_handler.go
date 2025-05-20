@@ -36,7 +36,6 @@ func NewLibraryHandler(
 	appCtx *appcontext.AppContext,
 	libraryServices DomainLibraryServices,
 ) http.HandlerFunc {
-
 	adapter := NewLibraryRequestAdapter()
 	responseAdapter := NewLibraryResponseAdapter()
 
@@ -123,6 +122,113 @@ func NewLibraryHandler(
 			)
 			return
 
+		case http.MethodPut:
+			appCtx.Logger.Info("PUT request received", map[string]any{
+				"requestID": requestID,
+			})
+
+			// Log the raw request body for debugging pissy JSON errors
+			bodyBytes, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Reset body after reading
+
+			urlParts := strings.Split(r.URL.Path, "/")
+			if len(urlParts) < 3 {
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+            appCtx.Logger,
+            requestID,
+            errors.New("invalid path"),
+            http.StatusBadRequest,
+				)
+				return
+			}
+
+			gameIDStr := urlParts[len(urlParts)-1]
+			gameIDint64, err := strconv.ParseInt(gameIDStr, 10, 64)
+			if err != nil {
+					httputils.RespondWithError(
+							httputils.NewResponseWriterAdapter(w),
+							appCtx.Logger,
+							requestID,
+							errors.New("invalid ID: must be a number"),
+							http.StatusBadRequest,
+					)
+					return
+			}
+
+			// Parse request body
+			var tempPutGameRequest types.UpdateLibraryGameRequest
+			if err := json.NewDecoder(r.Body).Decode(&tempPutGameRequest); err != nil {
+				// Enhanced error logging for more context
+				httputils.LogJSONError(appCtx.Logger, requestID, err, bodyBytes)
+
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("invalid request body"),
+					http.StatusBadRequest,
+				)
+				return
+			}
+
+			libraryGame := adapter.AdaptUpdateRequestToLibraryGameModel(tempPutGameRequest)
+			libraryGame.GameID = gameIDint64
+
+			// Update game
+			if err := service.UpdateLibraryGame(r.Context(), userID, libraryGame); err != nil {
+				if errors.Is(err, ErrGameNotFound) {
+						httputils.RespondWithError(
+								httputils.NewResponseWriterAdapter(w),
+								appCtx.Logger,
+								requestID,
+								err,
+								http.StatusNotFound,
+						)
+						return
+				}
+				httputils.RespondWithError(
+						httputils.NewResponseWriterAdapter(w),
+						appCtx.Logger,
+						requestID,
+						err,
+						http.StatusInternalServerError,
+				)
+				return
+			}
+
+			// Get updated game
+			game, physicalLocations, digitalLocations, err := service.GetSingleLibraryGame(
+				r.Context(),
+				userID,
+				gameIDint64,
+			)
+			if err != nil {
+					httputils.RespondWithError(
+							httputils.NewResponseWriterAdapter(w),
+							appCtx.Logger,
+							requestID,
+							err,
+							http.StatusInternalServerError,
+					)
+					return
+			}
+
+			// Return updated game
+			response := responseAdapter.AdaptToSingleGameResponse(
+				game,
+				physicalLocations,
+				digitalLocations,
+			)
+
+			httputils.RespondWithJSON(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				http.StatusOK,
+				response,
+			)
+			return
+
 		case http.MethodPost:
 			appCtx.Logger.Info("POST request received", map[string]any{
 				"requestID": requestID,
@@ -155,7 +261,7 @@ func NewLibraryHandler(
 				return
 			}
 
-			libraryGame := adapter.AdaptToLibraryGameModel(tempGame)
+			libraryGame := adapter.AdaptCreateRequestToLibraryGameModel(tempGame)
 
 			// Use service to add game to library
 			if err := service.CreateLibraryGame(

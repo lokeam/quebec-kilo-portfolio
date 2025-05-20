@@ -2,7 +2,6 @@ package library
 
 import (
 	"context"
-	"errors"
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -155,62 +154,6 @@ func (ls *GameLibraryService) GetAllLibraryGames(
 	return games, physicalLocations, digitalLocations, nil
 }
 
-// GetUserGame retrieves a single game from a user's library
-func (ls *GameLibraryService) GetUserGame(
-	ctx context.Context,
-	userID string,
-	gameID int64,
-) (
-	types.LibraryGameDBResult,
-	[]types.LibraryGamePhysicalLocationDBResponse,
-	[]types.LibraryGameDigitalLocationDBResponse,
-	bool,
-	error,
-) {
-	// Validate inputs
-	if err := ls.validator.ValidateUserID(userID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, err
-	}
-	if err := ls.validator.ValidateGameID(gameID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, err
-	}
-
-	// Try to get cache first
-	game, physicalLocations, digitalLocations, found, err := ls.cacheWrapper.GetCachedGame(ctx, userID, gameID)
-	if err == nil && found {
-		ls.logger.Debug("Cache hit for user game", map[string]any{
-			"userID": userID,
-			"gameID": gameID,
-		})
-		return game, physicalLocations, digitalLocations, true, nil
-	}
-
-	// Cache miss, get from db
-	ls.logger.Debug("Cache miss for user game, fetching from database", map[string]any{
-		"userID": userID,
-		"gameID": gameID,
-	})
-	game, physicalLocations, digitalLocations, found, err = ls.dbAdapter.GetUserGame(ctx, userID, gameID)
-	if err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, err
-	}
-
-	if found {
-		// Cache the results
-		if err := ls.cacheWrapper.SetCachedGame(
-			ctx,
-			userID,
-			game,
-			physicalLocations,
-			digitalLocations,
-		); err != nil {
-			ls.logger.Error("Failed to cache user game", map[string]any{"error": err})
-		}
-	}
-
-	return game, physicalLocations, digitalLocations, found, nil
-}
-
 // POST
 func (ls *GameLibraryService) CreateLibraryGame(
 	ctx context.Context,
@@ -278,14 +221,43 @@ func (ls *GameLibraryService) GetSingleLibraryGame(
 	[]types.LibraryGameDigitalLocationDBResponse,
 	error,
 ) {
-	// Single database call to get the game while verifying ownership
-	game, physicalLocations, digitalLocations, exists, err := ls.dbAdapter.GetUserGame(ctx, userID, gameID)
-	if err != nil {
+	// Validate inputs
+	if err := ls.validator.ValidateUserID(userID); err != nil {
+		return types.LibraryGameDBResult{}, nil, nil, err
+	}
+	if err := ls.validator.ValidateGameID(gameID); err != nil {
 		return types.LibraryGameDBResult{}, nil, nil, err
 	}
 
-	if !exists {
-		return types.LibraryGameDBResult{}, nil, nil, ErrGameNotFound
+	// Try to get cache first
+	game, physicalLocations, digitalLocations, found, err := ls.cacheWrapper.GetCachedGame(ctx, userID, gameID)
+	if err == nil && found {
+			ls.logger.Debug("Cache hit for user game", map[string]any{
+					"userID": userID,
+					"gameID": gameID,
+			})
+			return game, physicalLocations, digitalLocations, nil
+	}
+
+	// Cache miss, get from db
+	ls.logger.Debug("Cache miss for user game, fetching from database", map[string]any{
+		"userID": userID,
+		"gameID": gameID,
+	})
+	game, physicalLocations, digitalLocations, err = ls.dbAdapter.GetSingleLibraryGame(ctx, userID, gameID)
+	if err != nil {
+			return types.LibraryGameDBResult{}, nil, nil, err
+  }
+
+	// Cache the results
+	if err := ls.cacheWrapper.SetCachedGame(
+		ctx,
+		userID,
+		game,
+		physicalLocations,
+		digitalLocations,
+	); err != nil {
+			ls.logger.Error("Failed to cache user game", map[string]any{"error": err})
 	}
 
 	return game, physicalLocations, digitalLocations, nil
@@ -296,6 +268,26 @@ func (ls *GameLibraryService) UpdateLibraryGame(
 	userID string,
 	game models.LibraryGame,
 ) error {
-	// NOTE: May need implementation if I want to support updating game metadata
-	return errors.New("not implemented")
+	// Validate inputs
+	if err := ls.validator.ValidateUserID(userID); err != nil {
+		return err
+	}
+	if err := ls.validator.ValidateGame(game); err != nil {
+			return err
+	}
+
+	// Update in db
+	if err := ls.dbAdapter.UpdateLibraryGame(ctx, userID, game); err != nil {
+			return err
+	}
+
+	// Invalidate both user and game cache
+	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+			ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+	}
+	if err := ls.cacheWrapper.InvalidateGameCache(ctx, userID, game.GameID); err != nil {
+			ls.logger.Error("Failed to invalidate game cache", map[string]any{"error": err})
+	}
+
+	return nil
 }

@@ -25,9 +25,9 @@ import (
 	- Handling database transactions
 
 	Scenarios:
-	- GetUserGame successfully retrieves a game
-	- GetUserGame returns false when game not found
-	- GetUserGame handles database errors
+	- GetSingleLibraryGame successfully retrieves a game
+	- GetSingleLibraryGame returns false when game not found
+	- GetSingleLibraryGame handles database errors
 	- GetAllLibraryGames successfully retrieves all games
 	- GetLibraryItems handles database errors
 	- CreateLibraryGame successfully adds a new game
@@ -80,7 +80,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the game exists in the database
 		THEN the adapter returns the game and true
 	*/
-	t.Run(`GetUserGame - Successfully retrieves a game`, func(t *testing.T) {
+	t.Run(`GetSingleLibraryGame - Successfully retrieves a game`, func(t *testing.T) {
 		adapter, mock, err := setupMockDB()
 		if err != nil {
 			t.Fatalf("Failed to setup mock DB: %v", err)
@@ -108,7 +108,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 
 		// Execute the fn
-		game, exists, err := adapter.GetUserGame(context.Background(), userID, gameID)
+		game, exists, err := adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
 
 		// Verify
 		if err != nil {
@@ -131,7 +131,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the game does not exist in the database
 		THEN the adapter returns false and no error
 	*/
-	t.Run("GetUserGame returns false when game not found", func(t *testing.T) {
+	t.Run("GetSingleLibraryGame returns false when game not found", func(t *testing.T) {
     // Setup
     adapter, mock, err := setupMockDB()
     if err != nil {
@@ -155,7 +155,7 @@ func TestLibraryDbAdapter(t *testing.T) {
     }
 
     // Execute
-    _, exists, err := adapter.GetUserGame(context.Background(), userID, gameID)
+    _, exists, err := adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
 
     // Verify
     if err == nil {

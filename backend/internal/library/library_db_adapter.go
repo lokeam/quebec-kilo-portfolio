@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib" // NOTE: this registers pgx with database/sql
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -55,7 +54,7 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 }
 
 // GET
-// GetUserGame retrieves a game from a user's library.
+// GetSingleLibraryGame retrieves a game from a user's library.
 // Returns:
 // - The game if found
 // - A boolean indicating if the game was found
@@ -63,12 +62,17 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 //   - nil if the operation was successful or the game wasn't found
 //   - ErrGameNotFound if the game doesn't exist in the user's library
 //   - Another error if a database error occurred
-func (la *LibraryDbAdapter) GetUserGame(
+func (la *LibraryDbAdapter) GetSingleLibraryGame(
 	ctx context.Context,
 	userID string,
 	gameID int64,
-) (types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, bool, error) {
-	la.logger.Debug("LibraryDbAdapter - GetUserGame called", map[string]any{
+) (
+	types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	error,
+) {
+	la.logger.Debug("LibraryDbAdapter - GetSingleLibraryGame called", map[string]any{
 		"userID": userID,
 		"gameID": gameID,
 	})
@@ -96,9 +100,9 @@ func (la *LibraryDbAdapter) GetUserGame(
 	err := la.db.GetContext(ctx, &game, gameQuery, userID, gameID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return types.LibraryGameDBResult{}, nil, nil, false, ErrGameNotFound
+			return types.LibraryGameDBResult{}, nil, nil, ErrGameNotFound
 		}
-		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying user game: %w", err)
+		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying user game: %w", err)
 	}
 
 	// 2. Get physical locations
@@ -121,7 +125,7 @@ func (la *LibraryDbAdapter) GetUserGame(
 
 	var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
 	if err := la.db.SelectContext(ctx, &physicalLocations, physicalQuery, userID, gameID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying physical locations: %w", err)
+		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying physical locations: %w", err)
 	}
 
 	// 3. Get digital locations
@@ -140,10 +144,10 @@ func (la *LibraryDbAdapter) GetUserGame(
 
 	var digitalLocations []types.LibraryGameDigitalLocationDBResponse
 	if err := la.db.SelectContext(ctx, &digitalLocations, digitalQuery, userID, gameID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, fmt.Errorf("error querying digital locations: %w", err)
+		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying digital locations: %w", err)
 	}
 
-	return game, physicalLocations, digitalLocations, true, nil
+	return game, physicalLocations, digitalLocations, nil
 }
 
 // GetAllLibraryGames retrieves all games in a user's library with their locations
@@ -288,39 +292,153 @@ func (la *LibraryDbAdapter) GetUserLibraryItems(
 }
 
 // PUT
-func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.LibraryGame) error {
-	la.logger.Debug("LibraryDbAdapter - UpdateLibraryGame called", map[string]any{
+// UpdateLibraryGame updates a game in the user's library.
+// It updates the game details in the games table and any associated platform locations.
+// Returns:
+// - nil if the operation was successful
+// - ErrGameNotFound if the game doesn't exist in the user's library
+// - Another error if a database error occurred
+func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
+	la.logger.Info("LibraryDbAdapter - UpdateLibraryGame called", map[string]any{
+		"userID": userID,
 		"gameID": game.GameID,
 	})
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
-		query := `
-			UPDATE games
-			SET name = :name,
-					summary = :summary,
-					cover_url = :cover_url,
-					first_release_date = :first_release_date,
-					rating = :rating,
-					platform_names = :platform_names,
-					genre_names = :genre_names,
-					theme_names = :theme_names
-			WHERE id = :id
-		`
-
-		// Wrap Go slices in special type that knows how to convert to PostgreSql array syntax
-		_, err := tx.ExecContext(ctx, query,
-			game.GameName,
-			game.GameCoverURL,
-			game.GameFirstReleaseDate,
-			game.GameRating,
-			pq.Array(game.PlatformLocations),
-			pq.Array(game.GameThemeNames),
-			game.GameID,
-		)
+		// First check if the game exists in the user's library
+		var exists bool
+		err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS(
+				SELECT 1 FROM user_games
+				WHERE user_id = $1 AND game_id = $2
+			)
+		`, userID, game.GameID).Scan(&exists)
 		if err != nil {
-			return fmt.Errorf("error updating game: %w", err)
+			la.logger.Error("Failed to check if game exists in library", map[string]any{
+				"error": err,
+				"userID": userID,
+				"gameID": game.GameID,
+			})
+			return fmt.Errorf("error checking if game exists in library: %w", err)
 		}
 
+		if !exists {
+			la.logger.Info("Game not found in user's library", map[string]any{
+				"userID": userID,
+				"gameID": game.GameID,
+			})
+			return ErrGameNotFound
+		}
+
+		// Update game details
+		_, err = tx.ExecContext(ctx, `
+			UPDATE games
+			SET name = $1,
+					cover_url = $2,
+					first_release_date = $3,
+					rating = $4
+			WHERE id = $5
+		`, game.GameName, game.GameCoverURL, game.GameFirstReleaseDate, game.GameRating, game.GameID)
+		if err != nil {
+			la.logger.Error("Failed to update game details", map[string]any{
+				"error": err,
+				"gameID": game.GameID,
+			})
+			return fmt.Errorf("error updating game details: %w", err)
+		}
+
+		// For each platform version, update or add location mapping
+		for i, location := range game.PlatformLocations {
+			la.logger.Info("Processing platform update", map[string]any{
+				"index": i,
+				"platformID": location.PlatformID,
+				"platformName": location.PlatformName,
+			})
+
+			// Get the user_game_id for this platform
+			var userGameID int
+			err = tx.QueryRowContext(ctx, `
+				SELECT id FROM user_games
+				WHERE user_id = $1 AND game_id = $2 AND platform_id = $3
+			`, userID, game.GameID, location.PlatformID).Scan(&userGameID)
+			if err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					// Platform doesn't exist, add it
+					err = tx.QueryRowContext(ctx, `
+						INSERT INTO user_games (user_id, game_id, platform_id, game_type)
+						VALUES ($1, $2, $3, $4)
+						RETURNING id
+					`, userID, game.GameID, location.PlatformID, location.Type).Scan(&userGameID)
+					if err != nil {
+						la.logger.Error("Failed to add new platform", map[string]any{
+							"error": err,
+							"platformID": location.PlatformID,
+						})
+						return fmt.Errorf("error adding new platform at index %d: %w", i, err)
+					}
+				} else {
+					la.logger.Error("Failed to get user game ID", map[string]any{
+						"error": err,
+						"platformID": location.PlatformID,
+					})
+					return fmt.Errorf("error getting user game ID at index %d: %w", i, err)
+				}
+			}
+
+			// Update location mapping based on type
+			if location.Type == "physical" {
+				// Delete existing physical location
+				_, err = tx.ExecContext(ctx, `
+					DELETE FROM physical_game_locations
+					WHERE user_game_id = $1
+				`, userGameID)
+				if err != nil {
+					la.logger.Error("Failed to delete existing physical location", map[string]any{
+						"error": err,
+						"userGameID": userGameID,
+					})
+					return fmt.Errorf("error deleting existing physical location at index %d: %w", i, err)
+				}
+
+				// Add new physical location
+				_, err = tx.ExecContext(ctx, `
+					INSERT INTO physical_game_locations (user_game_id, sublocation_id)
+					VALUES ($1, $2)
+				`, userGameID, location.Location.SublocationID)
+			} else {
+				// Delete existing digital location
+				_, err = tx.ExecContext(ctx, `
+					DELETE FROM digital_game_locations
+					WHERE user_game_id = $1
+				`, userGameID)
+				if err != nil {
+					la.logger.Error("Failed to delete existing digital location", map[string]any{
+						"error": err,
+						"userGameID": userGameID,
+					})
+					return fmt.Errorf("error deleting existing digital location at index %d: %w", i, err)
+				}
+
+				// Add new digital location
+				_, err = tx.ExecContext(ctx, `
+					INSERT INTO digital_game_locations (user_game_id, digital_location_id)
+					VALUES ($1, $2)
+				`, userGameID, location.Location.DigitalLocationID)
+			}
+			if err != nil {
+				la.logger.Error("Failed to update location mapping", map[string]any{
+					"error": err,
+					"userGameID": userGameID,
+					"type": location.Type,
+				})
+				return fmt.Errorf("error updating location mapping at index %d: %w", i, err)
+			}
+		}
+
+		la.logger.Info("Successfully updated game in library", map[string]any{
+			"userID": userID,
+			"gameID": game.GameID,
+		})
 		return nil
 	})
 }

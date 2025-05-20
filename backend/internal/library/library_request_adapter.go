@@ -11,7 +11,7 @@ func NewLibraryRequestAdapter() *LibraryRequestAdapter {
 	return &LibraryRequestAdapter{}
 }
 
-func (a *LibraryRequestAdapter) AdaptToLibraryGameModel(
+func (a *LibraryRequestAdapter) AdaptCreateRequestToLibraryGameModel(
 	req types.CreateLibraryGameRequest,
 	) models.LibraryGame {
 	return models.LibraryGame{
@@ -25,6 +25,14 @@ func (a *LibraryRequestAdapter) AdaptToLibraryGameModel(
 		},
 		GameThemeNames:       req.GameThemeNames,
 		PlatformLocations:    a.transformPlatformLocations(req.GamesByPlatformAndLocation),
+	}
+}
+
+func (a *LibraryRequestAdapter) AdaptUpdateRequestToLibraryGameModel(
+	req types.UpdateLibraryGameRequest,
+) models.LibraryGame {
+	return models.LibraryGame{
+		PlatformLocations: a.transformPlatformLocations(req.GamesByPlatformAndLocation),
 	}
 }
 
