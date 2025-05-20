@@ -253,7 +253,7 @@ func (ls *GameLibraryService) DeleteLibraryGame(
 	}
 
 	// Remove from database
-	if err := ls.dbAdapter.RemoveGameFromLibrary(ctx, userID, gameID); err != nil {
+	if err := ls.dbAdapter.DeleteLibraryGame(ctx, userID, gameID); err != nil {
 		return err
 	}
 

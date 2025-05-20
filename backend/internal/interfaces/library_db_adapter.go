@@ -12,6 +12,6 @@ type LibraryDbAdapter interface {
 	GetUserLibraryItems(ctx context.Context, userID string) ([]models.LibraryGame, error)
 	UpdateLibraryGame(ctx context.Context, game models.LibraryGame) error
 	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
-	RemoveGameFromLibrary(ctx context.Context, userID string, gameID int64) error
+	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 	IsGameInLibrary(ctx context.Context, userID string, gameID int64) (bool, error)
 }

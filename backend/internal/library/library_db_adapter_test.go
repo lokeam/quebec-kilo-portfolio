@@ -32,7 +32,7 @@ import (
 	- GetLibraryItems handles database errors
 	- CreateLibraryGame successfully adds a new game
 	- CreateLibraryGame handles existing games
-	- RemoveGameFromLibrary successfully removes a game
+	- DeleteLibraryGame successfully removes a game
 	- IsGameInLibrary correctly identifies if a game is in library
 */
 
@@ -357,7 +357,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		WHEN the database operation is successful
 		THEN the adapter removes the game from the user's library
 	*/
-	t.Run("RemoveGameFromLibrary - Successfully removes a game", func(t *testing.T) {
+	t.Run("DeleteLibraryGame - Successfully removes a game", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -380,7 +380,7 @@ func TestLibraryDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.RemoveGameFromLibrary(context.Background(), userID, gameID)
+		err = adapter.DeleteLibraryGame(context.Background(), userID, gameID)
 
 		// Verify
 		if err != nil {

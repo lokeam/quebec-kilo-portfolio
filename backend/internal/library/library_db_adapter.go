@@ -446,22 +446,65 @@ func (la *LibraryDbAdapter) CreateLibraryGame(ctx context.Context, userID string
 	})
 }
 
-// DELETE
-func (la *LibraryDbAdapter) RemoveGameFromLibrary(ctx context.Context, userID string, gameID int64) error {
-	la.logger.Info("LibraryDbAdapter - RemoveGameFromLibrary called", map[string]any{
+// DeleteLibraryGame removes a game from a user's library.
+// It will automatically remove any associated physical or digital location mappings
+// due to ON DELETE CASCADE constraints in the database.
+// Returns:
+// - nil if the operation was successful
+// - ErrGameNotFound if the game doesn't exist in the user's library
+// - Another error if a database error occurred
+func (la *LibraryDbAdapter) DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error {
+	la.logger.Info("LibraryDbAdapter - DeleteLibraryGame called", map[string]any{
 		"userID": userID,
 		"gameID": gameID,
 	})
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
-		_, err := tx.ExecContext(ctx, `
+		// First check if the game exists in the user's library
+		var exists bool
+		err := tx.QueryRowContext(ctx, `
+			SELECT EXISTS(
+				SELECT 1 FROM user_games
+				WHERE user_id = $1 AND game_id = $2
+			)
+		`, userID, gameID).Scan(&exists)
+		if err != nil {
+			la.logger.Error("Failed to check if game exists in library", map[string]any{
+				"error": err,
+				"userID": userID,
+				"gameID": gameID,
+			})
+			return fmt.Errorf("error checking if game exists in library: %w", err)
+		}
+
+		if !exists {
+			la.logger.Info("Game not found in user's library", map[string]any{
+				"userID": userID,
+				"gameID": gameID,
+			})
+			return ErrGameNotFound
+		}
+
+		// Delete the game from user's library
+		// Note: Due to ON DELETE CASCADE in our schema, this will automatically
+		// remove related records from physical_game_locations and digital_game_locations
+		_, err = tx.ExecContext(ctx, `
 			DELETE FROM user_games
 			WHERE user_id = $1 AND game_id = $2
 		`, userID, gameID)
 		if err != nil {
-			return fmt.Errorf("error removing game from library: %w", err)
+			la.logger.Error("Failed to delete game from library", map[string]any{
+				"error": err,
+				"userID": userID,
+				"gameID": gameID,
+			})
+			return fmt.Errorf("error deleting game from library: %w", err)
 		}
 
+		la.logger.Info("Successfully deleted game from library", map[string]any{
+			"userID": userID,
+			"gameID": gameID,
+		})
 		return nil
 	})
 }
