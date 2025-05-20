@@ -17,9 +17,10 @@ type LibraryRequestGameType struct {
 }
 
 type LibraryRequestGameLocation struct {
-	PlatformName string        `json:"platform_name"`
-	Type         string        `json:"type"`
-	Location     GameLocation  `json:"location"`
+	PlatformID   int64        `json:"platform_id"`
+	PlatformName string       `json:"platform_name"`
+	Type         string       `json:"type"`
+	Location     GameLocation `json:"location"`
 }
 
 type GameLocation struct {

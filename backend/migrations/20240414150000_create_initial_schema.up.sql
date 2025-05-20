@@ -54,14 +54,6 @@ CREATE TABLE themes (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create game_platforms junction table
-CREATE TABLE game_platforms (
-    game_id BIGINT REFERENCES games(id) ON DELETE CASCADE,
-    platform_id BIGINT REFERENCES platforms(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (game_id, platform_id)
-);
-
 -- Create game_genres junction table
 CREATE TABLE game_genres (
     game_id BIGINT REFERENCES games(id) ON DELETE CASCADE,
@@ -87,11 +79,7 @@ CREATE TABLE user_games (
     game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
     favorite BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (user_id, game_id, platform_id),
-    -- Ensure platform is valid for this game
-    CONSTRAINT valid_game_platform
-        FOREIGN KEY (game_id, platform_id)
-        REFERENCES game_platforms(game_id, platform_id)
+    UNIQUE (user_id, game_id, platform_id)
 );
 
 -- Create physical_locations table
@@ -128,17 +116,6 @@ CREATE TABLE physical_game_locations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_game_id, sublocation_id)
 );
-
--- Add constraint to physical_game_locations
-ALTER TABLE physical_game_locations
-ADD CONSTRAINT valid_physical_game
-    CHECK (
-        EXISTS (
-            SELECT 1 FROM user_games ug
-            WHERE ug.id = user_game_id
-            AND ug.game_type = 'physical'
-        )
-    );
 
 -- Create digital service types enum
 CREATE TYPE digital_service_type AS ENUM (
@@ -213,17 +190,6 @@ CREATE TABLE digital_game_locations (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_game_id, digital_location_id)
 );
-
--- Add constraint to digital_game_locations
-ALTER TABLE digital_game_locations
-ADD CONSTRAINT valid_digital_game
-    CHECK (
-        EXISTS (
-            SELECT 1 FROM user_games ug
-            WHERE ug.id = user_game_id
-            AND ug.game_type = 'digital'
-        )
-    );
 
 -- Create expenses table
 CREATE TABLE expenses (

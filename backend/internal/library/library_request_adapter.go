@@ -35,6 +35,7 @@ func (a *LibraryRequestAdapter) transformPlatformLocations(
 
 	for i := 0; i < len(locations); i++ {
 		platformLocations[i] = models.CreateLibraryGameLocation{
+			PlatformID:   locations[i].PlatformID,
 			PlatformName: locations[i].PlatformName,
 			Type:         locations[i].Type,
 			Location: models.LibraryGameLocation{

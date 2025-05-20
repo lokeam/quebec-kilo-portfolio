@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib" // NOTE: this registers pgx with database/sql
 	"github.com/jmoiron/sqlx"
@@ -156,6 +155,62 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
 		"userID": userID,
 	})
 
+	// Specialized debugging start
+	la.logger.Info("Checking specific game", map[string]any{
+    "gameID": 119133,
+    "userID": userID,
+})
+
+	// Check if this specific game exists
+	var gameExists bool
+	err := la.db.GetContext(ctx, &gameExists,
+			"SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)",
+			119133)
+	if err != nil {
+			return nil, nil, nil, fmt.Errorf("error checking specific game: %w", err)
+	}
+	la.logger.Info("Specific game exists", map[string]any{
+			"gameID": 119133,
+			"exists": gameExists,
+	})
+
+	// Check if this specific user_game exists
+	var userGameExists bool
+	err = la.db.GetContext(ctx, &userGameExists,
+			"SELECT EXISTS(SELECT 1 FROM user_games WHERE user_id = $1 AND game_id = $2)",
+			userID, 119133)
+	if err != nil {
+			return nil, nil, nil, fmt.Errorf("error checking specific user game: %w", err)
+	}
+	la.logger.Info("Specific user game exists", map[string]any{
+			"gameID": 119133,
+			"userID": userID,
+			"exists": userGameExists,
+	})
+
+	// Specialized debugging end
+
+	// First check if we have any games at all
+	var gameCount int
+	err = la.db.GetContext(ctx, &gameCount, "SELECT COUNT(*) FROM games")
+	if err != nil {
+			return nil, nil, nil, fmt.Errorf("error counting games: %w", err)
+	}
+	la.logger.Info("Total games in database", map[string]any{
+			"count": gameCount,
+	})
+
+	// Check if we have any user_games entries
+	var userGameCount int
+	err = la.db.GetContext(ctx, &userGameCount, "SELECT COUNT(*) FROM user_games WHERE user_id = $1", userID)
+	if err != nil {
+			return nil, nil, nil, fmt.Errorf("error counting user games: %w", err)
+	}
+	la.logger.Info("User games count", map[string]any{
+			"userID": userID,
+			"count": userGameCount,
+	})
+
 	// 1. Get basic game info and library status
 	gameQuery := `
 	SELECT
@@ -273,115 +328,121 @@ func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.L
 // POST
 func (la *LibraryDbAdapter) CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
 	la.logger.Info("LibraryDbAdapter - CreateLibraryGame called", map[string]any{
-		"userID": userID,
-		"gameID": game.GameID,
+			"userID": userID,
+			"gameID": game.GameID,
 	})
 
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
-		// First check if game exists in table, if not add it
-		var gameExists bool
-		err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)", game.GameID).Scan(&gameExists)
-		if err != nil {
-			return fmt.Errorf("error checking if game exists: %w", err)
-		}
-
-		// Insert game if it doesn't exist
-		if !gameExists {
+			// STEP 1: Ensure game exists in games table
+			la.logger.Info("STEP 1: Ensuring game exists", map[string]any{
+					"gameID": game.GameID,
+			})
 			_, err := tx.ExecContext(ctx, `
 					INSERT INTO games (id, name, cover_url, first_release_date, rating)
 					VALUES ($1, $2, $3, $4, $5)
+					ON CONFLICT (id) DO NOTHING
 			`, game.GameID, game.GameName, game.GameCoverURL, game.GameFirstReleaseDate, game.GameRating)
 			if err != nil {
-					return fmt.Errorf("error inserting game: %w", err)
-			}
-	}
-
-		// For each platform location:
-		for i := 0; i < len(game.PlatformLocations); i++ {
-			location := game.PlatformLocations[i]
-
-			// Ensure platform exists
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO platforms (id, name, category, model)
-				VALUES ($1, $2, $3, $4)
-				ON CONFLICT (id) DO NOTHING
-			`, location.PlatformID, location.PlatformName,
-			getPlatformCategory(location.PlatformName),
-			getPlatformModel(location.PlatformName))
-			if err != nil {
-			return fmt.Errorf("error ensuring platform exists at index %d: %w", i, err)
+					la.logger.Error("Failed to ensure game exists", map[string]any{
+							"error": err,
+							"gameID": game.GameID,
+					})
+					return fmt.Errorf("error ensuring game exists: %w", err)
 			}
 
-			// Ensure game-platform combination exists
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO game_platforms (game_id, platform_id)
-				VALUES ($1, $2)
-				ON CONFLICT (game_id, platform_id) DO NOTHING
-			`, game.GameID, location.PlatformID)
-			if err != nil {
-			return fmt.Errorf("error ensuring game-platform combination at index %d: %w", i, err)
-			}
+			// STEP 2: For each platform version the user wants to add
+			for i, location := range game.PlatformLocations {
+					la.logger.Info("Processing platform", map[string]any{
+							"index": i,
+							"platformID": location.PlatformID,
+							"platformName": location.PlatformName,
+					})
 
-			// Insert user_game entry
-			var userGameID int
-			err = tx.QueryRowContext(ctx, `
-					INSERT INTO user_games (user_id, game_id, platform_id, game_type)
-					VALUES ($1, $2, $3, $4)
-					RETURNING id
-			`, userID, game.GameID, location.PlatformID, location.Type).Scan(&userGameID)
-			if err != nil {
-					if strings.Contains(err.Error(), "unique constraint") {
-							// If this game+platform already exists, get its ID
-							err = tx.QueryRowContext(ctx, `
-									SELECT id FROM user_games
-									WHERE user_id = $1 AND game_id = $2 AND platform_id = $3
-							`, userID, game.GameID, location.PlatformID).Scan(&userGameID)
-							if err != nil {
-									return fmt.Errorf("error finding existing user game at index %d: %w", i, err)
-							}
-					} else {
-							return fmt.Errorf("error inserting user game at index %d: %w", i, err)
-					}
-			}
-
-			// Insert location mapping
-			if location.Type == "physical" {
-				// First get the sublocation UUID by name
-				var sublocationID uuid.UUID
-				err = tx.QueryRowContext(ctx, `
-						SELECT id FROM sublocations
-						WHERE id = $1 AND user_id = $2
-				`, location.Location.SublocationID, userID).Scan(&sublocationID)
-				if err != nil {
-						return fmt.Errorf("error finding sublocation at index %d: %w", i, err)
-				}
-
-				_, err = tx.ExecContext(ctx, `
-						INSERT INTO physical_game_locations (user_game_id, sublocation_id)
-						VALUES ($1, $2)
-				`, userGameID, sublocationID)
-			} else {
-					// First get the digital location UUID by name
-					var digitalLocationID uuid.UUID
-					err = tx.QueryRowContext(ctx, `
-							SELECT id FROM digital_locations
-							WHERE id = $1 AND user_id = $2
-					`, location.Location.DigitalLocationID, userID).Scan(&digitalLocationID)
-					if err != nil {
-							return fmt.Errorf("error finding digital location at index %d: %w", i, err)
-					}
-
+					// STEP 2a: Ensure platform exists
 					_, err = tx.ExecContext(ctx, `
-							INSERT INTO digital_game_locations (user_game_id, digital_location_id)
-							VALUES ($1, $2)
-					`, userGameID, digitalLocationID)
-			}
-			if err != nil {
-					return fmt.Errorf("error inserting game location at index %d: %w", i, err)
-			}
-		}
+							INSERT INTO platforms (id, name, category, model)
+							VALUES ($1, $2, $3, $4)
+							ON CONFLICT (id) DO NOTHING
+					`, location.PlatformID, location.PlatformName,
+						 getPlatformCategory(location.PlatformName),
+						 getPlatformModel(location.PlatformName))
+					if err != nil {
+							la.logger.Error("Failed to ensure platform exists", map[string]any{
+									"error": err,
+									"platformID": location.PlatformID,
+							})
+							return fmt.Errorf("error ensuring platform exists at index %d: %w", i, err)
+					}
 
-		return nil
+					// STEP 2b: Add game+platform to user's library
+					var userGameID int
+					err = tx.QueryRowContext(ctx, `
+							INSERT INTO user_games (user_id, game_id, platform_id, game_type)
+							VALUES ($1, $2, $3, $4)
+							RETURNING id
+					`, userID, game.GameID, location.PlatformID, location.Type).Scan(&userGameID)
+					if err != nil {
+							if strings.Contains(err.Error(), "unique constraint") {
+									la.logger.Info("Game already exists, getting ID", map[string]any{
+											"userID": userID,
+											"gameID": game.GameID,
+											"platformID": location.PlatformID,
+									})
+									err = tx.QueryRowContext(ctx, `
+											SELECT id FROM user_games
+											WHERE user_id = $1 AND game_id = $2 AND platform_id = $3
+									`, userID, game.GameID, location.PlatformID).Scan(&userGameID)
+									if err != nil {
+											la.logger.Error("Failed to find existing user game", map[string]any{
+													"error": err,
+													"userID": userID,
+													"gameID": game.GameID,
+													"platformID": location.PlatformID,
+											})
+											return fmt.Errorf("error finding existing user game at index %d: %w", i, err)
+									}
+							} else {
+									la.logger.Error("Failed to insert user game", map[string]any{
+											"error": err,
+											"userID": userID,
+											"gameID": game.GameID,
+											"platformID": location.PlatformID,
+									})
+									return fmt.Errorf("error inserting user game at index %d: %w", i, err)
+							}
+					}
+
+					// STEP 3: Add location mapping based on type
+					if location.Type == "physical" {
+							la.logger.Info("Adding physical location", map[string]any{
+									"userGameID": userGameID,
+									"sublocationID": location.Location.SublocationID,
+							})
+							_, err = tx.ExecContext(ctx, `
+									INSERT INTO physical_game_locations (user_game_id, sublocation_id)
+									VALUES ($1, $2)
+							`, userGameID, location.Location.SublocationID)
+					} else {
+							la.logger.Info("Adding digital location", map[string]any{
+									"userGameID": userGameID,
+									"digitalLocationID": location.Location.DigitalLocationID,
+							})
+							_, err = tx.ExecContext(ctx, `
+									INSERT INTO digital_game_locations (user_game_id, digital_location_id)
+									VALUES ($1, $2)
+							`, userGameID, location.Location.DigitalLocationID)
+					}
+					if err != nil {
+							la.logger.Error("Failed to insert game location", map[string]any{
+									"error": err,
+									"userGameID": userGameID,
+									"type": location.Type,
+							})
+							return fmt.Errorf("error inserting game location at index %d: %w", i, err)
+					}
+			}
+
+			return nil
 	})
 }
 
