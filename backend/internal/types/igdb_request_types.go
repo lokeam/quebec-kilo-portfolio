@@ -1,8 +1,8 @@
 package types
 
 type IGDBQuery struct {
-	search  string
-	fields  []string
-	where   []string
-	limit   int
+	Search  string
+	Fields  []string
+	Where   []string
+	Limit   int
 }

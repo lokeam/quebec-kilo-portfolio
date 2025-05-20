@@ -222,14 +222,13 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 										'id', ug.id,
 										'name', g.name,
 										'platform', p.name,
-										'acquired_date', ug.added_at
+										'acquired_date', ug.created_at
 									)
 								)
 								FROM physical_game_locations pgl
 								JOIN user_games ug ON pgl.user_game_id = ug.id
 								JOIN games g ON ug.game_id = g.id
-								JOIN game_platforms gp ON g.id = gp.game_id
-								JOIN platforms p ON gp.platform_id = p.id
+								JOIN platforms p ON ug.platform_id = p.id
 								WHERE pgl.sublocation_id = sl.id
 							),
 							'[]'::json
@@ -316,14 +315,13 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 							'id', ug.id,
 							'name', g.name,
 							'platform', p.name,
-							'acquired_date', ug.added_at
+							'acquired_date', ug.created_at
 						)
 					)
 					FROM digital_game_locations dgl
 					JOIN user_games ug ON dgl.user_game_id = ug.id
 					JOIN games g ON ug.game_id = g.id
-					JOIN game_platforms gp ON g.id = gp.game_id
-					JOIN platforms p ON gp.platform_id = p.id
+					JOIN platforms p ON ug.platform_id = p.id
 					WHERE dgl.digital_location_id = dld.id
 				),
 				'[]'::json
@@ -386,7 +384,7 @@ func (r *repository) GetInventoryStats(ctx context.Context, userID string) (*Inv
 		SELECT COUNT(*)
 		FROM user_games
 		WHERE user_id = $1
-		AND TO_CHAR(added_at, 'YYYY-MM') = $2`, userID, currentMonth)
+		AND TO_CHAR(created_at, 'YYYY-MM') = $2`, userID, currentMonth)
 	if err != nil {
 		// This might fail if user_games table doesn't exist yet
 		stats.NewItemCount = 0
@@ -399,8 +397,7 @@ func (r *repository) GetInventoryStats(ctx context.Context, userID string) (*Inv
 			p.name as platform,
 			COUNT(ug.id) as item_count
 		FROM user_games ug
-		JOIN game_platforms gp ON ug.game_id = gp.game_id
-		JOIN platforms p ON gp.platform_id = p.id
+		JOIN platforms p ON ug.platform_id = p.id
 		WHERE ug.user_id = $1
 		GROUP BY p.name
 		ORDER BY item_count DESC`, userID)
