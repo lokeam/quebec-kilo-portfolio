@@ -10,6 +10,7 @@ const (
 
 	// Related entity fields
 	FieldCoverURL        = "cover.url"
+	FieldPlatformID      = "platforms.id"
 	FieldPlatformName    = "platforms.name"
 	FieldGenreName       = "genres.name"
 	FieldThemeName       = "themes.name"
@@ -23,6 +24,7 @@ var (
 		FieldFirstReleaseDate,
 		FieldRating,
 		FieldCoverURL,
+		FieldPlatformID,
 		FieldPlatformName,
 		FieldGenreName,
 		FieldThemeName,

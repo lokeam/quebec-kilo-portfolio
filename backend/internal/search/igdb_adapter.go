@@ -152,62 +152,77 @@ func (a *IGDBAdapter) UpdateToken(token string) error {
 //   - Basic game information
 //   - Nested data like platforms, genres, and themes
 //   - Game type information
-func (a *IGDBAdapter) convertResponsesToGames( responses []*types.IGDBResponse) []*models.Game {
+func (a *IGDBAdapter) convertResponsesToGames(responses []*types.IGDBResponse) []*models.Game {
 	games := make([]*models.Game, 0, len(responses))
 
-	for _, resp := range responses {
-		// Guard against missing/malformed payload - skip if game_type, coverURL or platforms are missing
-		if resp.GameType.Type == "" ||
-			resp.Cover.URL == "" ||
-			len(resp.Platforms) == 0 {
-				continue
-		}
+	for i := 0; i < len(responses); i++ {
+			resp := responses[i]
 
-		// Look up labels for game_type ID
-		gameTypeResponseField := getGameType(resp.GameType.ID)
+			// Guard against missing/malformed payload - skip if game_type, coverURL or platforms are missing
+			if resp.GameType.Type == "" ||
+					resp.Cover.URL == "" ||
+					len(resp.Platforms) == 0 {
+					continue
+			}
 
-		// Build full GameType value for DB
-		gameTypeforDB := types.GameType{
-			ID:               resp.GameType.ID,
-			Type:             resp.GameType.Type,
-			DisplayText:      gameTypeResponseField.DisplayText,
-			NormalizedText:   gameTypeResponseField.NormalizedText,
-		}
+			// Look up game type ID to get display text and normalized text
+			gameTypeResponseField := getGameType(resp.GameType.ID)
 
-		// Build GameTypeResponse for frontend JSON
-		gameTypeforResponse := types.GameTypeResponse{
-			DisplayText:       gameTypeforDB.DisplayText,
-			NormalizedText:    gameTypeforDB.NormalizedText,
-		}
+			// Build full GameType value for DB
+			gameTypeforDB := types.GameType{
+					ID:             resp.GameType.ID,
+					Type:           resp.GameType.Type,
+					DisplayText:    gameTypeResponseField.DisplayText,
+					NormalizedText: gameTypeResponseField.NormalizedText,
+			}
 
-		gameResponse := &models.Game{
-			ID:               resp.ID,
-			Name:             resp.Name,
-			Summary:          resp.Summary,
-			CoverURL:         resp.Cover.URL,
-			FirstReleaseDate: resp.FirstReleaseDate,
-			Rating:           resp.Rating,
+			// Build GameTypeResponse for frontend JSON
+			gameTypeforResponse := types.GameTypeResponse{
+					DisplayText:    gameTypeforDB.DisplayText,
+					NormalizedText: gameTypeforDB.NormalizedText,
+			}
 
-			// Fill both DB and JSON fields
-			GameType:         gameTypeforDB,
-			GameTypeResponse: gameTypeforResponse,
+			// Pre-allocate slices with known capacity
+			platformNames := make([]string, len(resp.Platforms))
+			genreNames := make([]string, len(resp.Genres))
+			themeNames := make([]string, len(resp.Themes))
 
-			PlatformNames: make([]string, len(resp.Platforms)),
-			GenreNames:    make([]string, len(resp.Genres)),
-			ThemeNames:    make([]string, len(resp.Themes)),
-		}
+			platforms := make([]models.PlatformInfo, len(resp.Platforms))
+			// Convert platforms using index-based loop
+			for j := 0; j < len(resp.Platforms); j++ {
+					platforms[j] = models.PlatformInfo{
+							ID:   resp.Platforms[j].ID,
+							Name: resp.Platforms[j].Name,
+					}
+					platformNames[j] = resp.Platforms[j].Name
+			}
 
-		for i, pl := range resp.Platforms {
-			gameResponse.PlatformNames[i] = pl.Name
-		}
-		for i, ge := range resp.Genres {
-			gameResponse.GenreNames[i] = ge.Name
-		}
-		for i, th := range resp.Themes {
-			gameResponse.ThemeNames[i] = th.Name
-		}
+			// Convert genres using index-based loop
+			for j := 0; j < len(resp.Genres); j++ {
+					genreNames[j] = resp.Genres[j].Name
+			}
 
-		games = append(games, gameResponse)
+			// Convert themes using index-based loop
+			for j := 0; j < len(resp.Themes); j++ {
+					themeNames[j] = resp.Themes[j].Name
+			}
+
+			gameResponse := &models.Game{
+					ID:               resp.ID,
+					Name:             resp.Name,
+					Summary:          resp.Summary,
+					CoverURL:         resp.Cover.URL,
+					FirstReleaseDate: resp.FirstReleaseDate,
+					Rating:           resp.Rating,
+					GameType:         gameTypeforDB,
+					GameTypeResponse: gameTypeforResponse,
+					Platforms:        platforms,
+					PlatformNames:    platformNames,
+					GenreNames:       genreNames,
+					ThemeNames:       themeNames,
+			}
+
+			games = append(games, gameResponse)
 	}
 
 	return games

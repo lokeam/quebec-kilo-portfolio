@@ -153,6 +153,7 @@ func convertIGDBGame(g models.Game) models.Game {
 		CoverURL:            g.CoverURL,
 		FirstReleaseDate:    int64(g.FirstReleaseDate),
 		Rating:              g.Rating,
+		Platforms:           g.Platforms,
 		PlatformNames:       g.PlatformNames,
 		GenreNames:          g.GenreNames,
 		ThemeNames:          g.ThemeNames,

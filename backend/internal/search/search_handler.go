@@ -184,12 +184,20 @@ func NewSearchHandler(
 		}
 
 		// 11. Check if the current search response contains items in a user's library or wishlist
-		library, err := libraryService.GetLibraryItems(r.Context(), userID)
+		libraryGames, _, _, err := libraryService.GetAllLibraryGames(r.Context(), userID)
 		if err != nil {
 			appCtx.Logger.Error("Failed to fetch items in user's library", map[string]any{
 				"request_id": requestID,
 				"error":      err,
 			})
+		}
+
+		// Convert library games to the format expected by containsGame
+		library := make([]models.LibraryGame, len(libraryGames))
+		for i, game := range libraryGames {
+			library[i] = models.LibraryGame{
+				GameID: game.ID,
+			}
 		}
 
 		wishlist, err := wishlistService.GetWishlistItems(r.Context(), userID)
@@ -222,9 +230,9 @@ func NewSearchHandler(
 }
 
 // Helper function to check if a game is in a list
-func containsGame(games []models.Game, gameID int64) bool {
+func containsGame(games []models.LibraryGame, gameID int64) bool {
 	for _, game := range games {
-		if game.ID == gameID {
+		if game.GameID == gameID {
 			return true
 		}
 	}

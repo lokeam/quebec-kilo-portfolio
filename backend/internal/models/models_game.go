@@ -13,7 +13,7 @@ type Game struct {
 	CoverURL         string    `json:"cover_url" db:"cover_url"`
 	FirstReleaseDate int64     `json:"first_release_date" db:"first_release_date"`
 	Rating           float64   `json:"rating" db:"rating"`
-	Platforms        []int64   `json:"platforms,omitempty" db:"platforms"`
+
 	Genres           []int64   `json:"genres,omitempty" db:"genres"`
 	Themes           []int64   `json:"themes,omitempty" db:"themes"`
 	GameType         types.GameType `json:"-" db:"game_type_id"`        // used when saving to the database
@@ -22,6 +22,8 @@ type Game struct {
 	IsInWishlist     bool      `json:"is_in_wishlist" db:"-"`
 
 	// NOTE: These fields won't be stored directly in the games table
+	//Platforms        []int64   `json:"platforms,omitempty" db:"platforms"`
+	Platforms       []PlatformInfo `json:"platforms" db:"-"`
 	PlatformNames   []string  `json:"platform_names" db:"-"`
 	GenreNames      []string  `json:"genre_names" db:"-"`
 	ThemeNames      []string  `json:"theme_names" db:"-"`
@@ -33,4 +35,9 @@ type Game struct {
 	Condition       string    `json:"condition,omitempty" db:"-"`
 	HasOriginalCase bool      `json:"has_original_case,omitempty" db:"-"`
 	HasManual       bool      `json:"has_manual,omitempty" db:"-"`
+}
+
+type PlatformInfo struct {
+	ID   int64     `json:"id"`
+	Name string    `json:"name"`
 }
