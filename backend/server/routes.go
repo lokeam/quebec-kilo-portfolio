@@ -89,7 +89,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 	mux.Use(authMiddleware.MockAuthMiddleware(appContext))
 
 	// Create library handler
-	libraryHandler := library.NewLibraryHandler(appContext, svc.LibraryMap)
+	//libraryHandler := library.NewLibraryHandler(appContext, svc.LibraryMap)
 
 	// Create digital services catalog handler
 	digitalServicesCatalogHandler := digital.GetDigitalServicesCatalog(appContext)
@@ -143,11 +143,13 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		r.Post("/search", searchHandler)
 
 		// Library
-		// TODO: Refactor this to use the physical location pattern below
-		r.Get("/library", libraryHandler)
-		r.Post("/library", libraryHandler)
-		r.Route("/library/games", func(r chi.Router) {
-			r.Delete("/{gameID}", libraryHandler)
+		r.Route("/library", func(r chi.Router) {
+			appContext.Logger.Info("Registering library routes", map[string]any{
+				"path": "/api/v1/library",
+			})
+
+			// Register routes using the new pattern
+			library.RegisterLibraryRoutes(r, appContext, svc.LibraryMap, svc.Analytics)
 		})
 
 		// Physical Locations

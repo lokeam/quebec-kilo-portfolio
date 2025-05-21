@@ -11,6 +11,10 @@ type CreateLibraryGameRequest struct {
 	GamesByPlatformAndLocation   []LibraryRequestGameLocation    `json:"games_by_platform_and_location"`
 }
 
+type UpdateLibraryGameRequest struct {
+	GamesByPlatformAndLocation    []LibraryRequestGameLocation    `json:"games_by_platform_and_location"`
+}
+
 type LibraryRequestGameType struct {
 	DisplayText     string `json:"display_text"`
 	NormalizedText  string `json:"normalized_text"`

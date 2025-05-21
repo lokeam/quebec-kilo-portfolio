@@ -7,7 +7,7 @@ import (
 )
 
 type LibraryDbAdapter interface {
-	GetUserGame(ctx context.Context, userID string, gameID int64) (models.LibraryGame, bool, error)
+	GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (models.LibraryGame, bool, error)
 	GetAllLibraryGames(ctx context.Context, userID string) ([]models.LibraryGame, error)
 	GetUserLibraryItems(ctx context.Context, userID string) ([]models.LibraryGame, error)
 	UpdateLibraryGame(ctx context.Context, game models.LibraryGame) error

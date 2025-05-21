@@ -9,7 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
@@ -31,6 +34,385 @@ type AddGameRequest struct {
 	CoverURL   string `json:"cover_url"`
 	ReleaseDate int64  `json:"release_date"`
 }
+
+func RegisterLibraryRoutes(
+	r chi.Router,
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+	analyticsService analytics.Service,
+) {
+	// Base routes
+	r.Get("/", GetAllLibraryGames(appCtx, libraryServices))
+	r.Post("/", CreateLibraryGame(appCtx, libraryServices, analyticsService))
+
+	// Nested routes with ID
+	r.Route("/games/{gameID}", func(r chi.Router) {
+		r.Put("/", UpdateLibraryGame(appCtx, libraryServices, analyticsService))
+		r.Delete("/", DeleteGameFromLibrary(appCtx, libraryServices, analyticsService))
+	})
+}
+
+// helper fn to standardize error handling
+func handleError(
+	w http.ResponseWriter,
+	logger interfaces.Logger,
+	requestID string,
+	err error,
+) {
+	statusCode := GetStatusCodeForError(err)
+	httputils.RespondWithError(
+		httputils.NewResponseWriterAdapter(w),
+		logger,
+		requestID,
+		err,
+		statusCode,
+	)
+}
+
+// GetAllLibraryGames handles GET requests for listing all library games
+func GetAllLibraryGames(
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+					"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		appCtx.Logger.Info("Listing all library games", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		domain := httputils.GetDomainFromRequest(r, "games")
+		service, exists := libraryServices[domain]
+		if !exists {
+			handleError(w, appCtx.Logger, requestID, errors.New("domain not found in libraryServices"))
+			return
+		}
+
+		games, physicalLocations, digitalLocations, err := service.GetAllLibraryGames(r.Context(), userID)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		responseAdapter := NewLibraryResponseAdapter()
+		adaptedResponse := responseAdapter.AdaptToLibraryResponse(
+			games,
+			physicalLocations,
+			digitalLocations,
+		)
+
+		response := httputils.NewAPIResponse(r, userID, adaptedResponse)
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// AddGameToLibrary handles POST requests for adding a game to the library
+func CreateLibraryGame(
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request contetx", map[string]any{
+				"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		appCtx.Logger.Info("Adding game to library", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		// Log the raw request body for debugging pissy JSON errors
+		bodyBytes, _ := io.ReadAll(r.Body)
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Note: NEED TO RESET body AFTER READING
+
+		appCtx.Logger.Info("Request body received", map[string]any{
+			"requestID": requestID,
+			"body":      string(bodyBytes),
+		})
+
+		var tempAddGameRequest types.CreateLibraryGameRequest
+		if err := json.NewDecoder(r.Body).Decode(&tempAddGameRequest); err != nil {
+			handleError(w, appCtx.Logger, requestID, errors.New("invalid request body"))
+			return
+		}
+
+		requestAdapter := NewLibraryRequestAdapter()
+		libraryGame :=  requestAdapter.AdaptCreateRequestToLibraryGameModel(tempAddGameRequest)
+
+		domain := httputils.GetDomainFromRequest(r, "games")
+		service, exists := libraryServices[domain]
+		if !exists {
+			handleError(w, appCtx.Logger, requestID, errors.New("domain not found in libraryServices"))
+			return
+		}
+
+		if err := service.CreateLibraryGame(r.Context(), userID, libraryGame); err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		game, physicalLocations, digitalLocations, err := service.GetSingleLibraryGame(
+			r.Context(),
+			userID,
+			libraryGame.GameID,
+		)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
+		responseAdapter := NewLibraryResponseAdapter()
+		adaptedResponse := responseAdapter.AdaptToSingleGameResponse(
+			game,
+			physicalLocations,
+			digitalLocations,
+		)
+
+		response := httputils.NewAPIResponse(r, userID, adaptedResponse)
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// UpdateLibraryGame handles PUT requests for updating a library game
+func UpdateLibraryGame(
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+					"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		// Log the raw request body for debugging pissy JSON errors
+		bodyBytes, _ := io.ReadAll(r.Body)
+		r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes)) // Reset body after reading
+
+		urlParts := strings.Split(r.URL.Path, "/")
+		if len(urlParts) < 3 {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					errors.New("invalid path"),
+					http.StatusBadRequest,
+			)
+			return
+		}
+
+		gameIDStr := urlParts[len(urlParts)-1]
+		gameIDint64, err := strconv.ParseInt(gameIDStr, 10, 64)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, errors.New("invalid ID: must be a number"))
+			return
+		}
+
+		appCtx.Logger.Info("Updating library game", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+			"gameID":    gameIDint64,
+		})
+
+		// Parse request body
+		var tempPutGameRequest types.UpdateLibraryGameRequest
+		if err := json.NewDecoder(r.Body).Decode(&tempPutGameRequest); err != nil {
+			handleError(w, appCtx.Logger, requestID, errors.New("invalid request body"))
+			return
+		}
+
+		requestAdapter := NewLibraryRequestAdapter()
+		libraryGame := requestAdapter.AdaptUpdateRequestToLibraryGameModel(tempPutGameRequest)
+		libraryGame.GameID = gameIDint64
+
+		domain := httputils.GetDomainFromRequest(r, "games")
+		service, exists := libraryServices[domain]
+		if !exists {
+			handleError(w, appCtx.Logger, requestID, errors.New("domain not found in libraryServices"))
+			return
+		}
+
+		game, physicalLocations, digitalLocations, err := service.GetSingleLibraryGame(
+			r.Context(),
+			userID,
+			gameIDint64,
+		)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
+		responseAdapter := NewLibraryResponseAdapter()
+		adaptedResponse := responseAdapter.AdaptToSingleGameResponse(
+			game,
+			physicalLocations,
+			digitalLocations,
+		)
+
+		response := httputils.NewAPIResponse(r, userID, adaptedResponse)
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// DeleteGameFromLibrary handles DELETE requests for deleting a game from the library
+func DeleteGameFromLibrary(
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+	analyticsService analytics.Service,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+					"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		// Extract game ID from URL path
+		parts := strings.Split(r.URL.Path, "/")
+		if len(parts) < 3 {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("invalid path"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// Grab last part of the path as the gameID
+		gameIDStr := parts[len(parts)-1]
+		gameIDint64, err := strconv.ParseInt(gameIDStr, 10, 64)
+		if err != nil {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("invalid ID: must be a number"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		appCtx.Logger.Info("Deleting game from library", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+			"gameID":    gameIDint64,
+		})
+
+		domain := httputils.GetDomainFromRequest(r, "games")
+		service, exists := libraryServices[domain]
+		if !exists {
+			handleError(w, appCtx.Logger, requestID, errors.New("domain not found in libraryServices"))
+			return
+		}
+
+		if err := service.DeleteLibraryGame(
+			r.Context(),
+			userID,
+			gameIDint64,
+		); err != nil {
+			if errors.Is(err, ErrGameNotFound) {
+				handleError(w, appCtx.Logger, requestID, err)
+				return
+			}
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Invalidate analytics cache for inventory domain
+		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
+		data := struct {
+			ID     int64   `json:"id"`
+			Message string  `json:"message"`
+		}{
+			ID:      gameIDint64,
+			Message: "Game removed from library successfully",
+		}
+
+		response := httputils.NewAPIResponse(r, userID, data)
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
 
 func NewLibraryHandler(
 	appCtx *appcontext.AppContext,
@@ -108,11 +490,13 @@ func NewLibraryHandler(
 			}
 
 			// Use response adapter to format response
-			response := responseAdapter.AdaptToLibraryResponse(
+			adaptedResponse := responseAdapter.AdaptToLibraryResponse(
 				games,
 				physicalLocations,
 				digitalLocations,
 			)
+
+			response := httputils.NewAPIResponse(r, userID, adaptedResponse)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -214,12 +598,13 @@ func NewLibraryHandler(
 					return
 			}
 
-			// Return updated game
-			response := responseAdapter.AdaptToSingleGameResponse(
+			adaptedResponse := responseAdapter.AdaptToSingleGameResponse(
 				game,
 				physicalLocations,
 				digitalLocations,
 			)
+
+			response := httputils.NewAPIResponse(r, userID, adaptedResponse)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -297,11 +682,13 @@ func NewLibraryHandler(
 			}
 
 			// Use response adapter to format single game response
-			response := responseAdapter.AdaptToSingleGameResponse(
+			adaptedResponse := responseAdapter.AdaptToSingleGameResponse(
 				game,
 				physicalLocations,
 				digitalLocations,
 			)
+
+			response := httputils.NewAPIResponse(r, userID, adaptedResponse)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -373,13 +760,15 @@ func NewLibraryHandler(
 			}
 
 			// Format response
-			response := struct {
-				Success    bool    `json:"success"`
-				ID         int64   `json:"id"`
+			data := struct {
+				ID      int64  `json:"id"`
+				Message string `json:"message"`
 			}{
-				Success:   true,
-				ID:        gameIDint64,
+				ID:      gameIDint64,
+				Message: "Game removed from library successfully",
 			}
+
+			response := httputils.NewAPIResponse(r, userID, data)
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -401,5 +790,4 @@ func NewLibraryHandler(
 		}
 	}
 }
-
 
