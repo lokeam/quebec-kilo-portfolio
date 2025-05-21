@@ -46,3 +46,29 @@ export interface CreateLibraryGameRequestLocationEntry {
     digitalLocationId?: string;
   };
 }
+
+export interface LibraryGameItem {
+  id: number;
+  name: string;
+  coverUrl: string;
+  firstReleaseDate: number;
+  rating: number;
+  isInLibrary: boolean;
+  isInWishlist: boolean;
+  gameType: {
+    displayText: string;
+    normalizedText: string;
+  };
+  favorite: boolean;
+  physicalLocations: Array<{
+    name: string;
+    type: string;
+    sublocation: {
+      name: string;
+      type: string;
+      bgColor: string;
+    };
+    platform: string;
+  }>;
+  digitalLocations: any[]; // We can type this properly when we need it
+}

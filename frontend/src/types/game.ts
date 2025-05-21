@@ -1,8 +1,8 @@
 // src/types/game.ts
 
 interface GameType {
-  display_text: string;
-  normalized_text: string;
+  displayText: string;
+  normalizedText: string;
 }
 
 export interface Game {

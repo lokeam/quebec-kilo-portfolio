@@ -11,18 +11,24 @@
  * Handles nested objects and arrays
  */
 export function toCamelCase<T>(obj: unknown): T {
+  // Handle arrays - preserve array structure
   if (Array.isArray(obj)) {
-    return obj.map(toCamelCase) as T;
+    return obj.map(item => toCamelCase(item)) as T;
   }
 
+  // Handle objects - preserve object structure
   if (obj !== null && typeof obj === 'object') {
-    return Object.keys(obj as Record<string, unknown>).reduce((acc: Record<string, unknown>, key) => {
+    const result = {} as Record<string, unknown>;
+    for (const [key, value] of Object.entries(obj)) {
+      // Convert the key to camelCase
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-      acc[camelKey] = toCamelCase((obj as Record<string, unknown>)[key]);
-      return acc;
-    }, {}) as T;
+      // Recursively convert nested values
+      result[camelKey] = toCamelCase(value);
+    }
+    return result as T;
   }
 
+  // Return primitives as-is
   return obj as T;
 }
 
@@ -31,17 +37,23 @@ export function toCamelCase<T>(obj: unknown): T {
  * Handles nested objects and arrays
  */
 export function toSnakeCase<T>(obj: unknown): T {
+  // Handle arrays - preserve array structure
   if (Array.isArray(obj)) {
-    return obj.map(toSnakeCase) as T;
+    return obj.map(item => toSnakeCase(item)) as T;
   }
 
+  // Handle objects - preserve object structure
   if (obj !== null && typeof obj === 'object') {
-    return Object.keys(obj as Record<string, unknown>).reduce((acc: Record<string, unknown>, key) => {
+    const result = {} as Record<string, unknown>;
+    for (const [key, value] of Object.entries(obj)) {
+      // Convert the key to snake_case
       const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      acc[snakeKey] = toSnakeCase((obj as Record<string, unknown>)[key]);
-      return acc;
-    }, {}) as T;
+      // Recursively convert nested values
+      result[snakeKey] = toSnakeCase(value);
+    }
+    return result as T;
   }
 
+  // Return primitives as-is
   return obj as T;
 }

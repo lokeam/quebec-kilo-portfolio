@@ -111,7 +111,15 @@ func GetAllLibraryGames(
 			digitalLocations,
 		)
 
-		response := httputils.NewAPIResponse(r, userID, adaptedResponse)
+
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"library": adaptedResponse,
+		})
+
+		jsonBytes, _ := json.Marshal(response)
+		appCtx.Logger.Info("GetAllLibraryGamesResponse:", map[string]any{
+				"response": string(jsonBytes),
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -303,7 +311,9 @@ func UpdateLibraryGame(
 			digitalLocations,
 		)
 
-		response := httputils.NewAPIResponse(r, userID, adaptedResponse)
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"library": adaptedResponse,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -394,15 +404,9 @@ func DeleteGameFromLibrary(
 			})
 		}
 
-		data := struct {
-			ID     int64   `json:"id"`
-			Message string  `json:"message"`
-		}{
-			ID:      gameIDint64,
-			Message: "Game removed from library successfully",
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"message": "Game removed from library successfully",
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

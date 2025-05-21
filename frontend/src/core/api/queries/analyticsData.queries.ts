@@ -4,16 +4,17 @@
  * Provides React Query hooks for fetching analytics data across different domains.
  */
 
-import { useAPIQuery } from './useAPIQuery';
-import { getAnalyticsData, type AnalyticsDomain, type AnalyticsResponse } from '../services/analytics.service';
+import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
+import { getAnalyticsData, type AnalyticsDomain } from '@/core/api/services/analytics.service';
 import { logger } from '@/core/utils/logger/logger';
-import { QUERY_STALE_TIME } from '../config';
 import {
   adaptAnalyticsToStorageMetadata,
   adaptAnalyticsToPhysicalLocations,
   adaptAnalyticsToDigitalLocations
-} from '../adapters/analytics.adapter';
+} from '@/core/api/adapters/analytics.adapter';
 import { useMemo } from 'react';
+
+import type { AnalyticsResponseWrapper } from '@/core/api/services/analytics.service';
 
 /**
  * Query key factory for analytics queries
@@ -55,8 +56,11 @@ export const analyticsKeys = {
  * }
  * ```
  */
-export function useAnalyticsData(domains: AnalyticsDomain[] = []) {
-  return useAPIQuery<AnalyticsResponse>({
+export function useAnalyticsData(
+  domains: AnalyticsDomain[] = [],
+  options?: { enabled?: boolean}
+) {
+  return useAPIQuery<AnalyticsResponseWrapper>({
     queryKey: analyticsKeys.list(domains),
     queryFn: async () => {
       try {
@@ -71,7 +75,9 @@ export function useAnalyticsData(domains: AnalyticsDomain[] = []) {
         throw error;
       }
     },
-    staleTime: QUERY_STALE_TIME,
+    staleTime: 0,
+    enabled: options?.enabled,
+    refetchOnMount: 'always',
   });
 }
 
@@ -83,8 +89,8 @@ export function useAnalyticsData(domains: AnalyticsDomain[] = []) {
  *
  * @returns Query result with storage analytics data
  */
-export function useStorageAnalytics() {
-  const { data, isLoading, error } = useAnalyticsData(['storage']);
+export function useStorageAnalytics(options?: { enabled?: boolean }) {
+  const { data, isLoading, error } = useAnalyticsData(['storage'], options);
 
   const transformedData = useMemo(() => {
     if (!data) return null;

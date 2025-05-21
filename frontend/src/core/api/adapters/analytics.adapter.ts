@@ -1,4 +1,4 @@
-import type { AnalyticsResponse } from '../services/analytics.service';
+import type { AnalyticsResponseWrapper, LocationSummary } from '@/core/api/services/analytics.service';
 import type { MediaStorageMetadata } from '@/types/api/storage';
 import type { PhysicalLocation } from '@/types/domain/physical-location';
 import type { DigitalLocation } from '@/types/domain/digital-location';
@@ -6,9 +6,9 @@ import type { GamePlatform } from '@/types/domain/game-platform';
 import type { GameItem } from '@/types/domain/game-item';
 import type { Sublocation } from '@/types/domain/sublocation';
 import { GamePlatform as GamePlatformEnum } from '@/types/domain/game-platform';
-import { PhysicalLocationType, SublocationType } from '@/types/domain/location-types';
+import { PhysicalLocationType } from '@/types/domain/location-types';
 
-export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponse): MediaStorageMetadata {
+export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponseWrapper): MediaStorageMetadata {
   const storage = analyticsData.storage;
   if (!storage) {
     return {
@@ -30,25 +30,25 @@ export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponse
     };
   }
 
-  const physicalItemCount = storage.physicalLocations?.reduce((sum, loc) => sum + loc.itemCount, 0) || 0;
-  const digitalItemCount = storage.digitalLocations?.reduce((sum, loc) => sum + loc.itemCount, 0) || 0;
+  const physicalItemCount = storage.physicalLocations?.reduce((sum: number, loc: LocationSummary) => sum + loc.itemCount, 0) || 0;
+  const digitalItemCount = storage.digitalLocations?.reduce((sum: number, loc: LocationSummary) => sum + loc.itemCount, 0) || 0;
 
   // Create byLocation map
   const byLocation: Record<string, { total: number; inSublocations: number }> = {};
 
   // Add physical locations
-  storage.physicalLocations?.forEach(loc => {
+  storage.physicalLocations?.forEach((loc: LocationSummary) => {
     byLocation[loc.id] = {
       total: loc.itemCount,
-      inSublocations: 0 // We don't have this info in analytics data
+      inSublocations: 0 // NOTE: We don't have this info in analytics data
     };
   });
 
   // Add digital locations
-  storage.digitalLocations?.forEach(loc => {
+  storage.digitalLocations?.forEach((loc: LocationSummary) => {
     byLocation[loc.id] = {
       total: loc.itemCount,
-      inSublocations: 0 // Digital locations don't have sublocations
+      inSublocations: 0 // NOTE: Digital locations don't have sublocations
     };
   });
 
@@ -71,48 +71,33 @@ export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponse
   };
 }
 
-export const adaptAnalyticsToPhysicalLocations = (
-  analyticsData: AnalyticsResponse
-): PhysicalLocation[] => {
-  if (!analyticsData.storage?.physicalLocations) {
+export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsResponseWrapper): PhysicalLocation[] {
+  const storage = analyticsData.storage;
+  if (!storage?.physicalLocations) {
     return [];
   }
 
-  return analyticsData.storage.physicalLocations.map(location => ({
+  return storage.physicalLocations.map((location: LocationSummary) => ({
     id: location.id,
     name: location.name,
-    type: location.locationType as PhysicalLocationType,
-    description: undefined,
-    metadata: undefined,
-    mapCoordinates: location.mapCoordinates,
-    sublocations: location.sublocations?.map(subloc => ({
-      id: subloc.id,
-      name: subloc.name,
-      type: subloc.locationType as SublocationType,
-      parentLocationId: location.id,
-      description: undefined,
-      metadata: {
-        bgColor: subloc.bgColor,
-        notes: undefined
-      },
-      items: [],
-      createdAt: new Date(subloc.createdAt),
-      updatedAt: new Date(subloc.updatedAt)
-    })) || [],
-    createdAt: new Date(location.created_at),
-    updatedAt: new Date(location.updated_at)
+    type: PhysicalLocationType.HOUSE,
+    sublocations: [],
+    items: [],
+    createdAt: new Date(),
+    updatedAt: new Date()
   }));
-};
+}
 
-export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsResponse): DigitalLocation[] {
-  if (!analyticsData.storage?.digitalLocations) {
+export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsResponseWrapper): DigitalLocation[] {
+  const storage = analyticsData.storage;
+  if (!storage?.digitalLocations) {
     return [];
   }
 
-  return analyticsData.storage.digitalLocations.map(loc => {
+  return storage.digitalLocations.map((location: LocationSummary) => {
     // Map the location type to a valid GamePlatform value
     let platform: GamePlatform;
-    switch (loc.locationType.toLowerCase()) {
+    switch (location.locationType.toLowerCase()) {
       case 'steam':
         platform = GamePlatformEnum.STEAM;
         break;
@@ -138,11 +123,11 @@ export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsRespons
     }
 
     return {
-      id: loc.id,
-      name: loc.name,
+      id: location.id,
+      name: location.name,
       type: platform,
-      description: undefined,
-      metadata: undefined,
+      isSubscription: location.isSubscription || false,
+      monthlyCost: location.monthlyCost || 0,
       items: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -197,7 +182,7 @@ export function adaptDigitalLocationToCardData(location: DigitalLocation): Locat
 }
 
 // Transform analytics data to UI-ready format
-export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponse): {
+export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponseWrapper): {
   physicalCards: LocationCardData[];
   digitalCards: LocationCardData[];
   metadata: MediaStorageMetadata;
@@ -205,22 +190,12 @@ export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponse): {
   const physicalLocations = adaptAnalyticsToPhysicalLocations(analyticsData);
   const digitalLocations = adaptAnalyticsToDigitalLocations(analyticsData);
 
-  // Transform physical locations to card data
-  const physicalCards = physicalLocations.flatMap(loc =>
-    adaptPhysicalLocationToCardData(loc)
-  );
-
-  // Transform digital locations to card data
-  const digitalCards = digitalLocations.map(loc =>
-    adaptDigitalLocationToCardData(loc)
-  );
-
-  // Get metadata
-  const metadata = adaptAnalyticsToStorageMetadata(analyticsData);
+  const physicalCards = physicalLocations.flatMap(adaptPhysicalLocationToCardData);
+  const digitalCards = digitalLocations.map(adaptDigitalLocationToCardData);
 
   return {
     physicalCards,
     digitalCards,
-    metadata
+    metadata: adaptAnalyticsToStorageMetadata(analyticsData)
   };
 }

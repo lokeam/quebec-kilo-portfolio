@@ -6,7 +6,7 @@
  */
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
-import { logger } from '@/core/utils/logger/logger';
+import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // Analytics domain constants
 export const ANALYTICS_DOMAINS = {
@@ -69,8 +69,6 @@ export interface StorageStats {
   physicalLocations: LocationSummary[];
 }
 
-
-
 export interface InventoryStats {
   totalItemCount: number;
   newItemCount: number;
@@ -90,6 +88,7 @@ export interface WishlistStats {
   cheapestSaleDiscount?: number;
 }
 
+// to delete
 export interface AnalyticsResponse {
   general?: GeneralStats;
   financial?: FinancialStats;
@@ -98,48 +97,28 @@ export interface AnalyticsResponse {
   wishlist?: WishlistStats;
 }
 
+export interface AnalyticsResponseWrapper {
+  storage?: {
+    digitalLocations: LocationSummary[];
+    physicalLocations: LocationSummary[];
+    totalDigitalLocations: number;
+    totalPhysicalLocations: number;
+  };
+  general?: GeneralStats;
+  financial?: FinancialStats;
+  inventory?: InventoryStats;
+  wishlist?: WishlistStats;
+}
+
 /**
  * Fetches analytics data for specified domains
  *
- * @async
- * @function getAnalyticsData
- * @param {AnalyticsDomain[]} domains - Array of analytics domains to fetch
- * @param {string} [token] - Optional auth token
- * @returns {Promise<AnalyticsResponse>} A promise that resolves to analytics data
- *
- * @throws {Error} If the API request fails
  */
-export const getAnalyticsData = async (
-  domains: AnalyticsDomain[],
-  token?: string
-): Promise<AnalyticsResponse> => {
-  logger.debug('Fetching analytics data', { domains });
-
-  try {
-    // Build query params for domains
-    const queryParams = domains.map(domain => `domains=${domain}`).join('&');
-    const url = `/v1/analytics${queryParams ? `?${queryParams}` : ''}`;
-
-    const config = {
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          }
-        : undefined
-    };
-
-    const response = await axiosInstance.get<AnalyticsResponse>(url, config);
-
-    logger.debug('Analytics data fetched successfully', {
-      domains,
-      dataKeys: Object.keys(response.data || {})
-    });
-
-    return response.data;
-  } catch (error) {
-    logger.error('Failed to fetch analytics data', { domains, error });
-    throw error;
-  }
-};
+export const getAnalyticsData = (domains?: string[]): Promise<AnalyticsResponseWrapper> =>
+  apiRequest('getAnalytics', () =>
+    axiosInstance
+      .get<{ analytics: AnalyticsResponseWrapper }>('/v1/analytics', {
+        params: domains ? { domains: domains.join(',') } : undefined
+      })
+      .then(response => response.data.analytics)
+  );

@@ -10,10 +10,18 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 // types
 import type { ApiResponse } from '@/types/api/api.types';
 import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
+
+interface LibraryResponseWrapper {
+  library: {
+    success: boolean;
+    games?: LibraryGameItem[];
+    game?: LibraryGameItem;
+  };
+}
 
 /**
  * Fetches all games for the current user.
@@ -28,12 +36,12 @@ const LIBRARY_ENDPOINT = '/v1/library';
  * Usage:
  *   return apiRequest('getAllGames', () => axios.get(...));
  */
-export const getAllLibraryGames = (): Promise<Game[]> =>
+export const getAllLibraryGames = (): Promise<LibraryGameItem[]> =>
   apiRequest('getAllLibraryGames', () =>
     axiosInstance
-      .get<ApiResponse<Game[]>>(LIBRARY_ENDPOINT)
-      .then(response => response.data.data)
-);
+      .get<LibraryResponseWrapper>(LIBRARY_ENDPOINT)
+      .then(response => response.data.library.games || [])
+  );
 
 /**
  * Fetches a specific game by ID
@@ -51,9 +59,15 @@ export const getAllLibraryGames = (): Promise<Game[]> =>
 export const getLibraryGameById = (id: string): Promise<Game> =>
   apiRequest(`getGameById(${id})`, () =>
     axiosInstance
-      .get<ApiResponse<Game>>(`${LIBRARY_ENDPOINT}/${id}`)
-      .then(response => response.data.data)
-);
+      .get<LibraryResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)
+      .then(response => {
+        const game = response.data.library.game;
+        if (!game) {
+          throw new Error(`Game with id ${id} not found`);
+        }
+        return game;
+      })
+  );
 
 
 /**
@@ -72,9 +86,15 @@ export const getLibraryGameById = (id: string): Promise<Game> =>
 export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<Game> =>
   apiRequest('createGame', () =>
     axiosInstance
-      .post<ApiResponse<Game>>(LIBRARY_ENDPOINT, data)
-      .then(response => response.data.data)
-);
+      .post<LibraryResponseWrapper>(LIBRARY_ENDPOINT, data)
+      .then(response => {
+        const game = response.data.library.game;
+        if (!game) {
+          throw new Error('Failed to create game');
+        }
+        return game;
+      })
+  );
 
 
 /**
@@ -93,9 +113,15 @@ export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<Game>
 export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameRequest>): Promise<Game> =>
   apiRequest(`updateGame(${id})`, () =>
     axiosInstance
-      .put<ApiResponse<Game>>(`${LIBRARY_ENDPOINT}/${id}`, data)
-      .then(response => response.data.data)
-);
+      .put<LibraryResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`, data)
+      .then(response => {
+        const game = response.data.library.game;
+        if (!game) {
+          throw new Error(`Failed to update game with id ${id}`);
+        }
+        return game;
+      })
+  );
 
 
 /**

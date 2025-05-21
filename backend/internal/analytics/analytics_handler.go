@@ -86,7 +86,9 @@ func GetAnalytics(appCtx *appcontext.AppContext, service Service) http.HandlerFu
 		}
 
 		// Create the response structure
-		response := httputils.NewAPIResponse(r, userID, data)
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"analytics": data,
+		})
 
 		// Respond with analytics data
 		httputils.RespondWithJSON(
