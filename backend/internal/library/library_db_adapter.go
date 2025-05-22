@@ -88,64 +88,85 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 			ug.favorite,
 			w.id IS NOT NULL as is_in_wishlist,
 			ug.game_type as game_type_display,
-			LOWER(ug.game_type) as game_type_normalized
+			LOWER(ug.game_type) as game_type_normalized,
+			p.id as platform_id,
+			p.name as platform_name
 	FROM games g
 	JOIN user_games ug ON g.id = ug.game_id
 	LEFT JOIN wishlist w ON g.id = w.game_id AND w.user_id = $1
+	LEFT JOIN platforms p ON ug.platform_id = p.id
 	WHERE ug.user_id = $1 AND g.id = $2
-	LIMIT 1
-`
+	`
 
 	var game types.LibraryGameDBResult
 	err := la.db.GetContext(ctx, &game, gameQuery, userID, gameID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return types.LibraryGameDBResult{}, nil, nil, ErrGameNotFound
-		}
-		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying user game: %w", err)
+			if errors.Is(err, pgx.ErrNoRows) {
+					return types.LibraryGameDBResult{}, nil, nil, ErrGameNotFound
+			}
+			return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying user game: %w", err)
 	}
 
-	// 2. Get physical locations
-	physicalQuery := `
-		SELECT
-			ug.game_id,
-			pl.name as location_name,
-			pl.location_type,
-			sl.name as sublocation_name,
-			sl.location_type as sublocation_type,
-			sl.bg_color as sublocation_bg_color,
-			p.name as platform_name
-		FROM user_games ug
-		JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
-		JOIN sublocations sl ON pgl.sublocation_id = sl.id
-		JOIN physical_locations pl ON sl.physical_location_id = pl.id
-		JOIN platforms p ON ug.platform_id = p.id
-		WHERE ug.user_id = $1 AND ug.game_id = $2
-	`
+	// 2. Get locations
+	locationQuery := `
+    SELECT
+        ug.game_id,
+        p.id as platform_id,
+        p.name as platform_name,
+        ug.game_type as type,
+        COALESCE(pl.id::text, dl.id::text) as location_id,
+        COALESCE(pl.name, dl.name) as location_name,
+        COALESCE(pl.location_type, 'digital') as location_type,
+        sl.id::text as sublocation_id,
+        sl.name as sublocation_name,
+        sl.location_type as sublocation_type,
+        sl.bg_color as sublocation_bg_color,
+        dl.is_active
+    FROM user_games ug
+    JOIN platforms p ON ug.platform_id = p.id
+    LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+    LEFT JOIN sublocations sl ON pgl.sublocation_id = sl.id
+    LEFT JOIN physical_locations pl ON sl.physical_location_id = pl.id
+    LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+    LEFT JOIN digital_locations dl ON dgl.digital_location_id = dl.id
+    WHERE ug.user_id = $1 AND ug.game_id = $2
+    `
 
-	var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
-	if err := la.db.SelectContext(ctx, &physicalLocations, physicalQuery, userID, gameID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying physical locations: %w", err)
-	}
+		var locations []types.GameLocationDBResult
+    if err := la.db.SelectContext(ctx, &locations, locationQuery, userID, gameID); err != nil {
+        return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying game locations: %w", err)
+    }
 
-	// 3. Get digital locations
-	digitalQuery := `
-		SELECT
-			ug.game_id,
-			dl.name as location_name,
-			dl.name as normalized_name,
-			p.name as platform_name
-		FROM user_games ug
-		JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
-		JOIN digital_locations dl ON dgl.digital_location_id = dl.id
-		JOIN platforms p ON ug.platform_id = p.id
-		WHERE ug.user_id = $1 AND ug.game_id = $2
-	`
+		var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
+    var digitalLocations []types.LibraryGameDigitalLocationDBResponse
 
-	var digitalLocations []types.LibraryGameDigitalLocationDBResponse
-	if err := la.db.SelectContext(ctx, &digitalLocations, digitalQuery, userID, gameID); err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, fmt.Errorf("error querying digital locations: %w", err)
-	}
+    for i := 0; i < len(locations); i++ {
+			loc := locations[i]
+			if loc.Type == "physical" {
+				physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
+					GameID: loc.GameID,
+					PlatformID: loc.PlatformID,
+					PlatformName: loc.PlatformName,
+					LocationID: loc.LocationID,
+					LocationName: loc.LocationName,
+					LocationType: loc.LocationType,
+					SublocationID: loc.SublocationID,
+					SublocationName: loc.SublocationName,
+					SublocationType: loc.SublocationType,
+					SublocationBgColor: loc.SublocationBgColor,
+				}
+				physicalLocations = append(physicalLocations, physicalLoc)
+			} else {
+					digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
+						GameID: loc.GameID,
+						PlatformID: loc.PlatformID,
+						PlatformName: loc.PlatformName,
+						LocationID: loc.LocationID,
+						LocationName: loc.LocationName,
+						IsActive: loc.IsActive,
+					})
+			}
+    }
 
 	return game, physicalLocations, digitalLocations, nil
 }
@@ -154,68 +175,16 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 func (la *LibraryDbAdapter) GetAllLibraryGames(
 	ctx context.Context,
 	userID string,
-) ([]types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, error) {
+) (
+	[]types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	error,
+	) {
 	la.logger.Debug("LibraryDbAdapter - GetAllLibraryGames called", map[string]any{
 		"userID": userID,
 	})
 
-	// Specialized debugging start
-	la.logger.Info("Checking specific game", map[string]any{
-    "gameID": 119133,
-    "userID": userID,
-})
-
-	// Check if this specific game exists
-	var gameExists bool
-	err := la.db.GetContext(ctx, &gameExists,
-			"SELECT EXISTS(SELECT 1 FROM games WHERE id = $1)",
-			119133)
-	if err != nil {
-			return nil, nil, nil, fmt.Errorf("error checking specific game: %w", err)
-	}
-	la.logger.Info("Specific game exists", map[string]any{
-			"gameID": 119133,
-			"exists": gameExists,
-	})
-
-	// Check if this specific user_game exists
-	var userGameExists bool
-	err = la.db.GetContext(ctx, &userGameExists,
-			"SELECT EXISTS(SELECT 1 FROM user_games WHERE user_id = $1 AND game_id = $2)",
-			userID, 119133)
-	if err != nil {
-			return nil, nil, nil, fmt.Errorf("error checking specific user game: %w", err)
-	}
-	la.logger.Info("Specific user game exists", map[string]any{
-			"gameID": 119133,
-			"userID": userID,
-			"exists": userGameExists,
-	})
-
-	// Specialized debugging end
-
-	// First check if we have any games at all
-	var gameCount int
-	err = la.db.GetContext(ctx, &gameCount, "SELECT COUNT(*) FROM games")
-	if err != nil {
-			return nil, nil, nil, fmt.Errorf("error counting games: %w", err)
-	}
-	la.logger.Info("Total games in database", map[string]any{
-			"count": gameCount,
-	})
-
-	// Check if we have any user_games entries
-	var userGameCount int
-	err = la.db.GetContext(ctx, &userGameCount, "SELECT COUNT(*) FROM user_games WHERE user_id = $1", userID)
-	if err != nil {
-			return nil, nil, nil, fmt.Errorf("error counting user games: %w", err)
-	}
-	la.logger.Info("User games count", map[string]any{
-			"userID": userID,
-			"count": userGameCount,
-	})
-
-	// 1. Get basic game info and library status
 	gameQuery := `
 	SELECT
 			g.id,
@@ -226,61 +195,83 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
 			ug.favorite,
 			w.id IS NOT NULL as is_in_wishlist,
 			ug.game_type as game_type_display,
-			LOWER(ug.game_type) as game_type_normalized
+			LOWER(ug.game_type) as game_type_normalized,
+			p.id as platform_id,
+			p.name as platform_name
 	FROM games g
 	JOIN user_games ug ON g.id = ug.game_id
 	LEFT JOIN wishlist w ON g.id = w.game_id AND w.user_id = $1
+	LEFT JOIN platforms p ON ug.platform_id = p.id
 	WHERE ug.user_id = $1
-`
+	`
 
 	var games []types.LibraryGameDBResult
 	if err := la.db.SelectContext(ctx, &games, gameQuery, userID); err != nil {
 		return nil, nil, nil, fmt.Errorf("error querying user library games: %w", err)
 	}
 
-	// 2. Get physical locations
-	physicalQuery := `
-		SELECT
-			ug.game_id,
-			pl.name as location_name,
-			pl.location_type,
-			sl.name as sublocation_name,
-			sl.location_type as sublocation_type,
-			sl.bg_color as sublocation_bg_color,
-			p.name as platform_name
-		FROM user_games ug
-		JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
-		JOIN sublocations sl ON pgl.sublocation_id = sl.id
-		JOIN physical_locations pl ON sl.physical_location_id = pl.id
-		JOIN platforms p ON ug.platform_id = p.id
-		WHERE ug.user_id = $1
-	`
+	// 2. Get unified locations
+	locationQuery := `
+    SELECT
+        ug.game_id,
+        p.id as platform_id,
+        p.name as platform_name,
+        ug.game_type as type,
+        COALESCE(pl.id::text, dl.id::text) as location_id,
+        COALESCE(pl.name, dl.name) as location_name,
+        COALESCE(pl.location_type, 'digital') as location_type,
+        sl.id::text as sublocation_id,
+        sl.name as sublocation_name,
+        sl.location_type as sublocation_type,
+        sl.bg_color as sublocation_bg_color,
+        dl.is_active
+    FROM user_games ug
+    JOIN platforms p ON ug.platform_id = p.id
+    LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+    LEFT JOIN sublocations sl ON pgl.sublocation_id = sl.id
+    LEFT JOIN physical_locations pl ON sl.physical_location_id = pl.id
+    LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+    LEFT JOIN digital_locations dl ON dgl.digital_location_id = dl.id
+    WHERE ug.user_id = $1
+    `
 
-	var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
-	if err := la.db.SelectContext(ctx, &physicalLocations, physicalQuery, userID); err != nil {
-		return nil, nil, nil, fmt.Errorf("error querying physical locations: %w", err)
-	}
+		var locations []types.GameLocationDBResult
+    if err := la.db.SelectContext(ctx, &locations, locationQuery, userID); err != nil {
+        return nil, nil, nil, fmt.Errorf("error querying game locations: %w", err)
+    }
 
-	// 3. Get digital locations
-	digitalQuery := `
-		SELECT
-			ug.game_id,
-			dl.name as location_name,
-			dl.name as normalized_name,
-			p.name as platform_name
-		FROM user_games ug
-		JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
-		JOIN digital_locations dl ON dgl.digital_location_id = dl.id
-		JOIN platforms p ON ug.platform_id = p.id
-		WHERE ug.user_id = $1
-	`
+		var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
+    var digitalLocations []types.LibraryGameDigitalLocationDBResponse
 
-	var digitalLocations []types.LibraryGameDigitalLocationDBResponse
-	if err := la.db.SelectContext(ctx, &digitalLocations, digitalQuery, userID); err != nil {
-		return nil, nil, nil, fmt.Errorf("error querying digital locations: %w", err)
-	}
+		for i := 0; i < len(locations); i++ {
+			loc := locations[i]
+			if loc.Type == "physical" {
+					physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
+							GameID: loc.GameID,
+							PlatformID: loc.PlatformID,
+							PlatformName: loc.PlatformName,
+							LocationID: loc.LocationID,
+							LocationName: loc.LocationName,
+							LocationType: loc.LocationType,
+							SublocationID: loc.SublocationID,
+							SublocationName: loc.SublocationName,
+							SublocationType: loc.SublocationType,
+							SublocationBgColor: loc.SublocationBgColor,
+					}
+					physicalLocations = append(physicalLocations, physicalLoc)
+			} else {
+					digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
+							GameID: loc.GameID,
+							PlatformID: loc.PlatformID,
+							PlatformName: loc.PlatformName,
+							LocationID: loc.LocationID,
+							LocationName: loc.LocationName,
+							IsActive: loc.IsActive,
+					})
+			}
+		}
 
-	return games, physicalLocations, digitalLocations, nil
+		return games, physicalLocations, digitalLocations, nil
 }
 
 // GetUserLibraryItems is an alias for GetAllLibraryGames to maintain backward compatibility

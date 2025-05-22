@@ -1,6 +1,8 @@
 package library
 
 import (
+	"html"
+
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
@@ -16,21 +18,43 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
 	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) types.LibraryResponse {
-	// Create maps for quick lookups
-	physicalLocationsByGame := make(map[int64][]types.LibraryGamePhysicalLocationDBResponse)
-	digitalLocationsByGame := make(map[int64][]types.LibraryGameDigitalLocationDBResponse)
+	// Create map for quick lookups
+	locationsByGame := make(map[int64][]types.GameLocationDBResult)
 
-	// Group locations by game ID
-	for _, loc := range physicalLocations {
-		physicalLocationsByGame[loc.GameID] = append(physicalLocationsByGame[loc.GameID], loc)
+	// Group all locations by game ID
+	for i := 0; i < len(physicalLocations); i++ {
+		loc := physicalLocations[i]
+		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
+			GameID: loc.GameID,
+			PlatformID: loc.PlatformID,
+			Type: "physical",
+			LocationID: loc.LocationID,
+			LocationName: html.UnescapeString(loc.LocationName),
+			LocationType: loc.LocationType,
+			SublocationID: loc.SublocationID,
+			SublocationName: loc.SublocationName,
+			SublocationType: loc.SublocationType,
+			SublocationBgColor: loc.SublocationBgColor,
+			PlatformName: loc.PlatformName,
+		})
 	}
-	for _, loc := range digitalLocations {
-		digitalLocationsByGame[loc.GameID] = append(digitalLocationsByGame[loc.GameID], loc)
+	for i := 0; i < len(digitalLocations); i++ {
+		loc := digitalLocations[i]
+		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
+			GameID: loc.GameID,
+			PlatformID: loc.PlatformID,
+			Type: "digital",
+			LocationID: loc.LocationID,
+			LocationName: html.UnescapeString(loc.LocationName),
+			PlatformName: loc.PlatformName,
+			IsActive: loc.IsActive,
+		})
 	}
 
 	// Transform games
 	responses := make([]types.LibraryGameResponse, len(games))
-	for i, game := range games {
+	for i := 0; i < len(games); i++ {
+		game := games[i]
 		responses[i] = types.LibraryGameResponse{
 			ID:              game.ID,
 			Name:            game.Name,
@@ -38,7 +62,7 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 			FirstReleaseDate: game.FirstReleaseDate,
 			Rating:          game.Rating,
 			ThemeNames:      game.ThemeNames,
-			IsInLibrary:     true, // We know this is true since it's from the library
+			IsInLibrary:     true,
 			IsInWishlist:    game.IsInWishlist,
 			Favorite:        game.Favorite,
 			GameType: struct {
@@ -48,8 +72,7 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 				DisplayText:    game.GameTypeDisplay,
 				NormalizedText: game.GameTypeNormalized,
 			},
-			PhysicalLocations: a.adaptPhysicalLocations(physicalLocationsByGame[game.ID]),
-			DigitalLocations:  a.adaptDigitalLocations(digitalLocationsByGame[game.ID]),
+			GamesByPlatformAndLocation: locationsByGame[game.ID],
 		}
 	}
 
@@ -65,6 +88,39 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
 	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) types.SingleGameResponse {
+	// Create map for quick lookups
+	locationsByGame := make(map[int64][]types.GameLocationDBResult)
+
+	// Group all locations by game ID
+	for i := 0; i < len(physicalLocations); i++ {
+		loc := physicalLocations[i]
+		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
+			GameID: loc.GameID,
+			PlatformID: loc.PlatformID,
+			Type: "physical",
+			LocationID: loc.LocationID,
+			LocationName: html.UnescapeString(loc.LocationName),
+			LocationType: loc.LocationType,
+			SublocationID: loc.SublocationID,
+			SublocationName: loc.SublocationName,
+			SublocationType: loc.SublocationType,
+			SublocationBgColor: loc.SublocationBgColor,
+			PlatformName: loc.PlatformName,
+		})
+	}
+	for i := 0; i < len(digitalLocations); i++ {
+		loc := digitalLocations[i]
+		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
+			GameID: loc.GameID,
+			PlatformID: loc.PlatformID,
+			Type: "digital",
+			LocationID: loc.LocationID,
+			LocationName: html.UnescapeString(loc.LocationName),
+			PlatformName: loc.PlatformName,
+			IsActive: loc.IsActive,
+		})
+	}
+
 	return types.SingleGameResponse{
 		Success: true,
 		Game: types.LibraryGameResponse{
@@ -84,43 +140,7 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 				DisplayText:    game.GameTypeDisplay,
 				NormalizedText: game.GameTypeNormalized,
 			},
-			PhysicalLocations: a.adaptPhysicalLocations(physicalLocations),
-			DigitalLocations:  a.adaptDigitalLocations(digitalLocations),
+			GamesByPlatformAndLocation: locationsByGame[game.ID],
 		},
 	}
-}
-
-// Helper function to adapt physical locations
-func (a *LibraryResponseAdapter) adaptPhysicalLocations(
-	locations []types.LibraryGamePhysicalLocationDBResponse,
-) []types.PhysicalLocationResponse {
-	responses := make([]types.PhysicalLocationResponse, len(locations))
-	for i, loc := range locations {
-		responses[i] = types.PhysicalLocationResponse{
-			Name:    loc.LocationName,
-			Type:    loc.LocationType,
-			Sublocation: types.SublocationResponse{
-				Name:     loc.SublocationName,
-				Type:     loc.SublocationType,
-				BgColor:  loc.SublocationBgColor,
-			},
-			Platform: loc.PlatformName,
-		}
-	}
-	return responses
-}
-
-// Helper function to adapt digital locations
-func (a *LibraryResponseAdapter) adaptDigitalLocations(
-	locations []types.LibraryGameDigitalLocationDBResponse,
-) []types.DigitalLocationResponse {
-	responses := make([]types.DigitalLocationResponse, len(locations))
-	for i, loc := range locations {
-		responses[i] = types.DigitalLocationResponse{
-			Name:          loc.LocationName,
-			NormalizedName: loc.NormalizedName,
-			Platform:      loc.PlatformName,
-		}
-	}
-	return responses
 }

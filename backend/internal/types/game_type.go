@@ -31,3 +31,18 @@ var GameTypes = map[int64]GameType{
 	13: {DisplayText: "Pack", NormalizedText: "pack"},
 	14: {DisplayText: "Update", NormalizedText: "update"},
 }
+
+type GameLocationDBResult struct {
+	GameID               int64   `db:"game_id"`
+	PlatformID           int64   `db:"platform_id"`
+	PlatformName         string  `db:"platform_name"`
+	Type                 string  `db:"type"`
+	LocationID           string  `db:"location_id"`
+	LocationName         string  `db:"location_name"`
+	LocationType         string  `db:"location_type"`
+	SublocationID        *string `db:"sublocation_id"`
+	SublocationName      *string `db:"sublocation_name"`
+	SublocationType      *string `db:"sublocation_type"`
+	SublocationBgColor   *string `db:"sublocation_bg_color"`
+	IsActive             *bool   `db:"is_active"`
+}
