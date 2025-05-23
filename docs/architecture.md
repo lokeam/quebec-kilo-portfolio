@@ -1,6 +1,6 @@
 ## Overview
 
-Q-KO is a "collector's companion" media management and billing tool designed for gamers, film enthusiasts, and avid readers. It tracks and manages metadata and associated expenses for physical and digital media collections, currently supporting games and books.
+Q-KO (pronounced "queue koh") is a "collector's companion" media management and billing tool designed for gamers. It tracks and manages metadata and associated expenses for physical and digital media collections.
 
 ## Table of Contents
 
@@ -44,12 +44,7 @@ Q-KO is a "collector's companion" media management and billing tool designed for
    - Unified tooling and development workflow
    - Centralized API contract management
 
-2. **Operational Benefits**
-   - Synchronized frontend and backend changes in single commits
-   - Streamlined CI/CD pipeline
-   - Consistent deployment strategy
-
-3. **Technical Advantages**
+2. **Technical Advantages**
    - Shared type definitions
    - Consistent API contracts
    - Unified domain models
@@ -125,32 +120,76 @@ Q-KO uses PostgreSQL as its primary data store, chosen for its:
 ```text
 frontend/
 ├── src/
-│ ├── components/ # Reusable UI components
-│ ├── features/ # Feature-specific modules
-│ ├── hooks/ # Custom React hooks
-│ ├── services/ # API integration
-│ └── utils/ # Shared utilities
-└── public/ # Static assets
+│   ├── core/                    # Core application infrastructure
+│   │   ├── api/                 # API integration layer
+│   │   │   ├── client/          # Axios client configuration
+│   │   │   ├── services/        # API service definitions
+│   │   │   ├── queries/         # TanStack Query hooks
+│   │   │   ├── adapters/        # Data transformation layer
+│   │   │   ├── hooks/           # Custom API hooks
+│   │   │   └── types/           # API type definitions
+│   │   ├── auth/                # Authentication management
+│   │   ├── error/               # Error handling
+│   │   ├── network-status/      # Network state management
+│   │   └── theme/               # Theme configuration
+│   ├── features/                # Feature-specific modules
+│   │   ├── library/             # Library management
+│   │   ├── wishlist/            # Wishlist functionality
+│   │   ├── search/              # Search interface
+│   │   └── analytics/           # Analytics dashboard
+│   ├── shared/                  # Shared components and utilities
+│   │   ├── components/          # Reusable UI components
+│   │   ├── hooks/               # Shared React hooks
+│   │   └── utils/               # Utility functions
+│   └── types/                   # Global type definitions
+└── public/                      # Static assets
 ```
 
 The frontend architecture emphasizes maintainability, performance, and developer experience through carefully selected technologies and patterns:
 
-1. **State Management**
-   - Zustand for lightweight, scalable state management
-   - Reduced boilerplate compared to Redux while maintaining predictable state flows
-   - Type-safe store definitions and actions
+1. **API Integration Layer**
+   - Axios client for HTTP requests with interceptors and error handling
+   - TanStack Query for server state management and caching
+   - Type-safe API services with TypeScript
+   - Data adapters for transforming API responses to UI models
+   - Custom hooks for reusable API logic
 
-2. **Data Fetching & Cache Management**
-   - TanStack Query (React Query) for server state management
+2. **State Management**
+   - TanStack Query for server state
+   - React Context for global UI state
+   - Local component state for UI-specific concerns
    - Optimistic updates for improved UX
-   - Automatic background refetching
-   - Smart cache invalidation strategies
-   - Type-safe API integration with backend contracts
+   - Automatic background refetching and cache invalidation
 
 3. **UI Component Strategy**
-   - ShadCN UI + Tailwind for rapidly building a consistent, modern UI
-   - Emphasis on accessibility and responsive design
-   - Performance-optimized component rendering
+   - ShadCN UI + Tailwind for consistent, modern UI
+   - Component composition for reusability
+   - Responsive design patterns
+   - Accessibility-first approach
+   - Performance-optimized rendering
+
+4. **Feature Organization**
+   - Domain-driven feature modules
+   - Shared core infrastructure
+   - Clear separation of concerns
+   - Scalable module structure
+   - Type-safe feature boundaries
+
+5. **Development Experience**
+   - TypeScript for type safety
+   - ESLint for code quality
+   - Vite for fast development
+   - Hot module replacement
+   - Development proxy configuration
+
+6. **Build and Deployment**
+   - Vite for optimized builds
+   - Environment-specific configurations
+   - Docker containerization
+   - Static asset optimization
+   - Development and production builds
+
+This architecture supports Q-KO's requirements for a modern, maintainable, and performant frontend application while providing a great developer experience.
 
 ## Scalability & Extensibility
 
@@ -187,30 +226,92 @@ These scalability patterns inform our data flow design:
 ```mermaid
 graph TD
     Client[Client] --> Router[Chi Router/Middleware]
-    Router --> Auth[Auth Handler]
-    Router --> Pages[Page Handlers]
-    Router --> Books[Book Handlers]
+
+    subgraph API Layer
+        Router --> Auth[Auth Handler]
+        Router --> Library[Library Handlers]
+        Router --> Wishlist[Wishlist Handlers]
+        Router --> Search[Search Handlers]
+        Router --> Analytics[Analytics Handlers]
+        Router --> Health[Health Handlers]
+    end
 
     subgraph Services
-        Pages --> HomeService[Home Service]
-        Pages --> LibraryService[Library Service]
-        Books --> BookService[Book Service]
+        Library --> LibraryService[Library Service]
+        Wishlist --> WishlistService[Wishlist Service]
+        Search --> SearchService[Search Service]
+        Analytics --> AnalyticsService[Analytics Service]
+    end
+
+    subgraph Infrastructure
+        LibraryService --> IGDB[IGDB Integration]
+        LibraryService --> MediaStorage[Media Storage]
+        LibraryService --> LocationService[Location Service]
     end
 
     subgraph Operations
-        HomeService --> OpManager[Operations Manager]
-        LibraryService --> OpManager
-        BookService --> OpManager
+        LibraryService --> OpManager[Operations Manager]
+        WishlistService --> OpManager
+        SearchService --> OpManager
+        AnalyticsService --> OpManager
         OpManager --> Cache[(Redis Cache)]
         OpManager --> DB[(PostgreSQL)]
+    end
+
+    subgraph Monitoring
+        Health --> HealthService[Health Service]
+        HealthService --> Monitoring[Monitoring System]
+        Monitoring --> Metrics[Performance Metrics]
+        Monitoring --> Logging[Structured Logging]
     end
 
     subgraph Background
         Workers[Background Workers]
         Cache --> Workers
         DB --> Workers
+        AnalyticsService --> Workers
     end
 ```
+
+The system diagram above illustrates Q-KO's comprehensive architecture, organized into several key layers:
+
+1. **API Layer**
+   - Handles all incoming HTTP requests through Chi Router
+   - Implements middleware for authentication, logging, and request validation
+   - Routes requests to appropriate domain handlers
+   - Includes dedicated handlers for library, wishlist, search, analytics, and health monitoring
+
+2. **Services Layer**
+   - Implements core business logic for each domain
+   - Maintains separation of concerns between different features
+   - Provides clean interfaces for domain operations
+   - Coordinates between infrastructure and domain logic
+
+3. **Infrastructure Layer**
+   - Integrates with external services (IGDB for game metadata)
+   - Manages media storage for collection items
+   - Handles location tracking and management
+   - Provides shared infrastructure services
+
+4. **Operations Layer**
+   - Manages data persistence through PostgreSQL
+   - Implements caching strategies with Redis
+   - Coordinates database operations and transactions
+   - Handles data consistency and integrity
+
+5. **Monitoring Layer**
+   - Provides health check endpoints
+   - Collects and processes performance metrics
+   - Implements structured logging (Not yet implemented)
+   - Enables system observability  (Not yet implemented)
+
+6. **Background Processing**
+   - Handles asynchronous tasks
+   - Processes analytics data
+   - Manages cache invalidation
+   - Coordinates background jobs
+
+This architecture supports Q-KO's requirements for scalability, maintainability, and extensibility while providing a clear separation of concerns between different system components.
 
 ### Performance Optimizations
 
@@ -245,7 +346,7 @@ graph TD
 ## Data Flow
 
 1. **Request Handling**
-   - JWT-based authentication
+   - JWT-based authentication (Not yet implemented, Auth0 integration planned)
    - Request validation
    - Rate limiting
    - CORS policy enforcement
@@ -270,7 +371,7 @@ graph TD
 
 ### Authentication & Authorization (Auth0)
 
-1. **Identity & Access Management**
+1. **Identity & Access Management** (Not yet implemented)
    - Frontend authentication via Auth0 SPA SDK
    - Backend validation via Auth0 JWT middleware
    - OAuth 2.0 and OpenID Connect compliance
@@ -291,9 +392,9 @@ graph TD
    - Secure headers management via chi middleware
 
 2. **Data Security**
-   - SQL injection prevention through prepared statements
-   - Audit logging of authentication events
-   - Sensitive data encryption
+   - SQL injection prevention through prepared statements (Not yet implemented)
+   - Audit logging of authentication events               (Not yet implemented)
+   - Sensitive data encryption                            (Not yet implemented)
    - Error handling security
 
 ### API Security (External)
@@ -320,7 +421,7 @@ graph TD
    - API endpoint tests
    - Performance benchmarks
 
-### Frontend Testing
+### Frontend Testing (Currently in Planning)
 
 1. **Test Types**
    - Unit tests with Jest
