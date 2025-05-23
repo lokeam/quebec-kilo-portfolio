@@ -260,9 +260,9 @@ graph TD
 
     subgraph Monitoring
         Health --> HealthService[Health Service]
-        HealthService --> Monitoring[Monitoring System]
-        Monitoring --> Metrics[Performance Metrics]
-        Monitoring --> Logging[Structured Logging]
+        HealthService --> MetricsCollector[Metrics Collector]
+        MetricsCollector --> Metrics[Performance Metrics]
+        MetricsCollector --> Logging[Structured Logging]
     end
 
     subgraph Background
