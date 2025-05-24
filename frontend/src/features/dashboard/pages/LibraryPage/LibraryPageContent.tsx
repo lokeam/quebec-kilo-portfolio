@@ -39,6 +39,9 @@ export function LibraryPageContent() {
     platformFilter,
   });
 
+  console.log('filteredServices', filteredServices);
+
+
   /* Guard clause empty state - first time user zero services */
   if (services.length === 0) {
     return (
@@ -68,8 +71,20 @@ export function LibraryPageContent() {
       <div className="flex h-full w-full flex-wrap content-start">
         {filteredServices.map((item, index) => (
           <CardComponent
-            key={`${item.title}-${index}`}
-            {...item}
+            key={`${item.name}-${index}`}
+            index={index}
+            id={item.id}
+            name={item.name}
+            coverUrl={item.coverUrl}
+            firstReleaseDate={item.firstReleaseDate}
+            rating={item.rating}
+            themeNames={item.themeNames}
+            isInLibrary={item.isInLibrary}
+            isInWishlist={item.isInWishlist}
+            gameType={item.gameType}
+            favorite={item.favorite}
+            gamesByPlatformAndLocation={item.gamesByPlatformAndLocation}
+            onRemoveFromLibrary={() => {}}
           />
         ))}
       </div>

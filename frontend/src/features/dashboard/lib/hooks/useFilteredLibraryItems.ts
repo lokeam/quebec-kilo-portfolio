@@ -4,20 +4,7 @@ import type { LibraryGameItem } from '@/types/domain/library-types';
 /**
  * Interface for the transformed library item structure used in the UI
  */
-interface TransformedLibraryItem {
-  index: number;
-  title: string;
-  imageUrl: string;
-  favorite: boolean;
-  platform: string;
-  type: 'physical' | 'digital';
-  physicalLocation?: string;
-  physicalLocationType?: string;
-  physicalSublocation?: string;
-  physicalSublocationType?: string;
-  digitalLocation?: string;
-  diskSize?: string;
-}
+type TransformedLibraryItem = LibraryGameItem;
 
 /**
  * Custom hook that filters and transforms library items based on platform and search criteria
@@ -68,31 +55,6 @@ export function useFilteredLibraryItems(
       );
     }
 
-    return filtered.map((item, index) => {
-      // Get the first platform location for display
-      const firstLocation = item.gamesByPlatformAndLocation[0];
-
-      return {
-        index,
-        title: item.name,
-        imageUrl: item.coverUrl,
-        favorite: item.favorite,
-        platform: firstLocation.platformName,
-        type: firstLocation.type,
-        ...(firstLocation.type === 'physical'
-          ? {
-              physicalLocation: firstLocation.locationName,
-              physicalLocationType: firstLocation.locationType,
-              physicalSublocation: firstLocation.sublocationName,
-              physicalSublocationType: firstLocation.sublocationType,
-            }
-          : {
-              digitalLocation: firstLocation.locationName,
-              // Note: diskSize is not available in the new API response
-              // We'll need to add this if it's required
-            }
-        )
-      };
-    });
+    return filtered;
   }, [services, platformFilter, searchQuery]);
 }

@@ -13,40 +13,40 @@ import { useLocationIcons } from '@/features/dashboard/lib/hooks/useLocationIcon
 import { IconFileFilled } from "@tabler/icons-react"
 import { LibraryItemContextMenu } from '../LibraryMediaListItem/LibraryItemContextMenu';
 
+// Types
+import type { GamePlatformLocation, GameType } from '@/types/domain/library-types';
+
 interface LibraryMediaItemProps {
   index?: number;
+  id: number;
   steamHref?: string
-  imageUrl?: string
-  className?: string
-  favorite?: boolean;
-  physicalLocation?: string;
-  physicalLocationType?: string;
-  physicalSublocation?: string;
-  physicalSublocationType?: string;
-  digitalLocation?: string;
-  diskSize?: string;
+  name: string;
+  coverUrl: string;
+  firstReleaseDate: number;
+  rating: number;
+  themeNames: string[] | null;
+  isInLibrary: boolean;
+  isInWishlist: boolean;
+  gameType: GameType;
+  favorite: boolean;
+  gamesByPlatformAndLocation?: GamePlatformLocation[];
   onRemoveFromLibrary?: () => void;
 }
 
 export function LibraryMediaItem({
   steamHref,
-  imageUrl,
-  className,
-  physicalLocation,
-  physicalLocationType,
-  physicalSublocation,
-  physicalSublocationType,
-  digitalLocation,
-  diskSize,
+  coverUrl,
+  name,
+  gamesByPlatformAndLocation = [],
   onRemoveFromLibrary = () => {},
 }: LibraryMediaItemProps) {
   const { locationIcon, subLocationIcon } = useLocationIcons({
-    physicalLocation,
-    physicalLocationType,
-    digitalLocation,
-    physicalSublocation,
-    physicalSublocationType
+    gamesByPlatformAndLocation,
+    selectedIndex: 0 // For now, just show the first platform/location
   });
+
+  // Get the first platform/location for display
+  const selectedLocation = gamesByPlatformAndLocation?.[0];
 
   const content = (
     <div className={cn(
@@ -55,13 +55,13 @@ export function LibraryMediaItem({
       "[transform:perspective(450px)_rotateX(0deg)_scale(1)_translateY(0px)]",
       "[transform-origin:top_50%] transition-[transform,box-shadow] duration-200 ease-in",
       "hover:[transform:perspective(450px)_rotateX(5deg)_scale(1.05)_translateY(-4px)]",
-      "hover:shadow-[0px_8px_20px_rgba(0,0,0,0.9)]",
-      className,
+      "hover:shadow-[0px_8px_20px_rgba(0,0,0,0.9)]"
     )}>
       <Card className="w-full h-full rounded-none overflow-hidden">
         <CoverImage
-          src={imageUrl ?? ''}
+          src={coverUrl}
           size="cover_big"
+          alt={name}
           className="w-full h-full"
         />
         <div className="card-gradient absolute left-0 top-[-35%] h-full w-full opacity-10 transition-all duration-400 group-hover:top-0 group-hover:opacity-15"
@@ -76,37 +76,39 @@ export function LibraryMediaItem({
                    group-hover:translate-y-0 backdrop-blur-[5px] bg-black bg-opacity-50 space-y-2"
       >
         {/* Game Location */}
-        <InfoSection
-            icon={locationIcon}
-            label={physicalLocation ? "Location" : "Service"}
-            value={(physicalLocation || digitalLocation) ?? ""}
-            hasStackedContent={false}
-            isMobile={false}
-        />
-
-        {/* Game Sublocation */}
-        <InfoSection
-            icon={subLocationIcon}
-            label="Sublocation"
-            value={(physicalSublocation) ?? ""}
-            isVisible={!!physicalSublocation && !!physicalSublocationType}
-            hasStackedContent={false}
-            isMobile={false}
-            isCardView={true}
-          />
-
-        {/* Disk Size */}
-        {
-          digitalLocation && (
+        {selectedLocation && (
+          <>
             <InfoSection
-              icon={<IconFileFilled className="h-7 w-7" />}
-              label="Disk Size"
-              value={diskSize ?? ""}
+              icon={locationIcon}
+              label={selectedLocation.Type === 'physical' ? "Location" : "Service"}
+              value={selectedLocation.LocationName ?? ""}
               hasStackedContent={false}
               isMobile={false}
             />
-          )
-        }
+
+            {/* Game Sublocation */}
+            <InfoSection
+              icon={subLocationIcon}
+              label="Sublocation"
+              value={selectedLocation.SublocationName ?? ""}
+              isVisible={!!selectedLocation.SublocationName && !!selectedLocation.SublocationType}
+              hasStackedContent={false}
+              isMobile={false}
+              isCardView={true}
+            />
+
+            {/* Disk Size - Only show for digital games */}
+            {selectedLocation.Type === 'digital' && (
+              <InfoSection
+                icon={<IconFileFilled className="h-7 w-7" />}
+                label="Disk Size"
+                value="0 GB" // TODO: Add disk size to the API response
+                hasStackedContent={false}
+                isMobile={false}
+              />
+            )}
+          </>
+        )}
       </div>
       <div
         data-testid="library-media-item-shine"

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 // Types
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
+import type { GamePlatformLocation, GameType } from '@/types/domain/library-types';
 
 // Icons
 import {
@@ -31,17 +32,17 @@ import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
 
 interface LibraryMediaListItemProps {
   index: number;
-  title: string;
-  imageUrl?: string;
-  lastPlayed?: string;
-  favorite?: boolean;
-  physicalLocation?: string;
-  physicalLocationType?: string;
-  physicalSublocation?: string;
-  physicalSublocationType?: string;
-  digitalLocation?: string;
-  diskSize?: string;
-  platform?: string;
+  id: number;
+  name: string;
+  coverUrl: string;
+  firstReleaseDate: number;
+  rating: number;
+  themeNames: string[] | null;
+  isInLibrary: boolean;
+  isInWishlist: boolean;
+  gameType: GameType;
+  favorite: boolean;
+  gamesByPlatformAndLocation: GamePlatformLocation[];
   onFavorite?: () => void;
   onSettings?: () => void;
   onRemoveFromLibrary?: () => void;
@@ -56,36 +57,31 @@ const createAddToFavoritesToast = (title: string) => {
 
 function LibraryMediaListItem({
   index,
-  title,
-  imageUrl,
+  name,
+  coverUrl,
   favorite = false,
-  platform = "",
-  physicalLocation = "",
-  physicalLocationType = "",
-  physicalSublocation = "",
-  physicalSublocationType = "",
-  digitalLocation = "",
-  diskSize = "",
+  gamesByPlatformAndLocation = [],
   onRemoveFromLibrary = () => {},
 }: LibraryMediaListItemProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleAddToFavorites = useCallback(() => {
-    createAddToFavoritesToast(title);
-  }, [title]);
+    createAddToFavoritesToast(name);
+  }, [name]);
 
   /* Memoize selector for useElementBreakpoint hook */
   const selector = useMemo(() =>
-    `[data-library-item="${index}-${title}"]`,
-    [index, title]
+    `[data-library-item="${index}-${name}"]`,
+    [index, name]
   );
+
   const { locationIcon, subLocationIcon } = useLocationIcons({
-    physicalLocation,
-    physicalLocationType,
-    digitalLocation,
-    physicalSublocation,
-    physicalSublocationType
+    gamesByPlatformAndLocation,
+    selectedIndex: 0
   });
+
+  // Get the first platform/location for display
+  const selectedLocation = gamesByPlatformAndLocation[0];
 
   // Visibility reducer to handle breakpoint related visibility changes
   const [visibility, dispatch] = useReducer(visibilityReducer, {
@@ -105,10 +101,10 @@ function LibraryMediaListItem({
 
   // Memoize expensive computations
   const platformIcon = useMemo(() => {
-    return platform === "PC" ?
+    return selectedLocation?.PlatformName === "PC" ?
       <IconDevicesPc className="h-8 w-8 mt-[-4px]" /> :
       <IconDeviceGamepad className="h-7 w-7" />
-  }, [platform]);
+  }, [selectedLocation?.PlatformName]);
 
   const defaultValue = useMemo(() => ({
     showTags: true,
@@ -132,15 +128,15 @@ function LibraryMediaListItem({
       className={`flex items-center gap-4 w-full rounded-lg border bg-card p-4 text-card-foreground shadow-sm overflow-x-hidden ${
         index % 2 === 0 ? 'my-2' : ''}`
       }
-      data-library-item={`${index}-${title}`}
+      data-library-item={`${index}-${name}`}
       ref={cardRef}
     >
       {/* Game Cover */}
       <div className="h-16 w-28 flex-shrink-0">
         <CoverImage
-          src={imageUrl ?? ''}
+          src={coverUrl}
           size="cover_small"
-          alt={title}
+          alt={name}
           className="h-full w-full rounded-md"
         />
       </div>
@@ -148,7 +144,7 @@ function LibraryMediaListItem({
       {/* Game Info */}
       <div className="flex flex-1 items-center justify-between">
         <div className="space-y-1">
-          <h3 className="font-semibold mb-2">{title}</h3>
+          <h3 className="font-semibold mb-2">{name}</h3>
 
           <div className="flex gap-8 text-sm text-muted-foreground">
 
@@ -156,7 +152,7 @@ function LibraryMediaListItem({
             <InfoSection
               icon={platformIcon}
               label="Platform"
-              value={platform}
+              value={selectedLocation?.PlatformName ?? ""}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
@@ -164,8 +160,8 @@ function LibraryMediaListItem({
             {/* Game Location */}
             <InfoSection
               icon={locationIcon}
-              label={physicalLocation ? "Location" : "Service"}
-              value={physicalLocation || digitalLocation}
+              label={selectedLocation?.Type === 'physical' ? "Location" : "Service"}
+              value={selectedLocation?.LocationName ?? ""}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
@@ -174,18 +170,18 @@ function LibraryMediaListItem({
             <InfoSection
               icon={subLocationIcon}
               label="Sublocation"
-              value={physicalSublocation}
-              isVisible={!!physicalSublocation && !!physicalSublocationType}
+              value={selectedLocation?.SublocationName ?? ""}
+              isVisible={!!selectedLocation?.SublocationName && !!selectedLocation?.SublocationType}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
 
-            {/* Game Disk Size */}
-            {diskSize && (
+            {/* Game Disk Size - Only show for digital games */}
+            {selectedLocation?.Type === 'digital' && (
               <InfoSection
                 icon={<IconFileFilled className="h-7 w-7" />}
                 label="Disk Size"
-                value={diskSize}
+                value="0 GB" // TODO: Add disk size to the API response
                 hasStackedContent={visibility.stackInfoContent}
                 isMobile={visibility.isMobile}
               />

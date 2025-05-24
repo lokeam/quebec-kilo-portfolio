@@ -75,3 +75,37 @@ export interface LibraryGameItem {
     isActive?: boolean;
   }>;
 }
+
+export interface GamePlatformLocation {
+  GameID: number;
+  PlatformID: number;
+  PlatformName: string;
+  Type: string;
+  LocationID: string;
+  LocationName: string;
+  LocationType: string;
+  SublocationID: string;
+  SublocationName: string;
+  SublocationType: string;
+  SublocationBgColor: string;
+  IsActive: boolean | null;
+}
+
+export interface GameType {
+  displayText: string;
+  normalizedText: string;
+}
+
+export interface LibraryGame {
+  id: number;
+  name: string;
+  coverUrl: string;
+  firstReleaseDate: number;
+  rating: number;
+  themeNames: string[] | null;
+  isInLibrary: boolean;
+  isInWishlist: boolean;
+  gameType: GameType;
+  favorite: boolean;
+  gamesByPlatformAndLocation: GamePlatformLocation[];
+}
