@@ -19,7 +19,7 @@ import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.
 // type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
 import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
 
 
 export const gameLibraryKeys = {
@@ -35,11 +35,11 @@ export const gameLibraryKeys = {
  * Hook to fetch all games in the library
  */
 export const useGetAllLibraryGames = () => {
-  return useAPIQuery<Game[]>({
+  return useAPIQuery<LibraryGameItem[]>({
     queryKey: gameLibraryKeys.lists(),
     queryFn: async () => {
       const games = await getAllLibraryGames();
-      return games; // create library adapter for all games
+      return games;
     },
   });
 };
@@ -52,7 +52,7 @@ export const useGetSingleGame = (id: string) => {
     queryKey: gameLibraryKeys.detail(id),
     queryFn: async () => {
       const game = await getLibraryGameById(id);
-      return game; // create library adapter for single game
+      return game;
     }
   })
 }
@@ -104,4 +104,4 @@ export const useDeleteLibraryGame = () => {
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.detail(id) });
     },
   });
-}
+};

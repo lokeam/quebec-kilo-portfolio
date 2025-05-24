@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useLibraryGames } from '@/features/dashboard/lib/stores/libraryStore';
 import { type PlatformOption, CONSOLE_PLATFORMS } from '@/features/dashboard/lib/constants/filter-options/library/platform.filterOptions';
-import { type LibraryItem } from '@/features/dashboard/lib/types/library/items';
+import { type LibraryGameItem } from '@/types/domain/library-types';
 import { useMultiMatchSearch } from '@/features/dashboard/lib/hooks/useMultiMatchSearch';
 
 /**
@@ -113,8 +113,8 @@ export function usePlatformSearch(): UsePlatformSearchReturn {
 
   /* Get unique platform keys from user's game library */
   const platformKeys = useMemo(() =>
-    new Set(userGames.map((game: LibraryItem) =>
-      game.platform.category
+    new Set(userGames.flatMap((game: LibraryGameItem) =>
+      game.gamesByPlatformAndLocation.map(loc => loc.platformName)
     )),
     [userGames]
   );

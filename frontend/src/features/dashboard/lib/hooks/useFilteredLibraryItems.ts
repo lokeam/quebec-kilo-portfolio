@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
-import { type LibraryItem } from '@/features/dashboard/lib/types/library/items';
-import { isPhysicalLibraryItem } from '@/features/dashboard/lib/types/library/guards';
+import type { LibraryGameItem } from '@/types/domain/library-types';
 
 /**
  * Interface for the transformed library item structure used in the UI
@@ -46,7 +45,7 @@ interface TransformedLibraryItem {
  * ```
  */
 export function useFilteredLibraryItems(
-  services: LibraryItem[],
+  services: LibraryGameItem[],
   platformFilter: string | null,
   searchQuery: string | null
 ): TransformedLibraryItem[] {
@@ -56,36 +55,44 @@ export function useFilteredLibraryItems(
     /* Dropdown Filter by platform */
     if (platformFilter) {
       filtered = filtered.filter(game =>
-        game.platform?.category?.toLowerCase() === platformFilter.toLowerCase()
+        game.gamesByPlatformAndLocation.some(loc =>
+          loc.platformName.toLowerCase() === platformFilter.toLowerCase()
+        )
       );
     }
 
     /* Search Bar Filter by title */
     if (searchQuery) {
       filtered = filtered.filter(game =>
-        game.title.toLowerCase().includes(searchQuery.toLowerCase())
+        game.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    return filtered.map((item, index) => ({
+    return filtered.map((item, index) => {
+      // Get the first platform location for display
+      const firstLocation = item.gamesByPlatformAndLocation[0];
+
+      return {
         index,
-        title: item.title,
-        imageUrl: item.imageUrl,
+        title: item.name,
+        imageUrl: item.coverUrl,
         favorite: item.favorite,
-        platform: item.platform.category,
-        ...(isPhysicalLibraryItem(item)
+        platform: firstLocation.platformName,
+        type: firstLocation.type,
+        ...(firstLocation.type === 'physical'
           ? {
-              physicalLocation: item.location.name,
-              physicalLocationType: item.location.category,
-              physicalSublocation: item.location.subname,
-              physicalSublocationType: item.location.sublocation,
-              type: item.type
-          } : {
-              digitalLocation: item.location.service,
-              diskSize: `${item.location.diskSize.value} ${item.location.diskSize.unit}`,
-              type: item.type
-          }
+              physicalLocation: firstLocation.locationName,
+              physicalLocationType: firstLocation.locationType,
+              physicalSublocation: firstLocation.sublocationName,
+              physicalSublocationType: firstLocation.sublocationType,
+            }
+          : {
+              digitalLocation: firstLocation.locationName,
+              // Note: diskSize is not available in the new API response
+              // We'll need to add this if it's required
+            }
         )
-    }));
+      };
+    });
   }, [services, platformFilter, searchQuery]);
 }

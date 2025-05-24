@@ -1,112 +1,158 @@
-import type { LibraryItem } from "@/features/dashboard/lib/types/library/items";
+import type { LibraryGameItem } from '@/types/domain/library-types';
 
-export const libraryPageMockData: LibraryItem[] = [
+export const libraryPageMockData: LibraryGameItem[] = [
   {
-    id: "718670",
-    imageUrl: "https://i.imgur.com/dwswpNq.jpg",
-    title: "Nier Automata - Game of the Year Edition",
+    id: 718670,
+    name: "Nier Automata - Game of the Year Edition",
+    coverUrl: "https://i.imgur.com/dwswpNq.jpg",
+    firstReleaseDate: 1487894400,
+    rating: 4.5,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Action RPG",
+      normalizedText: "action-rpg"
+    },
     favorite: true,
-    dateAdded: "2024-01-01",
-    type: "physical",
-    platform: {
-      category: "Console",
-      model: "PlayStation 4",
-    },
-    location: {
-      name: "Condo",
-      category: "apartment",
-      subname: "Study bookshelf",
-      sublocation: "shelf",
-    }
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 718670,
+        platformId: 48,
+        platformName: "PlayStation 4",
+        type: "physical",
+        locationId: "condo-study-1",
+        locationName: "Condo Study",
+        locationType: "apartment",
+        sublocationId: "bookshelf-a-1",
+        sublocationName: "Study bookshelf",
+        sublocationType: "shelf",
+        sublocationBgColor: "red"
+      }
+    ]
   },
   {
-    id: "427520",
-    imageUrl: "https://i.imgur.com/lDgAyT9.jpg",
-    title: "Factorio",
-    favorite: false,
-    dateAdded: "2024-01-01",
-    type: "digital",
-    platform: {
-      category: "PC",
+    id: 427520,
+    name: "Factorio",
+    coverUrl: "https://i.imgur.com/lDgAyT9.jpg",
+    firstReleaseDate: 1451606400,
+    rating: 4.8,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Strategy",
+      normalizedText: "strategy"
     },
-    location: {
-      service: "steam",
-      diskSize: {
-        value: "5",
-        unit: "GB",
+    favorite: false,
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 427520,
+        platformId: 1,
+        platformName: "PC",
+        type: "digital",
+        locationId: "steam-1",
+        locationName: "Steam",
+        locationType: "digital"
       }
-    }
+    ]
   },
   {
-    id: "332330",
-    imageUrl: "https://i.imgur.com/mnP42vi.jpg",
-    title: "Don't Starve Together",
-    favorite: false,
-    dateAdded: "2024-01-01",
-    type: "digital",
-    platform: {
-      category: "PC",
+    id: 332330,
+    name: "Don't Starve Together",
+    coverUrl: "https://i.imgur.com/mnP42vi.jpg",
+    firstReleaseDate: 1420070400,
+    rating: 4.2,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Survival",
+      normalizedText: "survival"
     },
-    location: {
-      service: "steam",
-      diskSize: {
-        value: "685",
-        unit: "MB",
+    favorite: false,
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 332330,
+        platformId: 1,
+        platformName: "PC",
+        type: "digital",
+        locationId: "steam-1",
+        locationName: "Steam",
+        locationType: "digital"
       }
-    }
+    ]
   },
   {
-    id: "646570",
-    imageUrl: "https://i.imgur.com/iSnOrlw.jpg",
-    title: "Slay the Spire",
-    favorite: false,
-    dateAdded: "2024-01-01",
-    type: "digital",
-    platform: {
-      category: "PC",
+    id: 646570,
+    name: "Slay the Spire",
+    coverUrl: "https://i.imgur.com/iSnOrlw.jpg",
+    firstReleaseDate: 1514764800,
+    rating: 4.7,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Roguelike",
+      normalizedText: "roguelike"
     },
-    location: {
-      service: "steam",
-      diskSize: {
-        value: "1.2",
-        unit: "GB",
+    favorite: false,
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 646570,
+        platformId: 1,
+        platformName: "PC",
+        type: "digital",
+        locationId: "steam-1",
+        locationName: "Steam",
+        locationType: "digital"
       }
-    }
+    ]
   },
   {
-    id: "684410",
-    imageUrl: "https://i.imgur.com/3w5Q5PL.jpg",
-    title: "Bridge Constructor Portal",
-    favorite: false,
-    dateAdded: "2024-01-01",
-    type: "digital",
-    platform: {
-      category: "PC",
+    id: 684410,
+    name: "Bridge Constructor Portal",
+    coverUrl: "https://i.imgur.com/3w5Q5PL.jpg",
+    firstReleaseDate: 1514764800,
+    rating: 4.0,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Puzzle",
+      normalizedText: "puzzle"
     },
-    location: {
-      service: "steam",
-      diskSize: {
-        value: "200",
-        unit: "MB",
+    favorite: false,
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 684410,
+        platformId: 1,
+        platformName: "PC",
+        type: "digital",
+        locationId: "steam-1",
+        locationName: "Steam",
+        locationType: "digital"
       }
-    }
+    ]
   },
   {
-    id: "555150",
-    imageUrl: "https://i.imgur.com/F2aSEb4.jpg",
-    title: "The First Tree",
-    favorite: false,
-    dateAdded: "2024-01-01",
-    type: "digital",
-    platform: {
-      category: "PC",
+    id: 555150,
+    name: "The First Tree",
+    coverUrl: "https://i.imgur.com/F2aSEb4.jpg",
+    firstReleaseDate: 1504224000,
+    rating: 4.3,
+    isInLibrary: true,
+    isInWishlist: false,
+    gameType: {
+      displayText: "Adventure",
+      normalizedText: "adventure"
     },
-    location: {
-      service: "steam",
-      diskSize: {
-        value: "2",
-        unit: "GB",
+    favorite: false,
+    gamesByPlatformAndLocation: [
+      {
+        gameId: 555150,
+        platformId: 1,
+        platformName: "PC",
+        type: "digital",
+        locationId: "steam-1",
+        locationName: "Steam",
+        locationType: "digital"
       }
-    }
-  },
+    ]
+  }
 ];

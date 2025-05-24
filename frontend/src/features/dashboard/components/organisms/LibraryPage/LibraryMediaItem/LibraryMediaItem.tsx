@@ -1,5 +1,6 @@
 // Components
 import { InfoSection } from "@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection"
+import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage"
 
 // Shadcn UI components
 import { Card } from "@/shared/components/ui/card"
@@ -57,14 +58,12 @@ export function LibraryMediaItem({
       "hover:shadow-[0px_8px_20px_rgba(0,0,0,0.9)]",
       className,
     )}>
-      <Card
-        className="w-full h-full bg-center bg-no-repeat bg-cover rounded-none"
-        style={{
-          backgroundImage: `url(${imageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
+      <Card className="w-full h-full rounded-none overflow-hidden">
+        <CoverImage
+          src={imageUrl ?? ''}
+          size="cover_big"
+          className="w-full h-full"
+        />
         <div className="card-gradient absolute left-0 top-[-35%] h-full w-full opacity-10 transition-all duration-400 group-hover:top-0 group-hover:opacity-15"
           style={{
             background: 'linear-gradient(30deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0) 50%, rgb(255,255,255) 55%)'

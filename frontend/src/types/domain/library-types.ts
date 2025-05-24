@@ -60,15 +60,18 @@ export interface LibraryGameItem {
     normalizedText: string;
   };
   favorite: boolean;
-  physicalLocations: Array<{
-    name: string;
-    type: string;
-    sublocation: {
-      name: string;
-      type: string;
-      bgColor: string;
-    };
-    platform: string;
+  gamesByPlatformAndLocation: Array<{
+    gameId: number;
+    platformId: number;
+    platformName: string;
+    type: 'physical' | 'digital';
+    locationId: string;
+    locationName: string;
+    locationType: string;
+    sublocationId?: string;
+    sublocationName?: string;
+    sublocationType?: string;
+    sublocationBgColor?: string;
+    isActive?: boolean;
   }>;
-  digitalLocations: any[]; // We can type this properly when we need it
 }

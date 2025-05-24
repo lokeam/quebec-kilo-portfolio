@@ -2,6 +2,7 @@ import { memo, useReducer, useCallback, useMemo, useRef } from 'react';
 
 // Components
 import { InfoSection } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection';
+import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage";
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button';
@@ -16,7 +17,6 @@ import { toast } from 'sonner';
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
 
 // Icons
-import { ImageWithFallback } from '@/shared/components/ui/ImageWithFallback/ImageWithFallback';
 import {
   IconFileFilled,
   IconStar,
@@ -137,10 +137,11 @@ function LibraryMediaListItem({
     >
       {/* Game Cover */}
       <div className="h-16 w-28 flex-shrink-0">
-        <ImageWithFallback
-          src={imageUrl}
+        <CoverImage
+          src={imageUrl ?? ''}
+          size="cover_small"
           alt={title}
-          className="h-full w-full rounded-md object-cover"
+          className="h-full w-full rounded-md"
         />
       </div>
 
