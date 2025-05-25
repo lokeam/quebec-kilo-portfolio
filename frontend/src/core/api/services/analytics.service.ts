@@ -39,9 +39,11 @@ export interface LocationSummary {
   name: string;
   itemCount: number;
   locationType: string;
+  mapCoordinates?: string;
+  createdAt: string;
+  updatedAt: string;
   isSubscription?: boolean;
   monthlyCost?: number;
-  mapCoordinates?: string;
   sublocations?: {
     id: string;
     name: string;
@@ -50,9 +52,14 @@ export interface LocationSummary {
     storedItems: number;
     createdAt: string;
     updatedAt: string;
+    items?: Array<{
+      id: number;
+      name: string;
+      platform: string;
+      platformVersion: string;
+      acquiredDate: string;
+    }>;
   }[];
-  created_at: string;
-  updated_at: string;
 }
 
 export interface ServiceDetails {

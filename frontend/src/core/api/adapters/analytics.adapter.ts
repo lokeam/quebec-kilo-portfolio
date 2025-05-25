@@ -6,8 +6,7 @@ import type { GamePlatform } from '@/types/domain/game-platform';
 import type { GameItem } from '@/types/domain/game-item';
 import type { Sublocation } from '@/types/domain/sublocation';
 import { GamePlatform as GamePlatformEnum } from '@/types/domain/game-platform';
-import { PhysicalLocationType } from '@/types/domain/location-types';
-import type { SublocationType } from '@/types/domain/location-types';
+import { PhysicalLocationType, SublocationType } from '@/types/domain/location-types';
 
 export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponseWrapper): MediaStorageMetadata {
   const storage = analyticsData.storage;
@@ -86,14 +85,14 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
       id: subloc.id,
       name: subloc.name,
       type: subloc.locationType as SublocationType,
+      parentLocationId: location.id,
       metadata: {
         bgColor: subloc.bgColor,
         notes: subloc.storedItems?.toString()
       },
-      items: [],
+      items: subloc.items || [],
       createdAt: new Date(subloc.createdAt),
-      updatedAt: new Date(subloc.updatedAt),
-      parentLocationId: location.id
+      updatedAt: new Date(subloc.updatedAt)
     })) || [],
     items: [],
     createdAt: new Date(),
