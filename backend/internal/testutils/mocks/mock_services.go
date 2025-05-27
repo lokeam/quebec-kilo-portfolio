@@ -6,6 +6,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/services"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // NewMockServices creates a new app.Services instance with mocks for testing
@@ -224,31 +225,45 @@ func (m *MockSublocationService) DeleteSublocation(ctx context.Context, userID, 
 // MockLibraryService implements services.LibraryService
 type MockLibraryService struct{}
 
-func (m *MockLibraryService) GetLibraryItems(ctx context.Context, userID string) ([]models.Game, error) {
-	return []models.Game{}, nil
+func (m *MockLibraryService) GetAllLibraryGames(ctx context.Context, userID string) (
+	[]types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+    error) {
+	return []types.LibraryGameDBResult{},
+	       []types.LibraryGamePhysicalLocationDBResponse{},
+		     []types.LibraryGameDigitalLocationDBResponse{},
+		     nil
 }
 
-func (m *MockLibraryService) AddGameToLibrary(ctx context.Context, userID string, game models.Game) error {
+func (m *MockLibraryService) CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
 	return nil
 }
 
-func (m *MockLibraryService) DeleteGameFromLibrary(ctx context.Context, userID string, gameID int64) error {
+func (m *MockLibraryService) DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error {
 	return nil
 }
 
-func (m *MockLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error) {
-	return models.Game{}, nil
+func (m *MockLibraryService) GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (
+	types.LibraryGameDBResult,
+	[]types.LibraryGamePhysicalLocationDBResponse,
+	[]types.LibraryGameDigitalLocationDBResponse,
+	error) {
+	return types.LibraryGameDBResult{},
+	       []types.LibraryGamePhysicalLocationDBResponse{},
+		     []types.LibraryGameDigitalLocationDBResponse{},
+		     nil
 }
 
-func (m *MockLibraryService) UpdateGameInLibrary(ctx context.Context, userID string, game models.Game) error {
+func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
 	return nil
 }
 
 // MockWishlistService implements services.WishlistService
 type MockWishlistService struct{}
 
-func (m *MockWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.Game, error) {
-	return []models.Game{}, nil
+func (m *MockWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error) {
+	return []models.LibraryGame{}, nil
 }
 
 // MockSearchService implements services.SearchService

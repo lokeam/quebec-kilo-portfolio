@@ -15,6 +15,7 @@ import { ThemeProvider } from '@/core/theme/providers/ThemeProvider';
 import { SidebarProvider } from './shared/components/ui/sidebar';
 import { NetworkStatusProvider } from '@/core/network-status/providers/NetworkStatusProvider';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
+import { TanstackMutationToast } from '@/shared/components/ui/TanstackMutationToast/TanstackMutationToast';
 
 // TODO: Lazy load secondary routes
 const OnlineServicesPage = lazy(() => import(
@@ -96,6 +97,7 @@ function App() {
           <TooltipProvider delayDuration={300}>
             <NetworkStatusProvider>
               <SidebarProvider defaultOpen={true}>
+                <TanstackMutationToast />
                 <Suspense fallback={<Loading />}>
                   <Routes>
                     <Route path="/onboarding/welcome" element={<OnboardingPage />} />

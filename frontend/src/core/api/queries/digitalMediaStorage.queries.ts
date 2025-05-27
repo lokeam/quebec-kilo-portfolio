@@ -11,10 +11,10 @@ import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/doma
 import type { OnlineService } from '@/types/domain/online-service';
 import { adaptDigitalLocationToService } from '../adapters/digitalLocation.adapter';
 import { logger } from '@/core/utils/logger/logger';
-import { toast } from 'sonner';
 import { AxiosError } from 'axios';
-import type { ApiError } from '@/types/api.types.refactor';
+import type { ApiError } from '@/types/api/';
 import { mediaStorageKeys } from '../constants/query-keys/mediaStorage';
+import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 /**
  * Query key factory for digital location queries
@@ -143,8 +143,9 @@ export function useCreateDigitalLocationOld() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mediaStorageKeys.digitalLocations.all });
-      toast.success('Digital service created', {
-        description: 'Your digital service has been successfully created.',
+      showToast({
+        message: 'Digital service created',
+        variant: 'success',
         duration: 3000
       });
     },
@@ -169,8 +170,9 @@ export function useCreateDigitalLocationOld() {
         errorDescription = "Couldn't connect to the server. Please check your internet connection.";
       }
 
-      toast.error(errorMessage, {
-        description: errorDescription,
+      showToast({
+        message: errorMessage,
+        variant: 'error',
         duration: 5000
       });
     }
@@ -200,8 +202,9 @@ export function useUpdateDigitalLocationOld() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: mediaStorageKeys.digitalLocations.all });
       queryClient.invalidateQueries({ queryKey: mediaStorageKeys.digitalLocations.byId(data.id) });
-      toast.success('Digital service updated', {
-        description: 'Your digital service has been successfully updated.',
+      showToast({
+        message: 'Digital service updated',
+        variant: 'success',
         duration: 3000
       });
     },
@@ -226,8 +229,9 @@ export function useUpdateDigitalLocationOld() {
         errorDescription = "Couldn't connect to the server. Please check your internet connection.";
       }
 
-      toast.error(errorMessage, {
-        description: errorDescription,
+      showToast({
+        message: errorMessage,
+        variant: 'error',
         duration: 5000
       });
     }
@@ -254,8 +258,9 @@ export function useDeleteDigitalLocationOld() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: mediaStorageKeys.digitalLocations.all });
       queryClient.invalidateQueries({ queryKey: mediaStorageKeys.digitalLocations.byId(id) });
-      toast.success('Digital service deleted', {
-        description: 'Your digital service has been successfully deleted.',
+      showToast({
+        message: 'Digital service deleted',
+        variant: 'success',
         duration: 3000
       });
     },
@@ -280,8 +285,9 @@ export function useDeleteDigitalLocationOld() {
         errorDescription = "Couldn't connect to the server. Please check your internet connection.";
       }
 
-      toast.error(errorMessage, {
-        description: errorDescription,
+      showToast({
+        message: errorMessage,
+        variant: 'error',
         duration: 5000
       });
     }
