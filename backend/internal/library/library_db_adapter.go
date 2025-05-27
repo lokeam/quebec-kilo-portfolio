@@ -144,15 +144,15 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 			loc := locations[i]
 			if loc.Type == "physical" {
 				physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
-					GameID: loc.GameID,
-					PlatformID: loc.PlatformID,
-					PlatformName: loc.PlatformName,
-					LocationID: loc.LocationID,
-					LocationName: loc.LocationName,
-					LocationType: loc.LocationType,
-					SublocationID: loc.SublocationID,
-					SublocationName: loc.SublocationName,
-					SublocationType: loc.SublocationType,
+					GameID:            loc.GameID,
+					PlatformID:        loc.PlatformID,
+					PlatformName:      loc.PlatformName,
+					LocationID:        loc.LocationID,
+					LocationName:      loc.LocationName,
+					LocationType:      loc.LocationType,
+					SublocationID:     loc.SublocationID,
+					SublocationName:   loc.SublocationName,
+					SublocationType:   loc.SublocationType,
 					SublocationBgColor: loc.SublocationBgColor,
 				}
 				physicalLocations = append(physicalLocations, physicalLoc)
@@ -180,29 +180,31 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
 	[]types.LibraryGamePhysicalLocationDBResponse,
 	[]types.LibraryGameDigitalLocationDBResponse,
 	error,
-	) {
+) {
 	la.logger.Debug("LibraryDbAdapter - GetAllLibraryGames called", map[string]any{
 		"userID": userID,
 	})
 
+	// Modified query to get distinct games with their platform info
 	gameQuery := `
-	SELECT
-			g.id,
-			g.name,
-			g.cover_url,
-			g.first_release_date,
-			g.rating,
-			ug.favorite,
-			w.id IS NOT NULL as is_in_wishlist,
-			ug.game_type as game_type_display,
-			LOWER(ug.game_type) as game_type_normalized,
-			p.id as platform_id,
-			p.name as platform_name
+	SELECT DISTINCT ON (g.id)
+		g.id,
+		g.name,
+		g.cover_url,
+		g.first_release_date,
+		g.rating,
+		ug.favorite,
+		w.id IS NOT NULL as is_in_wishlist,
+		ug.game_type as game_type_display,
+		LOWER(ug.game_type) as game_type_normalized,
+		p.id as platform_id,
+		p.name as platform_name
 	FROM games g
 	JOIN user_games ug ON g.id = ug.game_id
 	LEFT JOIN wishlist w ON g.id = w.game_id AND w.user_id = $1
 	LEFT JOIN platforms p ON ug.platform_id = p.id
 	WHERE ug.user_id = $1
+	ORDER BY g.id, ug.id
 	`
 
 	var games []types.LibraryGameDBResult
@@ -235,43 +237,45 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
     WHERE ug.user_id = $1
     `
 
-		var locations []types.GameLocationDBResult
-    if err := la.db.SelectContext(ctx, &locations, locationQuery, userID); err != nil {
-        return nil, nil, nil, fmt.Errorf("error querying game locations: %w", err)
-    }
+	var locations []types.GameLocationDBResult
+	if err := la.db.SelectContext(ctx, &locations, locationQuery, userID); err != nil {
+		return nil, nil, nil, fmt.Errorf("error querying game locations: %w", err)
+	}
 
-		var physicalLocations []types.LibraryGamePhysicalLocationDBResponse
-    var digitalLocations []types.LibraryGameDigitalLocationDBResponse
+	// Create maps to store locations by game ID
+	physicalLocations := make([]types.LibraryGamePhysicalLocationDBResponse, 0)
+	digitalLocations := make([]types.LibraryGameDigitalLocationDBResponse, 0)
 
-		for i := 0; i < len(locations); i++ {
-			loc := locations[i]
-			if loc.Type == "physical" {
-					physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
-							GameID: loc.GameID,
-							PlatformID: loc.PlatformID,
-							PlatformName: loc.PlatformName,
-							LocationID: loc.LocationID,
-							LocationName: loc.LocationName,
-							LocationType: loc.LocationType,
-							SublocationID: loc.SublocationID,
-							SublocationName: loc.SublocationName,
-							SublocationType: loc.SublocationType,
-							SublocationBgColor: loc.SublocationBgColor,
-					}
-					physicalLocations = append(physicalLocations, physicalLoc)
-			} else {
-					digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
-							GameID: loc.GameID,
-							PlatformID: loc.PlatformID,
-							PlatformName: loc.PlatformName,
-							LocationID: loc.LocationID,
-							LocationName: loc.LocationName,
-							IsActive: loc.IsActive,
-					})
+	// Process locations
+	for i := 0; i < len(locations); i++ {
+		loc := locations[i]
+		if loc.Type == "physical" {
+			physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
+				GameID:            loc.GameID,
+				PlatformID:        loc.PlatformID,
+				PlatformName:      loc.PlatformName,
+				LocationID:        loc.LocationID,
+				LocationName:      loc.LocationName,
+				LocationType:      loc.LocationType,
+				SublocationID:     loc.SublocationID,
+				SublocationName:   loc.SublocationName,
+				SublocationType:   loc.SublocationType,
+				SublocationBgColor: loc.SublocationBgColor,
 			}
+			physicalLocations = append(physicalLocations, physicalLoc)
+		} else {
+			digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
+				GameID:       loc.GameID,
+				PlatformID:   loc.PlatformID,
+				PlatformName: loc.PlatformName,
+				LocationID:   loc.LocationID,
+				LocationName: loc.LocationName,
+				IsActive:     loc.IsActive,
+			})
 		}
+	}
 
-		return games, physicalLocations, digitalLocations, nil
+	return games, physicalLocations, digitalLocations, nil
 }
 
 // GetUserLibraryItems is an alias for GetAllLibraryGames to maintain backward compatibility

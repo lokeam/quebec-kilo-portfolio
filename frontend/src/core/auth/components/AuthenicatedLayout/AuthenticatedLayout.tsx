@@ -8,7 +8,7 @@ import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 import { GameSearchAndSelectDialog } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/GameSearchAndSelectDialog';
 
 // ShadCN UI Components
-import { Toaster } from '@/shared/components/ui/sonner';
+//import { Toaster } from '@/shared/components/ui/sonner';
 
 // Utils
 import { Outlet } from 'react-router-dom';
@@ -59,7 +59,7 @@ export default function AuthenticatedLayout() {
       </div>
 
       {/* Toaster */}
-      <Toaster />
+      {/* <Toaster /> */}
     </>
   );
 };

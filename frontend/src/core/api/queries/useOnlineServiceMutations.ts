@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 import {
   createOnlineService,
   updateOnlineService,
@@ -42,8 +42,9 @@ export function useCreateOnlineService(options?: MutationOptions) {
       // Show success toast
       const serviceName = serviceData.name || "New service";
 
-      toast.success(`${serviceName} added to your services!`, {
-        description: "Your new service has been successfully created.",
+      showToast({
+        message: `${serviceName} added to your services!`,
+        variant: 'success',
         duration: 15000
       });
 
@@ -53,7 +54,11 @@ export function useCreateOnlineService(options?: MutationOptions) {
       }
     },
     onError: (error) => {
-      toast.error('Failed to add service');
+      showToast({
+        message: 'Failed to add service',
+        variant: 'error',
+        duration: 15000
+      });
       console.error('Add service error:', error);
     }
   });
@@ -86,8 +91,9 @@ export function useUpdateOnlineService(options?: MutationOptions) {
       });
 
       // Show success toast
-      toast.success(`${serviceData.name} updated successfully!`, {
-        description: "Your service has been successfully updated.",
+      showToast({
+        message: `${serviceData.name} updated successfully!`,
+        variant: 'success',
         duration: 15000
       });
 
@@ -97,7 +103,11 @@ export function useUpdateOnlineService(options?: MutationOptions) {
       }
     },
     onError: (error: Error) => {
-      toast.error('Failed to update service');
+      showToast({
+        message: 'Failed to update service',
+        variant: 'error',
+        duration: 15000
+      });
       console.error('Update service error:', error);
     }
   });
@@ -127,8 +137,9 @@ export function useDeleteOnlineService(options?: MutationOptions) {
       });
 
       // Show success toast
-      toast.success('Service deleted successfully', {
-        description: "Your service has been successfully deleted.",
+      showToast({
+        message: 'Service deleted successfully',
+        variant: 'success',
         duration: 15000
       });
 
@@ -164,8 +175,9 @@ export function useDeleteOnlineService(options?: MutationOptions) {
       }
 
       // Show error toast with appropriate message
-      toast.error(errorMessage, {
-        description: errorDescription,
+      showToast({
+        message: errorMessage,
+        variant: 'error',
         duration: 15000
       });
 

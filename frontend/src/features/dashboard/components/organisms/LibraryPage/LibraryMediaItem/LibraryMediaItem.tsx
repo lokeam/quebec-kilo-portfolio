@@ -1,6 +1,7 @@
 // Components
 import { InfoSection } from "@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection"
 import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage"
+import { LibraryCountIcon } from "@/features/dashboard/lib/utils/getLibraryItemCountIcon"
 
 // Shadcn UI components
 import { Card } from "@/shared/components/ui/card"
@@ -64,6 +65,12 @@ export function LibraryMediaItem({
           alt={name}
           className="w-full h-full"
         />
+        <div className="absolute top-2 right-2 z-10">
+          <LibraryCountIcon
+            count={gamesByPlatformAndLocation.length}
+            className="h-6 w-6 text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
+          />
+        </div>
         <div className="card-gradient absolute left-0 top-[-35%] h-full w-full opacity-10 transition-all duration-400 group-hover:top-0 group-hover:opacity-15"
           style={{
             background: 'linear-gradient(30deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0) 50%, rgb(255,255,255) 55%)'

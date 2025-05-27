@@ -13,6 +13,9 @@ import {
   deleteLibraryGame,
 } from '@/core/api/services/gameLibrary.service';
 
+// utils
+import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
+
 // adapters
 import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.adapter.ts';
 
@@ -21,6 +24,10 @@ import type { AddToLibraryFormPayload } from '@/features/dashboard/components/or
 import type { Game } from '@/types/game';
 import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
 
+// constants
+import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
+import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
+import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 
 export const gameLibraryKeys = {
   all: ['library-games'] as const,
@@ -69,8 +76,25 @@ export const useCreateLibraryGame = () => {
       const apiRequest = adaptAddToLibraryFromToRequest(data);
       return createLibraryGame(apiRequest);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('❔🔎 useCreateLibraryGame query onSuccess, data - ', data);
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
+
+      showToast({
+        message: TOAST_SUCCESS_MESSAGES.GAME.ADD_TO_LIBRARY,
+        variant: 'success',
+        duration: TOAST_DURATIONS.EXTENDED,
+      })
+    },
+
+    onError: (error) => {
+      console.log('❔🔎 useCreateLibraryGame query onError, error - ', error);
+      showToast({
+        message: TOAST_ERROR_MESSAGES.GAME.ADD_TO_LIBRARY.DEFAULT,
+        variant: 'error',
+        duration: TOAST_DURATIONS.EXTENDED,
+      })
+
     },
   });
 };

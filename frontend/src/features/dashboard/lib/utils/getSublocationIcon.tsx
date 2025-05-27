@@ -7,13 +7,13 @@ import { SublocationType } from '@/features/dashboard/lib/types/media-storage/co
 export function getSublocationTypeIcon(type: string): JSX.Element {
   // Different icon mapping based on sublocation type
   switch (type) {
-    case SublocationType.SHELF:
+    case SublocationType.shelf:
       return <Columns className="h-4 w-4 mr-1" />;
-    case SublocationType.DRAWER:
+    case SublocationType.drawer:
       return <Box className="h-4 w-4 mr-1" />;
-    case SublocationType.BOX:
+    case SublocationType.box:
       return <BookmarkIcon className="h-4 w-4 mr-1" />;
-    case SublocationType.CABINET:
+    case SublocationType.cabinet:
       return <BookOpen className="h-4 w-4 mr-1" />;
     default:
       return <Box className="h-4 w-4 mr-1" />;

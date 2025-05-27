@@ -3,6 +3,7 @@ import { memo, useReducer, useCallback, useMemo, useRef } from 'react';
 // Components
 import { InfoSection } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection';
 import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage";
+import { Badge } from "@/shared/components/ui/badge";
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button';
@@ -11,7 +12,7 @@ import { Button } from '@/shared/components/ui/button';
 import { useLocationIcons } from '@/features/dashboard/lib/hooks/useLocationIcons';
 import { useElementBreakpoint } from '@/shared/hooks/useElementBreakpoint';
 import { visibilityReducer } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/visibilityReducer';
-import { toast } from 'sonner';
+//import { toast } from 'sonner';
 
 // Types
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
@@ -29,6 +30,7 @@ import {
 // Constants
 import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';
 import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
+import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 interface LibraryMediaListItemProps {
   index: number;
@@ -49,8 +51,9 @@ interface LibraryMediaListItemProps {
 }
 
 const createAddToFavoritesToast = (title: string) => {
-  toast(`${title} successfully added to favorites`, {
-    className: 'bg-green-500 text-white',
+  showToast({
+    message: `${title} successfully added to favorites`,
+    variant: 'success',
     duration: 2500,
   });
 };
@@ -144,7 +147,17 @@ function LibraryMediaListItem({
       {/* Game Info */}
       <div className="flex flex-1 items-center justify-between">
         <div className="space-y-1">
-          <h3 className="font-semibold mb-2">{name}</h3>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="font-semibold">{name}</h3>
+            {gamesByPlatformAndLocation.length > 1 && (
+              <Badge
+                variant="secondary"
+                className="bg-purple-500/20 text-purple-500 hover:bg-purple-500/30"
+              >
+                {gamesByPlatformAndLocation.length} versions
+              </Badge>
+            )}
+          </div>
 
           <div className="flex gap-8 text-sm text-muted-foreground">
 
