@@ -30,10 +30,41 @@ type ServiceDetails struct {
 
 // StorageStats contains information about storage locations
 type StorageStats struct {
-	TotalPhysicalLocations int                `json:"total_physical_locations" db:"total_physical_locations"`
-	TotalDigitalLocations  int                `json:"total_digital_locations" db:"total_digital_locations"`
-	DigitalLocations       []LocationSummary  `json:"digital_locations"`
-	PhysicalLocations      []LocationSummary  `json:"physical_locations"`
+	TotalPhysicalLocations int                     `json:"total_physical_locations" db:"total_physical_locations"`
+	TotalDigitalLocations  int                     `json:"total_digital_locations" db:"total_digital_locations"`
+	DigitalLocations       []DigitalLocation       `json:"digital_locations"`
+	PhysicalLocations      []PhysicalLocation      `json:"physical_locations"`
+}
+
+type DigitalLocation struct {
+	ID            string           `json:"id"`
+	Name          string           `json:"name"`
+	LocationType  string           `json:"location_type"`
+	IsActive      bool             `json:"is_active"`
+	URL           string           `json:"url"`
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
+	ItemCount     int              `json:"item_count"`
+	IsSubscription bool            `json:"is_subscription"`
+	MonthlyCost   float64          `json:"monthly_cost"`
+	Items         []ItemSummary    `json:"items"`
+	// New fields we want to add
+	PaymentMethod   string           `json:"payment_method"`
+	PaymentDate     *time.Time       `json:"payment_date"`
+	BillingCycle    string           `json:"billing_cycle"`
+	CostPerCycle    float64          `json:"cost_per_cycle"`
+	NextPaymentDate *time.Time       `json:"next_payment_date"`
+}
+
+type PhysicalLocation struct {
+	ID            string                  `json:"id"`
+	Name          string                  `json:"name"`
+	LocationType  string                  `json:"location_type"`
+	MapCoordinates string                 `json:"map_coordinates"`
+	CreatedAt     time.Time               `json:"created_at"`
+	UpdatedAt     time.Time               `json:"updated_at"`
+	ItemCount     int                     `json:"item_count"`
+	Sublocations  []SublocationSummary    `json:"sublocations"`
 }
 
 // LocationSummary represents a summary of a storage location
@@ -49,8 +80,13 @@ type LocationSummary struct {
 	URL             string    `json:"url,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
-	Sublocations    []SublocationSummary `json:"sublocations,omitempty"`
-	Items           []ItemSummary        `json:"items,omitempty"`
+	Sublocations    []SublocationSummary `json:"sublocations"`
+	Items           []ItemSummary        `json:"items"`
+	PaymentMethod   string               `json:"payment_method"`
+	PaymentDate     time.Time            `json:"payment_date"`
+	BillingCycle    string               `json:"billing_cycle"`
+	CostPerCycle    float64              `json:"cost_per_cycle"`
+	NextPaymentDate time.Time            `json:"next_payment_date"`
 }
 
 // SublocationSummary represents a summary of a sublocation
