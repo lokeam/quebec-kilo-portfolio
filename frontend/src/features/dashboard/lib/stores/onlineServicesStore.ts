@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { DigitalLocation } from '@/types/domain/online-service';
+
 import {
   getStoredViewMode,
   featureViewModes
 } from '@/shared/constants/viewModes';
-import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
 
 // export const ViewModes = {
 //   GRID: 'grid',
@@ -25,8 +26,8 @@ interface OnlineServicesState {
   setSearchQuery: (query: string) => void;
   setBillingCycleFilters: (filters: string[]) => void;
   setPaymentMethodFilters: (filters: string[]) => void;
-  services: OnlineService[];
-  setServices: (services: OnlineService[]) => void;
+  services: DigitalLocation[];
+  setServices: (services: DigitalLocation[]) => void;
   toggleActiveOnlineService: (serviceName: string, isActive: boolean) => void;
 }
 
@@ -55,7 +56,7 @@ export const useOnlineServicesStore = create<OnlineServicesState>((set) => ({
     set((state) => ({
     services: state.services.map((service) =>
       service.name === serviceName
-        ? { ...service, status: isActive ? SERVICE_STATUS_CODES.ACTIVE : SERVICE_STATUS_CODES.INACTIVE }
+        ? { ...service, isActive: isActive }
         : service
     ),
   })),
@@ -70,5 +71,5 @@ export const useOnlineServices = () => useOnlineServicesStore((state) => state.s
 export const useSetOnlineServices = () => useOnlineServicesStore((state) => state.setServices);
 export const useOnlineServicesIsActive = (serviceName: string) =>
   useOnlineServicesStore((state) =>
-    state.services.find((service) => service.name === serviceName)?.status === SERVICE_STATUS_CODES.ACTIVE || false
+    state.services.find((service) => service.name === serviceName)?.isActive || false
   );

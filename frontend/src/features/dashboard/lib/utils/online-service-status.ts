@@ -1,4 +1,6 @@
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+
+import type { DigitalLocation } from '@/types/domain/online-service';
+
 import { SERVICE_STATUS_CODES, type ServiceStatusCode } from '@/shared/constants/service.constants';
 
 export function getServiceStatusColor(status: ServiceStatusCode): string {
@@ -11,17 +13,15 @@ export function getServiceStatusColor(status: ServiceStatusCode): string {
   return statusColors[status] ?? statusColors[SERVICE_STATUS_CODES.INACTIVE];
 }
 
-export function isServiceFree(service: OnlineService): boolean {
-  // Check if billing exists and has fees
-  if (!service?.billing?.fees) {
-    return true; // If no billing info or fees, consider it free
-  }
+export function isPaidService(service: DigitalLocation): boolean {
 
-  // Now safely check the fees
-  const { fees } = service.billing;
+  const hasMonthlyCost = service?.monthlyCost !== 0;
+  const hasBillingCycle = service?.billingCycle !== "";
+  const hasPaymentMethod = service?.paymentMethod !== "";
 
-  // Only check monthly fee since it's the only one guaranteed in the type
-  return fees.monthly === 'FREE' || fees.monthly === '0';
+  console.log('testing isPaidService', {hasMonthlyCost, hasBillingCycle, hasPaymentMethod});
+
+  return hasMonthlyCost && hasBillingCycle && hasPaymentMethod;
 }
 
 export function formatCurrency(amount: string | null | undefined): string {
@@ -32,11 +32,11 @@ export function formatCurrency(amount: string | null | undefined): string {
   return amount.startsWith('$') ? amount : `$${amount}`;
 }
 
-export function isRenewalMonth(service: OnlineService): boolean {
-  if (!service?.billing?.renewalDate?.month) {
+export function isRenewalMonth(service: DigitalLocation): boolean {
+  if (!service?.nextPaymentDate) {
     return false; // If no renewal date, it's not renewing this month
   }
 
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-  return currentMonth === service.billing.renewalDate.month;
+  return currentMonth === service.nextPaymentDate.toLocaleString();
 }

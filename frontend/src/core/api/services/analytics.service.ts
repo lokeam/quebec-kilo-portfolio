@@ -34,32 +34,44 @@ export interface FinancialStats {
   services: ServiceDetails[];
 }
 
+export interface ItemSummary {
+  id: number;
+  name: string;
+  platform: string;
+  platformVersion: string;
+  acquiredDate: string;
+}
+
+export interface SublocationSummary {
+  id: string;
+  name: string;
+  locationType: string;
+  bgColor?: string;
+  storedItems: number;
+  createdAt: string;
+  updatedAt: string;
+  items?: ItemSummary[];
+}
+
 export interface LocationSummary {
   id: string;
   name: string;
-  itemCount: number;
   locationType: string;
-  mapCoordinates?: string;
-  createdAt: string;
-  updatedAt: string;
+  itemCount: number;
   isSubscription?: boolean;
   monthlyCost?: number;
-  sublocations?: {
-    id: string;
-    name: string;
-    locationType: string;
-    bgColor?: string;
-    storedItems: number;
-    createdAt: string;
-    updatedAt: string;
-    items?: Array<{
-      id: number;
-      name: string;
-      platform: string;
-      platformVersion: string;
-      acquiredDate: string;
-    }>;
-  }[];
+  mapCoordinates?: string;
+  isActive?: boolean;
+  url?: string;
+  createdAt: string;
+  updatedAt: string;
+  sublocations?: SublocationSummary[];
+  items?: ItemSummary[];
+  paymentMethod?: string;
+  paymentDate?: string;
+  billingCycle?: string;
+  costPerCycle?: number;
+  nextPaymentDate?: string;
 }
 
 export interface ServiceDetails {

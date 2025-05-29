@@ -22,22 +22,22 @@ import { IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Utils
 import {
-  isServiceFree,
+  isPaidService,
   formatCurrency,
   isRenewalMonth,
 } from '@/features/dashboard/lib/utils/online-service-status';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { DigitalLocation } from '@/types/domain/online-service';
 
 // Constants
 import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
 import { cn } from '@/shared/components/ui/utils';
 
 interface SingleOnlineServiceCardProps {
-  service: OnlineService;
+  service: DigitalLocation;
   onDelete?: (id: string) => void;
-  onEdit?: (service: OnlineService) => void;
+  onEdit?: (service: DigitalLocation) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
@@ -55,9 +55,8 @@ export const SingleOnlineServiceCard = memo(({
     t?.name?.toLowerCase() === service.tier?.currentTier?.toLowerCase()
   );
 
-  const isFree = isServiceFree(service);
-  const showRenewalBadge = service.status !== SERVICE_STATUS_CODES.ACTIVE &&
-    !isFree &&
+  const showRenewalBadge = service.isActive &&
+    isPaidService(service) &&
     isRenewalMonth(service);
 
   const handleEditService = useCallback((e: React.MouseEvent) => {
@@ -119,18 +118,13 @@ export const SingleOnlineServiceCard = memo(({
                   display: 'block',
                 }}
               >
-                {service.label}
+                {service.name}
               </span>
-              {!isFree && currentTierDetails && (
+              {isPaidService(service) && service.billingCycle && (
                 <div className="flex flex-col">
                   <span className="text-xs text-muted-foreground">
-                  {currentTierDetails.name}
+                  {service.billingCycle}
                   </span>
-                  {service.tier?.maxDevices && (
-                    <span className="text-xs text-muted-foreground">
-                      Up to {service.tier.maxDevices} devices
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -139,19 +133,19 @@ export const SingleOnlineServiceCard = memo(({
           <div className="relative w-32">
             {/* Show on no hover */}
             <div className="absolute inset-0 flex items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
-              {isFree ? (
+              {!isPaidService(service) ? (
                   <span className="font-medium text-white">
                     --
                   </span>
                 ) : (
                 <>
                   <span className="font-medium text-white">
-                    {formatCurrency(service.billing?.fees?.monthly || '0')}
+                    {formatCurrency(service.monthlyCost?.toString() || '0')}
                   </span>
                   <span className="text-muted-foreground text-xs">/ 1 mo</span>
                 </>
               )}
-              {service.status === SERVICE_STATUS_CODES.ACTIVE && (
+              {service.isActive && (
                 <Power className="h-5 w-5 ml-1 text-emerald-500" />
               )}
               {showRenewalBadge && (
@@ -176,7 +170,7 @@ export const SingleOnlineServiceCard = memo(({
                 onClick={handleEditService}
               >
                 <IconEdit className="h-5 w-5" />
-                <span className="sr-only">Edit {service.label}</span>
+                <span className="sr-only">Edit {service.name}</span>
               </Button>
               <Button
                 variant="outline"
@@ -185,7 +179,7 @@ export const SingleOnlineServiceCard = memo(({
                 onClick={handleDeleteClick}
               >
                 <IconTrash className="h-5 w-5" />
-                <span className="sr-only">Delete {service.label}</span>
+                <span className="sr-only">Delete {service.name}</span>
               </Button>
             </div>
           </div>
@@ -196,7 +190,7 @@ export const SingleOnlineServiceCard = memo(({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {service.label}</DialogTitle>
+            <DialogTitle>Delete {service.name}</DialogTitle>
             <DialogDescription>
               {deleteError ? (
                 <div className="text-red-500">

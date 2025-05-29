@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 
 // Template Components
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -9,6 +9,8 @@ import { SingleOnlineServiceCard } from '@/features/dashboard/components/organis
 import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
+import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
+
 
 // API Hooks and Utilities
 import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
@@ -18,7 +20,6 @@ import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredS
 import { adaptDigitalLocationToService } from '@/core/api/adapters/digitalLocation.adapter';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -44,6 +45,7 @@ const CardSkeleton = () => (
 );
 
 export function OnlineServicesPageContent() {
+  const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
   // Fetch digital locations using analytics
@@ -52,6 +54,11 @@ export function OnlineServicesPageContent() {
   // Get filtered services using the unified hook
   const services = storageData?.digitalLocations?.map(adaptDigitalLocationToService) || [];
   const filteredServices = useFilteredServices(services);
+
+
+  const handleCloseAddDrawer = useCallback(() => {
+    setAddServiceOpen(false);
+  }, [])
 
   // Handler to delete a service
   const handleDeleteService = useCallback((serviceId: string) => {
@@ -139,6 +146,20 @@ export function OnlineServicesPageContent() {
       <PageHeadline>
         <div className="flex items-center">
           <h1 className='text-2xl font-bold tracking-tight'>Online Services</h1>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <DrawerContainer
+            open={addServiceOpen}
+            onOpenChange={setAddServiceOpen}
+            triggerAddLocation="Add Digital Service"
+            title="Digital Service"
+            description="Tell us about the service you want to add"
+          >
+            <div>OnlineService Form here</div>
+
+          </DrawerContainer>
+
         </div>
       </PageHeadline>
 

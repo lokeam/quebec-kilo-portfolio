@@ -1,41 +1,23 @@
-import type { DigitalLocation } from '@/types/domain/digital-location';
-import type { OnlineService as DomainOnlineService } from '@/types/domain/online-service';
-import { SERVICE_STATUS_CODES, SERVICE_TYPES } from '@/shared/constants/service.constants';
+import type { DigitalLocation } from '@/types/domain/online-service';
 
 /**
  * Transforms a DigitalLocation from the API into the domain OnlineService format
  */
-export const adaptDigitalLocationToService = (location: DigitalLocation): DomainOnlineService => ({
+export const adaptDigitalLocationToService = (location: DigitalLocation): DigitalLocation => ({
   id: location.id,
   name: location.name,
-  label: location.name,
-  logo: '',
-  url: '',
-  status: SERVICE_STATUS_CODES.ACTIVE,
-  createdAt: new Date(location.createdAt),
-  updatedAt: new Date(location.updatedAt),
-  isSubscriptionService: false,
-  serviceType: SERVICE_TYPES.ONLINE,
-  isActive: true,
-  type: SERVICE_TYPES.ONLINE,
-  billing: {
-    cycle: 'monthly',
-    fees: {
-      monthly: '0',
-      quarterly: '0',
-      annual: '0'
-    },
-    paymentMethod: 'None'
-  },
-  tier: {
-    currentTier: 'standard' as const,
-    availableTiers: [{
-      id: 'tier-standard',
-      name: 'standard',
-      features: [],
-      isDefault: true
-    }]
-  },
-  features: [],
-  games: location.items
+  locationType: 'subscription',
+  itemCount: location.itemCount,
+  isSubscription: location.isSubscription,
+  monthlyCost: location.monthlyCost,
+  isActive: location.isActive,
+  url: location.url,
+  createdAt: location.createdAt,
+  updatedAt: location.updatedAt,
+  items: location.items,
+  paymentMethod: location.paymentMethod,
+  paymentDate: location.paymentDate,
+  billingCycle: location.billingCycle,
+  costPerCycle: location.costPerCycle,
+  nextPaymentDate: location.nextPaymentDate
 });

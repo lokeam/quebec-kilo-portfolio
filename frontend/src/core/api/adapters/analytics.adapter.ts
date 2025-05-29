@@ -140,9 +140,16 @@ export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsRespons
       type: platform,
       isSubscription: location.isSubscription || false,
       monthlyCost: location.monthlyCost || 0,
-      items: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      items: location.items || [],
+      createdAt: location.createdAt,
+      updatedAt: location.updatedAt,
+      isActive: location.isActive,
+      url: location.url,
+      paymentMethod: location.paymentMethod,
+      paymentDate: location.paymentDate,
+      billingCycle: location.billingCycle,
+      costPerCycle: location.costPerCycle,
+      nextPaymentDate: location.nextPaymentDate
     };
   });
 }

@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogDescription
 } from '@/shared/components/ui/dialog';
-import { toast } from 'sonner';
+//import { toast } from 'sonner';
 
 // Icons
 import { Monitor } from 'lucide-react';
@@ -25,65 +25,69 @@ import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+//import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
+import type { DigitalLocation } from '@/types/domain/online-service';
 
 // Hooks
 import { useOnlineServicesToggleActive, useOnlineServicesIsActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import { formatCurrency, isServiceFree } from '@/features/dashboard/lib/utils/online-service-status';
+import { formatCurrency, isPaidService} from '@/features/dashboard/lib/utils/online-service-status';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { validatePaymentMethod } from '@/shared/constants/payment';
+import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+
 
 // Helper function to get the correct cost based on the billing cycle
-const getCycleBasedCost = (service: OnlineService): string => {
-  // Early return for free services
-  if (!service.billing || isServiceFree(service)) {
-    return "FREE";
-  }
+// const getCycleBasedCost = (service: DigitalLocation): string => {
+//   // Early return for free services
+//   if (!isPaidService(service)) return "FREE";
 
-  const { cycle, fees } = service.billing;
+//   const { billingCycle, costPerCycle } = service;
 
-  // Safely extract numeric values from string costs
-  const parseCost = (costString: string | undefined): number => {
-    if (!costString) return 0;
-    const numericValue = parseFloat(costString.replace(/[^0-9.]/g, ''));
-    return isNaN(numericValue) ? 0 : numericValue;
-  };
+//   // Safely extract numeric values from string costs
+//   const parseCost = (costPerCycle: string | number): number => {
+//     if (!costPerCycle) return 0;
 
-  // Use a simple mapping for direct returns
-  const costMap: Record<string, string> = {
-    "1 year": fees.annual,
-    "3 months": fees.quarterly,
-    "1 month": fees.monthly
-  };
+//     const numericValue = parseFloat(costPerCycle.toString().replace(/[^0-9.]/g, ''));
+//     return isNaN(numericValue) ? 0 : numericValue;
+//   };
 
-  // Handle the special calculated case for bi-annual
-  if (cycle === "6 months") {
-    const monthlyValue = parseCost(fees.monthly);
-    return monthlyValue > 0
-      ? formatCurrency((monthlyValue * 6).toFixed(2))
-      : fees.monthly; // Fallback to the raw value if parsing failed
-  }
+//   // Use a simple mapping for direct returns
+//   const costMap: Record<string, string> = {
+//     "1 year": fees.annual,
+//     "3 months": fees.quarterly,
+//     "1 month": fees.monthly
+//   };
 
-  // Return from mapping or fallback to monthly as default
-  return costMap[cycle] || fees.monthly;
-};
+//   // Handle the special calculated case for bi-annual
+//   if (billingCycle === "6 months") {
+//     const monthlyValue = parseCost(fees.monthly);
+//     return monthlyValue > 0
+//       ? formatCurrency((monthlyValue * 6).toFixed(2))
+//       : fees.monthly; // Fallback to the raw value if parsing failed
+//   }
+
+//   // Return from mapping or fallback to monthly as default
+//   return costMap[cycle] || fees.monthly;
+// };
 
 interface OnlineServicesTableRowProps {
-  service: OnlineService;
+  service: DigitalLocation;
   index: number
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
   onDelete?: (id: string) => void;
-  onEdit?: (service: OnlineService) => void;
+  onEdit?: (service: DigitalLocation) => void;
 };
 
 const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) => {
-  toast(`Recorded ${label} as ${isActive ? 'active' : 'inactive'}`, {
-    className: 'bg-green-500 text-white',
-    duration: 2500,
-  });
+    showToast({
+      message: `Recorded ${label} as ${isActive ? 'active' : 'inactive'}`,
+      variant: 'success',
+      duration: 2500,
+    });
 };
 
 function OnlineServicesTableRowComponent({
@@ -97,18 +101,18 @@ function OnlineServicesTableRowComponent({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const hasValidLogo = Boolean(service.logo);
-  const paymentDate = service.billing?.renewalDate ? `${service.billing.renewalDate.month} ${service.billing.renewalDate.day}` : '--';
-  const isFree = isServiceFree({ billing: service.billing } as OnlineService);
+  const paymentDate = service.nextPaymentDate
+    ? new Date(service.nextPaymentDate).toLocaleDateString('en-CA') // This will format as YYYY-MM-DD
+    : '--';
 
   // Handlers for online service activation
   const toggleActiveOnlineService = useOnlineServicesToggleActive();
   const isActive = useOnlineServicesIsActive(service.name);
 
   const handleToggleActiveOnlineService = useCallback((isChecked: boolean) => {
-    toggleActiveOnlineService(service.name, isChecked);
-    createToggleActiveOnlineServiceToast(service.label, isChecked);
-  }, [service.name, service.label, toggleActiveOnlineService]);
+    toggleActiveOnlineService(service.id, isChecked);
+    createToggleActiveOnlineServiceToast(service.name, isChecked);
+  }, [service.id, service.name, toggleActiveOnlineService]);
 
   const handleCheckboxChange = useCallback((checked: boolean) => {
     onSelectionChange?.(checked);
@@ -149,6 +153,8 @@ function OnlineServicesTableRowComponent({
     }
   }, [service.id, onDelete]);
 
+  console.log('OnlineServicesTableRow', service);
+
   return (
     <>
       <TableRow
@@ -169,67 +175,60 @@ function OnlineServicesTableRowComponent({
         <TableCell>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
-            {hasValidLogo ? (
-                <SVGLogo
-                  domain="games"
-                  name={service.logo as LogoName<'games'>}
-                  className="h-8 w-8"
-                />
-              ) : (
-                <Monitor className="h-8 w-8 text-slate-500" />
-              )}
+              <DigitalLocationIcon name={service.name} className="w-full h-full" />
             </div>
             <div className="flex flex-col">
-              <span className="font-medium">{service.label}</span>
+              <span className="font-medium">{service.name}</span>
               <span className="text-sm text-muted-foreground">
-                {service.tier?.currentTier || "Standard subscription"}
+                {service.billingCycle || "Free"}
               </span>
             </div>
           </div>
         </TableCell>
         <TableCell>
           <Switch
-            checked={isActive}
+            checked={service.isActive}
             onCheckedChange={handleToggleActiveOnlineService}
           />
         </TableCell>
         <TableCell>
           {
-            isFree ? (
-              <span>--</span>
+            isPaidService(service) ? (
+              <span>{service.billingCycle}</span>
             ) : (
-              <span>{service.billing?.cycle}</span>
+              <span>--</span>
             )
           }
         </TableCell>
         <TableCell>
           {
-            isFree ? (
-              <span>--</span>
+            isPaidService(service) ? (
+              <span>{service.costPerCycle.toString()}</span>
             ) : (
-              <span>{getCycleBasedCost(service)}</span>
+              <span>--</span>
             )
           }
         </TableCell>
         <TableCell>
           <PaymentIcon
             type={validatePaymentMethod(
-              typeof service.billing?.paymentMethod === 'string'
-                ? service.billing.paymentMethod
-                : service.billing?.paymentMethod?.id
+              typeof service.paymentMethod === 'string'
+                ? service.paymentMethod
+                : service.paymentMethod
             )}
             format="flatRounded"
           />
         </TableCell>
         <TableCell>
           {
-            isFree ? (
-              <span>--</span>
-            ) : (
+            isPaidService(service) ? (
               <span>{paymentDate}</span>
+            ) : (
+              <span>--</span>
             )
           }
         </TableCell>
+        {/* Edit + Delete buttons shown on hover */}
         <TableCell>
           <div className={cn(
             "flex items-center gap-2 transition-opacity duration-200",
@@ -243,7 +242,7 @@ function OnlineServicesTableRowComponent({
               onClick={handleEditService}
             >
               <IconEdit className="h-16 w-16" />
-              <span className="sr-only">Edit {service.label}</span>
+              <span className="sr-only">Edit {service.name}</span>
             </Button>
             <Button
               variant="outline"
@@ -252,7 +251,7 @@ function OnlineServicesTableRowComponent({
               onClick={handleDeleteService}
             >
               <IconTrash className="h-16 w-16" />
-              <span className="sr-only">Delete {service.label}</span>
+              <span className="sr-only">Delete {service.name}</span>
             </Button>
           </div>
         </TableCell>
@@ -261,7 +260,7 @@ function OnlineServicesTableRowComponent({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {service.label}</DialogTitle>
+            <DialogTitle>Delete {service.name}</DialogTitle>
             <DialogDescription>
               {deleteError ? (
                 <div className="text-red-500">
@@ -307,14 +306,11 @@ export const OnlineServicesTableRow = memo(
     return (
       prevProps.index === nextProps.index &&
       prevProps.service.name === nextProps.service.name &&
-      prevProps.service.label === nextProps.service.label &&
-      prevProps.service.logo === nextProps.service.logo &&
-      prevProps.service.tier?.currentTier === nextProps.service.tier?.currentTier &&
-      prevProps.service.billing?.cycle === nextProps.service.billing?.cycle &&
-      prevProps.service.billing?.fees.monthly === nextProps.service.billing?.fees.monthly &&
-      prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
-      prevProps.service.billing?.paymentMethod === nextProps.service.billing?.paymentMethod &&
-      prevProps.service.status === nextProps.service.status &&
+      prevProps.service.billingCycle === nextProps.service.billingCycle &&
+      prevProps.service.monthlyCost === nextProps.service.monthlyCost &&
+      prevProps.service.paymentMethod === nextProps.service.paymentMethod &&
+      prevProps.service.nextPaymentDate === nextProps.service.nextPaymentDate &&
+      prevProps.service.isActive === nextProps.service.isActive &&
       prevProps.isSelected === nextProps.isSelected
     );
   }

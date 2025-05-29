@@ -4,9 +4,6 @@
  * Defines types for online gaming services and platforms.
  */
 
-import type { GameItem } from './game-item';
-import type { ServiceStatusCode, ServiceType } from '@/shared/constants/service.constants';
-
 /**
  * Available tier names for online services.
  * Standardized naming convention across different providers.
@@ -55,56 +52,58 @@ export interface TierConfiguration {
 }
 
 /**
- * Represents an online gaming service or platform
+ * Represents an online service from the analytics endpoint
  */
 export interface OnlineService {
   /** Unique identifier for the service */
   id: string;
 
-  /** Name of the service */
+  /** Name of the service (e.g. "Xbox") */
   name: string;
 
-  /** Display label for the service */
-  label: string;
+  /** Type of service - always "subscription" for online services */
+  location_type: 'subscription';
 
-  /** URL to the service's logo */
-  logo: string;
+  /** Number of items associated with this service */
+  item_count: number;
 
-  /** Service's website URL */
+  /** Whether this is a subscription service */
+  is_subscription: boolean;
+
+  /** Monthly cost of the subscription in the user's currency */
+  monthly_cost: number;
+
+  /** Whether the subscription is currently active */
+  is_active: boolean;
+
+  /** URL to the service's website */
   url: string;
 
-  /** Current status of the service */
-  status: ServiceStatusCode;
+  /** When the service was created */
+  created_at: string;
 
-  /** Timestamp when the service was added */
-  createdAt: Date;
+  /** When the service was last updated */
+  updated_at: string;
+}
 
-  /** Timestamp when the service was last updated */
-  updatedAt: Date;
-
-  /** Whether this is a subscription-based service */
-  isSubscriptionService: boolean;
-
-  /** Type of service */
-  serviceType: ServiceType;
-
-  /** Whether the service is currently active */
-  isActive: boolean;
-
-  /** Category of the service */
-  type: ServiceType;
-
-  /** Billing configuration and payment details */
-  billing?: OnlineServiceBilling;
-
-  /** Service tier information and available upgrades */
-  tier: TierConfiguration;
-
-  /** List of features provided by the service */
-  features: string[];
-
-  /** List of games available through this service */
-  games?: GameItem[];
+/**
+ * Response shape for online services from the analytics endpoint
+ */
+export interface OnlineServicesResponse {
+  success: boolean;
+  user_id: string;
+  data: {
+    analytics: {
+      storage: {
+        total_digital_locations: number;
+        digital_locations: OnlineService[];
+      };
+    };
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
 }
 
 /**
@@ -143,4 +142,118 @@ export interface PaymentMethodData {
 
   /** Additional payment method properties */
   [key: string]: unknown;
+}
+
+/**
+ * Represents a digital location (online service) from the analytics endpoint
+ */
+export interface DigitalLocation {
+  /** Unique identifier for the digital location */
+  id: string;
+
+  /** Name of the service (e.g. "Xbox") */
+  name: string;
+
+  /** Type of location - always "subscription" for digital locations */
+  locationType: 'subscription';
+
+  /** Number of items associated with this location */
+  itemCount: number;
+
+  /** Whether this is a subscription service */
+  isSubscription: boolean;
+
+  /** Monthly cost of the subscription in the user's currency */
+  monthlyCost: number;
+
+  /** Whether the subscription is currently active */
+  isActive: boolean;
+
+  /** URL to the service's website */
+  url: string;
+
+  /** When the location was created */
+  createdAt: string;
+
+  /** When the location was last updated */
+  updatedAt: string;
+
+  /** List of items in this location */
+  items: StoredItem[];
+
+  /** Payment method used for the location */
+  paymentMethod: string;
+
+  /** Date of the last payment */
+  paymentDate: string;
+
+  /** Billing cycle of the subscription */
+  billingCycle: string;
+
+  /** Cost per cycle of the subscription */
+  costPerCycle: number;
+
+  /** Next payment date */
+  nextPaymentDate: string;
+}
+
+/**
+ * Response shape from the analytics endpoint
+ */
+export interface AnalyticsResponse {
+  success: boolean;
+  user_id: string;
+  data: {
+    analytics: {
+      storage: {
+        total_physical_locations: number;
+        total_digital_locations: number;
+        digital_locations: DigitalLocation[];
+        physical_locations: PhysicalLocation[];
+      };
+    };
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+
+/**
+ * Represents a physical location from the analytics endpoint
+ */
+export interface PhysicalLocation {
+  id: string;
+  name: string;
+  location_type: 'apartment' | 'house';
+  item_count: number;
+  map_coordinates: string;
+  created_at: string;
+  updated_at: string;
+  sublocations: Sublocation[];
+}
+
+/**
+ * Represents a sublocation within a physical location
+ */
+export interface Sublocation {
+  id: string;
+  name: string;
+  location_type: 'box' | 'console';
+  bg_color: string;
+  stored_items: number;
+  created_at: string;
+  updated_at: string;
+  items: StoredItem[];
+}
+
+/**
+ * Represents an item stored in a sublocation
+ */
+export interface StoredItem {
+  id: number;
+  name: string;
+  platform: string;
+  platform_version: string;
+  acquired_date: string;
 }
