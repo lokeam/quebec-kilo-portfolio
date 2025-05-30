@@ -6,6 +6,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Returns a handler fn that servces the digital catalog with optional filtering by name
@@ -22,7 +23,7 @@ func NewDigitalServicesCatalogHandler(appContext *appcontext.AppContext) http.Ha
 		}
 
 		// Only allocate memory for results when filtering
-		var filtered []DigitalServiceCatalogItem
+		var filtered []types.DigitalServiceItem
 		lowercaseQuery := strings.ToLower(q)
 
 		for _, service := range DigitalServicesCatalog {

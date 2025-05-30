@@ -1,8 +1,12 @@
 package digital
 
+import (
+	"github.com/lokeam/qko-beta/internal/types"
+)
+
 // DigitalServicesCatalog contains the complete list of available digital services.
 // This is a read-only list and should not be modified at runtime.
-var DigitalServicesCatalog = []DigitalServiceCatalogItem{
+var DigitalServicesCatalog = []types.DigitalServiceItem{
 	{
 		ID:                    "amazonluna",
 		Name:                  "Amazon Luna",
@@ -136,7 +140,6 @@ var DigitalServicesCatalog = []DigitalServiceCatalogItem{
 		IsSubscriptionService: false,
 		URL:                   "https://www.ubisoft.com/en-us/",
 	},
-
 	{
 		ID:                    "xboxgamepass",
 		Name:                  "Xbox Game Pass",

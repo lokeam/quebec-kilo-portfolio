@@ -794,10 +794,12 @@ func GetDigitalServicesCatalog(appCtx *appcontext.AppContext) http.HandlerFunc {
 			"userID": userID,
 		})
 
-		response := httputils.NewAPIResponse(r, userID, struct {
-			Catalog []DigitalServiceCatalogItem `json:"catalog"`
-		}{
-			Catalog: DigitalServicesCatalog,
+		responseAdapter := NewDigitalResponseAdapter()
+		adaptedResponse := responseAdapter.AdaptToCatalogResponse(DigitalServicesCatalog)
+
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{}, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"catalog": adaptedResponse,
 		})
 
 		httputils.RespondWithJSON(

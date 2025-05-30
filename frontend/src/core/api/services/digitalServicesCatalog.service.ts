@@ -6,38 +6,12 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+import type { DigitalServiceItem } from '@/types/domain/online-service';
 
-interface ApiDigitalServiceItem {
-  id: string;
-  name: string;
-  logo: string;
-  is_subscription_service: boolean;
-  url: string;
+interface CatalogResponse {
+  success: boolean;
+  catalog: DigitalServiceItem[];
 }
-
-export interface DigitalServiceItem {
-  id: string;
-  name: string;
-  logo: string;
-  isSubscriptionService: boolean;
-  url: string;
-}
-
-interface CatalogResponseWrapper {
-  catalog: {
-    success: boolean;
-    services: ApiDigitalServiceItem[];
-  };
-}
-
-// Transform API response to match our interface
-const transformApiService = (service: ApiDigitalServiceItem): DigitalServiceItem => ({
-  id: service.id,
-  name: service.name,
-  logo: service.logo,
-  isSubscriptionService: service.is_subscription_service,
-  url: service.url
-});
 
 // Fallback data to use when API fails
 export const FALLBACK_SERVICES: DigitalServiceItem[] = [
@@ -53,7 +27,6 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'humblebundle', name: 'Humble Bundle', logo: 'humblebundle', isSubscriptionService: false, url: 'https://www.humblebundle.com/' },
   { id: 'itchio', name: 'itch.io', logo: 'itchio', isSubscriptionService: false, url: 'https://itch.io/' },
   { id: 'meta', name: 'Meta', logo: 'meta', isSubscriptionService: false, url: 'https://www.meta.com/nz/meta-quest-plus/' },
-  { id: 'netflix', name: 'Netflix', logo: 'netflix', isSubscriptionService: true, url: 'https://www.netflix.com/' },
   { id: 'nintendo', name: 'Nintendo Switch Online', logo: 'nintendo', isSubscriptionService: true, url: 'https://www.nintendo.com/' },
   { id: 'nvidia', name: 'NVIDIA', logo: 'nvidia', isSubscriptionService: true, url: 'https://www.nvidia.com/en-us/geforce-now/' },
   { id: 'primegaming', name: 'Prime Gaming', logo: 'prime', isSubscriptionService: true, url: 'https://gaming.amazon.com/home' },
@@ -61,7 +34,6 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'shadow', name: 'Shadow', logo: 'shadow', isSubscriptionService: true, url: 'https://shadow.tech/' },
   { id: 'steam', name: 'Steam', logo: 'steam', isSubscriptionService: false, url: 'https://store.steampowered.com/' },
   { id: 'ubisoft', name: 'Ubisoft', logo: 'ubisoft', isSubscriptionService: false, url: 'https://www.ubisoft.com/en-us/' },
-  { id: 'xboxlive', name: 'Xbox Live', logo: 'xbox', isSubscriptionService: true, url: 'https://www.xbox.com/en-US/live' },
   { id: 'xboxgamepass', name: 'Xbox Game Pass', logo: 'xbox', isSubscriptionService: true, url: 'https://www.xbox.com/en-US/xbox-game-pass' }
 ];
 
@@ -83,11 +55,11 @@ const CATALOG_ENDPOINT = '/v1/locations/digital/services/catalog';
 export const getServicesCatalog = (): Promise<DigitalServiceItem[]> =>
   apiRequest('getServicesCatalog', () =>
     axiosInstance
-      .get<CatalogResponseWrapper>(CATALOG_ENDPOINT)
+      .get<CatalogResponse>(CATALOG_ENDPOINT)
       .then(response => {
-        if (!response.data.catalog.services) {
+        if (!response.data.catalog) {
           return [];
         }
-        return response.data.catalog.services.map(transformApiService);
+        return response.data.catalog;
       })
   );
