@@ -1,12 +1,11 @@
 /**
- * Digital Services API
+ * Digital Services Catalog Service
  *
- * For API standards and best practices, see:
- * @see {@link ../../../docs/api-standards.md}
+ * Provides functions for managing digital services catalog through the backend API.
  */
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
-import { apiDebug } from '@/core/utils/debug/debug-utils';
+import { apiRequest } from '@/core/api/utils/apiRequest';
 
 interface ApiDigitalServiceItem {
   id: string;
@@ -22,6 +21,13 @@ export interface DigitalServiceItem {
   logo: string;
   isSubscriptionService: boolean;
   url: string;
+}
+
+interface CatalogResponseWrapper {
+  catalog: {
+    success: boolean;
+    services: ApiDigitalServiceItem[];
+  };
 }
 
 // Transform API response to match our interface
@@ -59,72 +65,29 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'xboxgamepass', name: 'Xbox Game Pass', logo: 'xbox', isSubscriptionService: true, url: 'https://www.xbox.com/en-US/xbox-game-pass' }
 ];
 
-export const digitalServicesService = {
-  getServicesCatalog: async (token?: string): Promise<DigitalServiceItem[]> => {
-    try {
-      const config = {
-        headers: token ? {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        } : undefined
-      };
+const CATALOG_ENDPOINT = '/v1/locations/digital/services/catalog';
 
-      apiDebug.logRequest({ url: '/v1/locations/digital/services/catalog', method: 'GET', ...config });
-
-      // The API returns the array directly, not wrapped in an Axios response
-      const data = await axiosInstance.get<ApiDigitalServiceItem[]>('/v1/locations/digital/services/catalog', config);
-
-      // Debug log the data
-      console.log('Raw data:', data);
-      console.log('Data type:', typeof data);
-      console.log('Is array?', Array.isArray(data));
-      if (Array.isArray(data)) {
-        console.log('First item:', data[0]);
-      }
-
-      // Check if data exists and is an array
-      if (!data) {
-        apiDebug.logError(new Error('Response data is undefined'));
-        return FALLBACK_SERVICES;
-      }
-
-      if (!Array.isArray(data)) {
-        apiDebug.logError(new Error(`Response data is not an array, got ${typeof data}`));
-        return FALLBACK_SERVICES;
-      }
-
-      // Type guard function to validate the data structure
-      const isApiDigitalServiceItem = (item: unknown): item is ApiDigitalServiceItem => {
-        const isValid = typeof item === 'object' &&
-          item !== null &&
-          'id' in item &&
-          'name' in item &&
-          'logo' in item &&
-          'is_subscription_service' in item &&
-          'url' in item;
-
-        if (!isValid) {
-          console.log('Invalid item structure:', item);
+/**
+ * Fetches the digital services catalog
+ *
+ * Uses apiRequest helper to wrap the axios call with:
+ *  - async/await syntax
+ *  - pre‑call debug log
+ *  - post‑call success log
+ *  - catch block with error log + optional Sentry/metrics
+ *  - retry logic (if configured)
+ *
+ * Usage:
+ *   return apiRequest('getServicesCatalog', () => axios.get(...));
+ */
+export const getServicesCatalog = (): Promise<DigitalServiceItem[]> =>
+  apiRequest('getServicesCatalog', () =>
+    axiosInstance
+      .get<CatalogResponseWrapper>(CATALOG_ENDPOINT)
+      .then(response => {
+        if (!response.data.catalog.services) {
+          return [];
         }
-        return isValid;
-      };
-
-      // Validate the data structure
-      const isValidData = data.every(isApiDigitalServiceItem);
-
-      if (!isValidData) {
-        apiDebug.logError(new Error('Response data items do not match expected structure'));
-        console.log('Invalid data structure:', data[0]);
-        return FALLBACK_SERVICES;
-      }
-
-      apiDebug.logResponse({ status: 200, data });
-      return data.map(transformApiService);
-    } catch (error) {
-      apiDebug.logError(error);
-      console.log('Using fallback data due to API error');
-      return FALLBACK_SERVICES;
-    }
-  }
-};
+        return response.data.catalog.services.map(transformApiService);
+      })
+  );

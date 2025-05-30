@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
-import { cn } from '@/shared/components/ui/utils';
+
+// Shadcn UI Components
 import { Button } from '@/shared/components/ui/button';
 import {
   Command,
@@ -14,51 +14,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/shared/components/ui/popover';
-import { useDigitalServicesCatalog } from '@/core/api/queries/useDigitalServicesCatalog';
-import type { DigitalServiceItem } from '@/core/api/services/digitalServices.service';
-import { FALLBACK_SERVICES } from '@/core/api/services/digitalServices.service';
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import { SERVICE_STATUS_CODES, SERVICE_TYPES } from '@/shared/constants/service.constants';
-import type { ServiceTierName } from '@/features/dashboard/lib/types/online-services/tiers';
+
+// Icons
+import { Check, ChevronsUpDown } from 'lucide-react';
+
+// Utils
+import { cn } from '@/shared/components/ui/utils';
+
+// Query Hooks
+import { useGetDigitalServicesCatalog } from '@/core/api/queries/digitalServicesCatalog.queries';
+
+// Types
+import type { DigitalLocation } from '@/types/domain/online-service';
 
 interface ServiceComboboxProps {
-  onServiceSelect: (service: OnlineService) => void;
+  onServiceSelect: (service: DigitalLocation) => void;
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
 }
-
-const transformToOnlineService = (service: DigitalServiceItem): OnlineService => ({
-  id: service.id,
-  name: service.name,
-  label: service.name,
-  logo: service.logo,
-  url: service.url || '#',
-  status: SERVICE_STATUS_CODES.ACTIVE,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  isSubscriptionService: service.isSubscriptionService,
-  type: service.isSubscriptionService ? SERVICE_TYPES.SUBSCRIPTION : SERVICE_TYPES.ONLINE,
-  tier: {
-    currentTier: 'standard' as ServiceTierName,
-    availableTiers: [{
-      id: 'tier-standard',
-      name: 'standard' as ServiceTierName,
-      features: [],
-      isDefault: true
-    }]
-  },
-  features: [],
-  billing: {
-    cycle: 'NA',
-    fees: {
-      monthly: '0',
-      quarterly: '0',
-      annual: '0'
-    },
-    paymentMethod: 'Generic'
-  }
-});
 
 export function ServiceCombobox({
   onServiceSelect,
@@ -69,15 +43,10 @@ export function ServiceCombobox({
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // Use TanStack Query to fetch services with fallback
-  const { data: apiServices = [], isLoading } = useDigitalServicesCatalog();
+  // Use TanStack Query to fetch services
+  const { data: services = [], isLoading } = useGetDigitalServicesCatalog();
 
-  // Use fallback data if API returns empty array
-  const services = apiServices.length > 0 ? apiServices : FALLBACK_SERVICES;
-
-  const [selectedService, setSelectedService] = useState<DigitalServiceItem | null>(null);
-
-  console.log("ServiceCombobox rendering with", services.length, "services");
+  const [selectedService, setSelectedService] = useState<DigitalLocation | null>(null);
 
   // Filter services based on search query
   const filteredServices = useMemo(() => {
@@ -87,13 +56,10 @@ export function ServiceCombobox({
     );
   }, [searchQuery, services]);
 
-  const handleSelect = useCallback((service: DigitalServiceItem) => {
-    console.log('Original Service:', service);
+  const handleSelect = useCallback((service: DigitalLocation) => {
     setSelectedService(service);
     setOpen(false);
-    const onlineService = transformToOnlineService(service);
-    console.log('Transformed Service:', onlineService);
-    onServiceSelect(onlineService);
+    onServiceSelect(service);
   }, [onServiceSelect]);
 
   return (
@@ -104,10 +70,6 @@ export function ServiceCombobox({
           role="combobox"
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
-          onClick={() => {
-            console.log("Trigger clicked, open:", !open);
-            setOpen(!open);
-          }}
         >
           {selectedService ? selectedService.name : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -125,10 +87,7 @@ export function ServiceCombobox({
           <CommandInput
             placeholder={placeholder}
             value={searchQuery}
-            onValueChange={(value) => {
-              console.log("Search query changed:", value);
-              setSearchQuery(value);
-            }}
+            onValueChange={setSearchQuery}
           />
           <div
             className="max-h-[300px] overflow-y-auto"
@@ -142,14 +101,11 @@ export function ServiceCombobox({
               ) : filteredServices.length === 0 ? (
                 <CommandEmpty>{emptyMessage}</CommandEmpty>
               ) : (
-                filteredServices.map((service: DigitalServiceItem) => (
+                filteredServices.map((service) => (
                   <CommandItem
                     key={service.id}
                     value={service.name}
-                    onSelect={() => {
-                      console.log("Service selected:", service.name);
-                      handleSelect(service);
-                    }}
+                    onSelect={() => handleSelect(service)}
                   >
                     <Check
                       className={cn(

@@ -13,11 +13,9 @@ import { GameSearchAndSelectDialog } from '@/features/dashboard/components/organ
 // Utils
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/shared/components/ui/utils';
-import { usePrefetchDigitalServicesCatalog } from '@/core/api/queries/useDigitalServicesCatalog';
 
 export default function AuthenticatedLayout() {
-  // This now safely runs after authentication is complete
-  usePrefetchDigitalServicesCatalog();
+
 
   return (
     <>

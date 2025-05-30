@@ -1,3 +1,5 @@
+import type { GameItem } from '@/types/domain/game-item';
+
 /**
  * Online Service Types
  *
@@ -155,10 +157,10 @@ export interface DigitalLocation {
   name: string;
 
   /** Type of location - always "subscription" for digital locations */
-  locationType: 'subscription';
+  locationType?: 'subscription';
 
   /** Number of items associated with this location */
-  itemCount: number;
+  itemCount?: number;
 
   /** Whether this is a subscription service */
   isSubscription: boolean;
@@ -179,7 +181,7 @@ export interface DigitalLocation {
   updatedAt: string;
 
   /** List of items in this location */
-  items: StoredItem[];
+  items: GameItem[];
 
   /** Payment method used for the location */
   paymentMethod: string;
@@ -244,16 +246,5 @@ export interface Sublocation {
   stored_items: number;
   created_at: string;
   updated_at: string;
-  items: StoredItem[];
-}
-
-/**
- * Represents an item stored in a sublocation
- */
-export interface StoredItem {
-  id: number;
-  name: string;
-  platform: string;
-  platform_version: string;
-  acquired_date: string;
+  items: GameItem[];
 }
