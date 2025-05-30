@@ -19,8 +19,6 @@ export function isPaidService(service: DigitalLocation): boolean {
   const hasBillingCycle = service?.billingCycle !== "";
   const hasPaymentMethod = service?.paymentMethod !== "";
 
-  console.log('testing isPaidService', {hasMonthlyCost, hasBillingCycle, hasPaymentMethod});
-
   return hasMonthlyCost && hasBillingCycle && hasPaymentMethod;
 }
 

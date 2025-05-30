@@ -1,6 +1,7 @@
-"use client"
-
 import React, { useState } from 'react'
+
+// ShadCN Components
+import { Button } from '@/shared/components/ui/button'
 import {
   Table,
   TableBody,
@@ -9,17 +10,21 @@ import {
   TableRow,
 } from "@/shared/components/ui/table"
 import { Checkbox } from "@/shared/components/ui/checkbox"
+
+// Custom Components
 import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services'
-import { Button } from '@/shared/components/ui/button'
+
+// Icons
 import { IconTrash } from '@tabler/icons-react'
 
-interface OnlineServicesTableProps {
-  services: OnlineService[]
-  onDelete?: (id: string) => void
-  onEdit?: (service: OnlineService) => void
-}
+// Types
+import type { DigitalLocation } from '@/types/domain/online-service'
 
+interface OnlineServicesTableProps {
+  services: DigitalLocation[]
+  onDelete?: (id: string) => void
+  onEdit?: (service: DigitalLocation) => void
+}
 
 const TableHeaderRow: React.FC = () => (
   <TableRow>
@@ -44,7 +49,6 @@ export function OnlineServicesTable({ services, onDelete, onEdit }: OnlineServic
       setSelectedRows([]);
     }
   }
-
 
   // Handle individual row selection
   const handleRowSelection = (id: string, checked: boolean) => {

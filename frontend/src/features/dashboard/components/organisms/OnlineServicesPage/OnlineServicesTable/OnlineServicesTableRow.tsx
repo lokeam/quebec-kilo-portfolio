@@ -179,9 +179,6 @@ function OnlineServicesTableRowComponent({
             </div>
             <div className="flex flex-col">
               <span className="font-medium">{service.name}</span>
-              <span className="text-sm text-muted-foreground">
-                {service.billingCycle || "Free"}
-              </span>
             </div>
           </div>
         </TableCell>

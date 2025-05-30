@@ -122,8 +122,8 @@ export const SingleOnlineServiceCard = memo(({
               </span>
               {isPaidService(service) && service.billingCycle && (
                 <div className="flex flex-col">
-                  <span className="text-xs text-muted-foreground">
-                  {service.billingCycle}
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {`${service.billingCycle} subscription`}
                   </span>
                 </div>
               )}

@@ -10,16 +10,16 @@ import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
-
+import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
 // API Hooks and Utilities
 import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
-import { adaptDigitalLocationToService } from '@/core/api/adapters/digitalLocation.adapter';
 
 // Types
+import type { DigitalLocation } from '@/types/domain/online-service';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -52,11 +52,17 @@ export function OnlineServicesPageContent() {
   const { data: storageData, isLoading, error } = useStorageAnalytics();
 
   // Get filtered services using the unified hook
-  const services = storageData?.digitalLocations?.map(adaptDigitalLocationToService) || [];
+  const services = storageData?.digitalLocations || [];
   const filteredServices = useFilteredServices(services);
 
 
-  const handleCloseAddDrawer = useCallback(() => {
+  const handleAddService = useCallback((service: DigitalLocation) => {
+    console.log('Add service:', service);
+    setAddServiceOpen(false);
+  }, []);
+
+  const handleCloseAddDrawer = useCallback((data: DigitalLocation) => {
+    console.log("Closing drawer after adding service: ", data)
     setAddServiceOpen(false);
   }, [])
 
@@ -67,7 +73,7 @@ export function OnlineServicesPageContent() {
   }, []);
 
   // Handler to edit a service
-  const handleEditService = useCallback((service: OnlineService) => {
+  const handleEditService = useCallback((service: DigitalLocation) => {
     // TODO: Implement edit functionality
     console.log('Edit service:', service);
   }, []);
@@ -113,7 +119,13 @@ export function OnlineServicesPageContent() {
     }
 
     if (viewMode === 'table') {
-      return <OnlineServicesTable services={filteredServices} onDelete={handleDeleteService} onEdit={handleEditService} />;
+      return (
+        <OnlineServicesTable
+          services={filteredServices}
+          onDelete={handleDeleteService}
+          onEdit={handleEditService}
+        />
+      );
     }
 
     return (
@@ -156,7 +168,16 @@ export function OnlineServicesPageContent() {
             title="Digital Service"
             description="Tell us about the service you want to add"
           >
-            <div>OnlineService Form here</div>
+            <OnlineServiceForm
+              onSuccess={handleAddService}
+              onClose={handleCloseAddDrawer}
+              defaultValues={{
+                service: null,
+                cost: 0,
+                is_active: true,
+              }}
+              buttonText="Add Service"
+            />
 
           </DrawerContainer>
 

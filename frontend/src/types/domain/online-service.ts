@@ -248,3 +248,23 @@ export interface Sublocation {
   updated_at: string;
   items: GameItem[];
 }
+
+/**
+ * Represents a digital service item from the catalog
+ */
+export interface DigitalServiceItem {
+  /** Unique identifier for the service */
+  id: string;
+
+  /** Name of the service (e.g. "Xbox") */
+  name: string;
+
+  /** Logo identifier for the service */
+  logo: string;
+
+  /** Whether this is a subscription service */
+  isSubscriptionService: boolean;
+
+  /** URL to the service's website */
+  url: string;
+}
