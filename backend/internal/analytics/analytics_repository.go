@@ -300,20 +300,18 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 					WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
 					ELSE 0
 				END, 0) as monthly_cost,
-				COALESCE(p.payment_method, 'Generic') as payment_method,
-				COALESCE(p.payment_date, CURRENT_TIMESTAMP) as payment_date,
-				COALESCE(s.billing_cycle, '') as billing_cycle,
-				COALESCE(s.cost_per_cycle, 0) as cost_per_cycle,
-				COALESCE(s.next_payment_date, CURRENT_TIMESTAMP) as next_payment_date
+				s.payment_method,
+				s.next_payment_date as payment_date,
+				s.billing_cycle,
+				s.cost_per_cycle,
+				s.next_payment_date
 			FROM digital_locations l
 			LEFT JOIN digital_game_locations dgl ON l.id = dgl.digital_location_id
 			LEFT JOIN digital_location_subscriptions s ON l.id = s.digital_location_id
-			LEFT JOIN digital_location_payments p ON l.id = p.digital_location_id
 			WHERE l.user_id = $1
 			GROUP BY
 				l.id, l.name, l.service_type, l.is_active, l.url, l.created_at, l.updated_at,
-				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date,
-				p.payment_method, p.payment_date
+				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date, s.payment_method
 		)
 		SELECT
 			dld.*,

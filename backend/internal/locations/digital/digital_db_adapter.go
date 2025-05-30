@@ -315,7 +315,7 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 	a.logger.Debug("Adding digital location", map[string]any{
 		"userID": userID,
 		"location": location,
-		"is_active": location.IsActive, // Explicitly log the is_active value
+		"is_active": location.IsActive,
 	})
 
 	// Ensure user exists first
@@ -331,10 +331,8 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 	`, userID, location.Name).Scan(&existingID)
 
 	if err == nil {
-		// Location with this name already exists
 		return models.DigitalLocation{}, fmt.Errorf("a digital location with the name '%s' already exists", location.Name)
 	} else if err != sql.ErrNoRows {
-		// Some other database error occurred
 		return models.DigitalLocation{}, fmt.Errorf("error checking for existing location: %w", err)
 	}
 
@@ -343,10 +341,8 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 		location.ID = uuid.New().String()
 	}
 
-	// Set the user ID
+	// Set the user ID and timestamps
 	location.UserID = userID
-
-	// Set timestamps
 	now := time.Now()
 	location.CreatedAt = now
 	location.UpdatedAt = now
@@ -356,43 +352,70 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 		location.ServiceType = "basic"
 	}
 
-	a.logger.Debug("Executing SQL insert", map[string]any{
-		"id": location.ID,
-		"userID": userID,
-		"name": location.Name,
-		"service_type": location.ServiceType,
-		"is_active": location.IsActive,
-		"url": location.URL,
+	// Use a transaction to ensure both location and subscription are saved
+	err = postgres.WithTransaction(ctx, a.db, a.logger, func(tx *sqlx.Tx) error {
+		// Insert the digital location
+		locationQuery := `
+			INSERT INTO digital_locations (id, user_id, name, service_type, is_active, url, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			RETURNING id, user_id, name, service_type, is_active, url, created_at, updated_at
+		`
+
+		err = tx.QueryRowxContext(
+			ctx,
+			locationQuery,
+			location.ID,
+			userID,
+			location.Name,
+			location.ServiceType,
+			location.IsActive,
+			location.URL,
+			location.CreatedAt,
+			location.UpdatedAt,
+		).StructScan(&location)
+
+		if err != nil {
+			return fmt.Errorf("error adding digital location: %w", err)
+		}
+
+		// If subscription data exists, save it
+		if location.Subscription != nil {
+			subscriptionQuery := `
+				INSERT INTO digital_location_subscriptions
+					(digital_location_id, billing_cycle, cost_per_cycle, next_payment_date, payment_method, created_at, updated_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)
+				RETURNING id
+			`
+
+			var subID int64
+			err = tx.QueryRowxContext(
+				ctx,
+				subscriptionQuery,
+				location.ID,
+				location.Subscription.BillingCycle,
+				location.Subscription.CostPerCycle,
+				location.Subscription.NextPaymentDate,
+				location.Subscription.PaymentMethod,
+				now,
+				now,
+			).Scan(&subID)
+
+			if err != nil {
+				return fmt.Errorf("error adding subscription: %w", err)
+			}
+
+			location.Subscription.ID = subID
+			location.Subscription.CreatedAt = now
+			location.Subscription.UpdatedAt = now
+		}
+
+		return nil
 	})
 
-	query := `
-		INSERT INTO digital_locations (id, user_id, name, service_type, is_active, url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, user_id, name, service_type, is_active, url, created_at, updated_at
-	`
-
-	err = a.db.QueryRowxContext(
-		ctx,
-		query,
-		location.ID,
-		userID,
-		location.Name,
-		location.ServiceType,
-		location.IsActive,
-		location.URL,
-		location.CreatedAt,
-		location.UpdatedAt,
-	).StructScan(&location)
-
 	if err != nil {
-		// Check if the error is due to a unique constraint violation
-		if strings.Contains(err.Error(), "digital_locations_user_id_name_key") {
-			return models.DigitalLocation{}, fmt.Errorf("a digital location with the name '%s' already exists", location.Name)
-		}
-		return models.DigitalLocation{}, fmt.Errorf("error adding digital location: %w", err)
+		return models.DigitalLocation{}, err
 	}
 
-	// Log the returned location to verify is_active value
 	a.logger.Debug("Digital location created successfully", map[string]any{
 		"location": location,
 		"is_active": location.IsActive,
