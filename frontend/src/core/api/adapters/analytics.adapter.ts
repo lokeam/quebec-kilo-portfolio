@@ -100,7 +100,9 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
   }));
 }
 
-export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsResponseWrapper): DigitalLocation[] {
+export function adaptAnalyticsToDigitalLocations(
+  analyticsData: AnalyticsResponseWrapper,
+): DigitalLocation[] {
   const storage = analyticsData.storage;
   if (!storage?.digitalLocations) {
     return [];
@@ -140,16 +142,21 @@ export function adaptAnalyticsToDigitalLocations(analyticsData: AnalyticsRespons
       type: platform,
       isSubscription: location.isSubscription || false,
       monthlyCost: location.monthlyCost || 0,
-      items: location.items || [],
+      items: (location.items || []).map(item => ({
+        ...item,
+        id: item.id.toString(),
+        label: item.name.toLowerCase().replace(/\s+/g, '-'),
+        acquiredDate: new Date(item.acquiredDate)  // Convert string to Date
+      })) as GameItem[],
       createdAt: location.createdAt,
       updatedAt: location.updatedAt,
-      isActive: location.isActive,
-      url: location.url,
-      paymentMethod: location.paymentMethod,
-      paymentDate: location.paymentDate,
-      billingCycle: location.billingCycle,
-      costPerCycle: location.costPerCycle,
-      nextPaymentDate: location.nextPaymentDate
+      isActive: Boolean(location.isActive),
+      url: location.url || '',
+      paymentMethod: location.paymentMethod || '',
+      paymentDate: location.paymentDate?.toString() || '',
+      billingCycle: location.billingCycle || '',
+      costPerCycle: location.costPerCycle || 0,
+      nextPaymentDate: location.nextPaymentDate?.toString() || ''
     };
   });
 }
@@ -177,7 +184,7 @@ export function adaptPhysicalLocationToCardData(location: PhysicalLocation): Loc
     description: subloc.description,
     locationType: subloc.type,
     bgColor: subloc.metadata?.bgColor,
-    items: (subloc.items || []) as GameItem[],
+    items: [],
     sublocations: [],
     mapCoordinates: subloc.metadata?.notes,
     createdAt: subloc.createdAt,

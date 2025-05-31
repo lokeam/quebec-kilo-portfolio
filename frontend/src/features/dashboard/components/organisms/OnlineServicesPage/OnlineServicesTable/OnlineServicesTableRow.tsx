@@ -20,7 +20,6 @@ import {
 //import { toast } from 'sonner';
 
 // Icons
-import { Monitor } from 'lucide-react';
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
@@ -38,40 +37,6 @@ import { validatePaymentMethod } from '@/shared/constants/payment';
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
-
-// Helper function to get the correct cost based on the billing cycle
-// const getCycleBasedCost = (service: DigitalLocation): string => {
-//   // Early return for free services
-//   if (!isPaidService(service)) return "FREE";
-
-//   const { billingCycle, costPerCycle } = service;
-
-//   // Safely extract numeric values from string costs
-//   const parseCost = (costPerCycle: string | number): number => {
-//     if (!costPerCycle) return 0;
-
-//     const numericValue = parseFloat(costPerCycle.toString().replace(/[^0-9.]/g, ''));
-//     return isNaN(numericValue) ? 0 : numericValue;
-//   };
-
-//   // Use a simple mapping for direct returns
-//   const costMap: Record<string, string> = {
-//     "1 year": fees.annual,
-//     "3 months": fees.quarterly,
-//     "1 month": fees.monthly
-//   };
-
-//   // Handle the special calculated case for bi-annual
-//   if (billingCycle === "6 months") {
-//     const monthlyValue = parseCost(fees.monthly);
-//     return monthlyValue > 0
-//       ? formatCurrency((monthlyValue * 6).toFixed(2))
-//       : fees.monthly; // Fallback to the raw value if parsing failed
-//   }
-
-//   // Return from mapping or fallback to monthly as default
-//   return costMap[cycle] || fees.monthly;
-// };
 
 interface OnlineServicesTableRowProps {
   service: DigitalLocation;
@@ -107,7 +72,6 @@ function OnlineServicesTableRowComponent({
 
   // Handlers for online service activation
   const toggleActiveOnlineService = useOnlineServicesToggleActive();
-  const isActive = useOnlineServicesIsActive(service.name);
 
   const handleToggleActiveOnlineService = useCallback((isChecked: boolean) => {
     toggleActiveOnlineService(service.id, isChecked);
@@ -175,7 +139,7 @@ function OnlineServicesTableRowComponent({
         <TableCell>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
-              <DigitalLocationIcon name={service.logo} className="w-full h-full" />
+              <DigitalLocationIcon name={service.name} className="w-full h-full" />
             </div>
             <div className="flex flex-col">
               <span className="font-medium">{service.name}</span>

@@ -20,6 +20,7 @@ export const DIGITAL_LOCATION_LOGO_KEYS = {
   'rockstar games': 'rockstar',
 
   // Console Platforms
+  'playstation plus': 'playstation',
   'playstation': 'playstation',
   'playstation network': 'playstation',
   'psn': 'playstation',

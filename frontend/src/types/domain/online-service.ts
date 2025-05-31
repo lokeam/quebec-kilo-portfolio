@@ -156,8 +156,11 @@ export interface DigitalLocation {
   /** Name of the service (e.g. "Xbox") */
   name: string;
 
-  /** Type of location - always "subscription" for digital locations */
-  locationType?: 'subscription';
+  /** Logo identifier for the service */
+  logo: string;
+
+  /** Type of location - always "digital" for digital locations */
+  locationType: 'digital';
 
   /** Number of items associated with this location */
   itemCount?: number;
@@ -195,7 +198,7 @@ export interface DigitalLocation {
   /** Cost per cycle of the subscription */
   costPerCycle: number;
 
-  /** Next payment date */
+  /** Date of the next payment */
   nextPaymentDate: string;
 }
 

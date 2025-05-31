@@ -31,6 +31,7 @@ export function getLogo(serviceName: string): string | undefined {
   const logoMappings: Record<string, string> = {
     'playstation': 'playstation',
     'playstation network': 'playstation',
+    'playstation plus': 'playstation',
     'psn': 'playstation',
     'xbox': 'xbox',
     'xbox network': 'xbox',

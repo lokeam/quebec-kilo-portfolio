@@ -11,7 +11,7 @@ export interface GameItem {
   name: string;
 
   /** URL-friendly game identifier */
-  label: string;
+  label?: string;
 
   /** Platform the game is associated to */
   platform: GamePlatform;

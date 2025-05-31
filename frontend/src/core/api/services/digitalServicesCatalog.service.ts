@@ -30,7 +30,7 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'nintendo', name: 'Nintendo Switch Online', logo: 'nintendo', isSubscriptionService: true, url: 'https://www.nintendo.com/' },
   { id: 'nvidia', name: 'NVIDIA', logo: 'nvidia', isSubscriptionService: true, url: 'https://www.nvidia.com/en-us/geforce-now/' },
   { id: 'primegaming', name: 'Prime Gaming', logo: 'prime', isSubscriptionService: true, url: 'https://gaming.amazon.com/home' },
-  { id: 'playstation', name: 'PlayStation Network', logo: 'ps', isSubscriptionService: true, url: 'https://www.playstation.com/en-us/playstation-network/' },
+  { id: 'playstation', name: 'PlayStation Plus', logo: 'ps', isSubscriptionService: true, url: 'https://www.playstation.com/en-us/playstation-network/' },
   { id: 'shadow', name: 'Shadow', logo: 'shadow', isSubscriptionService: true, url: 'https://shadow.tech/' },
   { id: 'steam', name: 'Steam', logo: 'steam', isSubscriptionService: false, url: 'https://store.steampowered.com/' },
   { id: 'ubisoft', name: 'Ubisoft', logo: 'ubisoft', isSubscriptionService: false, url: 'https://www.ubisoft.com/en-us/' },
