@@ -8,7 +8,7 @@ export interface DigitalLocation {
   id: string;
   userId: string;
   name: string;
-  serviceType: 'basic' | 'subscription';
+  isSubscription: boolean;
   isActive: boolean;
   url?: string;
   createdAt: string;
@@ -17,14 +17,14 @@ export interface DigitalLocation {
 
 export interface CreateDigitalLocationInput {
   name: string;
-  serviceType: 'basic' | 'subscription';
+  isSubscription: boolean;
   isActive: boolean;
   url?: string;
 }
 
 export interface UpdateDigitalLocationInput {
   name?: string;
-  serviceType?: 'basic' | 'subscription';
+  isSubscription?: boolean;
   isActive?: boolean;
   url?: string;
 }

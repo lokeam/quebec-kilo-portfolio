@@ -165,16 +165,15 @@ export const BILLING_CYCLES = {
 export type BillingCycle = typeof BILLING_CYCLES[keyof typeof BILLING_CYCLES];
 
 // Define a proper type for payment methods to use in return type
-type ValidPaymentMethod = "Alipay" | "Amex" | "Code" | "Diners" | "Discover" |
-  "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" |
-  "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
+type ValidPaymentMethod = "alipay" | "amex" | "diners" | "discover" | "elo" | "generic" |
+  "hiper" | "hipercard" | "jcb" | "maestro" | "mastercard" | "mir" | "paypal" | "unionpay" | "visa";
 
 // Fixed function with proper return type
 export function validatePaymentMethod(method: string | undefined): ValidPaymentMethod {
-  const validMethods = ["Alipay", "Amex", "Code", "Diners", "Discover", "Elo", "Generic",
-    "Hiper", "Hipercard", "Jcb", "Maestro", "Mastercard", "Mir", "Paypal", "Unionpay", "Visa"];
+  const validMethods = ["alipay", "amex", "diners", "discover", "elo", "generic",
+    "hiper", "hipercard", "jcb", "maestro", "mastercard", "mir", "paypal", "unionpay", "visa"];
 
-  return validMethods.includes(method || '')
-    ? (method as ValidPaymentMethod)
-    : 'Generic';
+  return validMethods.includes(method?.toLowerCase() || '')
+    ? (method?.toLowerCase() as ValidPaymentMethod)
+    : 'generic';
 }

@@ -118,10 +118,8 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 			})
 		}
 
-		response := httputils.NewAPIResponse(r, userID, struct {
-			Locations []map[string]any `json:"locations"`
-		}{
-			Locations: frontendLocations,
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"digital": frontendLocations,
 		})
 
 		httputils.RespondWithJSON(
@@ -199,13 +197,9 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		// Convert to frontend format
 		frontendLocation := formatters.FormatDigitalLocationToFrontend(&location)
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
-		}{
-			Success:  true,
-			Location: frontendLocation,
-		}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"digital": frontendLocation,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -276,8 +270,6 @@ func AddDigitalLocation(
 			subscription.LocationID = digitalLocation.ID
 			subscription.CreatedAt = now
 			subscription.UpdatedAt = now
-			// Format billing cycle to backend format
-			subscription.BillingCycle = formatters.FormatBillingCycleToBackend(subscription.BillingCycle)
 			digitalLocation.Subscription = &subscription
 		}
 
@@ -303,7 +295,7 @@ func AddDigitalLocation(
 		}
 
 		// Convert to frontend format
-		frontendLocation := formatters.FormatDigitalLocationToFrontend(&createdLocation)
+		adaptedResponse := formatters.FormatDigitalLocationToFrontend(&createdLocation)
 
 		// After successful creation, invalidate analytics cache
 		if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
@@ -318,13 +310,10 @@ func AddDigitalLocation(
 			// Continue despite error, since the location was created successfully
 		}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
-		}{
-			Success:  true,
-			Location: frontendLocation,
-		}
+		// IMPORTANT: All responses must use the NewAPIResponse function AND be wrapped in a map
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"digital": adaptedResponse,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -392,11 +381,6 @@ func UpdateDigitalLocation(
 			return
 		}
 
-		// Format the billing cycle before proceeding
-		if req.Subscription != nil {
-			req.Subscription.BillingCycle = formatters.FormatBillingCycleToBackend(req.Subscription.BillingCycle)
-		}
-
 		// Convert request to model
 		location := models.DigitalLocation{
 			ID:          locationID,
@@ -441,8 +425,6 @@ func UpdateDigitalLocation(
 			subscription := *req.Subscription
 			subscription.LocationID = locationID
 			subscription.UpdatedAt = time.Now()
-			// Format billing cycle to backend format
-			subscription.BillingCycle = formatters.FormatBillingCycleToBackend(subscription.BillingCycle)
 
 			if existingLocation.Subscription == nil {
 				// Add new subscription
@@ -540,13 +522,9 @@ func UpdateDigitalLocation(
 			// Continue despite error, since the location was updated successfully
 		}
 
-		response := struct {
-			Success  bool                   `json:"success"`
-			Location map[string]interface{} `json:"location"`
-		}{
-			Success:  true,
-			Location: frontendLocation,
-		}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"digital": frontendLocation,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

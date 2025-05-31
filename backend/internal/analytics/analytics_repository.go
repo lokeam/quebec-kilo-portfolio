@@ -64,9 +64,10 @@ func (r *repository) GetGeneralStats(ctx context.Context, userID string) (*Gener
 	var monthlyCost float64
 	err = r.db.GetContext(ctx, &monthlyCost, `
 		SELECT COALESCE(SUM(CASE
-			WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle
-			WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle / 3
-			WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
+			WHEN s.billing_cycle = '1 month' THEN s.cost_per_cycle
+			WHEN s.billing_cycle = '3 month' THEN s.cost_per_cycle / 3
+			WHEN s.billing_cycle = '6 month' THEN s.cost_per_cycle / 6
+			WHEN s.billing_cycle = '12 month' THEN s.cost_per_cycle / 12
 			ELSE 0
 		END), 0)
 		FROM digital_location_subscriptions s
@@ -98,9 +99,10 @@ func (r *repository) GetFinancialStats(ctx context.Context, userID string) (*Fin
 	// Get annual subscription cost
 	err := r.db.GetContext(ctx, &stats.AnnualSubscriptionCost, `
 		SELECT COALESCE(SUM(CASE
-			WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle * 12
-			WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle * 4
-			WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle
+			WHEN s.billing_cycle = '1 month' THEN s.cost_per_cycle * 12
+			WHEN s.billing_cycle = '3 month' THEN s.cost_per_cycle * 4
+			WHEN s.billing_cycle = '6 month' THEN s.cost_per_cycle * 2
+			WHEN s.billing_cycle = '12 month' THEN s.cost_per_cycle
 			ELSE 0
 		END), 0)
 		FROM digital_location_subscriptions s
@@ -138,9 +140,10 @@ func (r *repository) GetFinancialStats(ctx context.Context, userID string) (*Fin
 		SELECT
 			l.name,
 			CASE
-				WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle
-				WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle / 3
-				WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
+				WHEN s.billing_cycle = '1 month' THEN s.cost_per_cycle
+				WHEN s.billing_cycle = '3 month' THEN s.cost_per_cycle / 3
+				WHEN s.billing_cycle = '6 month' THEN s.cost_per_cycle / 6
+				WHEN s.billing_cycle = '12 month' THEN s.cost_per_cycle / 12
 				ELSE 0
 			END as monthly_fee,
 			s.billing_cycle,
@@ -287,7 +290,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			SELECT
 				l.id,
 				l.name,
-				l.is_subscription as location_type,
+				'digital' as location_type,
 				l.is_active,
 				l.url,
 				l.created_at,
@@ -295,9 +298,10 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 				COUNT(DISTINCT dgl.id) as item_count,
 				CASE WHEN s.id IS NOT NULL THEN true ELSE false END as is_subscription,
 				COALESCE(CASE
-					WHEN s.billing_cycle = 'monthly' THEN s.cost_per_cycle
-					WHEN s.billing_cycle = 'quarterly' THEN s.cost_per_cycle / 3
-					WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
+					WHEN s.billing_cycle = '1 month' THEN ROUND(s.cost_per_cycle::numeric, 2)
+					WHEN s.billing_cycle = '3 month' THEN ROUND((s.cost_per_cycle / 3)::numeric, 2)
+					WHEN s.billing_cycle = '6 month' THEN ROUND((s.cost_per_cycle / 6)::numeric, 2)
+					WHEN s.billing_cycle = '12 month' THEN ROUND((s.cost_per_cycle / 12)::numeric, 2)
 					ELSE 0
 				END, 0) as monthly_cost,
 				CASE
@@ -310,7 +314,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 				END as payment_date,
 				CASE
 					WHEN s.id IS NOT NULL THEN s.billing_cycle
-					ELSE NULL
+					ELSE ''
 				END as billing_cycle,
 				CASE
 					WHEN s.id IS NOT NULL THEN s.cost_per_cycle
@@ -325,7 +329,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			LEFT JOIN digital_location_subscriptions s ON l.id = s.digital_location_id
 			WHERE l.user_id = $1
 			GROUP BY
-				l.id, l.name, l.is_subscription, l.is_active, l.url, l.created_at, l.updated_at,
+				l.id, l.name, l.is_active, l.url, l.created_at, l.updated_at,
 				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date, s.payment_method
 		)
 		SELECT
@@ -378,6 +382,19 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan digital location: %w", err)
+		}
+
+		// Log raw data from database with detailed subscription info
+		fmt.Printf("\n[Repository] Raw data from DB for %s:\n", location.Name)
+		fmt.Printf("  Billing Cycle: %v\n", location.BillingCycle)
+		fmt.Printf("  Cost Per Cycle: %v\n", location.CostPerCycle)
+		fmt.Printf("  Monthly Cost (from DB): %v\n", location.MonthlyCost)
+		if location.IsSubscription {
+			fmt.Printf("  Is Subscription: true\n")
+			fmt.Printf("  Payment Method: %v\n", location.PaymentMethod)
+			fmt.Printf("  Next Payment Date: %v\n", location.NextPaymentDate)
+		} else {
+			fmt.Printf("  Is Subscription: false\n")
 		}
 
 		// Unescape HTML entities in the name

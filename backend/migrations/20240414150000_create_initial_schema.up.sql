@@ -117,29 +117,23 @@ CREATE TABLE physical_game_locations (
     UNIQUE(user_game_id, sublocation_id)
 );
 
--- Create digital service types enum
-CREATE TYPE digital_service_type AS ENUM (
-    'basic',           -- Basic services like Steam
-    'subscription'     -- Subscription services like PSN
-);
-
 -- Create payment methods enum
 CREATE TYPE payment_method_type AS ENUM (
-    'Alipay',
-    'Amex',
-    'Diners',
-    'Discover',
-    'Elo',
-    'Generic',
-    'Hiper',
-    'Hipercard',
-    'Jcb',
-    'Maestro',
-    'Mastercard',
-    'Mir',
-    'Paypal',
-    'Unionpay',
-    'Visa'
+    'alipay',
+    'amex',
+    'diners',
+    'discover',
+    'elo',
+    'generic',
+    'hiper',
+    'hipercard',
+    'jcb',
+    'maestro',
+    'mastercard',
+    'mir',
+    'paypal',
+    'unionpay',
+    'visa'
 );
 
 -- Create digital_locations table
@@ -147,7 +141,7 @@ CREATE TABLE digital_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    service_type digital_service_type NOT NULL DEFAULT 'basic',
+    is_subscription BOOLEAN NOT NULL DEFAULT false,
     is_active BOOLEAN NOT NULL DEFAULT true,
     -- Disk size fields with proper constraints
     disk_size_value DECIMAL(10,2) CHECK (disk_size_value >= 0),
@@ -162,7 +156,7 @@ CREATE TABLE digital_locations (
 CREATE TABLE digital_location_subscriptions (
     id SERIAL PRIMARY KEY,
     digital_location_id UUID NOT NULL REFERENCES digital_locations(id) ON DELETE CASCADE,
-    billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('monthly', 'quarterly', 'annually')),
+    billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('1 month', '3 month', '6 month', '12 month')),
     cost_per_cycle DECIMAL(10,2) NOT NULL CHECK (cost_per_cycle > 0),
     next_payment_date TIMESTAMP WITH TIME ZONE NOT NULL,
     payment_method payment_method_type NOT NULL,
@@ -230,7 +224,7 @@ CREATE INDEX idx_sublocations_physical_location_id ON sublocations(physical_loca
 CREATE INDEX idx_physical_game_locations_user_game_id ON physical_game_locations(user_game_id);
 CREATE INDEX idx_physical_game_locations_sublocation_id ON physical_game_locations(sublocation_id);
 CREATE INDEX idx_digital_locations_user_id ON digital_locations(user_id);
-CREATE INDEX idx_digital_locations_service_type ON digital_locations(service_type);
+CREATE INDEX idx_digital_locations_is_subscription ON digital_locations(is_subscription);
 CREATE INDEX idx_digital_location_subscriptions_next_payment ON digital_location_subscriptions(next_payment_date);
 CREATE INDEX idx_digital_location_payments_digital_location_id ON digital_location_payments(digital_location_id);
 CREATE INDEX idx_digital_location_payments_payment_date ON digital_location_payments(payment_date);

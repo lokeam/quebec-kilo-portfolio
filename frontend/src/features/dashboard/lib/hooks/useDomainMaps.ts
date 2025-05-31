@@ -93,7 +93,6 @@ export const LOGO_MAP: Record<string, Record<string, LogoComponent>> = {
     playstation: PlaystationLogo,
     shadow: ShadowLogo,
     steam: SteamLogo,
-    sony: PlaystationLogo,
     ubisoft: UbisoftLogo,
     xbox: XboxLogo,
   },

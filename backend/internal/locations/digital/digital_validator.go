@@ -23,29 +23,29 @@ const (
 
 // Valid payment methods
 var ValidPaymentMethods = map[string]bool{
-	"Alipay": true,
-	"Amex": true,
-	"Diners": true,
-	"Discover": true,
-	"Elo": true,
-	"Generic": true,
-	"Hiper": true,
-	"Hipercard": true,
-	"Jcb": true,
-	"Maestro": true,
-	"Mastercard": true,
-	"Mir": true,
-	"Paypal": true,
-	"Unionpay": true,
-	"Visa": true,
+	"alipay": true,
+	"amex": true,
+	"diners": true,
+	"discover": true,
+	"elo": true,
+	"generic": true,
+	"hiper": true,
+	"hipercard": true,
+	"jcb": true,
+	"maestro": true,
+	"mastercard": true,
+	"mir": true,
+	"paypal": true,
+	"unionpay": true,
+	"visa": true,
 }
 
 // Valid billing cycles
 var ValidBillingCycles = map[string]bool{
-	"monthly": true,
-	"quarterly": true,
-	"bi-annually": true,
-	"annually": true,
+	"1 month": true,
+	"3 month": true,
+	"6 month": true,
+	"12 month": true,
 }
 
 type DigitalValidator struct {

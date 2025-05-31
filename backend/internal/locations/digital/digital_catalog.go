@@ -114,7 +114,7 @@ var DigitalServicesCatalog = []types.DigitalServiceItem{
 	},
 	{
 		ID:                    "playstation",
-		Name:                  "PlayStation Network",
+		Name:                  "PlayStation Plus",
 		Logo:                  "ps",
 		IsSubscriptionService: true,
 		URL:                   "https://www.playstation.com/en-us/playstation-network/",

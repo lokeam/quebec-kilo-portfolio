@@ -175,10 +175,11 @@ function OnlineServicesTableRowComponent({
         <TableCell>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
-              <DigitalLocationIcon name={service.name} className="w-full h-full" />
+              <DigitalLocationIcon name={service.logo} className="w-full h-full" />
             </div>
             <div className="flex flex-col">
               <span className="font-medium">{service.name}</span>
+              <span className="text-sm text-muted-foreground">{service.locationType}</span>
             </div>
           </div>
         </TableCell>

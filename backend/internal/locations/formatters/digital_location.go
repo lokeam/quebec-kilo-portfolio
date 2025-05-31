@@ -2,6 +2,7 @@ package formatters
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -26,43 +27,35 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 
 	// Create billing object
 	if dl.Subscription != nil {
-			// For subscription services with subscription data
-			// Calculate monthly, quarterly, and annual costs based on the billing cycle
 			var monthlyCost, quarterlyCost, annualCost string
 
 			switch dl.Subscription.BillingCycle {
-			case "monthly", "1 month":
-				// If billing cycle is monthly, multiply for other periods
+			case "1 month":
 				monthlyCost = formatCurrency(dl.Subscription.CostPerCycle)
 				quarterlyCost = formatCurrency(dl.Subscription.CostPerCycle * 3)
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle * 12)
-			case "quarterly", "3 months":
-				// If billing cycle is quarterly, divide for monthly and multiply for annual
+			case "3 month":
 				monthlyCost = formatCurrency(dl.Subscription.CostPerCycle / 3)
 				quarterlyCost = formatCurrency(dl.Subscription.CostPerCycle)
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle * 4)
-			case "bi-annually", "6 months", "biannually":
-				// If billing cycle is bi-annual
+			case "6 month":
 				monthlyCost = formatCurrency(dl.Subscription.CostPerCycle / 6)
 				quarterlyCost = formatCurrency(dl.Subscription.CostPerCycle / 2)
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle * 2)
-			case "annually", "1 year":
-				// If billing cycle is annual, divide for other periods
+			case "12 month":
 				monthlyCost = formatCurrency(dl.Subscription.CostPerCycle / 12)
 				quarterlyCost = formatCurrency(dl.Subscription.CostPerCycle / 4)
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle)
 			default:
-				// Default to treating as monthly if unknown cycle
+				// Log unknown billing cycle and default to monthly
+				fmt.Printf("Unknown billing cycle: %s, defaulting to monthly calculations\n", dl.Subscription.BillingCycle)
 				monthlyCost = formatCurrency(dl.Subscription.CostPerCycle)
 				quarterlyCost = formatCurrency(dl.Subscription.CostPerCycle * 3)
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle * 12)
 			}
 
-			// Map backend billing cycle to frontend format
-			cycle := FormatBillingCycleToFrontend(dl.Subscription.BillingCycle)
-
 			billingInfo := map[string]interface{}{
-					"cycle": cycle,
+					"cycle": dl.Subscription.BillingCycle,
 					"fees": map[string]interface{}{
 							"monthly":   monthlyCost,
 							"quarterly": quarterlyCost,
@@ -117,7 +110,9 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 
 // Helper function to format currency
 func formatCurrency(amount float64) string {
-	return fmt.Sprintf("$%.2f", amount)
+	// Round to 2 decimal places
+	rounded := math.Round(amount*100) / 100
+	return fmt.Sprintf("$%.2f", rounded)
 }
 
 // Helper function to get logo name from service name
@@ -179,8 +174,8 @@ func getDisplayName(serviceName string) string {
 	// Special case mappings for specific services
 	displayNameMappings := map[string]string{
 		"steam":       "Steam",
-		"psn":         "PlayStation Network",
-		"playstation": "PlayStation Network",
+		"psn":         "PlayStation Plus",
+		"playstation": "PlayStation Plus",
 		"xbox":        "Xbox Network",
 		"nintendo":    "Nintendo Switch Online",
 		"epic":        "Epic Games Store",

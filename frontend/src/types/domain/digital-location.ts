@@ -84,15 +84,31 @@ export interface DigitalLocationMetadata {
  * Request type for creating a new digital location
  */
 export interface CreateDigitalLocationRequest {
-  /** Name of the digital location */
   name: string;
+  isActive: boolean;
+  url: string;
+  isSubscription: boolean;
+  subscription?: {
+    billing_cycle: string;
+    cost_per_cycle: number;
+    next_payment_date: string;
+    payment_method: string;
+  };
+}
 
-  /** Type of digital location */
-  type: string;
+export type BillingCycle = '1 month' | '3 month' | '6 month' | '12 month';
 
-  /** Optional description */
-  description?: string;
+export interface SubscriptionCosts {
+  monthly: number;
+  quarterly: number;
+  annual: number;
+  biAnnually: number;
+}
 
-  /** Optional metadata */
-  metadata?: DigitalLocationMetadata;
+export interface Subscription {
+  billing_cycle: BillingCycle;
+  costDer_cycle: number;
+  costs: SubscriptionCosts;
+  next_payment_date: string;
+  payment_method: string;
 }

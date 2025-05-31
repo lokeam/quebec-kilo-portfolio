@@ -640,6 +640,14 @@ func (da *DigitalDbAdapter) AddSubscription(ctx context.Context, subscription mo
 		"subscription": subscription,
 	})
 
+	// Validate billing cycle format
+	switch subscription.BillingCycle {
+	case "1 month", "3 month", "6 month", "12 month":
+		// Valid billing cycles
+	default:
+		return nil, fmt.Errorf("invalid billing cycle: %s. Must be one of: 1 month, 3 month, 6 month, 12 month", subscription.BillingCycle)
+	}
+
 	query := `
 		INSERT INTO digital_location_subscriptions
 			(digital_location_id, billing_cycle, cost_per_cycle,
@@ -678,7 +686,16 @@ func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription
 		"subscription": subscription,
 	})
 
-	query := `		UPDATE digital_location_subscriptions
+	// Validate billing cycle format
+	switch subscription.BillingCycle {
+	case "1 month", "3 month", "6 month", "12 month":
+		// Valid billing cycles
+	default:
+		return fmt.Errorf("invalid billing cycle: %s. Must be one of: 1 month, 3 month, 6 month, 12 month", subscription.BillingCycle)
+	}
+
+	query := `
+		UPDATE digital_location_subscriptions
 		SET billing_cycle = $1,
 			cost_per_cycle = $2,
 			next_payment_date = $3,

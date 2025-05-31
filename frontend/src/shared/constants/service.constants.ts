@@ -72,7 +72,7 @@ export const ONLINE_SERVICE_PROVIDERS: ServiceProviderRecord = {
     id: 'prime',
   },
   SONY: {
-    displayName: 'Playstation Network',
+    displayName: 'Playstation Plus',
     id: 'playstation',
   },
   STEAM: {

@@ -70,5 +70,6 @@ export type DigitalLocationLogoKey = typeof DIGITAL_LOCATION_LOGO_KEYS[keyof typ
  */
 export function normalizeDigitalLocationName(name: string): DigitalLocationLogoKey | undefined {
   if (!name) return undefined;
-  return DIGITAL_LOCATION_LOGO_KEYS[name.toLowerCase().trim() as keyof typeof DIGITAL_LOCATION_LOGO_KEYS];
+  const normalizedName = name.toLowerCase().trim();
+  return DIGITAL_LOCATION_LOGO_KEYS[normalizedName as keyof typeof DIGITAL_LOCATION_LOGO_KEYS] || undefined;
 }

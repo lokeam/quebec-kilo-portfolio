@@ -1,10 +1,10 @@
 // Tanstack query
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-// base query hook
+// Base query hook
 import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 
-// query hooks
+// Service Layer methods
 import {
   getAllLibraryGames,
   getLibraryGameById,
@@ -13,18 +13,18 @@ import {
   deleteLibraryGame,
 } from '@/core/api/services/gameLibrary.service';
 
-// utils
+// Utils
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
-// adapters
+// Adapters
 import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.adapter.ts';
 
-// type
+// Type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
 import type { Game } from '@/types/game';
 import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
 
-// constants
+// Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
 import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
@@ -84,7 +84,7 @@ export const useCreateLibraryGame = () => {
         message: TOAST_SUCCESS_MESSAGES.GAME.ADD_TO_LIBRARY,
         variant: 'success',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
+      });
     },
 
     onError: (error) => {
@@ -93,8 +93,7 @@ export const useCreateLibraryGame = () => {
         message: TOAST_ERROR_MESSAGES.GAME.ADD_TO_LIBRARY.DEFAULT,
         variant: 'error',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
-
+      });
     },
   });
 };

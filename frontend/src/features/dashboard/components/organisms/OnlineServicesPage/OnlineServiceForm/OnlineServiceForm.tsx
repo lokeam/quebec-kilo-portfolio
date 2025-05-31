@@ -33,10 +33,12 @@ import { FormContainer } from '@/features/dashboard/components/templates/FormCon
 // Hooks
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { useCreateOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
+import { useCreateDigitalLocation } from '@/core/api/queries/digitalLocation.queries';
+//import { useCreateOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
+
 
 // Zod
-import { z } from "zod"
+import { z } from "zod";
 
 // Icons
 import { CalendarIcon } from 'lucide-react';
@@ -52,7 +54,7 @@ import { PAYMENT_METHODS } from '@/shared/constants/payment';
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 
 // Utils, OnlineService
-import { ServiceCombobox } from '../ServiceCombobox/ServiceCombobox';
+import { ServiceCombobox } from '@/features/dashboard/components/organisms/OnlineServicesPage/ServiceCombobox/ServiceCombobox';
 
 export type FormValues = {
   name: string;
@@ -99,11 +101,7 @@ export function OnlineServiceForm({
   defaultValues = DEFAULT_FORM_VALUES,
   onClose,
 }: OnlineServiceFormProps) {
-  const createMutation = useCreateOnlineService({
-    onSuccessCallback: () => {
-      if (onClose) onClose();
-    }
-  });
+  const createMutation = useCreateDigitalLocation();
 
   const isLoading = createMutation.isPending;
 
@@ -120,14 +118,23 @@ export function OnlineServiceForm({
       name: data.name,
       isActive: data.isActive,
       url: data.url,
-      billingCycle: data.billingCycle,
-      costPerCycle: data.costPerCycle,
-      nextPaymentDate: data.nextPaymentDate.toISOString(),
-      paymentMethod: data.paymentMethod
+      isSubscription: data.isSubscriptionService,
+      ...(data.isSubscriptionService && {
+        subscription: {
+          billing_cycle: data.billingCycle,
+          cost_per_cycle: data.costPerCycle,
+          next_payment_date: data.nextPaymentDate.toISOString(),
+          payment_method: data.paymentMethod
+        }
+      })
     };
 
-    createMutation.mutate(servicePayload);
-  }, [createMutation]);
+    createMutation.mutate(servicePayload, {
+      onSuccess: () => {
+        if (onClose) onClose();
+      }
+    });
+  }, [createMutation, onClose]);
 
   return (
     <FormContainer form={form} onSubmit={handleSubmit}>
@@ -187,17 +194,17 @@ export function OnlineServiceForm({
                 <FormItem>
                   <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
                   <FormDescription>
-                    How often do you pay to use this service?
+                    What is your subscription plan?
                   </FormDescription>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="bi-annually">Bi-Annually</SelectItem>
-                      <SelectItem value="annually">Annually</SelectItem>
+                      <SelectItem value="1 month">1 month</SelectItem>
+                      <SelectItem value="3 month">3 month</SelectItem>
+                      <SelectItem value="6 month">6 month</SelectItem>
+                      <SelectItem value="12 month">12 month</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage>{errors.billingCycle?.message}</FormMessage>

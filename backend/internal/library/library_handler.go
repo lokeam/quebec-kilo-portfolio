@@ -500,6 +500,7 @@ func NewLibraryHandler(
 				digitalLocations,
 			)
 
+			// NOTE: DOUBLE CHECK THIS - LACK OF map wrapping MAY BE THE CAUSE OF FRONTEND ISSUES
 			response := httputils.NewAPIResponse(r, userID, adaptedResponse)
 
 			httputils.RespondWithJSON(

@@ -46,7 +46,7 @@ export const DIGITAL_LOCATION_DISPLAY_NAMES: Record<DigitalLocationName, string>
   [DigitalLocationName.NINTENDO_SWITCH_ONLINE]: 'Nintendo Switch Online',
   [DigitalLocationName.NVIDIA]: 'NVIDIA',
   [DigitalLocationName.PRIME_GAMING]: 'Prime Gaming',
-  [DigitalLocationName.PLAYSTATION_NETWORK]: 'PlayStation Network',
+  [DigitalLocationName.PLAYSTATION_NETWORK]: 'PlayStation Plus',
   [DigitalLocationName.SHADOW]: 'Shadow',
   [DigitalLocationName.STEAM]: 'Steam',
   [DigitalLocationName.UBISOFT]: 'Ubisoft',

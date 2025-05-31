@@ -4,7 +4,7 @@
  * Provides transformation functions for digital service catalog data between API and domain types.
  */
 
-import type { DigitalServiceItem } from '@/core/api/services/digitalServicesCatalog.service';
+import type { DigitalServiceItem } from '@/types/domain/online-service';
 import type { DigitalLocation } from '@/types/domain/online-service';
 
 /**
