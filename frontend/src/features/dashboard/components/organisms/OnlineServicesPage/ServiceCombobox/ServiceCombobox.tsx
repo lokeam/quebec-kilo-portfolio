@@ -25,10 +25,14 @@ import { cn } from '@/shared/components/ui/utils';
 import { useGetDigitalServicesCatalog } from '@/core/api/queries/digitalServicesCatalog.queries';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalServiceItem } from '@/types/domain/online-service';
 
 interface ServiceComboboxProps {
-  onServiceSelect: (service: DigitalLocation) => void;
+  onServiceSelect: (service: {
+    name: string;
+    url: string;
+    isSubscriptionService: boolean;
+  }) => void;
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
@@ -46,7 +50,7 @@ export function ServiceCombobox({
   // Use TanStack Query to fetch services
   const { data: services = [], isLoading } = useGetDigitalServicesCatalog();
 
-  const [selectedService, setSelectedService] = useState<DigitalLocation | null>(null);
+  const [selectedService, setSelectedService] = useState<DigitalServiceItem | null>(null);
 
   // Filter services based on search query
   const filteredServices = useMemo(() => {
@@ -56,10 +60,14 @@ export function ServiceCombobox({
     );
   }, [searchQuery, services]);
 
-  const handleSelect = useCallback((service: DigitalLocation) => {
+  const handleSelect = useCallback((service: DigitalServiceItem) => {
     setSelectedService(service);
     setOpen(false);
-    onServiceSelect(service);
+    onServiceSelect({
+      name: service.name,
+      url: service.url,
+      isSubscriptionService: service.isSubscriptionService
+    });
   }, [onServiceSelect]);
 
   return (

@@ -54,7 +54,7 @@ import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/R
 // Utils, OnlineService
 import { ServiceCombobox } from '../ServiceCombobox/ServiceCombobox';
 
-type FormValues = {
+export type FormValues = {
   name: string;
   isActive: boolean;
   url: string;
@@ -62,6 +62,18 @@ type FormValues = {
   costPerCycle: number;
   nextPaymentDate: Date;
   paymentMethod: string;
+  isSubscriptionService: boolean;
+};
+
+const DEFAULT_FORM_VALUES: FormValues = {
+  name: "",
+  isActive: true,
+  url: "",
+  billingCycle: "",
+  costPerCycle: 0,
+  nextPaymentDate: new Date(),
+  paymentMethod: "",
+  isSubscriptionService: false
 };
 
 export const OnlineServiceFormSchema = z.object({
@@ -71,7 +83,8 @@ export const OnlineServiceFormSchema = z.object({
   billingCycle: z.string().min(1, "Billing cycle is required"),
   costPerCycle: z.number().min(0, "Cost must be greater than 0"),
   nextPaymentDate: z.date(),
-  paymentMethod: z.string().min(1, "Payment method is required")
+  paymentMethod: z.string().min(1, "Payment method is required"),
+  isSubscriptionService: z.boolean()
 });
 
 interface OnlineServiceFormProps {
@@ -83,15 +96,7 @@ interface OnlineServiceFormProps {
 
 export function OnlineServiceForm({
   buttonText = "Add Service",
-  defaultValues = {
-    name: "",
-    isActive: true,
-    url: "",
-    billingCycle: "",
-    costPerCycle: 0,
-    nextPaymentDate: new Date(),
-    paymentMethod: ""
-  },
+  defaultValues = DEFAULT_FORM_VALUES,
   onClose,
 }: OnlineServiceFormProps) {
   const createMutation = useCreateOnlineService({
@@ -108,6 +113,7 @@ export function OnlineServiceForm({
   });
 
   const { watch, formState: { isValid, errors } } = form;
+  const isSubscriptionService = watch('isSubscriptionService');
 
   const handleSubmit = useCallback((data: FormValues) => {
     const servicePayload = {
@@ -116,7 +122,7 @@ export function OnlineServiceForm({
       url: data.url,
       billingCycle: data.billingCycle,
       costPerCycle: data.costPerCycle,
-      nextPaymentDate: data.nextPaymentDate,
+      nextPaymentDate: data.nextPaymentDate.toISOString(),
       paymentMethod: data.paymentMethod
     };
 
@@ -125,195 +131,189 @@ export function OnlineServiceForm({
 
   return (
     <FormContainer form={form} onSubmit={handleSubmit}>
-      {/* Service Name */}
-      <FormField
-        control={form.control}
-        name="name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Service name <span className="text-red-500">*</span></FormLabel>
-            <ServiceCombobox
-                onServiceSelect={(service: DigitalLocation) => {
-                  field.onChange(service);
-                  form.trigger('service');
+      <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-4 -mr-4 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#086fe8] [&::-webkit-scrollbar-thumb]:rounded-full space-y-5">
+        {/* Service Name */}
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Service name <span className="text-red-500">*</span></FormLabel>
+              <ServiceCombobox
+                onServiceSelect={(service) => {
+                  field.onChange(service.name);
+                  form.setValue('url', service.url);
+                  form.setValue('isSubscriptionService', service.isSubscriptionService);
+                  form.trigger('name');
                 }}
                 placeholder="Search for a service..."
                 emptyMessage="No services found."
               />
-            <FormMessage>{errors.name?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
+              <FormMessage>{errors.name?.message}</FormMessage>
+            </FormItem>
+          )}
+        />
 
-      {/* URL */}
-      <FormField
-        control={form.control}
-        name="url"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Service URL <span className="text-red-500">*</span></FormLabel>
-            <FormControl>
-              <Input {...field} placeholder="https://example.com" />
-            </FormControl>
-            <FormMessage>{errors.url?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
-
-      {/* Active Status */}
-      <FormField
-        control={form.control}
-        name="isActive"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-            <div className="space-y-0.5">
-              <FormLabel>Active Status</FormLabel>
-              <FormDescription>
-                Is this service currently active?
-              </FormDescription>
-            </div>
-            <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-          </FormItem>
-        )}
-      />
-
-      {/* Billing Cycle */}
-      <FormField
-        control={form.control}
-        name="billingCycle"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
-                <SelectItem value="bi-annually">Bi-Annually</SelectItem>
-                <SelectItem value="annually">Annually</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              How often do you pay to use this service?
-            </FormDescription>
-            <FormMessage>{errors.billingCycle?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
-
-      {/* Cost */}
-      <FormField
-        control={form.control}
-        name="costPerCycle"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Cost per cycle <span className="text-red-500">*</span></FormLabel>
-            <div className="flex">
-              <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-transparent">
-                <span className="text-sm text-gray-500">$</span>
-              </div>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="rounded-l-none"
-                  value={field.value || ''}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    field.onChange(value === '' ? 0 : parseFloat(value));
-                  }}
-                  onBlur={field.onBlur}
-                />
-              </FormControl>
-            </div>
-            <FormDescription>
-              How much do you pay per cycle?
-            </FormDescription>
-            <FormMessage>{errors.costPerCycle?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
-
-      {/* Next Payment Date */}
-      <FormField
-        control={form.control}
-        name="nextPaymentDate"
-        render={({ field }) => (
-          <FormItem className="flex flex-col">
-            <FormLabel>Next payment date <span className="text-red-500">*</span></FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={field.onChange}
-                  disabled={(date) =>
-                    date < new Date()
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <FormDescription>
-              When is your next payment due?
-            </FormDescription>
-            <FormMessage>{errors.nextPaymentDate?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
-
-      {/* Payment Method */}
-      <FormField
-        control={form.control}
-        name="paymentMethod"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
-            <ResponsiveCombobox
-              onSelect={(method: SelectableItem) => {
-                field.onChange(method.id);
-                form.trigger('paymentMethod');
-              }}
-              items={Object.values(PAYMENT_METHODS)}
-              placeholder="Select a Payment Method"
-              emptyMessage="No payment methods found."
+        {/* Subscription Fields - Only show for subscription services */}
+        {isSubscriptionService && (
+          <>
+            {/* Active Status */}
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Active Status</FormLabel>
+                    <FormDescription>
+                      Is this service currently active?
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
             />
-            <FormDescription>
-              How do you pay for this service?
-            </FormDescription>
-            <FormMessage>{errors.paymentMethod?.message}</FormMessage>
-          </FormItem>
-        )}
-      />
 
-      {/* Submit Button */}
-      <div className="flex justify-between w-full mt-6">
+            {/* Billing Cycle */}
+            <FormField
+              control={form.control}
+              name="billingCycle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Billing cycle <span className="text-red-500">*</span></FormLabel>
+                  <FormDescription>
+                    How often do you pay to use this service?
+                  </FormDescription>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="quarterly">Quarterly</SelectItem>
+                      <SelectItem value="bi-annually">Bi-Annually</SelectItem>
+                      <SelectItem value="annually">Annually</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{errors.billingCycle?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            {/* Cost */}
+            <FormField
+              control={form.control}
+              name="costPerCycle"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cost per cycle <span className="text-red-500">*</span></FormLabel>
+                  <FormDescription>
+                    How much do you pay per cycle?
+                  </FormDescription>
+                  <div className="flex">
+                    <div className="flex-none flex items-center px-3 border border-r-0 rounded-l-md bg-transparent">
+                      <span className="text-sm text-gray-500">$</span>
+                    </div>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="rounded-l-none"
+                        value={field.value || ''}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          field.onChange(value === '' ? 0 : parseFloat(value));
+                        }}
+                        onBlur={field.onBlur}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage>{errors.costPerCycle?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            {/* Next Payment Date */}
+            <FormField
+              control={form.control}
+              name="nextPaymentDate"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Next payment date <span className="text-red-500">*</span></FormLabel>
+                  <FormDescription>
+                    When is your next payment due?
+                  </FormDescription>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date < new Date()
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage>{errors.nextPaymentDate?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            {/* Payment Method */}
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
+                  <FormDescription>
+                    How do you pay for this service?
+                  </FormDescription>
+                  <ResponsiveCombobox
+                    onSelect={(method: SelectableItem) => {
+                      field.onChange(method.id);
+                      form.trigger('paymentMethod');
+                    }}
+                    items={Object.values(PAYMENT_METHODS)}
+                    placeholder="Select a Payment Method"
+                    emptyMessage="No payment methods found."
+                  />
+                  <FormMessage>{errors.paymentMethod?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Submit Button - Always visible at the bottom */}
+      <div className="flex justify-between w-full mt-6 sticky bottom-0 bg-background pt-4 border-t">
         <Button
           type="submit"
           className="w-full"

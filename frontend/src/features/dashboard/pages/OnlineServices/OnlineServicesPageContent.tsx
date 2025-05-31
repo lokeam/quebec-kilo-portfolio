@@ -20,6 +20,7 @@ import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredS
 
 // Types
 import type { DigitalLocation } from '@/types/domain/online-service';
+import type { FormValues } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -55,16 +56,14 @@ export function OnlineServicesPageContent() {
   const services = storageData?.digitalLocations || [];
   const filteredServices = useFilteredServices(services);
 
-
-  const handleAddService = useCallback((service: DigitalLocation) => {
-    console.log('Add service:', service);
+  const handleAddService = useCallback((data: FormValues) => {
+    console.log('Add service:', data);
     setAddServiceOpen(false);
   }, []);
 
-  const handleCloseAddDrawer = useCallback((data: DigitalLocation) => {
-    console.log("Closing drawer after adding service: ", data)
+  const handleCloseAddDrawer = useCallback(() => {
     setAddServiceOpen(false);
-  }, [])
+  }, []);
 
   // Handler to delete a service
   const handleDeleteService = useCallback((serviceId: string) => {
@@ -171,16 +170,9 @@ export function OnlineServicesPageContent() {
             <OnlineServiceForm
               onSuccess={handleAddService}
               onClose={handleCloseAddDrawer}
-              defaultValues={{
-                service: null,
-                cost: 0,
-                is_active: true,
-              }}
               buttonText="Add Service"
             />
-
           </DrawerContainer>
-
         </div>
       </PageHeadline>
 
