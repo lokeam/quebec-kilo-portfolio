@@ -20,7 +20,7 @@ import (
 type DigitalLocationRequest struct {
 	ID             string               `json:"id,omitempty" db:"id"`
 	Name           string               `json:"name" db:"name"`
-	ServiceType    string               `json:"service_type" db:"service_type"`
+	IsSubscription bool                 `json:"is_subscription" db:"is_subscription"`
 	IsActive       bool                 `json:"is_active" db:"is_active"`
 	URL            string               `json:"url" db:"url"`
 	CreatedAt      time.Time            `json:"created_at,omitempty" db:"created_at"`
@@ -263,7 +263,7 @@ func AddDigitalLocation(
 			ID:          uuid.New().String(),
 			UserID:      userID,
 			Name:        locationRequest.Name,
-			ServiceType: locationRequest.ServiceType,
+			IsSubscription: locationRequest.IsSubscription,
 			IsActive:    locationRequest.IsActive,
 			URL:         locationRequest.URL,
 			CreatedAt:   now,
@@ -402,7 +402,7 @@ func UpdateDigitalLocation(
 			ID:          locationID,
 			UserID:      userID,
 			Name:        req.Name,
-			ServiceType: req.ServiceType,
+			IsSubscription: req.IsSubscription,
 			IsActive:    req.IsActive,
 			URL:         req.URL,
 			Subscription: req.Subscription,
@@ -428,7 +428,7 @@ func UpdateDigitalLocation(
 
 		// Update fields
 		location.Name = req.Name
-		location.ServiceType = req.ServiceType
+		location.IsSubscription = req.IsSubscription
 		location.IsActive = req.IsActive
 		location.URL = req.URL
 		location.UpdatedAt = time.Now()
@@ -477,7 +477,7 @@ func UpdateDigitalLocation(
 				}
 				location.Subscription = &subscription
 			}
-		} else if existingLocation.Subscription != nil && req.ServiceType != "subscription" {
+		} else if existingLocation.Subscription != nil && !req.IsSubscription {
 			// Remove subscription if service type changed and no subscription was provided
 			if err := service.RemoveSubscription(r.Context(), locationID); err != nil {
 				appCtx.Logger.Error("Failed to remove subscription", map[string]any{"error": err})

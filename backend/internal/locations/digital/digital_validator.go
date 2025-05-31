@@ -21,12 +21,6 @@ const (
 	MaxBulkSize = 100 // Maximum number of location IDs allowed in bulk operations
 )
 
-// Valid service types from the catalog
-var ValidServiceTypes = map[string]bool{
-	"basic": true,
-	"subscription": true,
-}
-
 // Valid payment methods
 var ValidPaymentMethods = map[string]bool{
 	"Alipay": true,
@@ -79,7 +73,7 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	v.logger.Debug("Validating digital location", map[string]any{
 		"location": location,
 		"incoming_is_active": location.IsActive,
-		"service_type": location.ServiceType,
+		"is_subscription": location.IsSubscription,
 		"has_subscription": location.Subscription != nil,
 	})
 
@@ -107,30 +101,24 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 		validatedLocation.URL = sanitizedURL
 	}
 
-	// Validate service type - simple check, no auto-correction
-	if location.ServiceType != "basic" && location.ServiceType != "subscription" {
-			violations = append(violations, "Invalid service type. Must be 'basic' or 'subscription'")
-	} else {
-			validatedLocation.ServiceType = location.ServiceType
-
-			// SIMPLE validation: If it's subscription type, it MUST have subscription data
-			if location.ServiceType == "subscription" && location.Subscription == nil {
-					violations = append(violations, "Subscription service must have subscription data")
-			}
-
-			// SIMPLE validation: If it's not subscription type, it must NOT have subscription data
-			if location.ServiceType != "subscription" && location.Subscription != nil {
-					violations = append(violations, "Non-subscription service cannot have subscription data")
-			}
-	}
-
-	// Validate subscription if present (only for subscription type)
-	if location.Subscription != nil && location.ServiceType == "subscription" {
+	// Validate subscription requirements
+	if location.IsSubscription {
+		// Subscription service must have subscription data
+		if location.Subscription == nil {
+			violations = append(violations, "Subscription service must have subscription data")
+		} else {
+			// Validate subscription data
 			if validatedSubscription, err := v.validateSubscription(*location.Subscription); err != nil {
-					violations = append(violations, err.Error())
+				violations = append(violations, err.Error())
 			} else {
-					validatedLocation.Subscription = &validatedSubscription
+				validatedLocation.Subscription = &validatedSubscription
 			}
+		}
+	} else {
+		// Non-subscription service must NOT have subscription data
+		if location.Subscription != nil {
+			violations = append(violations, "Non-subscription service cannot have subscription data")
+		}
 	}
 
 	// Copy other fields that don't need validation
@@ -138,18 +126,17 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	validatedLocation.UpdatedAt = location.UpdatedAt
 
 	if len(violations) > 0 {
-		v.logger.Debug("Validation failed", map[string]any{
+		v.logger.Debug("Digital location validation failed", map[string]any{
 			"violations": violations,
 		})
 		return models.DigitalLocation{}, &validationErrors.ValidationError{
-			Field:   "location",
+			Field:   "digital_location",
 			Message: fmt.Sprintf("Digital location validation failed: %v", violations),
 		}
 	}
 
-	v.logger.Debug("Validation successful", map[string]any{
+	v.logger.Debug("Digital location validation successful", map[string]any{
 		"location": validatedLocation,
-		"validated_is_active": validatedLocation.IsActive,
 	})
 	return validatedLocation, nil
 }
@@ -253,8 +240,10 @@ func (v *DigitalValidator) validateSubscription(subscription models.Subscription
 		validatedSubscription.CostPerCycle = subscription.CostPerCycle
 	}
 
-	// Validate payment method
-	if !ValidPaymentMethods[subscription.PaymentMethod] {
+	// Validate payment method - REQUIRED for subscription services
+	if subscription.PaymentMethod == "" {
+		violations = append(violations, "payment method is required for subscription services")
+	} else if !ValidPaymentMethods[subscription.PaymentMethod] {
 		violations = append(violations, fmt.Sprintf("Invalid payment method: %s", subscription.PaymentMethod))
 	} else {
 		validatedSubscription.PaymentMethod = subscription.PaymentMethod

@@ -5,22 +5,17 @@ import (
 	"time"
 )
 
-const (
-	ServiceTypeBasic        = "basic"
-	ServiceTypeSubscription = "subscription"
-)
-
 type DigitalLocation struct {
-	ID          string            `json:"id" db:"id"`
-	UserID      string            `json:"user_id" db:"user_id"`
-	Name        string            `json:"name" db:"name"`
-	ServiceType string            `json:"service_type" db:"service_type"`
-	IsActive    bool              `json:"is_active" db:"is_active"`
-	URL         string            `json:"url" db:"url"`
-	CreatedAt   time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at" db:"updated_at"`
-	Items       []Game            `json:"items" db:"items"`
-	Subscription *Subscription    `json:"subscription,omitempty"`
+	ID               string            `json:"id" db:"id"`
+	UserID           string            `json:"user_id" db:"user_id"`
+	Name             string            `json:"name" db:"name"`
+	IsSubscription   bool              `json:"is_subscription" db:"is_subscription"`
+	IsActive         bool              `json:"is_active" db:"is_active"`
+	URL              string            `json:"url" db:"url"`
+	CreatedAt        time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at" db:"updated_at"`
+	Items            []Game            `json:"items" db:"items"`
+	Subscription     *Subscription    `json:"subscription,omitempty"`
 }
 
 // Payment model
@@ -36,7 +31,7 @@ type Payment struct {
 
 // IsSubscriptionService returns true if the location's service type is 'subscription'
 func (dl *DigitalLocation) IsSubscriptionService() bool {
-	return dl.ServiceType == "subscription" || dl.Subscription != nil
+	return dl.IsSubscription || dl.Subscription != nil
 }
 
 // MarshalJSON implements json.Marshaler for DigitalLocation

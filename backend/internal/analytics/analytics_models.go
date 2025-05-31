@@ -37,23 +37,22 @@ type StorageStats struct {
 }
 
 type DigitalLocation struct {
-	ID            string           `json:"id"`
-	Name          string           `json:"name"`
-	LocationType  string           `json:"location_type"`
-	IsActive      bool             `json:"is_active"`
-	URL           string           `json:"url"`
-	CreatedAt     time.Time        `json:"created_at"`
-	UpdatedAt     time.Time        `json:"updated_at"`
-	ItemCount     int              `json:"item_count"`
-	IsSubscription bool            `json:"is_subscription"`
-	MonthlyCost   float64          `json:"monthly_cost"`
-	Items         []ItemSummary    `json:"items"`
-	// New fields we want to add
-	PaymentMethod   string           `json:"payment_method"`
-	PaymentDate     *time.Time       `json:"payment_date"`
-	BillingCycle    string           `json:"billing_cycle"`
-	CostPerCycle    float64          `json:"cost_per_cycle"`
-	NextPaymentDate *time.Time       `json:"next_payment_date"`
+	ID             string           `json:"id"`
+	Name           string           `json:"name"`
+	LocationType   string           `json:"location_type"`
+	IsActive       bool             `json:"is_active"`
+	URL            string           `json:"url"`
+	CreatedAt      time.Time        `json:"created_at"`
+	UpdatedAt      time.Time        `json:"updated_at"`
+	ItemCount      int              `json:"item_count"`
+	IsSubscription bool             `json:"is_subscription"`
+	MonthlyCost    float64          `json:"monthly_cost"`
+	Items          []ItemSummary    `json:"items"`
+	PaymentMethod  *string          `json:"payment_method"`
+	PaymentDate    *time.Time       `json:"payment_date"`
+	BillingCycle   *string          `json:"billing_cycle"`
+	CostPerCycle   *float64         `json:"cost_per_cycle"`
+	NextPaymentDate *time.Time      `json:"next_payment_date"`
 }
 
 type PhysicalLocation struct {

@@ -15,14 +15,13 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 	result := map[string]interface{}{
 			"id":           dl.ID,
 			"name":         dl.Name,
-			"service_type": dl.ServiceType,
 			"is_active":    dl.IsActive,
 			"url":          dl.URL,
 			"logo":         logoName,
 			"label":        getDisplayName(dl.Name),
 			"created_at":   dl.CreatedAt.Format(time.RFC3339),
 			"updated_at":   dl.UpdatedAt.Format(time.RFC3339),
-			"isSubscriptionService": dl.ServiceType == models.ServiceTypeSubscription,
+			"isSubscriptionService": dl.IsSubscription,
 	}
 
 	// Create billing object

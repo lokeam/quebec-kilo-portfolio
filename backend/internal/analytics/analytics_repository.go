@@ -287,7 +287,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			SELECT
 				l.id,
 				l.name,
-				l.service_type as location_type,
+				l.is_subscription as location_type,
 				l.is_active,
 				l.url,
 				l.created_at,
@@ -300,17 +300,32 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 					WHEN s.billing_cycle = 'annually' THEN s.cost_per_cycle / 12
 					ELSE 0
 				END, 0) as monthly_cost,
-				s.payment_method,
-				s.next_payment_date as payment_date,
-				s.billing_cycle,
-				s.cost_per_cycle,
-				s.next_payment_date
+				CASE
+					WHEN s.id IS NOT NULL AND s.payment_method IS NOT NULL THEN s.payment_method
+					ELSE NULL
+				END as payment_method,
+				CASE
+					WHEN s.id IS NOT NULL THEN s.next_payment_date
+					ELSE NULL
+				END as payment_date,
+				CASE
+					WHEN s.id IS NOT NULL THEN s.billing_cycle
+					ELSE NULL
+				END as billing_cycle,
+				CASE
+					WHEN s.id IS NOT NULL THEN s.cost_per_cycle
+					ELSE 0
+				END as cost_per_cycle,
+				CASE
+					WHEN s.id IS NOT NULL THEN s.next_payment_date
+					ELSE NULL
+				END as next_payment_date
 			FROM digital_locations l
 			LEFT JOIN digital_game_locations dgl ON l.id = dgl.digital_location_id
 			LEFT JOIN digital_location_subscriptions s ON l.id = s.digital_location_id
 			WHERE l.user_id = $1
 			GROUP BY
-				l.id, l.name, l.service_type, l.is_active, l.url, l.created_at, l.updated_at,
+				l.id, l.name, l.is_subscription, l.is_active, l.url, l.created_at, l.updated_at,
 				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date, s.payment_method
 		)
 		SELECT
