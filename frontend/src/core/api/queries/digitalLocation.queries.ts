@@ -24,6 +24,7 @@ import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToas
 
 // Types
 import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/domain/digital-location';
+import type { DeleteDigitalLocationResponse } from '@/core/api/services/digitalLocation.service';
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
@@ -120,11 +121,31 @@ export const useUpdateDigitalLocation = () => {
 export const useDeleteDigitalLocation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (id: string) => deleteDigitalLocation(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: digitalLocationKeys.detail(id) });
+  return useMutation<DeleteDigitalLocationResponse['digital'], Error, string | string[]>({
+    mutationFn: (ids: string | string[]) => deleteDigitalLocation(ids),
+    onSuccess: (response) => {
+      // Log the deletion results
+      console.log('Successfully deleted locations:', {
+        count: response.deleted_count,
+        ids: response.location_ids
+      });
+
       queryClient.invalidateQueries({ queryKey: digitalLocationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+
+      showToast({
+        message: TOAST_SUCCESS_MESSAGES.DIGITAL_LOCATION.DELETE,
+        variant: 'success',
+        duration: TOAST_DURATIONS.EXTENDED,
+      })
     },
+    onError: (error) => {
+      console.error('Failed to delete digital location:', error);
+      showToast({
+        message: TOAST_ERROR_MESSAGES.DIGITAL_LOCATION.DELETE.DEFAULT,
+        variant: 'error',
+        duration: TOAST_DURATIONS.EXTENDED,
+      })
+    }
   });
 };

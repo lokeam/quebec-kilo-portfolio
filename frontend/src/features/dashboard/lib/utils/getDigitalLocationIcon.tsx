@@ -24,17 +24,8 @@ export const DigitalLocationIcon = memo(function DigitalLocationIcon({
   className = "h-4 w-4"
 }: DigitalLocationIconProps) {
   const { games } = useDomainMaps();
-
-  console.log('Input name:', name);
-
   const normalizedName = name ? normalizeDigitalLocationName(name) : undefined;
-
-  console.log('Normalized name:', normalizedName);
-  console.log('Available games:', games);
-
   const LogoComponent = normalizedName ? games[normalizedName] : null;
-
-  console.log('Found Logo component:', LogoComponent);
 
   return LogoComponent ? (
     <LogoComponent className={className} />

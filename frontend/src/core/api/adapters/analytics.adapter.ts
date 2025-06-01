@@ -100,6 +100,27 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
   }));
 }
 
+/**
+ * Maps backend payment method IDs to PaymentIcon types
+ */
+const PAYMENT_METHOD_MAP: Record<string, string> = {
+  'alipay': 'Alipay',
+  'amex': 'Amex',
+  'diners': 'Diners',
+  'discover': 'Discover',
+  'elo': 'Elo',
+  'generic': 'Generic',
+  'hiper': 'Hiper',
+  'hipercard': 'Hipercard',
+  'jcb': 'Jcb',
+  'maestro': 'Maestro',
+  'mastercard': 'Mastercard',
+  'mir': 'Mir',
+  'paypal': 'Paypal',
+  'unionpay': 'Unionpay',
+  'visa': 'Visa'
+};
+
 export function adaptAnalyticsToDigitalLocations(
   analyticsData: AnalyticsResponseWrapper,
 ): DigitalLocation[] {
@@ -136,6 +157,11 @@ export function adaptAnalyticsToDigitalLocations(
         platform = GamePlatformEnum.STEAM;
     }
 
+    // Transform payment method to the format expected by PaymentIcon
+    const paymentMethod = location.paymentMethod
+      ? PAYMENT_METHOD_MAP[location.paymentMethod.toLowerCase()] || 'Generic'
+      : 'Generic';
+
     return {
       id: location.id,
       name: location.name,
@@ -152,7 +178,7 @@ export function adaptAnalyticsToDigitalLocations(
       updatedAt: location.updatedAt,
       isActive: Boolean(location.isActive),
       url: location.url || '',
-      paymentMethod: location.paymentMethod || '',
+      paymentMethod,
       paymentDate: location.paymentDate?.toString() || '',
       billingCycle: location.billingCycle || '',
       costPerCycle: location.costPerCycle || 0,

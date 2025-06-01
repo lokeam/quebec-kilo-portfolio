@@ -44,7 +44,6 @@ func RegisterDigitalRoutes(
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", GetDigitalLocation(appCtx, service))
 		r.Put("/", UpdateDigitalLocation(appCtx, service, analyticsService))
-		r.Delete("/", RemoveDigitalLocation(appCtx, service, analyticsService))  // Single deletion via URL param
 	})
 }
 
@@ -609,15 +608,14 @@ func RemoveDigitalLocation(
 				// Continue despite error, since the location was deleted successfully
 			}
 
-			response := struct {
-				Success      bool   `json:"success"`
-				ID           string `json:"id"`
-				DeletedCount int64  `json:"deleted_count"`
-			}{
-				Success:      true,
-				ID:           locationID,
-				DeletedCount: deletedCount,
-			}
+			// Use standard response format
+			response := httputils.NewAPIResponse(r, userID, map[string]any{
+				"digital": map[string]any{
+					"success": true,
+					"deleted_count": deletedCount,
+					"location_ids": []string{locationID},
+				},
+			})
 
 			httputils.RespondWithJSON(
 				httputils.NewResponseWriterAdapter(w),
@@ -728,16 +726,14 @@ func RemoveDigitalLocation(
 			"total_count": len(req.LocationIDs),
 		})
 
-		// Return success response
-		response := struct {
-			Success      bool     `json:"success"`
-			DeletedCount int64    `json:"deleted_count"`
-			LocationIDs  []string `json:"location_ids"`
-		}{
-			Success:      true,
-			DeletedCount: deletedCount,
-			LocationIDs:  req.LocationIDs,
-		}
+		// Use standard response format
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"digital": map[string]any{
+				"success": true,
+				"deleted_count": deletedCount,
+				"location_ids": req.LocationIDs,
+			},
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

@@ -26,6 +26,14 @@ interface DigitalLocationsResponseWrapper {
   };
 }
 
+export interface DeleteDigitalLocationResponse {
+  digital: {
+    success: boolean;
+    deleted_count: number;
+    location_ids: string[];
+  };
+}
+
 const DIGITAL_LOCATION_ENDPOINT = '/v1/locations/digital';
 
 /**
@@ -71,9 +79,21 @@ export const updateDigitalLocation = (id: string, input: Partial<CreateDigitalLo
 /**
  * Deletes a digital location
  */
-export const deleteDigitalLocation = (id: string): Promise<void> =>
-  apiRequest(`deleteLocation(${id})`, () =>
-    axiosInstance
-      .delete<DigitalLocationResponseWrapper>(`${DIGITAL_LOCATION_ENDPOINT}/${id}`)
-      .then(() => {})  // Return void
-  );
+export const deleteDigitalLocation = (ids: string | string[]): Promise<DeleteDigitalLocationResponse['digital']> => {
+  const idParam = Array.isArray(ids) ? ids.join(',') : ids;
+  console.log('Making delete request for location(s):', idParam);
+
+  return apiRequest(`deleteLocation(${idParam})`, () => {
+    console.log('Executing delete request to:', `${DIGITAL_LOCATION_ENDPOINT}?ids=${idParam}`);
+    return axiosInstance
+      .delete<DeleteDigitalLocationResponse>(`${DIGITAL_LOCATION_ENDPOINT}?ids=${idParam}`)
+      .then((response) => {
+        console.log('Delete request successful');
+        return response.data.digital;
+      })
+      .catch((error) => {
+        console.error('Delete request failed:', error);
+        throw error;
+      });
+  });
+};

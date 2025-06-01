@@ -65,12 +65,6 @@ export function OnlineServicesPageContent() {
     setAddServiceOpen(false);
   }, []);
 
-  // Handler to delete a service
-  const handleDeleteService = useCallback((serviceId: string) => {
-    // TODO: Implement delete functionality
-    console.log('Delete service:', serviceId);
-  }, []);
-
   // Handler to edit a service
   const handleEditService = useCallback((service: DigitalLocation) => {
     // TODO: Implement edit functionality
@@ -121,7 +115,6 @@ export function OnlineServicesPageContent() {
       return (
         <OnlineServicesTable
           services={filteredServices}
-          onDelete={handleDeleteService}
           onEdit={handleEditService}
         />
       );
@@ -142,7 +135,6 @@ export function OnlineServicesPageContent() {
             <SingleOnlineServiceCard
               key={`${service.id}-${index}`}
               service={service}
-              onDelete={handleDeleteService}
               onEdit={() => handleEditService(service)}
               isWatchedByResizeObserver={index === 0}
             />
