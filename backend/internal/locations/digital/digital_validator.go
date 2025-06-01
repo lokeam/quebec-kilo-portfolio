@@ -101,14 +101,20 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 		validatedLocation.URL = sanitizedURL
 	}
 
-	// Validate subscription requirements
+	// First, validate payment method for ALL digital locations
+	if validatedPaymentMethod, err := v.ValidatePaymentMethod(location.PaymentMethod); err != nil {
+		violations = append(violations, err.Error())
+	} else {
+		validatedLocation.PaymentMethod = validatedPaymentMethod
+	}
+
 	if location.IsSubscription {
-		// Subscription service must have subscription data
+		// Subscription services must have subscription data
 		if location.Subscription == nil {
 			violations = append(violations, "Subscription service must have subscription data")
 		} else {
 			// Validate subscription data
-			if validatedSubscription, err := v.validateSubscription(*location.Subscription); err != nil {
+			if validatedSubscription, err := v.ValidateSubscription(*location.Subscription); err != nil {
 				violations = append(violations, err.Error())
 			} else {
 				validatedLocation.Subscription = &validatedSubscription
@@ -216,7 +222,7 @@ func (v *DigitalValidator) validateURL(urlStr string) (string, error) {
 	return sanitized, nil
 }
 
-func (v *DigitalValidator) validateSubscription(subscription models.Subscription) (models.Subscription, error) {
+func (v *DigitalValidator) ValidateSubscription(subscription models.Subscription) (models.Subscription, error) {
 	v.logger.Debug("Validating subscription details", map[string]any{
 		"subscription": subscription,
 	})
@@ -318,6 +324,27 @@ func (v *DigitalValidator) ValidatePayment(payment models.Payment) (models.Payme
 	}
 
 	return validatedPayment, nil
+}
+
+func (v *DigitalValidator) ValidatePaymentMethod(paymentMethod string) (string, error) {
+	if paymentMethod == "" {
+		return "", &validationErrors.ValidationError{
+			Field:   "payment_method",
+			Message: "Payment method is required",
+		}
+	}
+
+	// Convert to lowercase for validation
+	paymentMethod = strings.ToLower(paymentMethod)
+
+	if !ValidPaymentMethods[paymentMethod] {
+		return "", &validationErrors.ValidationError{
+			Field:   "payment_method",
+			Message: fmt.Sprintf("Invalid payment method: %s", paymentMethod),
+		}
+	}
+
+	return paymentMethod, nil
 }
 
 func (v *DigitalValidator) ValidateDigitalLocationsBulk(

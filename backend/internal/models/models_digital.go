@@ -12,6 +12,7 @@ type DigitalLocation struct {
 	IsSubscription   bool              `json:"is_subscription" db:"is_subscription"`
 	IsActive         bool              `json:"is_active" db:"is_active"`
 	URL              string            `json:"url" db:"url"`
+	PaymentMethod    string            `json:"payment_method" db:"payment_method"`
 	CreatedAt        time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time         `json:"updated_at" db:"updated_at"`
 	Items            []Game            `json:"items" db:"items"`

@@ -351,9 +351,9 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 	err = postgres.WithTransaction(ctx, a.db, a.logger, func(tx *sqlx.Tx) error {
 		// Insert the digital location
 		locationQuery := `
-			INSERT INTO digital_locations (id, user_id, name, is_subscription, is_active, url, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-			RETURNING id, user_id, name, is_subscription, is_active, url, created_at, updated_at
+			INSERT INTO digital_locations (id, user_id, name, is_subscription, is_active, url, payment_method, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			RETURNING id, user_id, name, is_subscription, is_active, url, payment_method, created_at, updated_at
 		`
 
 		err = tx.QueryRowxContext(
@@ -365,6 +365,7 @@ func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string
 			location.IsSubscription,
 			location.IsActive,
 			location.URL,
+			location.PaymentMethod,
 			location.CreatedAt,
 			location.UpdatedAt,
 		).StructScan(&location)
@@ -440,8 +441,8 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 	now := time.Now()
 	query := `
 			UPDATE digital_locations
-			SET name = $1, is_active = $2, url = $3, updated_at = $4, is_subscription = $5
-			WHERE id = $6 AND user_id = $7
+			SET name = $1, is_active = $2, url = $3, updated_at = $4, is_subscription = $5, payment_method = $6
+			WHERE id = $7 AND user_id = $8
 	`
 
 	a.logger.Debug("Executing SQL update", map[string]any{
@@ -452,6 +453,7 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 			location.URL,
 			now,
 			location.IsSubscription,
+			location.PaymentMethod,
 			location.ID,
 			userID,
 		},
@@ -465,6 +467,7 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 			location.URL,
 			now,
 			location.IsSubscription,
+			location.PaymentMethod,
 			location.ID,
 			userID,
 	)

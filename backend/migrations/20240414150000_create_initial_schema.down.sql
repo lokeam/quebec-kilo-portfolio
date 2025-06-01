@@ -41,7 +41,6 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS schema_migrations;
 
 -- Drop types
-DROP TYPE IF EXISTS payment_method_type;
 DROP TYPE IF EXISTS digital_service_type;
 
 -- Drop UUID extension

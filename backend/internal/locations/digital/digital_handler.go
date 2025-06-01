@@ -23,6 +23,7 @@ type DigitalLocationRequest struct {
 	IsSubscription bool                 `json:"is_subscription" db:"is_subscription"`
 	IsActive       bool                 `json:"is_active" db:"is_active"`
 	URL            string               `json:"url" db:"url"`
+	PaymentMethod  string               `json:"payment_method" db:"payment_method"`
 	CreatedAt      time.Time            `json:"created_at,omitempty" db:"created_at"`
 	UpdatedAt      time.Time            `json:"updated_at,omitempty" db:"updated_at"`
 	Subscription   *models.Subscription `json:"subscription,omitempty"`
@@ -259,6 +260,7 @@ func AddDigitalLocation(
 			IsSubscription: locationRequest.IsSubscription,
 			IsActive:    locationRequest.IsActive,
 			URL:         locationRequest.URL,
+			PaymentMethod: locationRequest.PaymentMethod,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}
@@ -388,6 +390,7 @@ func UpdateDigitalLocation(
 			IsSubscription: req.IsSubscription,
 			IsActive:    req.IsActive,
 			URL:         req.URL,
+			PaymentMethod: req.PaymentMethod,
 			Subscription: req.Subscription,
 		}
 
@@ -414,6 +417,7 @@ func UpdateDigitalLocation(
 		location.IsSubscription = req.IsSubscription
 		location.IsActive = req.IsActive
 		location.URL = req.URL
+		location.PaymentMethod = req.PaymentMethod
 		location.UpdatedAt = time.Now()
 
 		// Ensure the ID is set from the URL

@@ -13,6 +13,17 @@ import { Checkbox } from "@/shared/components/ui/checkbox"
 
 // Custom Components
 import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+  DialogHeader,
+  DialogDescription
+} from '@/shared/components/ui/dialog';
+
+// Query hooks
+import { useDeleteDigitalLocation } from '@/core/api/queries/digitalLocation.queries'
 
 // Icons
 import { IconTrash } from '@tabler/icons-react'
@@ -22,7 +33,6 @@ import type { DigitalLocation } from '@/types/domain/online-service'
 
 interface OnlineServicesTableProps {
   services: DigitalLocation[]
-  onDelete?: (id: string) => void
   onEdit?: (service: DigitalLocation) => void
 }
 
@@ -38,8 +48,11 @@ const TableHeaderRow: React.FC = () => (
   </TableRow>
 )
 
-export function OnlineServicesTable({ services, onDelete, onEdit }: OnlineServicesTableProps) {
+export function OnlineServicesTable({ services, onEdit }: OnlineServicesTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const deleteDigitalLocation = useDeleteDigitalLocation();
+
 
   // Handle select all checkbox
   const handleSelectAll = (checked: boolean) => {
@@ -60,10 +73,18 @@ export function OnlineServicesTable({ services, onDelete, onEdit }: OnlineServic
   }
 
   const handleDeleteSelectedRows = () => {
-    // TODO: Wire up delete logic
-    console.log('Deleting rows: ', selectedRows);
-    setSelectedRows([]);
-  }
+    if (selectedRows.length === 0) return;
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteDigitalLocation.mutate(selectedRows, {
+      onSuccess: () => {
+        setSelectedRows([]);
+        setDeleteDialogOpen(false);
+      }
+    });
+  };
 
   // Calculate if all rows are selected
   const allSelected = services.length > 0 && selectedRows.length === services.length;
@@ -104,12 +125,45 @@ export function OnlineServicesTable({ services, onDelete, onEdit }: OnlineServic
               index={index}
               isSelected={selectedRows.includes(service.id)}
               onSelectionChange={(checked) => handleRowSelection(service.id, checked)}
-              onDelete={onDelete}
               onEdit={onEdit}
             />
           ))}
         </TableBody>
       </Table>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Selected Services</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {selectedRows.length} selected service{selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteDigitalLocation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteDigitalLocation.isPending}
+            >
+              {deleteDigitalLocation.isPending ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

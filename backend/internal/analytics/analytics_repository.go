@@ -304,10 +304,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 					WHEN s.billing_cycle = '12 month' THEN ROUND((s.cost_per_cycle / 12)::numeric, 2)
 					ELSE 0
 				END, 0) as monthly_cost,
-				CASE
-					WHEN s.id IS NOT NULL AND s.payment_method IS NOT NULL THEN s.payment_method
-					ELSE NULL
-				END as payment_method,
+				l.payment_method as payment_method,
 				CASE
 					WHEN s.id IS NOT NULL THEN s.next_payment_date
 					ELSE NULL
@@ -330,7 +327,8 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			WHERE l.user_id = $1
 			GROUP BY
 				l.id, l.name, l.is_active, l.url, l.created_at, l.updated_at,
-				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date, s.payment_method
+				s.id, s.billing_cycle, s.cost_per_cycle, s.next_payment_date, s.payment_method,
+				l.payment_method, l.is_subscription
 		)
 		SELECT
 			dld.*,
@@ -380,21 +378,14 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			&location.NextPaymentDate,
 			&itemsJSON,
 		)
+
+		// Add debug logging for payment method
+		fmt.Printf("\n[DEBUG] Raw data from DB for %s:\n", location.Name)
+		fmt.Printf("  Payment Method (raw): %v\n", location.PaymentMethod)
+		fmt.Printf("  Is Subscription: %v\n", location.IsSubscription)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan digital location: %w", err)
-		}
-
-		// Log raw data from database with detailed subscription info
-		fmt.Printf("\n[Repository] Raw data from DB for %s:\n", location.Name)
-		fmt.Printf("  Billing Cycle: %v\n", location.BillingCycle)
-		fmt.Printf("  Cost Per Cycle: %v\n", location.CostPerCycle)
-		fmt.Printf("  Monthly Cost (from DB): %v\n", location.MonthlyCost)
-		if location.IsSubscription {
-			fmt.Printf("  Is Subscription: true\n")
-			fmt.Printf("  Payment Method: %v\n", location.PaymentMethod)
-			fmt.Printf("  Next Payment Date: %v\n", location.NextPaymentDate)
-		} else {
-			fmt.Printf("  Is Subscription: false\n")
 		}
 
 		// Unescape HTML entities in the name

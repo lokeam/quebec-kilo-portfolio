@@ -9,11 +9,19 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 )
 
-func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]interface{} {
+func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]any {
+	// Debug logging for payment method
+	fmt.Printf("\n[DEBUG] Formatter input for %s:\n", dl.Name)
+	fmt.Printf("  Is Subscription: %v\n", dl.IsSubscription)
+	fmt.Printf("  Location Payment Method: %v\n", dl.PaymentMethod)
+	if dl.Subscription != nil {
+		fmt.Printf("  Subscription Payment Method: %v\n", dl.Subscription.PaymentMethod)
+	}
+
 	// Get logo name from service name
 	logoName := getLogoNameFromService(dl.Name)
 
-	result := map[string]interface{}{
+	result := map[string]any{
 			"id":           dl.ID,
 			"name":         dl.Name,
 			"is_active":    dl.IsActive,
@@ -23,6 +31,7 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 			"created_at":   dl.CreatedAt.Format(time.RFC3339),
 			"updated_at":   dl.UpdatedAt.Format(time.RFC3339),
 			"isSubscriptionService": dl.IsSubscription,
+			"paymentMethod": dl.PaymentMethod,
 	}
 
 	// Create billing object
@@ -54,9 +63,9 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 				annualCost = formatCurrency(dl.Subscription.CostPerCycle * 12)
 			}
 
-			billingInfo := map[string]interface{}{
+			billingInfo := map[string]any{
 					"cycle": dl.Subscription.BillingCycle,
-					"fees": map[string]interface{}{
+					"fees": map[string]any{
 							"monthly":   monthlyCost,
 							"quarterly": quarterlyCost,
 							"annual":    annualCost,
@@ -69,13 +78,13 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 					month := dl.Subscription.NextPaymentDate.Format("January")
 					day := dl.Subscription.NextPaymentDate.Day()
 
-					billingInfo["renewalDate"] = map[string]interface{}{
+					billingInfo["renewalDate"] = map[string]any{
 							"month": month,
 							"day":   day,
 					}
 			} else {
 					// Default renewal date
-					billingInfo["renewalDate"] = map[string]interface{}{
+					billingInfo["renewalDate"] = map[string]any{
 							"month": "January",
 							"day":   1,
 					}
@@ -84,15 +93,15 @@ func FormatDigitalLocationToFrontend(dl *models.DigitalLocation) map[string]inte
 			result["billing"] = billingInfo
 	} else {
 			// Non-subscription services or subscription services without data (should never happen after validation)
-			result["billing"] = map[string]interface{}{
+			result["billing"] = map[string]any{
 					"cycle": "NA",
-					"fees": map[string]interface{}{
+					"fees": map[string]any{
 							"monthly":   "FREE",
 							"quarterly": "FREE",
 							"annual":    "FREE",
 					},
-					"paymentMethod": "None",
-					"renewalDate": map[string]interface{}{
+					"paymentMethod": dl.PaymentMethod,
+					"renewalDate": map[string]any{
 							"day":   "NA",
 							"month": "NA",
 					},

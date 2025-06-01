@@ -78,16 +78,26 @@ const DEFAULT_FORM_VALUES: FormValues = {
   isSubscriptionService: false
 };
 
-export const OnlineServiceFormSchema = z.object({
-  name: z.string().min(1, "Service name is required"),
-  isActive: z.boolean().default(true),
-  url: z.string().url("Please enter a valid URL"),
-  billingCycle: z.string().min(1, "Billing cycle is required"),
-  costPerCycle: z.number().min(0, "Cost must be greater than 0"),
-  nextPaymentDate: z.date(),
-  paymentMethod: z.string().min(1, "Payment method is required"),
-  isSubscriptionService: z.boolean()
-});
+export const OnlineServiceFormSchema = z.discriminatedUnion('isSubscriptionService', [
+  // Non-subscription service schema
+  z.object({
+    isSubscriptionService: z.literal(false),
+    name: z.string().min(1, "Service name is required"),
+    url: z.string(),
+    paymentMethod: z.string().min(1, "Payment method is required"),
+  }),
+  // Subscription service schema
+  z.object({
+    isSubscriptionService: z.literal(true),
+    name: z.string().min(1, "Service name is required"),
+    url: z.string(),
+    isActive: z.boolean(),
+    billingCycle: z.string().min(1, "Billing cycle is required"),
+    costPerCycle: z.number().min(0, "Cost must be greater than 0"),
+    nextPaymentDate: z.date(),
+    paymentMethod: z.string().min(1, "Payment method is required"),
+  })
+]);
 
 interface OnlineServiceFormProps {
   onSuccess?: (data: FormValues) => void;
@@ -116,17 +126,21 @@ export function OnlineServiceForm({
   const handleSubmit = useCallback((data: FormValues) => {
     const servicePayload = {
       name: data.name,
-      isActive: data.isActive,
+      isActive: data.isSubscriptionService ? data.isActive : true,
       url: data.url,
       isSubscription: data.isSubscriptionService,
-      ...(data.isSubscriptionService && {
-        subscription: {
-          billing_cycle: data.billingCycle,
-          cost_per_cycle: data.costPerCycle,
-          next_payment_date: data.nextPaymentDate.toISOString(),
-          payment_method: data.paymentMethod
-        }
-      })
+      payment_method: data.paymentMethod,
+      ...(data.isSubscriptionService
+        ? {
+            subscription: {
+              billing_cycle: data.billingCycle,
+              cost_per_cycle: data.costPerCycle,
+              next_payment_date: data.nextPaymentDate.toISOString(),
+              payment_method: data.paymentMethod
+            }
+          }
+        : {}
+      )
     };
 
     createMutation.mutate(servicePayload, {
@@ -160,6 +174,30 @@ export function OnlineServiceForm({
             </FormItem>
           )}
         />
+
+        {/* Payment Method is always required */}
+        <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
+                  <FormDescription>
+                    How do you make payments for this service?
+                  </FormDescription>
+                  <ResponsiveCombobox
+                    onSelect={(method: SelectableItem) => {
+                      field.onChange(method.id);
+                      form.trigger('paymentMethod');
+                    }}
+                    items={Object.values(PAYMENT_METHODS)}
+                    placeholder="Select a Payment Method"
+                    emptyMessage="No payment methods found."
+                  />
+                  <FormMessage>{errors.paymentMethod?.message}</FormMessage>
+                </FormItem>
+              )}
+            />
 
         {/* Subscription Fields - Only show for subscription services */}
         {isSubscriptionService && (
@@ -292,29 +330,7 @@ export function OnlineServiceForm({
               )}
             />
 
-            {/* Payment Method */}
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
-                  <FormDescription>
-                    How do you pay for this service?
-                  </FormDescription>
-                  <ResponsiveCombobox
-                    onSelect={(method: SelectableItem) => {
-                      field.onChange(method.id);
-                      form.trigger('paymentMethod');
-                    }}
-                    items={Object.values(PAYMENT_METHODS)}
-                    placeholder="Select a Payment Method"
-                    emptyMessage="No payment methods found."
-                  />
-                  <FormMessage>{errors.paymentMethod?.message}</FormMessage>
-                </FormItem>
-              )}
-            />
+
           </>
         )}
       </div>

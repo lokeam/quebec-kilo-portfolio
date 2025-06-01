@@ -117,25 +117,6 @@ CREATE TABLE physical_game_locations (
     UNIQUE(user_game_id, sublocation_id)
 );
 
--- Create payment methods enum
-CREATE TYPE payment_method_type AS ENUM (
-    'alipay',
-    'amex',
-    'diners',
-    'discover',
-    'elo',
-    'generic',
-    'hiper',
-    'hipercard',
-    'jcb',
-    'maestro',
-    'mastercard',
-    'mir',
-    'paypal',
-    'unionpay',
-    'visa'
-);
-
 -- Create digital_locations table
 CREATE TABLE digital_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -147,6 +128,7 @@ CREATE TABLE digital_locations (
     disk_size_value DECIMAL(10,2) CHECK (disk_size_value >= 0),
     disk_size_unit VARCHAR(10) CHECK (disk_size_unit IN ('KB', 'MB', 'GB', 'TB')),
     url TEXT,
+    payment_method VARCHAR(50) CHECK (payment_method IN ('alipay', 'amex', 'diners', 'discover', 'elo', 'generic', 'hiper', 'hipercard', 'jcb', 'maestro', 'mastercard', 'mir', 'paypal', 'unionpay', 'visa')),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, name)
@@ -159,7 +141,7 @@ CREATE TABLE digital_location_subscriptions (
     billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('1 month', '3 month', '6 month', '12 month')),
     cost_per_cycle DECIMAL(10,2) NOT NULL CHECK (cost_per_cycle > 0),
     next_payment_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    payment_method payment_method_type NOT NULL,
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('alipay', 'amex', 'diners', 'discover', 'elo', 'generic', 'hiper', 'hipercard', 'jcb', 'maestro', 'mastercard', 'mir', 'paypal', 'unionpay', 'visa')),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     UNIQUE(digital_location_id)  -- One subscription per location
@@ -171,7 +153,7 @@ CREATE TABLE digital_location_payments (
     digital_location_id UUID NOT NULL REFERENCES digital_locations(id) ON DELETE CASCADE,
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     payment_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    payment_method payment_method_type NOT NULL,
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('alipay', 'amex', 'diners', 'discover', 'elo', 'generic', 'hiper', 'hipercard', 'jcb', 'maestro', 'mastercard', 'mir', 'paypal', 'unionpay', 'visa')),
     transaction_id VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );

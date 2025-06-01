@@ -48,7 +48,7 @@ type DigitalLocation struct {
 	IsSubscription bool             `json:"is_subscription"`
 	MonthlyCost    float64          `json:"monthly_cost"`
 	Items          []ItemSummary    `json:"items"`
-	PaymentMethod  *string          `json:"payment_method"`
+	PaymentMethod  string           `json:"payment_method"`
 	PaymentDate    *time.Time       `json:"payment_date"`
 	BillingCycle   string           `json:"billing_cycle"`
 	CostPerCycle   float64          `json:"cost_per_cycle"`
