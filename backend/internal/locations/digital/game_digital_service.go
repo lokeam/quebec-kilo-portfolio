@@ -348,8 +348,9 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 		"isBulk":      len(locationIDs) > 1,
 	})
 
-	// Validate input
-	if err := gds.validator.ValidateRemoveDigitalLocation(userID, locationIDs); err != nil {
+	// Validate input and get sanitized, deduplicated IDs
+	validatedIDs, err := gds.validator.ValidateRemoveDigitalLocation(userID, locationIDs)
+	if err != nil {
 		gds.logger.Error("Validation failed for RemoveDigitalLocation", map[string]any{
 			"error": err,
 			"userID": userID,
@@ -358,19 +359,19 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 		return 0, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Remove locations from database
-	count, err := gds.dbAdapter.RemoveDigitalLocation(ctx, userID, locationIDs)
+	// Remove locations from database using validated IDs
+	count, err := gds.dbAdapter.RemoveDigitalLocation(ctx, userID, validatedIDs)
 	if err != nil {
 		gds.logger.Error("Failed to remove digital locations from database", map[string]any{
 			"error": err,
 			"userID": userID,
-			"locationIDs": locationIDs,
+			"locationIDs": validatedIDs,
 		})
 		return 0, fmt.Errorf("failed to remove digital locations: %w", err)
 	}
 
 	// Invalidate cache for each location
-	for _, locationID := range locationIDs {
+	for _, locationID := range validatedIDs {
 		if err := gds.cacheWrapper.InvalidateDigitalLocationCache(ctx, userID, locationID); err != nil {
 			gds.logger.Error("Failed to invalidate cache for location", map[string]any{
 				"error": err,
@@ -383,7 +384,7 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 
 	gds.logger.Debug("RemoveDigitalLocation completed successfully", map[string]any{
 		"userID": userID,
-		"locationIDs": locationIDs,
+		"locationIDs": validatedIDs,
 		"deletedCount": count,
 	})
 

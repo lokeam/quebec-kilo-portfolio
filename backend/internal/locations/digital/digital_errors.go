@@ -28,4 +28,13 @@ var (
 
 	// ErrRetryable is returned for errors that might succeed on retry
 	ErrRetryable = errors.New("retryable error occurred")
+
+	// ErrInvalidQueryParameter is returned when the query parameter format is invalid
+	ErrInvalidQueryParameter = errors.New("invalid query parameter format")
+
+	// ErrEmptyLocationIDs is returned when no location IDs are provided
+	ErrEmptyLocationIDs = errors.New("no location IDs provided")
+
+	// ErrInvalidLocationID is returned when the location ID format is invalid
+	ErrInvalidLocationID = errors.New("invalid location ID format")
 )

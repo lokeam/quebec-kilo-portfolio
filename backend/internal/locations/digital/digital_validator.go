@@ -18,7 +18,7 @@ const (
 	MaxURLLength = 2048
 	MaxTransactionIDLength = 100
 	MaxCostPerCycle = 1000000.0 // Maximum allowed cost per cycle
-	MaxBulkSize = 100 // Maximum number of location IDs allowed in bulk operations
+	MaxBulkSize = 12 // Maximum number of location IDs allowed in bulk operations
 )
 
 // Valid payment methods
@@ -422,7 +422,7 @@ func (v *DigitalValidator) ValidateDigitalLocationsBulk(
 func (v *DigitalValidator) ValidateRemoveDigitalLocation(
 	userID string,
 	locationIDs []string,
-) error {
+) ([]string, error) {
 	v.logger.Debug("Validating location IDs for deletion", map[string]any{
 		"userID": userID,
 		"locationIDsCount": len(locationIDs),
@@ -431,7 +431,7 @@ func (v *DigitalValidator) ValidateRemoveDigitalLocation(
 
 	// Validate userID
 	if userID == "" {
-		return &validationErrors.ValidationError{
+		return nil, &validationErrors.ValidationError{
 			Field:   "userID",
 			Message: "user ID cannot be empty",
 		}
@@ -439,7 +439,7 @@ func (v *DigitalValidator) ValidateRemoveDigitalLocation(
 
 	// Validate locationIDs array
 	if len(locationIDs) == 0 {
-		return &validationErrors.ValidationError{
+		return nil, &validationErrors.ValidationError{
 			Field:   "locationIDs",
 			Message: "no location IDs provided for deletion",
 		}
@@ -447,47 +447,66 @@ func (v *DigitalValidator) ValidateRemoveDigitalLocation(
 
 	// Enforce maximum number of IDs in bulk operations
 	if len(locationIDs) > MaxBulkSize {
-		return &validationErrors.ValidationError{
+		return nil, &validationErrors.ValidationError{
 			Field:   "locationIDs",
 			Message: fmt.Sprintf("too many location IDs, maximum allowed is %d", MaxBulkSize),
 		}
 	}
 
-	// Validate each location ID
-	for _, id := range locationIDs {
-		// Check for empty ID
-		if id == "" {
-			return &validationErrors.ValidationError{
+	// Sanitize and deduplicate location IDs
+	locationSeen := make(map[string]bool)
+	var validatedIDs []string
+	for i := 0; i < len(locationIDs); i++ {
+		// Skip empty IDs
+		if locationIDs[i] == "" {
+			continue
+		}
+
+		// Sanitize ID
+		sanitizedID, err := v.sanitizer.SanitizeString(locationIDs[i])
+		if err != nil {
+			return nil, &validationErrors.ValidationError{
 				Field:   "locationIDs",
-				Message: "location ID cannot be empty",
+				Message: fmt.Sprintf("invalid location ID: %s", locationIDs[i]),
 			}
 		}
 
-		// Validate UUID format
-		if _, err := uuid.Parse(id); err != nil {
-			return &validationErrors.ValidationError{
+		// Deduplicate
+		if !locationSeen[sanitizedID] {
+			locationSeen[sanitizedID] = true
+			validatedIDs = append(validatedIDs, sanitizedID)
+		}
+	}
+
+	if len(validatedIDs) == 0 {
+    return nil, &validationErrors.ValidationError{
+        Field:   "locationIDs",
+        Message: "no valid location IDs after sanitization and deduplication",
+    }
+}
+
+	// Validate that each sanitized ID is a valid UUID
+	for i := 0; i < len(validatedIDs); i++ {
+		if _, err := uuid.Parse(validatedIDs[i]); err != nil {
+			return nil, &validationErrors.ValidationError{
 				Field:   "locationIDs",
-				Message: fmt.Sprintf("invalid location ID format: %s", id),
+				Message: fmt.Sprintf("failed to sanitize location ID: %s", validatedIDs[i]),
 			}
 		}
 	}
 
-	// Check for duplicates
-	seen := make(map[string]bool)
-	for _, id := range locationIDs {
-		if seen[id] {
-			return &validationErrors.ValidationError{
-				Field:   "locationIDs",
-				Message: fmt.Sprintf("duplicate location ID: %s", id),
-			}
-		}
-		seen[id] = true
+	// Log if dupes were removed
+	if len(validatedIDs) < len(locationIDs) {
+		v.logger.Debug("Duplicate location IDs removed", map[string]any{
+			"original_count": len(locationIDs),
+			"deduplicated_count": len(validatedIDs),
+		})
 	}
 
 	v.logger.Debug("Location IDs validation successful", map[string]any{
 		"userID": userID,
-		"count": len(locationIDs),
+		"count": len(validatedIDs),
 	})
 
-	return nil
+	return validatedIDs,nil
 }

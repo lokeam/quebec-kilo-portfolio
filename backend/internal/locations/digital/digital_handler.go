@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -564,137 +565,36 @@ func RemoveDigitalLocation(
 			return
 		}
 
-		// Check if this is a single deletion (has ID in URL)
-		if locationID := chi.URLParam(r, "id"); locationID != "" {
-			appCtx.Logger.Info("Deleting single digital location", map[string]any{
-				"requestID":  requestID,
-				"userID":     userID,
-				"locationID": locationID,
-			})
-
-			if locationID == "" {
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("location ID is required"),
-					http.StatusBadRequest,
-				)
-				return
-			}
-
-			deletedCount, err := service.RemoveDigitalLocation(r.Context(), userID, []string{locationID})
-			if err != nil {
-				statusCode := http.StatusInternalServerError
-				if errors.Is(err, ErrDigitalLocationNotFound) {
-					statusCode = http.StatusNotFound
-				}
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					err,
-					statusCode,
-				)
-				return
-			}
-
-			// After successful deletion, invalidate analytics cache
-			if err := analyticsService.InvalidateDomains(r.Context(), userID, []string{
-				analytics.DomainGeneral,
-				analytics.DomainFinancial,
-				analytics.DomainStorage,
-			}); err != nil {
-				appCtx.Logger.Error("Failed to invalidate analytics cache after deleting location", map[string]any{
-					"error": err,
-					"userID": userID,
-				})
-				// Continue despite error, since the location was deleted successfully
-			}
-
-			// Use standard response format
-			response := httputils.NewAPIResponse(r, userID, map[string]any{
-				"digital": map[string]any{
-					"success": true,
-					"deleted_count": deletedCount,
-					"location_ids": []string{locationID},
-				},
-			})
-
-			httputils.RespondWithJSON(
+		// Get IDs from query parameters
+		digitalLocationIDs := r.URL.Query().Get("ids")
+		if digitalLocationIDs == "" {
+			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
-				http.StatusOK,
-				response,
+				requestID,
+				ErrEmptyLocationIDs,
+				http.StatusBadRequest,
 			)
 			return
 		}
 
-		// Handle bulk deletion
-		appCtx.Logger.Info("Deleting digital locations in bulk", map[string]any{
-			"requestID": requestID,
-			"userID":    userID,
+		// if multiple IDs are provided, split into array
+		digitalLocationIDsArr := strings.Split(digitalLocationIDs, ",")
+		appCtx.Logger.Info("Deleting digital location(s)", map[string]any{
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationID": digitalLocationIDsArr,
 		})
 
-		// Parse request body
-		var req struct {
-			LocationIDs []string `json:"location_ids"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			appCtx.Logger.Error("Failed to decode request body", map[string]any{
-				"error": err,
-				"request_id": requestID,
-			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				errors.New("invalid request body"),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		// Validate request
-		if len(req.LocationIDs) == 0 {
-			appCtx.Logger.Error("Empty location IDs in request", map[string]any{
-				"request_id": requestID,
-			})
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				errors.New("no location IDs provided"),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		// Validate each location ID
-		for _, id := range req.LocationIDs {
-			if id == "" {
-				appCtx.Logger.Error("Empty location ID in request", map[string]any{
-					"request_id": requestID,
-				})
-				httputils.RespondWithError(
-					httputils.NewResponseWriterAdapter(w),
-					appCtx.Logger,
-					requestID,
-					errors.New("empty location ID provided"),
-					http.StatusBadRequest,
-				)
-				return
-			}
-		}
-
 		// Call service method to delete locations
-		deletedCount, err := service.RemoveDigitalLocation(r.Context(), userID, req.LocationIDs)
+		deletedCount, err := service.RemoveDigitalLocation(r.Context(), userID, digitalLocationIDsArr)
 		if err != nil {
 			appCtx.Logger.Error("Failed to delete digital locations", map[string]any{
 				"error": err,
 				"request_id": requestID,
-				"location_ids": req.LocationIDs,
+				"location_ids": digitalLocationIDsArr,
 			})
+
 			statusCode := http.StatusInternalServerError
 			if errors.Is(err, ErrDigitalLocationNotFound) {
 				statusCode = http.StatusNotFound
@@ -727,15 +627,16 @@ func RemoveDigitalLocation(
 			"request_id": requestID,
 			"user_id": userID,
 			"deleted_count": deletedCount,
-			"total_count": len(req.LocationIDs),
+			"total_count": len(digitalLocationIDsArr),
 		})
 
 		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "digital" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"digital": map[string]any{
 				"success": true,
 				"deleted_count": deletedCount,
-				"location_ids": req.LocationIDs,
+				"location_ids": digitalLocationIDsArr,
 			},
 		})
 
