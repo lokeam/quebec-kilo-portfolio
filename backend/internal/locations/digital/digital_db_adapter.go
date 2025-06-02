@@ -563,6 +563,22 @@ func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID st
 			return fmt.Errorf("partial deletion: %d of %d locations deleted", totalDeleted, len(locationIDs))
 		}
 
+		// Clean up games that are not associated with any digital location
+		cleanupOrphanedUserGamesQuery := `
+			DELETE FROM user_games
+			WHERE user_id = $1
+				AND id IN (
+					SELECT ug.id
+					FROM user_games ug
+					LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+					WHERE ug.user_id = $1 AND dgl.user_game_id IS NULL
+				)
+		`
+		_, err = tx.ExecContext(ctx, cleanupOrphanedUserGamesQuery, userID)
+		if err != nil {
+			return fmt.Errorf("error cleaning up orphaned user games: %w", err)
+		}
+
 		da.logger.Debug("RemoveDigitalLocation success", map[string]any{
 			"totalDeleted":    totalDeleted,
 			"isBulkOperation": isBulk,
