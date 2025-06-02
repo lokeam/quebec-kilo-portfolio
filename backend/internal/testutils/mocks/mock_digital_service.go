@@ -51,15 +51,15 @@ func DefaultGameDigitalService() *MockGameDigitalService {
 	}
 }
 
-func (m *MockGameDigitalService) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+func (m *MockGameDigitalService) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 	return m.GetUserDigitalLocationsFunc(ctx, userID)
 }
 
-func (m *MockGameDigitalService) GetDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+func (m *MockGameDigitalService) GetSingleDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
 	return m.GetDigitalLocationFunc(ctx, userID, locationID)
 }
 
-func (m *MockGameDigitalService) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (m *MockGameDigitalService) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
 	return m.AddDigitalLocationFunc(ctx, userID, location)
 }
 
@@ -67,6 +67,6 @@ func (m *MockGameDigitalService) UpdateDigitalLocation(ctx context.Context, user
 	return m.UpdateDigitalLocationFunc(ctx, userID, location)
 }
 
-func (m *MockGameDigitalService) RemoveDigitalLocation(ctx context.Context, userID, locationID string) error {
+func (m *MockGameDigitalService) DeleteDigitalLocation(ctx context.Context, userID, locationID string) error {
 	return m.RemoveDigitalLocationFunc(ctx, userID, locationID)
 }

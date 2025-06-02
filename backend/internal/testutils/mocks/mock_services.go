@@ -64,14 +64,14 @@ type MockDigitalService struct {
 	GetPaymentFunc               func(ctx context.Context, paymentID int64) (*models.Payment, error)
 }
 
-func (m *MockDigitalService) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+func (m *MockDigitalService) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 	if m.GetUserDigitalLocationsFunc != nil {
 		return m.GetUserDigitalLocationsFunc(ctx, userID)
 	}
 	return []models.DigitalLocation{}, nil
 }
 
-func (m *MockDigitalService) GetDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+func (m *MockDigitalService) GetSingleDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
 	if m.GetDigitalLocationFunc != nil {
 		return m.GetDigitalLocationFunc(ctx, userID, locationID)
 	}
@@ -85,7 +85,7 @@ func (m *MockDigitalService) FindDigitalLocationByName(ctx context.Context, user
 	return models.DigitalLocation{}, nil
 }
 
-func (m *MockDigitalService) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (m *MockDigitalService) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
 	if m.AddDigitalLocationFunc != nil {
 		return m.AddDigitalLocationFunc(ctx, userID, location)
 	}
@@ -99,7 +99,7 @@ func (m *MockDigitalService) UpdateDigitalLocation(ctx context.Context, userID s
 	return nil
 }
 
-func (m *MockDigitalService) RemoveDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+func (m *MockDigitalService) DeleteDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
 	if m.RemoveDigitalLocationFunc != nil {
 		return m.RemoveDigitalLocationFunc(ctx, userID, locationIDs)
 	}
@@ -134,7 +134,7 @@ func (m *MockDigitalService) GetSubscription(ctx context.Context, locationID str
 	return &models.Subscription{}, nil
 }
 
-func (m *MockDigitalService) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+func (m *MockDigitalService) CreateSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
 	if m.AddSubscriptionFunc != nil {
 		return m.AddSubscriptionFunc(ctx, subscription)
 	}
@@ -148,28 +148,28 @@ func (m *MockDigitalService) UpdateSubscription(ctx context.Context, subscriptio
 	return nil
 }
 
-func (m *MockDigitalService) RemoveSubscription(ctx context.Context, locationID string) error {
+func (m *MockDigitalService) DeleteSubscription(ctx context.Context, locationID string) error {
 	if m.RemoveSubscriptionFunc != nil {
 		return m.RemoveSubscriptionFunc(ctx, locationID)
 	}
 	return nil
 }
 
-func (m *MockDigitalService) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+func (m *MockDigitalService) GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
 	if m.GetPaymentsFunc != nil {
 		return m.GetPaymentsFunc(ctx, locationID)
 	}
 	return []models.Payment{}, nil
 }
 
-func (m *MockDigitalService) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+func (m *MockDigitalService) CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
 	if m.AddPaymentFunc != nil {
 		return m.AddPaymentFunc(ctx, payment)
 	}
 	return &models.Payment{}, nil
 }
 
-func (m *MockDigitalService) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+func (m *MockDigitalService) GetSinglePayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
 	if m.GetPaymentFunc != nil {
 		return m.GetPaymentFunc(ctx, paymentID)
 	}

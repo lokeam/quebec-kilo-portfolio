@@ -37,6 +37,7 @@ func (mv *MockValidator) ValidateQuery(query searchdef.SearchQuery) error {
 // FakeIGDBAdapter implements interfaces.IGDBAdapter.
 type MockIGDBAdapter struct {
 	SearchGamesFunc func(ctx context.Context, query string, limit int) ([]*models.Game, error)
+	UpdateTokenFunc func(token string) error
 }
 
 func (mv *MockIGDBAdapter) SearchGames(ctx context.Context, query string, limit int) ([]*models.Game, error) {
@@ -44,6 +45,13 @@ func (mv *MockIGDBAdapter) SearchGames(ctx context.Context, query string, limit 
 		return mv.SearchGamesFunc(ctx, query, limit)
 	}
 	return nil, errors.New("SearchGamesFunc not defined")
+}
+
+func (mv *MockIGDBAdapter) UpdateToken(token string) error {
+	if mv.UpdateTokenFunc != nil {
+		return mv.UpdateTokenFunc(token)
+	}
+	return nil
 }
 
 // FakeCacheWrapper implements interfaces.IGDBCacheWrapper.

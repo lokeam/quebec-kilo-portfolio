@@ -38,6 +38,10 @@ func DefaultIGDBAdapter() *MockIGDBAdapter {
 						// Default: return an empty slice (or a minimal dummy value).
 						return []*models.Game{}, nil
 				},
+				UpdateTokenFunc: func(token string) error {
+						// Default: do nothing, return success.
+						return nil
+				},
 		}
 }
 

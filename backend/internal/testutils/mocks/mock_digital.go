@@ -53,7 +53,7 @@ type MockDigitalDbAdapter struct {
 }
 
 // GET
-func (m *MockDigitalDbAdapter) GetDigitalLocation(
+func (m *MockDigitalDbAdapter) GetSingleDigitalLocation(
 	ctx context.Context,
 	userID,
 	digitalLocationID string,
@@ -62,7 +62,7 @@ func (m *MockDigitalDbAdapter) GetDigitalLocation(
 	return digitalLocation, err
 }
 
-func (m *MockDigitalDbAdapter) GetUserDigitalLocations(
+func (m *MockDigitalDbAdapter) GetAllDigitalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.DigitalLocation, error) {
@@ -70,7 +70,7 @@ func (m *MockDigitalDbAdapter) GetUserDigitalLocations(
 }
 
 // POST
-func (m *MockDigitalDbAdapter) AddDigitalLocation(
+func (m *MockDigitalDbAdapter) CreateDigitalLocation(
 	ctx context.Context,
 	userID string,
 	digitalLocation models.DigitalLocation,
@@ -88,7 +88,7 @@ func (m *MockDigitalDbAdapter) UpdateDigitalLocation(
 }
 
 // DELETE
-func (m *MockDigitalDbAdapter) RemoveDigitalLocation(
+func (m *MockDigitalDbAdapter) DeleteDigitalLocation(
 	ctx context.Context,
 	userID string,
 	locationIDs []string,
@@ -149,7 +149,7 @@ func (m *MockDigitalDbAdapter) GetSubscription(ctx context.Context, locationID s
 	return m.GetSubscriptionFunc(ctx, locationID)
 }
 
-func (m *MockDigitalDbAdapter) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+func (m *MockDigitalDbAdapter) CreateSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
 	return m.AddSubscriptionFunc(ctx, subscription)
 }
 
@@ -157,7 +157,7 @@ func (m *MockDigitalDbAdapter) UpdateSubscription(ctx context.Context, subscript
 	return m.UpdateSubscriptionFunc(ctx, subscription)
 }
 
-func (m *MockDigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID string) error {
+func (m *MockDigitalDbAdapter) DeleteSubscription(ctx context.Context, locationID string) error {
 	return m.RemoveSubscriptionFunc(ctx, locationID)
 }
 
@@ -172,15 +172,15 @@ func (m *MockDigitalDbAdapter) ValidateSubscriptionExists(
 }
 
 // Payment Operations
-func (m *MockDigitalDbAdapter) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+func (m *MockDigitalDbAdapter) GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
 	return m.GetPaymentsFunc(ctx, locationID)
 }
 
-func (m *MockDigitalDbAdapter) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+func (m *MockDigitalDbAdapter) CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
 	return m.AddPaymentFunc(ctx, payment)
 }
 
-func (m *MockDigitalDbAdapter) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+func (m *MockDigitalDbAdapter) GetSinglePayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
 	return m.GetPaymentFunc(ctx, paymentID)
 }
 
