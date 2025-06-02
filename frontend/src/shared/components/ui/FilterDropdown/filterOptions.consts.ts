@@ -1,5 +1,5 @@
 export const BILLING_CYCLE_OPTIONS = [
-  { key: 'NA', label: 'Free' },
+  { key: '', label: 'Free' },
   { key: '1 month', label: 'Monthly' },
   { key: '3 month', label: 'Quarterly' },
   { key: '1 year', label: 'Yearly' },

@@ -22,6 +22,38 @@ import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredS
 import type { DigitalLocation } from '@/types/domain/online-service';
 import type { FormValues } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
+// Utils
+const DEFAULT_FORM_VALUES = {
+  name: '',
+  isActive: true,
+  url: '',
+  isSubscriptionService: false,
+  billingCycle: '',
+  costPerCycle: 0,
+  nextPaymentDate: new Date(),
+  paymentMethod: '',
+};
+
+const transformServiceToFormValues = (service: DigitalLocation): FormValues => {
+  // Ensure we have a valid service object
+  if (!service) {
+    return DEFAULT_FORM_VALUES;
+  }
+
+  return {
+    name: service.name || '',
+    isActive: service.isActive ?? true,
+    url: service.url || '',
+    isSubscriptionService: service.isSubscription ?? false,
+    billingCycle: service.billingCycle || '',
+    costPerCycle: service.costPerCycle || 0,
+    nextPaymentDate: service.nextPaymentDate
+      ? new Date(service.nextPaymentDate)
+      : new Date(),
+    paymentMethod: service.paymentMethod || '',
+  };
+};
+
 // Skeleton Components
 const TableSkeleton = () => (
   <div className="w-full">
@@ -46,7 +78,11 @@ const CardSkeleton = () => (
 );
 
 export function OnlineServicesPageContent() {
+  // Add state for edit mode
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
+  const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
+  const [serviceBeingEdited, setServiceBeingEdited] = useState<DigitalLocation | null>(null);
+
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
   // Fetch digital locations using analytics
@@ -65,10 +101,21 @@ export function OnlineServicesPageContent() {
     setAddServiceOpen(false);
   }, []);
 
-  // Handler to edit a service
+  // Enhanced edit handlers
   const handleEditService = useCallback((service: DigitalLocation) => {
-    // TODO: Implement edit functionality
-    console.log('Edit service:', service);
+    setServiceBeingEdited(service);
+    setEditServiceOpen(true);
+  }, []);
+
+  const handleCloseEditDrawer = useCallback(() => {
+    setEditServiceOpen(false);
+    setServiceBeingEdited(null);
+  }, []);
+
+  const handleEditSubmit = useCallback((data: FormValues) => {
+    console.log('Edit service:', data);
+    setEditServiceOpen(false);
+    setServiceBeingEdited(null);
   }, []);
 
   // Set up card label width for responsive design
@@ -135,7 +182,7 @@ export function OnlineServicesPageContent() {
             <SingleOnlineServiceCard
               key={`${service.id}-${index}`}
               service={service}
-              onEdit={() => handleEditService(service)}
+              onEdit={handleEditService}
               isWatchedByResizeObserver={index === 0}
             />
           ))}
@@ -152,6 +199,7 @@ export function OnlineServicesPageContent() {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Add Service Drawer */}
           <DrawerContainer
             open={addServiceOpen}
             onOpenChange={setAddServiceOpen}
@@ -163,7 +211,27 @@ export function OnlineServicesPageContent() {
               onSuccess={handleAddService}
               onClose={handleCloseAddDrawer}
               buttonText="Add Service"
+              isEditMode={false}
             />
+          </DrawerContainer>
+
+          {/* Edit Service Drawer */}
+          <DrawerContainer
+            open={editServiceOpen}
+            onOpenChange={setEditServiceOpen}
+            title="Edit Digital Service"
+            description="Update your service details"
+          >
+            {serviceBeingEdited && (
+              <OnlineServiceForm
+                onSuccess={handleEditSubmit}
+                onClose={handleCloseEditDrawer}
+                buttonText="Edit Service"
+                initialValues={transformServiceToFormValues(serviceBeingEdited)}
+                isEditMode={true}
+                serviceId={serviceBeingEdited.id}
+              />
+            )}
           </DrawerContainer>
         </div>
       </PageHeadline>

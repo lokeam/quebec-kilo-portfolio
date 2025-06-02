@@ -28,6 +28,9 @@ import type { DeleteDigitalLocationResponse } from '@/core/api/services/digitalL
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
+import { logger } from '@/core/utils/logger/logger';
+import { AxiosError } from 'axios';
+import type { ApiError } from '@/types/api/response';
 
 /**
  * Query key factory for digital location queries
@@ -104,14 +107,59 @@ export const useUpdateDigitalLocation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateDigitalLocationRequest> }) => {
-      // NOTE: double check that we don't need to adapt data here
-      return updateDigitalLocation(id, data);
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateDigitalLocationRequest> }) => {
+      logger.debug('Updating digital location', { id, data });
+      try {
+        const location = await updateDigitalLocation(id, data);
+        logger.debug('Digital location updated successfully', {
+          id: location.id
+        });
+        return location;
+      } catch (error) {
+        logger.error('Failed to update digital location', { error, id, data });
+        throw error;
+      }
     },
     onSuccess: (data) => {
+      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: digitalLocationKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: digitalLocationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+
+      // Show success toast
+      showToast({
+        message: TOAST_SUCCESS_MESSAGES.DIGITAL_LOCATION.UPDATE,
+        variant: 'success',
+        duration: TOAST_DURATIONS.EXTENDED,
+      });
     },
+    onError: (error: AxiosError<ApiError>) => {
+      const errorMessages = TOAST_ERROR_MESSAGES.DIGITAL_LOCATION.UPDATE as {
+        DEFAULT: string;
+        PERMISSION: string;
+        NOT_FOUND: string;
+        SERVER: string;
+      };
+
+      let errorMessage = errorMessages.DEFAULT;
+
+      if (error.response) {
+        const status = error.response.status;
+        if (status === 401 || status === 403) {
+          errorMessage = errorMessages.PERMISSION;
+        } else if (status === 404) {
+          errorMessage = errorMessages.NOT_FOUND;
+        } else if (status >= 500) {
+          errorMessage = errorMessages.SERVER;
+        }
+      }
+
+      showToast({
+        message: errorMessage,
+        variant: 'error',
+        duration: TOAST_DURATIONS.EXTENDED,
+      });
+    }
   });
 };
 

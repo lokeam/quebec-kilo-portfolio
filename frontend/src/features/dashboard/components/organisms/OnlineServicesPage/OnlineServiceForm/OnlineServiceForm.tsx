@@ -33,9 +33,7 @@ import { FormContainer } from '@/features/dashboard/components/templates/FormCon
 // Hooks
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
-import { useCreateDigitalLocation } from '@/core/api/queries/digitalLocation.queries';
-//import { useCreateOnlineService } from '@/core/api/queries/useOnlineServiceMutations';
-
+import { useCreateDigitalLocation, useUpdateDigitalLocation } from '@/core/api/queries/digitalLocation.queries';
 
 // Zod
 import { z } from "zod";
@@ -49,6 +47,7 @@ import { cn } from '@/shared/components/ui/utils';
 
 // Constants
 import { PAYMENT_METHODS } from '@/shared/constants/payment';
+import { DEFAULT_FORM_VALUES } from '@/features/dashboard/lib/constants/online-service-form';
 
 // Types
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
@@ -65,17 +64,6 @@ export type FormValues = {
   nextPaymentDate: Date;
   paymentMethod: string;
   isSubscriptionService: boolean;
-};
-
-const DEFAULT_FORM_VALUES: FormValues = {
-  name: "",
-  isActive: true,
-  url: "",
-  billingCycle: "",
-  costPerCycle: 0,
-  nextPaymentDate: new Date(),
-  paymentMethod: "",
-  isSubscriptionService: false
 };
 
 export const OnlineServiceFormSchema = z.discriminatedUnion('isSubscriptionService', [
@@ -102,53 +90,69 @@ export const OnlineServiceFormSchema = z.discriminatedUnion('isSubscriptionServi
 interface OnlineServiceFormProps {
   onSuccess?: (data: FormValues) => void;
   onClose?: () => void;
-  defaultValues?: Partial<FormValues>;
+  initialValues?: FormValues;
   buttonText?: string;
+  isEditMode?: boolean;
+  serviceId?: string;
 }
 
 export function OnlineServiceForm({
   buttonText = "Add Service",
-  defaultValues = DEFAULT_FORM_VALUES,
+  initialValues = DEFAULT_FORM_VALUES,
   onClose,
+  isEditMode = false,
+  serviceId,
 }: OnlineServiceFormProps) {
   const createMutation = useCreateDigitalLocation();
-
-  const isLoading = createMutation.isPending;
+  const updateMutation = useUpdateDigitalLocation();
+  const isLoading = isEditMode ? updateMutation.isPending : createMutation.isPending;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(OnlineServiceFormSchema),
-    defaultValues
+    defaultValues: initialValues
   });
 
   const { watch, formState: { isValid, errors } } = form;
   const isSubscriptionService = watch('isSubscriptionService');
 
   const handleSubmit = useCallback((data: FormValues) => {
+    const paymentMethod = data.paymentMethod.toLowerCase();
     const servicePayload = {
       name: data.name,
       isActive: data.isSubscriptionService ? data.isActive : true,
       url: data.url,
       isSubscription: data.isSubscriptionService,
-      payment_method: data.paymentMethod,
+      payment_method: paymentMethod,
       ...(data.isSubscriptionService
         ? {
             subscription: {
               billing_cycle: data.billingCycle,
               cost_per_cycle: data.costPerCycle,
               next_payment_date: data.nextPaymentDate.toISOString(),
-              payment_method: data.paymentMethod
+              payment_method: paymentMethod
             }
           }
         : {}
       )
     };
 
-    createMutation.mutate(servicePayload, {
-      onSuccess: () => {
-        if (onClose) onClose();
-      }
-    });
-  }, [createMutation, onClose]);
+    if (isEditMode && serviceId) {
+      updateMutation.mutate(
+        { id: serviceId, data: servicePayload },
+        {
+          onSuccess: () => {
+            if (onClose) onClose();
+          }
+        }
+      );
+    } else {
+      createMutation.mutate(servicePayload, {
+        onSuccess: () => {
+          if (onClose) onClose();
+        }
+      });
+    }
+  }, [createMutation, updateMutation, isEditMode, serviceId, onClose]);
 
   return (
     <FormContainer form={form} onSubmit={handleSubmit}>
@@ -169,6 +173,7 @@ export function OnlineServiceForm({
                 }}
                 placeholder="Search for a service..."
                 emptyMessage="No services found."
+                initialValue={field.value}
               />
               <FormMessage>{errors.name?.message}</FormMessage>
             </FormItem>
@@ -177,27 +182,28 @@ export function OnlineServiceForm({
 
         {/* Payment Method is always required */}
         <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
-                  <FormDescription>
-                    How do you make payments for this service?
-                  </FormDescription>
-                  <ResponsiveCombobox
-                    onSelect={(method: SelectableItem) => {
-                      field.onChange(method.id);
-                      form.trigger('paymentMethod');
-                    }}
-                    items={Object.values(PAYMENT_METHODS)}
-                    placeholder="Select a Payment Method"
-                    emptyMessage="No payment methods found."
-                  />
-                  <FormMessage>{errors.paymentMethod?.message}</FormMessage>
-                </FormItem>
-              )}
-            />
+          control={form.control}
+          name="paymentMethod"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment method <span className="text-red-500">*</span></FormLabel>
+              <FormDescription>
+                How do you make payments for this service?
+              </FormDescription>
+              <ResponsiveCombobox
+                onSelect={(method: SelectableItem) => {
+                  field.onChange(method.id.toLowerCase());
+                  form.trigger('paymentMethod');
+                }}
+                items={Object.values(PAYMENT_METHODS)}
+                placeholder="Select a Payment Method"
+                emptyMessage="No payment methods found."
+                initialValue={field.value}
+              />
+              <FormMessage>{errors.paymentMethod?.message}</FormMessage>
+            </FormItem>
+          )}
+        />
 
         {/* Subscription Fields - Only show for subscription services */}
         {isSubscriptionService && (
@@ -329,8 +335,6 @@ export function OnlineServiceForm({
                 </FormItem>
               )}
             />
-
-
           </>
         )}
       </div>
@@ -345,7 +349,7 @@ export function OnlineServiceForm({
           {isLoading ? (
             <>
               <span className="animate-spin mr-2">⊚</span>
-              Creating...
+              {isEditMode ? 'Updating...' : 'Creating...'}
             </>
           ) : (
             buttonText

@@ -157,10 +157,10 @@ export interface DigitalLocation {
   name: string;
 
   /** Logo identifier for the service */
-  logo: string;
+  logo?: string;
 
   /** Type of location - always "digital" for digital locations */
-  locationType: 'digital';
+  locationType?: 'digital';
 
   /** Number of items associated with this location */
   itemCount?: number;

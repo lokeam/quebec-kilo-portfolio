@@ -34,6 +34,7 @@ interface ResponsiveComboboxProps<T extends SelectableItem> {
   emptyMessage?: string;
   className?: string;
   label?: string;
+  initialValue?: string;
 }
 
 function ComboboxContent<T extends SelectableItem>({
@@ -104,11 +105,28 @@ export function ResponsiveCombobox<T extends SelectableItem>({
   emptyMessage = "No items found.",
   className,
   label = "Select an option",
+  initialValue
 }: ResponsiveComboboxProps<T>) {
   const [open, setOpen] = React.useState(false)
   const isDesktop = useMediaQuery("(min-width: 768px)")
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedItem, setSelectedItem] = React.useState<T | null>(null)
+
+  // Find initial item if provided
+  const initialItem = React.useMemo(() => {
+    if (!initialValue) return null;
+    return items.find(item =>
+      item.id.toLowerCase() === initialValue.toLowerCase() ||
+      item.displayName.toLowerCase() === initialValue.toLowerCase()
+    ) || null;
+  }, [initialValue, items]);
+
+  // Set initial item when it's found
+  React.useEffect(() => {
+    if (initialItem && !selectedItem) {
+      setSelectedItem(initialItem);
+    }
+  }, [initialItem, selectedItem]);
 
   const displayedItems = React.useMemo(() => {
     if (!searchQuery) return items;

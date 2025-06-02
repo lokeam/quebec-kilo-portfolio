@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 
 // Shadcn UI Components
 import { Button } from '@/shared/components/ui/button';
@@ -36,21 +36,35 @@ interface ServiceComboboxProps {
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
+  initialValue?: string;
 }
 
 export function ServiceCombobox({
   onServiceSelect,
   placeholder = "Search services...",
   emptyMessage = "No service found.",
-  className
+  className,
+  initialValue
 }: ServiceComboboxProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedService, setSelectedService] = useState<DigitalServiceItem | null>(null)
 
   // Use TanStack Query to fetch services
   const { data: services = [], isLoading } = useGetDigitalServicesCatalog();
 
-  const [selectedService, setSelectedService] = useState<DigitalServiceItem | null>(null);
+  // Find initial service if provided
+  const initialService = useMemo(() => {
+    if (!initialValue) return null;
+    return services.find(service => service.name === initialValue) || null;
+  }, [initialValue, services]);
+
+  // Set initial service when it's found
+  useEffect(() => {
+    if (initialService && !selectedService) {
+      setSelectedService(initialService);
+    }
+  }, [initialService, selectedService]);
 
   // Filter services based on search query
   const filteredServices = useMemo(() => {
