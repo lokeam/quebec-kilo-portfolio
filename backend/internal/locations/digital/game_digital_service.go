@@ -21,31 +21,6 @@ type GameDigitalService struct {
 	validator    interfaces.DigitalValidator
 }
 
-type DigitalService interface {
-	GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error)
-	GetDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error)
-	FindDigitalLocationByName(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
-	AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error)
-	UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
-	RemoveDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error)
-	RemoveDigitalLocationsBulk(ctx context.Context, userID string, locationIDs []string) (int64, error)
-
-	// Game Management Operations
-	AddGameToDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error
-	RemoveGameFromDigitalLocation(ctx context.Context, userID string, locationID string, gameID int64) error
-	GetGamesByDigitalLocationID(ctx context.Context, userID string, locationID string) ([]models.Game, error)
-
-	// Subscription management
-	GetSubscription(ctx context.Context, locationID string) (*models.Subscription, error)
-	AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
-	UpdateSubscription(ctx context.Context, subscription models.Subscription) error
-	RemoveSubscription(ctx context.Context, locationID string) error
-
-	// Payment management
-	GetPayments(ctx context.Context, locationID string) ([]models.Payment, error)
-	AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error)
-	GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error)
-}
 
 func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalService, error) {
 	// Create + initialize db adapter
@@ -107,7 +82,7 @@ func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalServi
 }
 
 // GET
-func (gds *GameDigitalService) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+func (gds *GameDigitalService) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 	// Try to get from cache first
 	cachedLocations, cacheErr := gds.cacheWrapper.GetCachedDigitalLocations(ctx, userID)
 	if cacheErr == nil && cachedLocations != nil && len(cachedLocations) > 0 {
@@ -124,7 +99,7 @@ func (gds *GameDigitalService) GetUserDigitalLocations(ctx context.Context, user
 	})
 
 	// Get fresh data from DB
-	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
+	locations, err := gds.dbAdapter.GetAllDigitalLocations(ctx, userID)
 	if err != nil {
 			gds.logger.Error("Failed to fetch digital locations from DB", map[string]any{"error": err})
 			return nil, err
@@ -138,7 +113,7 @@ func (gds *GameDigitalService) GetUserDigitalLocations(ctx context.Context, user
 	return locations, nil
 }
 
-func (gds *GameDigitalService) GetDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
+func (gds *GameDigitalService) GetSingleDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error) {
 	// Try to get from cache
 	cachedLocation, found, err := gds.cacheWrapper.GetSingleCachedDigitalLocation(ctx, userID, locationID)
 	if err == nil && found {
@@ -155,7 +130,7 @@ func (gds *GameDigitalService) GetDigitalLocation(ctx context.Context, userID, l
 		"locationID": locationID,
 	})
 
-	location, err := gds.dbAdapter.GetDigitalLocation(ctx, userID, locationID)
+	location, err := gds.dbAdapter.GetSingleDigitalLocation(ctx, userID, locationID)
 	if err != nil {
 		gds.logger.Error("Failed to fetch digital location from DB", map[string]any{"error": err})
 		return models.DigitalLocation{}, err
@@ -181,7 +156,7 @@ func (gds *GameDigitalService) FindDigitalLocationByName(ctx context.Context, us
 
 // POST
 // POST
-func (gds *GameDigitalService) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (gds *GameDigitalService) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
 	// Add detailed logging
 	gds.logger.Debug("Adding digital location with is_active", map[string]any{
 			"userID": userID,
@@ -210,7 +185,7 @@ func (gds *GameDigitalService) AddDigitalLocation(ctx context.Context, userID st
 	// CRITICAL: Restore subscription data if it was provided
 	validatedLocation.Subscription = originalSubscription
 
-	createdLocation, err := gds.dbAdapter.AddDigitalLocation(ctx, userID, validatedLocation)
+	createdLocation, err := gds.dbAdapter.CreateDigitalLocation(ctx, userID, validatedLocation)
 	if err != nil {
 			gds.logger.Error("Failed to add digital location to DB", map[string]any{"error": err})
 			return models.DigitalLocation{}, err
@@ -222,7 +197,7 @@ func (gds *GameDigitalService) AddDigitalLocation(ctx context.Context, userID st
 			originalSubscription.LocationID = createdLocation.ID
 
 			// Add the subscription to the database
-			subscription, err := gds.dbAdapter.AddSubscription(ctx, *originalSubscription)
+			subscription, err := gds.dbAdapter.CreateSubscription(ctx, *originalSubscription)
 			if err != nil {
 					gds.logger.Error("Failed to add subscription data", map[string]any{
 							"error": err,
@@ -298,7 +273,7 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	}
 
 	// Get the updated location to ensure we have the correct state after the update
-	updatedLocation, err := gds.dbAdapter.GetDigitalLocation(ctx, userID, location.ID)
+	updatedLocation, err := gds.dbAdapter.GetSingleDigitalLocation(ctx, userID, location.ID)
 	if err != nil {
 		gds.logger.Error("Failed to get updated location after update", map[string]any{"error": err})
 		// Continue despite error, since the DB update was successful
@@ -314,7 +289,7 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	}
 
 	// Update the list cache as well to ensure consistency
-	locations, err := gds.dbAdapter.GetUserDigitalLocations(ctx, userID)
+	locations, err := gds.dbAdapter.GetAllDigitalLocations(ctx, userID)
 	if err != nil {
 		gds.logger.Error("Failed to get updated locations after update", map[string]any{"error": err})
 		// As a fallback, invalidate the user's cache to force a refresh on next list request
@@ -335,14 +310,14 @@ func (gds *GameDigitalService) UpdateDigitalLocation(ctx context.Context, userID
 	return nil
 }
 
-// RemoveDigitalLocation removes one or more digital locations for a user.
+// DeleteDigitalLocation removes one or more digital locations for a user.
 // It handles both single and bulk deletion operations.
-func (gds *GameDigitalService) RemoveDigitalLocation(
+func (gds *GameDigitalService) DeleteDigitalLocation(
 	ctx context.Context,
 	userID string,
 	locationIDs []string,
 ) (int64, error) {
-	gds.logger.Debug("RemoveDigitalLocation called", map[string]any{
+	gds.logger.Debug("DeleteDigitalLocation called", map[string]any{
 		"userID":      userID,
 		"locationIDs": locationIDs,
 		"isBulk":      len(locationIDs) > 1,
@@ -351,7 +326,7 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 	// Validate input and get sanitized, deduplicated IDs
 	validatedIDs, err := gds.validator.ValidateRemoveDigitalLocation(userID, locationIDs)
 	if err != nil {
-		gds.logger.Error("Validation failed for RemoveDigitalLocation", map[string]any{
+		gds.logger.Error("Validation failed for DeleteDigitalLocation", map[string]any{
 			"error": err,
 			"userID": userID,
 			"locationIDs": locationIDs,
@@ -360,7 +335,7 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 	}
 
 	// Remove locations from database using validated IDs
-	count, err := gds.dbAdapter.RemoveDigitalLocation(ctx, userID, validatedIDs)
+	count, err := gds.dbAdapter.DeleteDigitalLocation(ctx, userID, validatedIDs)
 	if err != nil {
 		gds.logger.Error("Failed to remove digital locations from database", map[string]any{
 			"error": err,
@@ -382,7 +357,7 @@ func (gds *GameDigitalService) RemoveDigitalLocation(
 		}
 	}
 
-	gds.logger.Debug("RemoveDigitalLocation completed successfully", map[string]any{
+	gds.logger.Debug("DeleteDigitalLocation completed successfully", map[string]any{
 		"userID": userID,
 		"locationIDs": validatedIDs,
 		"deletedCount": count,
@@ -424,9 +399,9 @@ func (gds *GameDigitalService) GetSubscription(ctx context.Context, locationID s
 	return subscription, nil
 }
 
-func (gds *GameDigitalService) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+func (gds *GameDigitalService) CreateSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
 	// Add to DB
-	result, err := gds.dbAdapter.AddSubscription(ctx, subscription)
+	result, err := gds.dbAdapter.CreateSubscription(ctx, subscription)
 	if err != nil {
 		gds.logger.Error("Failed to add subscription to DB", map[string]any{"error": err})
 		return nil, err
@@ -462,9 +437,9 @@ func (gds *GameDigitalService) UpdateSubscription(ctx context.Context, subscript
 	return nil
 }
 
-func (gds *GameDigitalService) RemoveSubscription(ctx context.Context, locationID string) error {
+func (gds *GameDigitalService) DeleteSubscription(ctx context.Context, locationID string) error {
 	// Remove from DB
-	err := gds.dbAdapter.RemoveSubscription(ctx, locationID)
+	err := gds.dbAdapter.DeleteSubscription(ctx, locationID)
 	if err != nil {
 		gds.logger.Error("Failed to remove subscription from DB", map[string]any{"error": err})
 		return err
@@ -482,7 +457,7 @@ func (gds *GameDigitalService) RemoveSubscription(ctx context.Context, locationI
 }
 
 // Payment management
-func (gds *GameDigitalService) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+func (gds *GameDigitalService) GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
 	// Try to get from cache first
 	cachedPayments, err := gds.cacheWrapper.GetCachedPayments(ctx, locationID)
 	if err == nil {
@@ -497,7 +472,7 @@ func (gds *GameDigitalService) GetPayments(ctx context.Context, locationID strin
 		"locationID": locationID,
 	})
 
-	payments, err := gds.dbAdapter.GetPayments(ctx, locationID)
+	payments, err := gds.dbAdapter.GetAllPayments(ctx, locationID)
 	if err != nil {
 		gds.logger.Error("Failed to fetch payments from DB", map[string]any{"error": err})
 		return nil, err
@@ -514,9 +489,9 @@ func (gds *GameDigitalService) GetPayments(ctx context.Context, locationID strin
 	return payments, nil
 }
 
-func (gds *GameDigitalService) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+func (gds *GameDigitalService) CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
 	// Add to DB
-	result, err := gds.dbAdapter.AddPayment(ctx, payment)
+	result, err := gds.dbAdapter.CreatePayment(ctx, payment)
 	if err != nil {
 		gds.logger.Error("Failed to add payment to DB", map[string]any{"error": err})
 		return nil, err
@@ -533,9 +508,9 @@ func (gds *GameDigitalService) AddPayment(ctx context.Context, payment models.Pa
 	return result, nil
 }
 
-func (gds *GameDigitalService) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+func (gds *GameDigitalService) GetSinglePayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
 	// Get from DB (no caching for single payment)
-	return gds.dbAdapter.GetPayment(ctx, paymentID)
+	return gds.dbAdapter.GetSinglePayment(ctx, paymentID)
 }
 
 // AddGameToDigitalLocation adds a game to a digital location

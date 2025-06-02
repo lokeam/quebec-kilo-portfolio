@@ -38,19 +38,19 @@ func RegisterDigitalRoutes(
 	analyticsService analytics.Service,
 ) {
 	// Base routes
-	r.Get("/", GetUserDigitalLocations(appCtx, service))
-	r.Post("/", AddDigitalLocation(appCtx, service, analyticsService))
-	r.Delete("/", RemoveDigitalLocation(appCtx, service, analyticsService))  // Handles both single and bulk deletion
+	r.Get("/", GetAllDigitalLocations(appCtx, service))
+	r.Post("/", CreateDigitalLocation(appCtx, service, analyticsService))
+	r.Delete("/", DeleteDigitalLocation(appCtx, service, analyticsService))  // Handles both single and bulk deletion
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", GetDigitalLocation(appCtx, service))
+		r.Get("/", GetSingleDigitalLocation(appCtx, service))
 		r.Put("/", UpdateDigitalLocation(appCtx, service, analyticsService))
 	})
 }
 
-// GetUserDigitalLocations handles GET requests for listing all digital locations
-func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
+// GetAllDigitalLocations handles GET requests for listing all digital locations
+func GetAllDigitalLocations(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -75,7 +75,7 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 			"userID":    userID,
 		})
 
-		locations, err := service.GetUserDigitalLocations(r.Context(), userID)
+		locations, err := service.GetAllDigitalLocations(r.Context(), userID)
 		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
@@ -132,8 +132,8 @@ func GetUserDigitalLocations(appCtx *appcontext.AppContext, service services.Dig
 	}
 }
 
-// GetDigitalLocation handles GET requests for a single digital location
-func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
+// GetSingleDigitalLocation handles GET requests for a single digital location
+func GetSingleDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -175,7 +175,7 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 		var err error
 
 		if _, parseErr := uuid.Parse(locationID); parseErr == nil {
-			location, err = service.GetDigitalLocation(r.Context(), userID, locationID)
+			location, err = service.GetSingleDigitalLocation(r.Context(), userID, locationID)
 		} else {
 			location, err = service.FindDigitalLocationByName(r.Context(), userID, locationID)
 		}
@@ -211,8 +211,8 @@ func GetDigitalLocation(appCtx *appcontext.AppContext, service services.DigitalS
 	}
 }
 
-// AddDigitalLocation handles POST requests for creating a new digital location
-func AddDigitalLocation(
+// CreateDigitalLocation handles POST requests for creating a new digital location
+func CreateDigitalLocation(
 	appCtx *appcontext.AppContext,
 	service services.DigitalService,
 	analyticsService analytics.Service,
@@ -275,7 +275,7 @@ func AddDigitalLocation(
 			digitalLocation.Subscription = &subscription
 		}
 
-		createdLocation, err := service.AddDigitalLocation(r.Context(), userID, digitalLocation)
+		createdLocation, err := service.CreateDigitalLocation(r.Context(), userID, digitalLocation)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			appCtx.Logger.Error("Failed to create digital location", map[string]any{
@@ -396,7 +396,7 @@ func UpdateDigitalLocation(
 		}
 
 		// Get existing location
-		existingLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+		existingLocation, err := service.GetSingleDigitalLocation(r.Context(), userID, locationID)
 		if err != nil {
 			appCtx.Logger.Error("Failed to get existing location", map[string]any{"error": err})
 			statusCode := http.StatusInternalServerError
@@ -433,7 +433,7 @@ func UpdateDigitalLocation(
 			if existingLocation.Subscription == nil {
 				// Add new subscription
 				subscription.CreatedAt = time.Now()
-				newSubscription, err := service.AddSubscription(r.Context(), subscription)
+				newSubscription, err := service.CreateSubscription(r.Context(), subscription)
 				if err != nil {
 					appCtx.Logger.Error("Failed to add subscription during location update", map[string]any{"error": err})
 					httputils.RespondWithError(
@@ -465,7 +465,7 @@ func UpdateDigitalLocation(
 			}
 		} else if existingLocation.Subscription != nil && !req.IsSubscription {
 			// Remove subscription if service type changed and no subscription was provided
-			if err := service.RemoveSubscription(r.Context(), locationID); err != nil {
+			if err := service.DeleteSubscription(r.Context(), locationID); err != nil {
 				appCtx.Logger.Error("Failed to remove subscription", map[string]any{"error": err})
 				httputils.RespondWithError(
 					httputils.NewResponseWriterAdapter(w),
@@ -497,7 +497,7 @@ func UpdateDigitalLocation(
 		}
 
 		// Get updated location to return
-		updatedLocation, err := service.GetDigitalLocation(r.Context(), userID, locationID)
+		updatedLocation, err := service.GetSingleDigitalLocation(r.Context(), userID, locationID)
 		if err != nil {
 			appCtx.Logger.Error("Failed to get updated location", map[string]any{"error": err})
 			httputils.RespondWithError(
@@ -526,6 +526,8 @@ func UpdateDigitalLocation(
 			// Continue despite error, since the location was updated successfully
 		}
 
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "digital" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"digital": frontendLocation,
 		})
@@ -539,9 +541,9 @@ func UpdateDigitalLocation(
 	}
 }
 
-// RemoveDigitalLocation handles DELETE requests for removing digital locations
+// DeleteDigitalLocation handles DELETE requests for removing digital locations
 // It supports both single location deletion (via URL param) and bulk deletion (via request body)
-func RemoveDigitalLocation(
+func DeleteDigitalLocation(
 	appCtx *appcontext.AppContext,
 	service services.DigitalService,
 	analyticsService analytics.Service,
@@ -587,7 +589,7 @@ func RemoveDigitalLocation(
 		})
 
 		// Call service method to delete locations
-		deletedCount, err := service.RemoveDigitalLocation(r.Context(), userID, digitalLocationIDsArr)
+		deletedCount, err := service.DeleteDigitalLocation(r.Context(), userID, digitalLocationIDsArr)
 		if err != nil {
 			appCtx.Logger.Error("Failed to delete digital locations", map[string]any{
 				"error": err,

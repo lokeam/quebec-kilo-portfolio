@@ -32,7 +32,6 @@ DROP TABLE IF EXISTS physical_locations;
 DROP TABLE IF EXISTS user_games;
 DROP TABLE IF EXISTS game_themes;
 DROP TABLE IF EXISTS game_genres;
-DROP TABLE IF EXISTS game_platforms;
 DROP TABLE IF EXISTS themes;
 DROP TABLE IF EXISTS genres;
 DROP TABLE IF EXISTS platforms;

@@ -70,3 +70,4 @@ type LibraryGameDigitalLocationDBResponse struct {
 	IsActive              *bool   `db:"is_active"`
 }
 
+// New types

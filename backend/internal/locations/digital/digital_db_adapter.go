@@ -62,125 +62,52 @@ func NewDigitalDbAdapter(appContext *appcontext.AppContext) (*DigitalDbAdapter, 
 }
 
 // GET
-func (da *DigitalDbAdapter) GetDigitalLocation(ctx context.Context, userID string, locationID string) (models.DigitalLocation, error) {
-	da.logger.Debug("GetDigitalLocation called", map[string]any{
+func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID string, locationID string) (models.DigitalLocation, error) {
+	da.logger.Debug("GetSingleDigitalLocation called", map[string]any{
 		"userID":     userID,
 		"locationID": locationID,
 	})
 
-	const getDigitalLocationQuery = `
-		WITH location_games AS (
-			SELECT
-				dl.id as location_id,
-				json_agg(
-					json_build_object(
-						'id', g.id,
-						'name', g.name,
-						'summary', g.summary,
-						'cover_id', g.cover_id,
-						'cover_url', g.cover_url,
-						'first_release_date', g.first_release_date,
-						'rating', g.rating,
-						'platform_names', COALESCE(
-							(
-								SELECT array_agg(p.name ORDER BY p.name)
-								FROM game_platforms gp
-								JOIN platforms p ON p.id = gp.platform_id
-								WHERE gp.game_id = g.id
-							),
-							'{}'
-						),
-						'genre_names', COALESCE(
-							(
-								SELECT array_agg(gn.name ORDER BY gn.name)
-								FROM game_genres gg
-								JOIN genres gn ON gn.id = gg.genre_id
-								WHERE gg.game_id = g.id
-							),
-							'{}'
-						),
-						'theme_names', COALESCE(
-							(
-								SELECT array_agg(t.name ORDER BY t.name)
-								FROM game_themes gt
-								JOIN themes t ON t.id = gt.theme_id
-								WHERE gt.game_id = g.id
-							),
-							'{}'
-						)
-					)
-				) as items
-			FROM digital_locations dl
-			LEFT JOIN digital_game_locations dgl ON dgl.digital_location_id = dl.id
-			LEFT JOIN user_games ug ON ug.id = dgl.user_game_id
-			LEFT JOIN games g ON g.id = ug.game_id
-			WHERE dl.id = $1 AND dl.user_id = $2
-			GROUP BY dl.id
-		)
-		SELECT
-			dl.*,
-			COALESCE(lg.items, '[]'::json) as items,
-			dls.id as sub_id,
-			dls.billing_cycle,
-			dls.cost_per_cycle,
-			dls.next_payment_date,
-			dls.payment_method,
-			dls.created_at as sub_created_at,
-			dls.updated_at as sub_updated_at
-		FROM digital_locations dl
-		LEFT JOIN location_games lg ON lg.location_id = dl.id
-		LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
-		WHERE dl.id = $1 AND dl.user_id = $2
-	`
-
-	type DigitalLocationJoin struct {
-		models.DigitalLocation
-		ItemsJSON     []byte    `db:"items"`
-		SubID         *int64    `db:"sub_id"`
-		BillingCycle  *string   `db:"billing_cycle"`
-		CostPerCycle  *float64  `db:"cost_per_cycle"`
-		NextPaymentDate *time.Time `db:"next_payment_date"`
-		PaymentMethod *string   `db:"payment_method"`
-		SubCreatedAt  *time.Time `db:"sub_created_at"`
-		SubUpdatedAt  *time.Time `db:"sub_updated_at"`
-	}
-
-	var locationJoin DigitalLocationJoin
-	err := da.db.GetContext(ctx, &locationJoin, getDigitalLocationQuery, locationID, userID)
-	if err != nil {
+	// Fetch digital location
+	var digitalLocation models.DigitalLocation
+	err := da.db.GetContext(
+		ctx,
+		&digitalLocation,
+		`SELECT * FROM digital_locations WHERE id = $1 AND user_id = $2`,
+		locationID,
+		userID,
+	)
+	if err != nil{
 		if err == sql.ErrNoRows {
 			return models.DigitalLocation{}, fmt.Errorf("digital location not found: %w", err)
 		}
 		return models.DigitalLocation{}, fmt.Errorf("error getting digital location: %w", err)
 	}
 
-	// Unmarshal the JSON array into the Items field
-	if err := json.Unmarshal(locationJoin.ItemsJSON, &locationJoin.Items); err != nil {
-		return models.DigitalLocation{}, fmt.Errorf("error unmarshaling items: %w", err)
+	// Optionally fetch subscription info
+	var subscription models.Subscription
+	err = da.db.GetContext(
+		ctx,
+		&subscription,
+		`SELECT * FROM digital_location_subscriptions WHERE digital_location_id = $1`,
+		locationID,
+	)
+	if err == nil {
+		digitalLocation.Subscription = &subscription
+	} else if err == sql.ErrNoRows {
+		digitalLocation.Subscription = nil
+	} else {
+		return models.DigitalLocation{}, fmt.Errorf("error getting subscription: %w", err)
 	}
 
-	// If subscription data exists, add it to the location
-	if locationJoin.SubID != nil {
-		locationJoin.Subscription = &models.Subscription{
-			ID:              *locationJoin.SubID,
-			LocationID:      locationJoin.ID,
-			BillingCycle:    *locationJoin.BillingCycle,
-			CostPerCycle:    *locationJoin.CostPerCycle,
-			NextPaymentDate: *locationJoin.NextPaymentDate,
-			PaymentMethod:   *locationJoin.PaymentMethod,
-			CreatedAt:       *locationJoin.SubCreatedAt,
-			UpdatedAt:       *locationJoin.SubUpdatedAt,
-		}
-	}
-
-	da.logger.Debug("GetDigitalLocation success", map[string]any{
-		"location": locationJoin.DigitalLocation,
+	da.logger.Debug("GetSingleDigitalLocation success", map[string]any{
+		"location": digitalLocation,
 	})
 
-	return locationJoin.DigitalLocation, nil
+	return digitalLocation, nil
 }
 
-func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+func (da *DigitalDbAdapter) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 	// Define the DigitalLocationJoin struct
 	type DigitalLocationJoin struct {
 			models.DigitalLocation
@@ -277,7 +204,7 @@ func (da *DigitalDbAdapter) GetUserDigitalLocations(ctx context.Context, userID 
 			locations[i] = baseLocation
 	}
 
-	da.logger.Debug("GetUserDigitalLocations success", map[string]any{
+	da.logger.Debug("GetAllDigitalLocations success", map[string]any{
 			"count": len(locations),
 	})
 
@@ -311,7 +238,7 @@ func (a *DigitalDbAdapter) ensureUserExists(ctx context.Context, userID string) 
 	return nil
 }
 
-func (a *DigitalDbAdapter) AddDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (a *DigitalDbAdapter) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
 	a.logger.Debug("Adding digital location", map[string]any{
 		"userID": userID,
 		"location": location,
@@ -493,9 +420,9 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 }
 
 // DELETE
-func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
 	isBulk := len(locationIDs) > 1
-	da.logger.Debug("RemoveDigitalLocation called", map[string]any{
+	da.logger.Debug("DeleteDigitalLocation called", map[string]any{
 		"userID":         userID,
 		"locationIDs":    locationIDs,
 		"isBulkOperation": isBulk,
@@ -579,7 +506,7 @@ func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID st
 			return fmt.Errorf("error cleaning up orphaned user games: %w", err)
 		}
 
-		da.logger.Debug("RemoveDigitalLocation success", map[string]any{
+		da.logger.Debug("DeleteDigitalLocation success", map[string]any{
 			"totalDeleted":    totalDeleted,
 			"isBulkOperation": isBulk,
 		})
@@ -588,7 +515,7 @@ func (da *DigitalDbAdapter) RemoveDigitalLocation(ctx context.Context, userID st
 	})
 
 	if err != nil {
-		da.logger.Error("RemoveDigitalLocation failed", map[string]any{
+		da.logger.Error("DeleteDigitalLocation failed", map[string]any{
 			"error":           err,
 			"totalDeleted":    totalDeleted,
 			"isBulkOperation": isBulk,
@@ -653,9 +580,9 @@ func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID stri
 	return &subscription, nil
 }
 
-// AddSubscription creates a new subscription for a digital location
-func (da *DigitalDbAdapter) AddSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
-	da.logger.Debug("AddSubscription called", map[string]any{
+// CreateSubscription creates a new subscription for a digital location
+func (da *DigitalDbAdapter) CreateSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+	da.logger.Debug("CreateSubscription called", map[string]any{
 		"subscription": subscription,
 	})
 
@@ -751,9 +678,9 @@ func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription
 	return nil
 }
 
-// RemoveSubscription deletes a subscription for a digital location
-func (da *DigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID string) error {
-	da.logger.Debug("RemoveSubscription called", map[string]any{
+// DeleteSubscription deletes a subscription for a digital location
+func (da *DigitalDbAdapter) DeleteSubscription(ctx context.Context, locationID string) error {
+	da.logger.Debug("DeleteSubscription called", map[string]any{
 		"locationID": locationID,
 	})
 
@@ -779,9 +706,9 @@ func (da *DigitalDbAdapter) RemoveSubscription(ctx context.Context, locationID s
 	return nil
 }
 
-// GetPayments retrieves all payments for a digital location
-func (da *DigitalDbAdapter) GetPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
-	da.logger.Debug("GetPayments called", map[string]any{
+// GetAllPayments retrieves all payments for a digital location
+func (da *DigitalDbAdapter) GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
+	da.logger.Debug("GetAllPayments called", map[string]any{
 		"locationID": locationID,
 	})
 
@@ -802,9 +729,9 @@ func (da *DigitalDbAdapter) GetPayments(ctx context.Context, locationID string) 
 	return payments, nil
 }
 
-// AddPayment records a new payment for a digital location
-func (da *DigitalDbAdapter) AddPayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
-	da.logger.Debug("AddPayment called", map[string]any{
+// CreatePayment records a new payment for a digital location
+func (da *DigitalDbAdapter) CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+	da.logger.Debug("CreatePayment called", map[string]any{
 		"payment": payment,
 	})
 
@@ -837,9 +764,9 @@ func (da *DigitalDbAdapter) AddPayment(ctx context.Context, payment models.Payme
 	return &payment, nil
 }
 
-// GetPayment retrieves a specific payment by ID
-func (da *DigitalDbAdapter) GetPayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
-	da.logger.Debug("GetPayment called", map[string]any{
+// GetSinglePayment retrieves a specific payment by ID
+func (da *DigitalDbAdapter) GetSinglePayment(ctx context.Context, paymentID int64) (*models.Payment, error) {
+	da.logger.Debug("GetSinglePayment called", map[string]any{
 		"paymentID": paymentID,
 	})
 
