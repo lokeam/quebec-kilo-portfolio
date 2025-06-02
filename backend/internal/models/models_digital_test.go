@@ -9,35 +9,35 @@ import (
 func TestDigitalLocation_IsSubscriptionService(t *testing.T) {
 	tests := []struct {
 		name         string
-		serviceType  string
+		isSubscription bool
 		subscription *Subscription
 		expected     bool
 	}{
 		{
-			name:         "Basic service type without subscription",
-			serviceType:  "basic",
+			name:         "Basic service without subscription",
+			isSubscription: false,
 			subscription: nil,
 			expected:     false,
 		},
 		{
-			name:         "Subscription service type without subscription",
-			serviceType:  "subscription",
+			name:         "Subscription service without subscription",
+			isSubscription: true,
 			subscription: nil,
 			expected:     true,
 		},
 		{
-			name:        "Basic service type with subscription",
-			serviceType: "basic",
+			name:        "Basic service with subscription",
+			isSubscription: false,
 			subscription: &Subscription{
-				BillingCycle: "monthly",
+				BillingCycle: "1 month",
 			},
 			expected: true,
 		},
 		{
-			name:        "Subscription service type with subscription",
-			serviceType: "subscription",
+			name:        "Subscription service with subscription",
+			isSubscription: true,
 			subscription: &Subscription{
-				BillingCycle: "monthly",
+				BillingCycle: "1 month",
 			},
 			expected: true,
 		},
@@ -46,7 +46,7 @@ func TestDigitalLocation_IsSubscriptionService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dl := DigitalLocation{
-				ServiceType:  tt.serviceType,
+				IsSubscription: tt.isSubscription,
 				Subscription: tt.subscription,
 			}
 
@@ -63,7 +63,7 @@ func TestDigitalLocation_MarshalJSON(t *testing.T) {
 		ID:          "test-id",
 		UserID:      "user-id",
 		Name:        "Test Service",
-		ServiceType: "subscription",
+		IsSubscription: true,
 		IsActive:    true,
 		URL:         "https://example.com",
 		CreatedAt:   now,
@@ -72,10 +72,10 @@ func TestDigitalLocation_MarshalJSON(t *testing.T) {
 		Subscription: &Subscription{
 			ID:              1,
 			LocationID:      "test-id",
-			BillingCycle:    "monthly",
+			BillingCycle:    "1 month",
 			CostPerCycle:    9.99,
 			NextPaymentDate: now,
-			PaymentMethod:   "Visa",
+			PaymentMethod:   "visa",
 			CreatedAt:       now,
 			UpdatedAt:       now,
 		},
@@ -105,7 +105,7 @@ func TestDigitalLocation_MarshalJSON(t *testing.T) {
 		t.Errorf("Expected name to be Test Service, got %v", result["name"])
 	}
 
-	if serviceType, ok := result["service_type"].(string); !ok || serviceType != "subscription" {
-		t.Errorf("Expected service_type to be subscription, got %v", result["service_type"])
+	if isSubscription, ok := result["is_subscription"].(bool); !ok || !isSubscription {
+		t.Errorf("Expected is_subscription to be true, got %v", result["is_subscription"])
 	}
 }

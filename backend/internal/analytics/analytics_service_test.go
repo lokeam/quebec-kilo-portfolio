@@ -84,11 +84,11 @@ func newMockAnalyticsServiceWithDefaults(logger *testutils.TestLogger) Service {
 			return &StorageStats{
 				TotalPhysicalLocations: 2,
 				TotalDigitalLocations:  3,
-				PhysicalLocations: []LocationSummary{
+				PhysicalLocations: []PhysicalLocation{
 					{ID: "loc1", Name: "Living Room", ItemCount: 7, LocationType: "house"},
 					{ID: "loc2", Name: "Game Shelf", ItemCount: 3, LocationType: "shelf"},
 				},
-				DigitalLocations: []LocationSummary{
+				DigitalLocations: []DigitalLocation{
 					{ID: "loc3", Name: "Steam", ItemCount: 10, LocationType: "basic", IsSubscription: false, MonthlyCost: 0.0},
 					{ID: "loc4", Name: "Xbox Game Pass", ItemCount: 5, LocationType: "subscription", IsSubscription: true, MonthlyCost: 14.99},
 				},

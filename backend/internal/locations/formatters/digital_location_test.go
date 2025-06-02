@@ -7,6 +7,12 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 )
 
+// Constants for billing cycles
+const (
+	BackendMonthly = "1 month"
+	FrontendMonthly = "1 month"
+)
+
 func TestFormatDigitalLocationToFrontend(t *testing.T) {
     now := time.Now()
 
@@ -19,17 +25,18 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         input := &models.DigitalLocation{
             ID:          "test-id",
             Name:        "Steam",
-            ServiceType: "subscription",
+            IsSubscription: true,
             IsActive:    true,
             URL:         "https://test.com",
             CreatedAt:   now,
             UpdatedAt:   now,
+            PaymentMethod: "visa",
             Subscription: &models.Subscription{
                 ID:            1,
                 LocationID:    "test-id",
                 BillingCycle:  BackendMonthly,
                 CostPerCycle:  9.99,
-                PaymentMethod: "credit_card",
+                PaymentMethod: "visa",
                 NextPaymentDate: now.AddDate(0, 1, 0), // 1 month in the future
                 CreatedAt:     now,
                 UpdatedAt:     now,
@@ -44,9 +51,6 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         }
         if got["name"] != input.Name {
             t.Errorf("FormatDigitalLocationToFrontend() name = %v, want %v", got["name"], input.Name)
-        }
-        if got["service_type"] != input.ServiceType {
-            t.Errorf("FormatDigitalLocationToFrontend() service_type = %v, want %v", got["service_type"], input.ServiceType)
         }
         if got["is_active"] != input.IsActive {
             t.Errorf("FormatDigitalLocationToFrontend() is_active = %v, want %v", got["is_active"], input.IsActive)
@@ -70,6 +74,9 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         }
         if got["isSubscriptionService"] != true {
             t.Errorf("FormatDigitalLocationToFrontend() isSubscriptionService = %v, want %v", got["isSubscriptionService"], true)
+        }
+        if got["paymentMethod"] != "visa" {
+            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", got["paymentMethod"], "visa")
         }
 
         // Check billing object exists
@@ -98,8 +105,8 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
             t.Errorf("FormatDigitalLocationToFrontend() fees.annual = %v, want %v", fees["annual"], "$119.88")
         }
 
-        if billing["paymentMethod"] != "credit_card" {
-            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", billing["paymentMethod"], "credit_card")
+        if billing["paymentMethod"] != "visa" {
+            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", billing["paymentMethod"], "visa")
         }
 
         // Check renewal date
@@ -133,11 +140,12 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         input := &models.DigitalLocation{
             ID:          "test-id",
             Name:        "Steam",
-            ServiceType: "subscription",
+            IsSubscription: true,
             IsActive:    true,
             URL:         "https://test.com",
             CreatedAt:   now,
             UpdatedAt:   now,
+            PaymentMethod: "visa",
         }
 
         got := FormatDigitalLocationToFrontend(input)
@@ -154,8 +162,8 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         }
 
         // Check default subscription billing values
-        if billing["cycle"] != "1 month" {
-            t.Errorf("FormatDigitalLocationToFrontend() billing.cycle = %v, want %v", billing["cycle"], "1 month")
+        if billing["cycle"] != "NA" {
+            t.Errorf("FormatDigitalLocationToFrontend() billing.cycle = %v, want %v", billing["cycle"], "NA")
         }
 
         fees, ok := billing["fees"].(map[string]interface{})
@@ -163,14 +171,14 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
             t.Fatal("FormatDigitalLocationToFrontend() did not create fees object")
         }
 
-        if fees["monthly"] != "$0.00" {
-            t.Errorf("FormatDigitalLocationToFrontend() fees.monthly = %v, want %v", fees["monthly"], "$0.00")
+        if fees["monthly"] != "FREE" {
+            t.Errorf("FormatDigitalLocationToFrontend() fees.monthly = %v, want %v", fees["monthly"], "FREE")
         }
-        if fees["quarterly"] != "$0.00" {
-            t.Errorf("FormatDigitalLocationToFrontend() fees.quarterly = %v, want %v", fees["quarterly"], "$0.00")
+        if fees["quarterly"] != "FREE" {
+            t.Errorf("FormatDigitalLocationToFrontend() fees.quarterly = %v, want %v", fees["quarterly"], "FREE")
         }
-        if fees["annual"] != "$0.00" {
-            t.Errorf("FormatDigitalLocationToFrontend() fees.annual = %v, want %v", fees["annual"], "$0.00")
+        if fees["annual"] != "FREE" {
+            t.Errorf("FormatDigitalLocationToFrontend() fees.annual = %v, want %v", fees["annual"], "FREE")
         }
 
         // Check renewal date
@@ -179,11 +187,11 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
             t.Fatal("FormatDigitalLocationToFrontend() did not create renewalDate object")
         }
 
-        if renewalDate["month"] != "January" {
-            t.Errorf("FormatDigitalLocationToFrontend() renewalDate.month = %v, want %v", renewalDate["month"], "January")
+        if renewalDate["month"] != "NA" {
+            t.Errorf("FormatDigitalLocationToFrontend() renewalDate.month = %v, want %v", renewalDate["month"], "NA")
         }
-        if renewalDate["day"] != 1 {
-            t.Errorf("FormatDigitalLocationToFrontend() renewalDate.day = %v, want %v", renewalDate["day"], 1)
+        if renewalDate["day"] != "NA" {
+            t.Errorf("FormatDigitalLocationToFrontend() renewalDate.day = %v, want %v", renewalDate["day"], "NA")
         }
     })
 
@@ -196,11 +204,12 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         input := &models.DigitalLocation{
             ID:          "test-id",
             Name:        "Epic Games Store",
-            ServiceType: "basic",
+            IsSubscription: false,
             IsActive:    true,
             URL:         "https://test.com",
             CreatedAt:   now,
             UpdatedAt:   now,
+            PaymentMethod: "visa",
             Items: []models.Game{{Name: "Test Game", ID: 1}},
         }
 
@@ -212,9 +221,6 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         }
         if got["name"] != input.Name {
             t.Errorf("FormatDigitalLocationToFrontend() name = %v, want %v", got["name"], input.Name)
-        }
-        if got["service_type"] != input.ServiceType {
-            t.Errorf("FormatDigitalLocationToFrontend() service_type = %v, want %v", got["service_type"], input.ServiceType)
         }
         if got["is_active"] != input.IsActive {
             t.Errorf("FormatDigitalLocationToFrontend() is_active = %v, want %v", got["is_active"], input.IsActive)
@@ -232,6 +238,9 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
         }
         if got["isSubscriptionService"] != false {
             t.Errorf("FormatDigitalLocationToFrontend() isSubscriptionService = %v, want %v", got["isSubscriptionService"], false)
+        }
+        if got["paymentMethod"] != "visa" {
+            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", got["paymentMethod"], "visa")
         }
 
         // Check billing object exists
@@ -260,8 +269,8 @@ func TestFormatDigitalLocationToFrontend(t *testing.T) {
             t.Errorf("FormatDigitalLocationToFrontend() fees.annual = %v, want %v", fees["annual"], "FREE")
         }
 
-        if billing["paymentMethod"] != "None" {
-            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", billing["paymentMethod"], "None")
+        if billing["paymentMethod"] != "visa" {
+            t.Errorf("FormatDigitalLocationToFrontend() paymentMethod = %v, want %v", billing["paymentMethod"], "visa")
         }
 
         // Check renewal date

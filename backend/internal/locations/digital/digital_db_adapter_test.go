@@ -27,15 +27,15 @@ Behavior:
 - Ensuring user may only access their own locations
 
 Scenarios:
-- GetDigitalLocation:
+- GetSingleDigitalLocation:
   - Successfully retrieves a valid location
   - Returns error when location not found
   - Handles db errors
-- GetUserDigitalLocations:
+- GetAllDigitalLocations:
   - Successfully retrieves all locations for a user
   - Returns empty slice when no locations exist
   - Handles db errors
-- AddDigitalLocation:
+- CreateDigitalLocation:
   - Successfully adds new location
   - Handles db errors
 - UpdateDigitalLocation:
@@ -43,7 +43,7 @@ Scenarios:
   - Returns error when location not found
   - Handles db errors
   - Returns error when user is not authorized
-- RemoveDigitalLocation:
+- DeleteDigitalLocation:
   - Successfully removes a location
   - Returns errors when location not found
   - Handles db errors
@@ -78,7 +78,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the location exists in the database
 		THEN the adapter returns the location
 	*/
-	t.Run(`GetDigitalLocation - Successfully retrieves a valid location`, func(t *testing.T) {
+	t.Run(`GetSingleDigitalLocation - Successfully retrieves a valid location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -101,7 +101,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute
-		location, err := adapter.GetDigitalLocation(context.Background(), userID, locationID)
+		location, err := adapter.GetSingleDigitalLocation(context.Background(), userID, locationID)
 
 		// Manually set the features for verification
 		expectedLocation := models.DigitalLocation{
@@ -132,7 +132,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the location does not exist in the db
 		THEN the adapter returns an error
 	*/
-	t.Run(`GetDigitalLocation - Returns error when location not found`, func(t *testing.T) {
+	t.Run(`GetSingleDigitalLocation - Returns error when location not found`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -149,7 +149,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnError(sql.ErrNoRows)
 
 		// Execute
-		_, err = adapter.GetDigitalLocation(context.Background(), userID, locationID)
+		_, err = adapter.GetSingleDigitalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
@@ -168,7 +168,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the db returns an error
 		THEN the adapter also returns an error
 	*/
-	t.Run(`GetDigitalLocation - Handles database errors`, func(t *testing.T) {
+	t.Run(`GetSingleDigitalLocation - Handles database errors`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -186,7 +186,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute the function
-		_, err = adapter.GetDigitalLocation(context.Background(), userID, locationID)
+		_, err = adapter.GetSingleDigitalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
@@ -205,7 +205,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN locations exist in the db
 		THEN the adapter returns all locations
 	*/
-	t.Run("GetUserDigitalLocations - Successfully retrieves all locations", func(t *testing.T) {
+	t.Run("GetAllDigitalLocations - Successfully retrieves all locations", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -241,7 +241,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute the function
-		locations, err := adapter.GetUserDigitalLocations(context.Background(), userID)
+		locations, err := adapter.GetAllDigitalLocations(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -263,7 +263,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN NO locations exist in the db
 		THEN the adapter returns an empty slice
 	*/
-	t.Run(`GetUserDigitalLocations - Returns empty slice when no locations exist`, func(t *testing.T) {
+	t.Run(`GetAllDigitalLocations - Returns empty slice when no locations exist`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -281,7 +281,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute the function
-		locations, err := adapter.GetUserDigitalLocations(context.Background(), userID)
+		locations, err := adapter.GetAllDigitalLocations(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -300,7 +300,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the database returns an error
 		THEN the adapter returns the error
 	*/
-	t.Run(`GetUserDigitalLocations - Handles database errors`, func(t *testing.T) {
+	t.Run(`GetAllDigitalLocations - Handles database errors`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -317,7 +317,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute
-		_, err = adapter.GetUserDigitalLocations(context.Background(), userID)
+		_, err = adapter.GetAllDigitalLocations(context.Background(), userID)
 
 		// Verify
 		if err == nil {
@@ -336,7 +336,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the db operation is successful
 		THEN the adapter adds the location and returns it with generated fields
 	*/
-	t.Run(`AddDigitalLocation - Successfully adds a new location`, func(t *testing.T) {
+	t.Run(`CreateDigitalLocation - Successfully adds a new location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -384,7 +384,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute
-		result, err := adapter.AddDigitalLocation(context.Background(), userID, location)
+		result, err := adapter.CreateDigitalLocation(context.Background(), userID, location)
 
 		// Verify
 		if err != nil {
@@ -403,7 +403,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the db returns an error
 		THEN then the adapter also returns an error
 	*/
-	t.Run("AddDigitalLocation - Handles database errors", func(t *testing.T) {
+	t.Run("CreateDigitalLocation - Handles database errors", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -447,7 +447,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute
-		_, err = adapter.AddDigitalLocation(context.Background(), userID, location)
+		_, err = adapter.CreateDigitalLocation(context.Background(), userID, location)
 
 		// Verify
 		if err == nil {
@@ -654,7 +654,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the location exists AND belongs to the user
 		THEN the adapter removes the location
 	*/
-	t.Run(`RemoveDigitalLocation - Successfully removes a location`, func(t *testing.T) {
+	t.Run(`DeleteDigitalLocation - Successfully removes a location`, func(t *testing.T) {
 		// Setup
 		testLogger := testutils.NewTestLogger()
 
@@ -692,7 +692,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		count, err := adapter.RemoveDigitalLocation(context.Background(), userID, locationIDs)
+		count, err := adapter.DeleteDigitalLocation(context.Background(), userID, locationIDs)
 
 		// Verify
 		if err != nil {
@@ -711,7 +711,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the location doesn't exist or doesn't belong to the user
 		THEN the adapter returns an error
 	*/
-	t.Run(`RemoveDigitalLocation - Returns error when location not found`, func(t *testing.T) {
+	t.Run(`DeleteDigitalLocation - Returns error when location not found`, func(t *testing.T) {
 		// Setup
 		testLogger := testutils.NewTestLogger()
 
@@ -744,7 +744,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute
-		count, err := adapter.RemoveDigitalLocation(context.Background(), userID, locationIDs)
+		count, err := adapter.DeleteDigitalLocation(context.Background(), userID, locationIDs)
 
 		// Verify
 		if err == nil {
@@ -766,7 +766,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		WHEN the database returns an error during deletion
 		THEN the adapter returns the error
 	*/
-	t.Run(`RemoveDigitalLocation - Handles database errors during deletion`, func(t *testing.T) {
+	t.Run(`DeleteDigitalLocation - Handles database errors during deletion`, func(t *testing.T) {
 		// Setup
 		testLogger := testutils.NewTestLogger()
 
@@ -805,7 +805,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute
-		count, err := adapter.RemoveDigitalLocation(context.Background(), userID, locationIDs)
+		count, err := adapter.DeleteDigitalLocation(context.Background(), userID, locationIDs)
 
 		// Verify
 		if err == nil {
@@ -838,7 +838,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		}
 
 		// Execute
-		count, err := adapter.RemoveDigitalLocation(context.Background(), "test-user-id", []string{})
+		count, err := adapter.DeleteDigitalLocation(context.Background(), "test-user-id", []string{})
 
 		// Verify
 		if err == nil {
@@ -868,7 +868,7 @@ func TestDigitalDbAdapter(t *testing.T) {
 		}
 
 		// Execute
-		count, err := adapter.RemoveDigitalLocation(context.Background(), "", []string{"test-location-id"})
+		count, err := adapter.DeleteDigitalLocation(context.Background(), "", []string{"test-location-id"})
 
 		// Verify
 		if err == nil {
@@ -1083,7 +1083,7 @@ func TestAddSubscription(t *testing.T) {
 				logger: appCtx.Logger,
 			}
 
-			result, err := adapter.AddSubscription(context.Background(), tt.subscription)
+			result, err := adapter.CreateSubscription(context.Background(), tt.subscription)
 
 			if err != nil {
 				if tt.expectedError == nil {
@@ -1200,7 +1200,7 @@ func TestGetPayments(t *testing.T) {
 				logger: appCtx.Logger,
 			}
 
-			result, err := adapter.GetPayments(context.Background(), tt.locationID)
+			result, err := adapter.GetAllPayments(context.Background(), tt.locationID)
 
 			if err != tt.expectedError {
 				t.Errorf("expected error %v, got %v", tt.expectedError, err)
@@ -1306,7 +1306,7 @@ func TestGetUserDigitalLocations(t *testing.T) {
 
 	// Test cases
 	t.Run("success", func(t *testing.T) {
-		locations, err := adapter.GetUserDigitalLocations(context.Background(), "test-user")
+		locations, err := adapter.GetAllDigitalLocations(context.Background(), "test-user")
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -1376,7 +1376,7 @@ func TestGetDigitalLocation(t *testing.T) {
 
 	// Test cases
 	t.Run("success", func(t *testing.T) {
-		location, err := adapter.GetDigitalLocation(context.Background(), "test-user", "test-location-id")
+		location, err := adapter.GetSingleDigitalLocation(context.Background(), "test-user", "test-location-id")
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -1454,7 +1454,7 @@ func TestAddDigitalLocation(t *testing.T) {
 			URL:      "https://test.com",
 		}
 
-		location, err := adapter.AddDigitalLocation(context.Background(), "test-user", testLocation)
+		location, err := adapter.CreateDigitalLocation(context.Background(), "test-user", testLocation)
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -1890,7 +1890,7 @@ func TestRemoveSubscription(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		// Execute
-		err := adapter.RemoveSubscription(context.Background(), locationID)
+		err := adapter.DeleteSubscription(context.Background(), locationID)
 
 		// Verify
 		if err != nil {
@@ -1908,7 +1908,7 @@ func TestRemoveSubscription(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Execute
-		err := adapter.RemoveSubscription(context.Background(), locationID)
+		err := adapter.DeleteSubscription(context.Background(), locationID)
 
 		// Verify
 		if err == nil {
@@ -1930,7 +1930,7 @@ func TestRemoveSubscription(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute
-		err := adapter.RemoveSubscription(context.Background(), locationID)
+		err := adapter.DeleteSubscription(context.Background(), locationID)
 
 		// Verify
 		if err == nil {
