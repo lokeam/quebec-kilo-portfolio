@@ -87,6 +87,9 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	// IMPORTANT: Preserve is_active flag
 	validatedLocation.IsActive = location.IsActive
 
+	// IMPORTANT: Preserve is_subscription flag
+	validatedLocation.IsSubscription = location.IsSubscription
+
 	// Validate name
 	if sanitizedName, err := v.validateName(location.Name); err != nil {
 		violations = append(violations, err.Error())

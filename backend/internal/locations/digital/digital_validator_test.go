@@ -298,11 +298,11 @@ func TestDigitalValidator(t *testing.T) {
 		testSubscription := models.Subscription{
 			BillingCycle: "invalid",
 			CostPerCycle: 10.0,
-			PaymentMethod: "Visa",
+			PaymentMethod: "visa",
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for invalid billing cycle, but got nil")
@@ -325,13 +325,13 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`validateSubscription() rejects non-positive costs`, func(t *testing.T) {
 		testSubscription := models.Subscription{
-			BillingCycle: "monthly",
+			BillingCycle: "1 month",
 			CostPerCycle: 0,
-			PaymentMethod: "Visa",
+			PaymentMethod: "visa",
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for non-positive cost, but got nil")
@@ -354,13 +354,13 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`validateSubscription() rejects invalid payment methods`, func(t *testing.T) {
 		testSubscription := models.Subscription{
-			BillingCycle: "monthly",
+			BillingCycle: "1 month",
 			CostPerCycle: 10.0,
 			PaymentMethod: "Invalid",
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for invalid payment method, but got nil")
@@ -382,23 +382,19 @@ func TestDigitalValidator(t *testing.T) {
 		THEN the method returns an error stating "next payment date must be in the future"
 	*/
 	t.Run(`validateSubscription() accepts any next payment date`, func(t *testing.T) {
-		// The validator doesn't check if the next payment date is in the future,
-		// so we test that any date is accepted
 		testSubscription := models.Subscription{
-			BillingCycle: "monthly",
+			BillingCycle: "1 month",
 			CostPerCycle: 10.0,
-			PaymentMethod: "Visa",
+			PaymentMethod: "visa",
 			NextPaymentDate: time.Now().Add(-24 * time.Hour), // Past date
 		}
 
-		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
 
-		// No error should be returned for a past date
 		if testErr != nil {
 			t.Errorf("expected no error for past next payment date, but got %v", testErr)
 		}
 
-		// The date should be preserved as-is
 		if !validatedSubscription.NextPaymentDate.Equal(testSubscription.NextPaymentDate) {
 			t.Errorf("expected next payment date to be preserved, but got %v", validatedSubscription.NextPaymentDate)
 		}
@@ -411,13 +407,13 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`validateSubscription() Happy Path - Returns validated subscription for valid input`, func(t *testing.T) {
 		testSubscription := models.Subscription{
-			BillingCycle: "monthly",
+			BillingCycle: "1 month",
 			CostPerCycle: 10.0,
-			PaymentMethod: "Visa",
+			PaymentMethod: "visa",
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.validateSubscription(testSubscription)
+		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
 
 		if testErr != nil {
 			t.Errorf("expected no error for valid subscription, but got %v", testErr)
@@ -553,7 +549,7 @@ func TestDigitalValidator(t *testing.T) {
 	t.Run(`ValidatePayment() Happy Path - Returns validated payment for valid input`, func(t *testing.T) {
 		testPayment := models.Payment{
 			Amount: 10.0,
-			PaymentMethod: "Visa",
+			PaymentMethod: "visa",
 			PaymentDate: time.Now(),
 			TransactionID: "test-transaction-id",
 		}
@@ -580,18 +576,23 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`ValidateDigitalLocation() rejects invalid service types`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
+			ID: "test-id",
+			UserID: "test-user",
 			Name: "Test Location",
+			IsSubscription: true,
+			IsActive: true,
 			URL: "https://example.com",
-			ServiceType: "Invalid",
+			PaymentMethod: "visa",
+			Subscription: nil, // Missing subscription for a subscription service
 		}
 
 		validatedLocation, testErr := testValidator.ValidateDigitalLocation(testLocation)
 
 		if testErr == nil {
-			t.Fatalf("expected an error for invalid service type, but got nil")
+			t.Fatalf("expected an error for missing subscription, but got nil")
 		}
 
-		expectedError := "Invalid service type. Must be 'basic' or 'subscription'"
+		expectedError := "Subscription service must have subscription data"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -608,9 +609,13 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`ValidateDigitalLocation() rejects invalid subscriptions`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
+			ID: "test-id",
+			UserID: "test-user",
 			Name: "Test Location",
+			IsSubscription: true,
+			IsActive: true,
 			URL: "https://example.com",
-			ServiceType: "subscription",
+			PaymentMethod: "visa",
 			Subscription: &models.Subscription{
 				BillingCycle: "invalid",
 				CostPerCycle: 10.0,
@@ -642,13 +647,17 @@ func TestDigitalValidator(t *testing.T) {
 	*/
 	t.Run(`ValidateDigitalLocation() Happy Path - Returns validated location with subscription`, func(t *testing.T) {
 		testLocation := models.DigitalLocation{
+			ID: "test-id",
+			UserID: "test-user",
 			Name: "Test Location",
+			IsSubscription: true,
+			IsActive: true,
 			URL: "https://example.com",
-			ServiceType: "subscription",
+			PaymentMethod: "visa",
 			Subscription: &models.Subscription{
-				BillingCycle: "monthly",
+				BillingCycle: "1 month",
 				CostPerCycle: 10.0,
-				PaymentMethod: "Visa",
+				PaymentMethod: "visa",
 				NextPaymentDate: time.Now().Add(24 * time.Hour),
 			},
 		}
@@ -659,9 +668,13 @@ func TestDigitalValidator(t *testing.T) {
 			t.Errorf("expected no error for valid location, but got %v", testErr)
 		}
 
-		if validatedLocation.Name != testLocation.Name ||
+		if validatedLocation.ID != testLocation.ID ||
+			validatedLocation.UserID != testLocation.UserID ||
+			validatedLocation.Name != testLocation.Name ||
+			validatedLocation.IsSubscription != testLocation.IsSubscription ||
+			validatedLocation.IsActive != testLocation.IsActive ||
 			validatedLocation.URL != testLocation.URL ||
-			validatedLocation.ServiceType != testLocation.ServiceType ||
+			validatedLocation.PaymentMethod != testLocation.PaymentMethod ||
 			validatedLocation.Subscription == nil ||
 			validatedLocation.Subscription.BillingCycle != testLocation.Subscription.BillingCycle ||
 			validatedLocation.Subscription.CostPerCycle != testLocation.Subscription.CostPerCycle ||
@@ -752,7 +765,7 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := validator.validateSubscription(tt.subscription)
+			got, err := validator.ValidateSubscription(tt.subscription)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -776,7 +789,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 	}
 
 	t.Run("empty user ID", func(t *testing.T) {
-		err := validator.ValidateRemoveDigitalLocation("", []string{"123e4567-e89b-12d3-a456-426614174000"})
+		_, err := validator.ValidateRemoveDigitalLocation("", []string{"123e4567-e89b-12d3-a456-426614174000"})
 		if err == nil {
 			t.Error("Expected error for empty user ID")
 		}
@@ -786,7 +799,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 	})
 
 	t.Run("empty location IDs", func(t *testing.T) {
-		err := validator.ValidateRemoveDigitalLocation("user1", []string{})
+		_, err := validator.ValidateRemoveDigitalLocation("user1", []string{})
 		if err == nil {
 			t.Error("Expected error for empty location IDs")
 		}
@@ -800,7 +813,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 		for i := range ids {
 			ids[i] = fmt.Sprintf("123e4567-e89b-12d3-a456-426614174%03d", i)
 		}
-		err := validator.ValidateRemoveDigitalLocation("user1", ids)
+		_, err := validator.ValidateRemoveDigitalLocation("user1", ids)
 		if err == nil {
 			t.Error("Expected error for too many location IDs")
 		}
@@ -810,7 +823,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 	})
 
 	t.Run("empty location ID", func(t *testing.T) {
-		err := validator.ValidateRemoveDigitalLocation("user1", []string{""})
+		_, err := validator.ValidateRemoveDigitalLocation("user1", []string{""})
 		if err == nil {
 			t.Error("Expected error for empty location ID")
 		}
@@ -820,7 +833,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 	})
 
 	t.Run("invalid UUID format", func(t *testing.T) {
-		err := validator.ValidateRemoveDigitalLocation("user1", []string{"invalid-uuid"})
+		_, err := validator.ValidateRemoveDigitalLocation("user1", []string{"invalid-uuid"})
 		if err == nil {
 			t.Error("Expected error for invalid UUID format")
 		}
@@ -831,7 +844,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 
 	t.Run("duplicate location IDs", func(t *testing.T) {
 		duplicateID := "123e4567-e89b-12d3-a456-426614174000"
-		err := validator.ValidateRemoveDigitalLocation("user1", []string{duplicateID, duplicateID})
+		_, err := validator.ValidateRemoveDigitalLocation("user1", []string{duplicateID, duplicateID})
 		if err == nil {
 			t.Error("Expected error for duplicate location IDs")
 		}
@@ -841,9 +854,12 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 	})
 
 	t.Run("single valid location ID", func(t *testing.T) {
-		err := validator.ValidateRemoveDigitalLocation("user1", []string{"123e4567-e89b-12d3-a456-426614174000"})
+		validatedIDs, err := validator.ValidateRemoveDigitalLocation("user1", []string{"123e4567-e89b-12d3-a456-426614174000"})
 		if err != nil {
 			t.Errorf("Unexpected error for valid location ID: %v", err)
+		}
+		if len(validatedIDs) != 1 {
+			t.Errorf("Expected 1 validated ID, got %d", len(validatedIDs))
 		}
 	})
 
@@ -853,9 +869,12 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 			"123e4567-e89b-12d3-a456-426614174001",
 			"123e4567-e89b-12d3-a456-426614174002",
 		}
-		err := validator.ValidateRemoveDigitalLocation("user1", ids)
+		validatedIDs, err := validator.ValidateRemoveDigitalLocation("user1", ids)
 		if err != nil {
 			t.Errorf("Unexpected error for valid location IDs: %v", err)
+		}
+		if len(validatedIDs) != len(ids) {
+			t.Errorf("Expected %d validated IDs, got %d", len(ids), len(validatedIDs))
 		}
 	})
 }
