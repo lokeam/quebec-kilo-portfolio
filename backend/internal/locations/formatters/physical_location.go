@@ -42,25 +42,6 @@ func FormatPhysicalLocationToFrontend(pl *models.PhysicalLocation) map[string]an
 
 			formattedSublocations = append(formattedSublocations, formattedSubloc)
 		}
-		// for _, subloc := range *pl.SubLocations {
-		// 	formattedSubloc := map[string]any{
-		// 		"id":                  subloc.ID,
-		// 		"name":                html.UnescapeString(subloc.Name),
-		// 		"location_type":       subloc.LocationType,
-		// 		"stored_items":        subloc.StoredItems,
-		// 		"created_at":          subloc.CreatedAt.Format(time.RFC3339),
-		// 		"updated_at":          subloc.UpdatedAt.Format(time.RFC3339),
-		// 	}
-
-		// 	// Format items if they exist
-		// 	if subloc.Items != nil {
-		// 		formattedSubloc["items"] = subloc.Items
-		// 	} else {
-		// 		formattedSubloc["items"] = []models.Game{}
-		// 	}
-
-		// 	formattedSublocations = append(formattedSublocations, formattedSubloc)
-		// }
 		result["sublocations"] = formattedSublocations
 	} else {
 		result["sublocations"] = []map[string]any{}

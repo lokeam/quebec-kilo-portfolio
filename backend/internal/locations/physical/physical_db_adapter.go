@@ -176,6 +176,7 @@ func (pa *PhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, user
 		&location.Label,
 		&location.LocationType,
 		&location.MapCoordinates,
+		&location.BgColor,
 		&location.CreatedAt,
 		&location.UpdatedAt,
 	)
@@ -242,6 +243,7 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID
 			&location.Label,
 			&location.LocationType,
 			&location.MapCoordinates,
+			&location.BgColor,
 			&location.CreatedAt,
 			&location.UpdatedAt,
 		)
@@ -356,6 +358,7 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
+		location.BgColor,
 	).Scan(
 		&newLocation.ID,
 		&newLocation.UserID,
@@ -363,6 +366,7 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 		&newLocation.Label,
 		&newLocation.LocationType,
 		&newLocation.MapCoordinates,
+		&newLocation.BgColor,
 		&newLocation.CreatedAt,
 		&newLocation.UpdatedAt,
 	)

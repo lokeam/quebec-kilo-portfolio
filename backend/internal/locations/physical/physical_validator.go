@@ -103,6 +103,8 @@ func (v *PhysicalValidator) ValidatePhysicalLocation(location models.PhysicalLoc
 	// Validate background color
 	if err := v.validateBackgroundColor(location.BgColor); err != nil {
 		violations = append(violations, err.Error())
+	} else {
+		validatedLocation.BgColor = location.BgColor
 	}
 
 	// Copy other fields that don't need validation

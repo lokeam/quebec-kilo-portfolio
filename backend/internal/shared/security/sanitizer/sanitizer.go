@@ -2,7 +2,6 @@ package security
 
 import (
 	"fmt"
-	"html"
 	"regexp"
 	"sync"
 
@@ -68,11 +67,8 @@ func (s *Sanitizer) performBaseSanitization(input string) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Escape HTML characters
-	escaped := html.EscapeString(input)
-
-	// Sanitize string content
-	sanitizedContent := s.policy.Sanitize(escaped)
+	// Sanitize string content using bluemonday policy
+	sanitizedContent := s.policy.Sanitize(input)
 
 	return sanitizedContent, nil
 }
