@@ -22,9 +22,9 @@ type GamePhysicalService struct {
 }
 
 type PhysicalService interface {
-	GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	GetPhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
-	AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
+	GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
+	GetSinglePhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
+	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	DeletePhysicalLocation(ctx context.Context, userID, locationID string) error
 }
@@ -46,14 +46,6 @@ func NewGamePhysicalService(appContext *appcontext.AppContext) (*GamePhysicalSer
 	}
 	appContext.Logger.Info("sanitizer created successfully", nil)
 
-	// Create validator
-	validator, err := NewPhysicalValidator(sanitizer)
-	if err != nil {
-		appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
-		return nil, err
-	}
-	appContext.Logger.Info("validator created successfully", nil)
-
 	// Create cache wrapper to handle Redis caching
 	cacheWrapper, err := cache.NewCacheWrapper(
 		appContext.RedisClient,
@@ -70,6 +62,14 @@ func NewGamePhysicalService(appContext *appcontext.AppContext) (*GamePhysicalSer
 	if err != nil {
 		return nil, err
 	}
+
+	// Create validator with both sanitizer and cache wrapper
+	validator, err := NewPhysicalValidator(sanitizer, physicalCacheAdapter, appContext.Logger)
+	if err != nil {
+		appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
+		return nil, err
+	}
+	appContext.Logger.Info("validator created successfully", nil)
 
 	// Sanity check that all dependencies are intialized
 	appContext.Logger.Info("GamePhysicalService components initialized", map[string]any{
@@ -89,7 +89,7 @@ func NewGamePhysicalService(appContext *appcontext.AppContext) (*GamePhysicalSer
 }
 
 // GET
-func (gps *GamePhysicalService) GetUserPhysicalLocations(
+func (gps *GamePhysicalService) GetAllPhysicalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.PhysicalLocation, error) {
@@ -102,7 +102,7 @@ func (gps *GamePhysicalService) GetUserPhysicalLocations(
 
 	// Cache miss or error, get from DB
 	gps.logger.Debug("Cache miss for physical locations, fetching from DB", map[string]any{"userID": userID})
-	locations, err := gps.dbAdapter.GetUserPhysicalLocations(ctx, userID)
+	locations, err := gps.dbAdapter.GetAllPhysicalLocations(ctx, userID)
 	if err != nil {
 		gps.logger.Error("Failed to fetch physical locations from DB", map[string]any{"error": err})
 		return nil, err
@@ -117,7 +117,7 @@ func (gps *GamePhysicalService) GetUserPhysicalLocations(
 	return locations, nil
 }
 
-func (gps *GamePhysicalService) GetPhysicalLocation(
+func (gps *GamePhysicalService) GetSinglePhysicalLocation(
 	ctx context.Context,
 	userID string,
 	locationID string,
@@ -138,7 +138,7 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 		"locationID": locationID,
 	})
 
-	location, err := gps.dbAdapter.GetPhysicalLocation(ctx, userID, locationID)
+	location, err := gps.dbAdapter.GetSinglePhysicalLocation(ctx, userID, locationID)
 	if err != nil {
 		gps.logger.Error("Failed to fetch physical location from DB", map[string]any{"error": err})
 		return models.PhysicalLocation{}, err
@@ -157,20 +157,20 @@ func (gps *GamePhysicalService) GetPhysicalLocation(
 }
 
 // POST
-func (gps *GamePhysicalService) AddPhysicalLocation(
+func (gps *GamePhysicalService) CreatePhysicalLocation(
 	ctx context.Context,
 	userID string,
 	location models.PhysicalLocation,
 ) (models.PhysicalLocation, error) {
-	// Validate location
-	validatedLocation, err := gps.validator.ValidatePhysicalLocation(location)
+	// Validate location with creation-specific validation (duplicate name check)
+	validatedLocation, err := gps.validator.ValidatePhysicalLocationCreation(location)
 	if err != nil {
 		gps.logger.Error("Location validation failed", map[string]any{"error": err})
 		return models.PhysicalLocation{}, err
 	}
 
 	// Add to db
-	createdLocation, err := gps.dbAdapter.AddPhysicalLocation(ctx, userID, validatedLocation)
+	createdLocation, err := gps.dbAdapter.CreatePhysicalLocation(ctx, userID, validatedLocation)
 	if err != nil {
 		gps.logger.Error("Failed to add physical location to DB", map[string]any{"error": err})
 		return models.PhysicalLocation{}, err
@@ -195,18 +195,18 @@ func (gps *GamePhysicalService) UpdatePhysicalLocation(ctx context.Context, user
 		"location": location,
 	})
 
-	// Update in database
-	updatedLocation, err := gps.dbAdapter.UpdatePhysicalLocation(ctx, userID, location)
-	if err != nil {
-		return models.PhysicalLocation{}, fmt.Errorf("failed to update physical location: %w", err)
-	}
-
 	// Invalidate both the user's locations cache and the specific location cache
 	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		gps.logger.Error("Failed to invalidate user locations cache", map[string]any{
 			"error": err,
 			"userID": userID,
 		})
+	}
+
+	// Update in database
+	updatedLocation, err := gps.dbAdapter.UpdatePhysicalLocation(ctx, userID, location)
+	if err != nil {
+		return models.PhysicalLocation{}, fmt.Errorf("failed to update physical location: %w", err)
 	}
 
 	if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, location.ID); err != nil {
@@ -227,7 +227,7 @@ func (gps *GamePhysicalService) DeletePhysicalLocation(
 	locationID string,
 ) error {
 	// Remove from database
-	if err := gps.dbAdapter.RemovePhysicalLocation(ctx, userID, locationID); err != nil {
+	if err := gps.dbAdapter.DeletePhysicalLocation(ctx, userID, locationID); err != nil {
 		gps.logger.Error("Failed to delete physical location from DB", map[string]any{"error": err})
 		return err
 	}

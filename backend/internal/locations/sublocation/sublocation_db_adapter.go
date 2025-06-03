@@ -53,14 +53,14 @@ func NewSublocationDbAdapter(appContext *appcontext.AppContext) (*SublocationDbA
 }
 
 // GET
-func (sa *SublocationDbAdapter) GetSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error) {
-	sa.logger.Debug("GetSublocation called", map[string]any{
+func (sa *SublocationDbAdapter) GetSingleSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error) {
+	sa.logger.Debug("GetSingleSublocation called", map[string]any{
 		"userID":        userID,
 		"sublocationID": sublocationID,
 	})
 
 	query := `
-		SELECT id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		SELECT id, user_id, physical_location_id, name, location_type, stored_items, created_at, updated_at
 		FROM sublocations
 		WHERE id = $1 AND user_id = $2
 	`
@@ -87,20 +87,20 @@ func (sa *SublocationDbAdapter) GetSublocation(ctx context.Context, userID strin
 		sublocation.Items = games
 	}
 
-	sa.logger.Debug("GetSublocation success", map[string]any{
+	sa.logger.Debug("GetSingleSublocation success", map[string]any{
 		"sublocation": sublocation,
 	})
 
 	return sublocation, nil
 }
 
-func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
-	sa.logger.Debug("GetUserSublocations called", map[string]any{
+func (sa *SublocationDbAdapter) GetAllSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
+	sa.logger.Debug("GetAllSublocations called", map[string]any{
 		"userID": userID,
 	})
 
 	query := `
-		SELECT id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		SELECT id, user_id, physical_location_id, name, location_type, stored_items, created_at, updated_at
 		FROM sublocations
 		WHERE user_id = $1
 		ORDER BY name
@@ -113,7 +113,7 @@ func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID 
 	}
 
 	// For each sublocation, get its games
-	for i := range sublocations {
+	for i := 0; i < len(sublocations); i++ {
 		games, err := sa.GetGamesBySublocationID(ctx, userID, sublocations[i].ID)
 		if err != nil {
 			sa.logger.Error("Error getting games for sublocation", map[string]any{
@@ -126,7 +126,7 @@ func (sa *SublocationDbAdapter) GetUserSublocations(ctx context.Context, userID 
 		sublocations[i].Items = games
 	}
 
-	sa.logger.Debug("GetUserSublocations success", map[string]any{
+	sa.logger.Debug("GetAllSublocations success", map[string]any{
 		"sublocations": sublocations,
 	})
 
@@ -174,8 +174,8 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 
 	query := `
 		UPDATE sublocations
-		SET name = $1, location_type = $2, bg_color = $3, stored_items = $4, updated_at = $5
-		WHERE id = $6 AND user_id = $7
+		SET name = $1, location_type = $2, stored_items = $3, updated_at = $4
+		WHERE id = $5 AND user_id = $6
   `
 
 	now := time.Now()
@@ -184,7 +184,6 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 		query,
 		sublocation.Name,
 		sublocation.LocationType,
-		sublocation.BgColor,
 		sublocation.StoredItems,
 		now,
 		sublocation.ID,
@@ -210,8 +209,8 @@ func (sa *SublocationDbAdapter) UpdateSublocation(ctx context.Context, userID st
 }
 
 // POST
-func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
-	sa.logger.Debug("AddSublocation called", map[string]any{
+func (sa *SublocationDbAdapter) CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
+	sa.logger.Debug("CreateSublocation called", map[string]any{
 		"userID": userID,
 		"sublocation": sublocation,
 	})
@@ -241,14 +240,13 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 		"physicalLocationID": sublocation.PhysicalLocationID,
 		"name": sublocation.Name,
 		"locationType": sublocation.LocationType,
-		"bgColor": sublocation.BgColor,
 		"storedItems": sublocation.StoredItems,
 	})
 
 	query := `
-		INSERT INTO sublocations (id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		RETURNING id, user_id, physical_location_id, name, location_type, bg_color, stored_items, created_at, updated_at
+		INSERT INTO sublocations (id, user_id, physical_location_id, name, location_type, stored_items, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, user_id, physical_location_id, name, location_type, stored_items, created_at, updated_at
   `
 
 	var createdSublocation models.Sublocation
@@ -260,7 +258,6 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 		sublocation.PhysicalLocationID,
 		sublocation.Name,
 		sublocation.LocationType,
-		sublocation.BgColor,
 		sublocation.StoredItems,
 		sublocation.CreatedAt,
 		sublocation.UpdatedAt,
@@ -277,7 +274,7 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 	// Initialize empty items slice
 	createdSublocation.Items = []models.Game{}
 
-	sa.logger.Debug("AddSublocation success", map[string]any{
+	sa.logger.Debug("CreateSublocation success", map[string]any{
 		"createdSublocation": createdSublocation,
 	})
 
@@ -285,8 +282,8 @@ func (sa *SublocationDbAdapter) AddSublocation(ctx context.Context, userID strin
 }
 
 // DELETE
-func (sa *SublocationDbAdapter) RemoveSublocation(ctx context.Context, userID string, sublocationID string) error {
-	sa.logger.Debug("RemoveSublocation called", map[string]any{
+func (sa *SublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationID string) error {
+	sa.logger.Debug("DeleteSublocation called", map[string]any{
 		"userID":        userID,
 		"sublocationID": sublocationID,
 	})

@@ -174,7 +174,11 @@ func (r *repository) GetFinancialStats(ctx context.Context, userID string) (*Fin
 func (r *repository) GetStorageStats(ctx context.Context, userID string) (*StorageStats, error) {
 	stats := &StorageStats{}
 
+	// Debug log the incoming userID
+	fmt.Printf("\n[DEBUG] GetStorageStats called with userID: %s\n", userID)
+
 	// Get physical and digital location counts
+	var physicalCount, digitalCount int
 	err := r.db.QueryRowContext(ctx, `
 		SELECT
 			COUNT(CASE WHEN location_type = 'physical' THEN 1 END) as physical_count,
@@ -183,10 +187,13 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			SELECT 'physical' as location_type FROM physical_locations WHERE user_id = $1
 			UNION ALL
 			SELECT 'digital' as location_type FROM digital_locations WHERE user_id = $1
-		) locations`, userID).Scan(&stats.TotalPhysicalLocations, &stats.TotalDigitalLocations)
+		) locations`, userID).Scan(&physicalCount, &digitalCount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get location counts: %w", err)
 	}
+
+	// Debug log the counts
+	fmt.Printf("[DEBUG] Location counts - Physical: %d, Digital: %d\n", physicalCount, digitalCount)
 
 	// Get physical locations with sublocations and items
 	physicalLocations := []PhysicalLocation{}
@@ -197,6 +204,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 				l.name,
 				l.location_type,
 				l.map_coordinates,
+				l.bg_color,
 				l.created_at,
 				l.updated_at,
 				COUNT(DISTINCT pgl.id) as item_count
@@ -204,7 +212,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			LEFT JOIN sublocations sl ON l.id = sl.physical_location_id
 			LEFT JOIN physical_game_locations pgl ON sl.id = pgl.sublocation_id
 			WHERE l.user_id = $1
-			GROUP BY l.id, l.name, l.location_type, l.map_coordinates, l.created_at, l.updated_at
+			GROUP BY l.id, l.name, l.location_type, l.map_coordinates, l.bg_color, l.created_at, l.updated_at
 		)
 		SELECT
 			pld.*,
@@ -214,7 +222,6 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 						'id', sl.id,
 						'name', sl.name,
 						'location_type', sl.location_type,
-						'bg_color', sl.bg_color,
 						'stored_items', sl.stored_items,
 						'created_at', sl.created_at,
 						'updated_at', sl.updated_at,
@@ -242,7 +249,71 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			) as sublocations
 		FROM physical_location_data pld
 		LEFT JOIN sublocations sl ON pld.id = sl.physical_location_id
-		GROUP BY pld.id, pld.name, pld.location_type, pld.map_coordinates, pld.created_at, pld.updated_at, pld.item_count
+		GROUP BY pld.id, pld.name, pld.location_type, pld.map_coordinates, pld.bg_color, pld.created_at, pld.updated_at, pld.item_count
+		ORDER BY pld.name`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get physical locations: %w", err)
+	}
+	defer rows.Close()
+
+	// Debug log if we got any rows
+	fmt.Printf("[DEBUG] Physical locations query returned rows: %v\n", rows.Next())
+
+	// Reset the rows cursor since we just checked Next()
+	rows.Close()
+	rows, err = r.db.QueryxContext(ctx, `
+		WITH physical_location_data AS (
+			SELECT
+				l.id,
+				l.name,
+				l.location_type,
+				l.map_coordinates,
+				l.bg_color,
+				l.created_at,
+				l.updated_at,
+				COUNT(DISTINCT pgl.id) as item_count
+			FROM physical_locations l
+			LEFT JOIN sublocations sl ON l.id = sl.physical_location_id
+			LEFT JOIN physical_game_locations pgl ON sl.id = pgl.sublocation_id
+			WHERE l.user_id = $1
+			GROUP BY l.id, l.name, l.location_type, l.map_coordinates, l.bg_color, l.created_at, l.updated_at
+		)
+		SELECT
+			pld.*,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', sl.id,
+						'name', sl.name,
+						'location_type', sl.location_type,
+						'stored_items', sl.stored_items,
+						'created_at', sl.created_at,
+						'updated_at', sl.updated_at,
+						'items', COALESCE(
+							(
+								SELECT json_agg(
+									json_build_object(
+										'id', ug.id,
+										'name', g.name,
+										'platform', p.name,
+										'acquired_date', ug.created_at
+									)
+								)
+								FROM physical_game_locations pgl
+								JOIN user_games ug ON pgl.user_game_id = ug.id
+								JOIN games g ON ug.game_id = g.id
+								JOIN platforms p ON ug.platform_id = p.id
+								WHERE pgl.sublocation_id = sl.id
+							),
+							'[]'::json
+						)
+					)
+				) FILTER (WHERE sl.id IS NOT NULL),
+				'[]'::json
+			) as sublocations
+		FROM physical_location_data pld
+		LEFT JOIN sublocations sl ON pld.id = sl.physical_location_id
+		GROUP BY pld.id, pld.name, pld.location_type, pld.map_coordinates, pld.bg_color, pld.created_at, pld.updated_at, pld.item_count
 		ORDER BY pld.name`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get physical locations: %w", err)
@@ -257,6 +328,7 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			&location.Name,
 			&location.LocationType,
 			&location.MapCoordinates,
+			&location.BgColor,
 			&location.CreatedAt,
 			&location.UpdatedAt,
 			&location.ItemCount,
@@ -266,6 +338,9 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			return nil, fmt.Errorf("failed to scan physical location: %w", err)
 		}
 
+		// Debug log each physical location as we process it
+		fmt.Printf("[DEBUG] Processing physical location: %s (ID: %s)\n", location.Name, location.ID)
+
 		// Unescape HTML entities in the name
 		location.Name = html.UnescapeString(location.Name)
 
@@ -274,6 +349,9 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			return nil, fmt.Errorf("failed to unmarshal sublocations: %w", err)
 		}
 
+		// Debug log sublocations count
+		fmt.Printf("[DEBUG] Location %s has %d sublocations\n", location.Name, len(location.Sublocations))
+
 		// Unescape HTML entities in sublocation names using index-based loop
 		for i := 0; i < len(location.Sublocations); i++ {
 			location.Sublocations[i].Name = html.UnescapeString(location.Sublocations[i].Name)
@@ -281,6 +359,9 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 
 		physicalLocations = append(physicalLocations, location)
 	}
+
+	// Debug log final physical locations count
+	fmt.Printf("[DEBUG] Final physical locations count: %d\n", len(physicalLocations))
 	stats.PhysicalLocations = physicalLocations
 
 	// Get digital locations with items

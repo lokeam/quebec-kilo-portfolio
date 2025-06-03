@@ -2,7 +2,6 @@ package analytics
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -89,17 +88,18 @@ func GetAnalytics(appCtx *appcontext.AppContext, service Service) http.HandlerFu
 		// Format storage data if it's included in the response
 		if storageData, ok := data["storage"].(*StorageStats); ok {
 			// Log data before formatting
-			fmt.Printf("\nData before formatting:\n")
-			for _, loc := range storageData.DigitalLocations {
-				fmt.Printf("Location: %s\n", loc.Name)
-				fmt.Printf("  Billing Cycle: %v\n", loc.BillingCycle)
-				fmt.Printf("  Cost Per Cycle: %v\n", loc.CostPerCycle)
-				fmt.Printf("  Monthly Cost: %v\n", loc.MonthlyCost)
-			}
+			// fmt.Printf("\nData before formatting:\n")
+			// for _, loc := range storageData.DigitalLocations {
+			// 	fmt.Printf("Location: %s\n", loc.Name)
+			// 	fmt.Printf("  Billing Cycle: %v\n", loc.BillingCycle)
+			// 	fmt.Printf("  Cost Per Cycle: %v\n", loc.CostPerCycle)
+			// 	fmt.Printf("  Monthly Cost: %v\n", loc.MonthlyCost)
+			// }
 			FormatStorageStats(storageData)
 		}
 
-		// Create the response structure
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "analytics" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"analytics": data,
 		})

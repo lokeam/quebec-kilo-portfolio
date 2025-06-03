@@ -29,41 +29,38 @@ var ValidSublocationTypes = []string{
 	"closet",
 }
 
-// ValidBgColors lists all valid background colors
-var ValidBgColors = []string{
-	"red",
-	"blue",
-	"green",
-	"gold",
-	"purple",
-	"orange",
-	"brown",
-	"white",
-	"gray",
-}
-
 // SublocationValidator implements the interfaces.SublocationValidator interface
 type SublocationValidator struct {
 	sanitizer interfaces.Sanitizer
-	dbAdapter interfaces.SublocationDbAdapter
+	cacheWrapper interfaces.SublocationCacheWrapper
+	logger interfaces.Logger
 }
 
 // Ensure SublocationValidator implements interfaces.SublocationValidator
 var _ interfaces.SublocationValidator = (*SublocationValidator)(nil)
 
 // NewSublocationValidator creates a new sublocation validator
-func NewSublocationValidator(sanitizer interfaces.Sanitizer, dbAdapter interfaces.SublocationDbAdapter) (*SublocationValidator, error) {
+func NewSublocationValidator(
+	sanitizer interfaces.Sanitizer,
+	cacheWrapper interfaces.SublocationCacheWrapper,
+	logger interfaces.Logger,
+) (*SublocationValidator, error) {
 	if sanitizer == nil {
 		return nil, fmt.Errorf("sanitizer cannot be nil")
 	}
 
-	if dbAdapter == nil {
-		return nil, fmt.Errorf("dbAdapter cannot be nil")
+	if cacheWrapper == nil {
+		return nil, fmt.Errorf("cacheWrapper cannot be nil")
+	}
+
+	if logger == nil {
+		return nil, fmt.Errorf("logger cannot be nil")
 	}
 
 	return &SublocationValidator{
 		sanitizer: sanitizer,
-		dbAdapter: dbAdapter,
+		cacheWrapper: cacheWrapper,
+		logger: logger,
 	}, nil
 }
 
@@ -81,11 +78,6 @@ func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocati
 		violations = append(violations, err.Error())
 	}
 
-	// Validate background color
-	if err := sv.validateBackgroundColor(sublocation.BgColor); err != nil {
-		violations = append(violations, err.Error())
-	}
-
 	// Validate stored items
 	if err := sv.validateStoredItems(sublocation.StoredItems); err != nil {
 		violations = append(violations, err.Error())
@@ -94,18 +86,6 @@ func (sv *SublocationValidator) ValidateSublocation(sublocation models.Sublocati
 	// Validate physical location ID
 	if err := sv.validatePhysicalLocationID(sublocation.PhysicalLocationID); err != nil {
 		violations = append(violations, err.Error())
-	}
-
-	// Check for duplicate sublocation - ONLY for creation
-	if exists, err := sv.dbAdapter.CheckDuplicateSublocation(
-		context.Background(),
-		sublocation.UserID,
-		sublocation.PhysicalLocationID,
-		sublocation.Name,
-	); err != nil {
-		violations = append(violations, "error checking for duplicate sublocation")
-	} else if exists {
-		violations = append(violations, "a sublocation with this name already exists in this physical location")
 	}
 
 	if len(violations) > 0 {
@@ -123,17 +103,24 @@ func (sv *SublocationValidator) ValidateSublocationUpdate(update, existing model
 	// Only validate and update fields that have changed
 	if update.Name != "" && update.Name != existing.Name {
 		// Check for duplicate name only if the name is being changed
-		exists, err := sv.dbAdapter.CheckDuplicateSublocation(
-			context.Background(),
-			update.UserID,
-			update.PhysicalLocationID,
-			update.Name,
-		)
+		cachedSublocations, err := sv.cacheWrapper.GetCachedSublocations(context.Background(), update.UserID)
 		if err != nil {
-			return models.Sublocation{}, err
-		}
-		if exists {
-			return models.Sublocation{}, fmt.Errorf("a sublocation with this name already exists in this physical location")
+				sv.logger.Warn("Cache error during duplicate name check", map[string]any{
+						"error": err,
+						"userID": update.UserID,
+				})
+		} else {
+			for i := 0; i < len(cachedSublocations); i++ {
+				if cachedSublocations[i].PhysicalLocationID == update.PhysicalLocationID &&
+						cachedSublocations[i].ID != update.ID && // Don't compare with self
+						strings.EqualFold(cachedSublocations[i].Name, update.Name) {
+
+						return models.Sublocation{}, &validationErrors.ValidationError{
+								Field: "name",
+								Message: "a sublocation with this name already exists in this physical location",
+						}
+				}
+			}
 		}
 		validated.Name = update.Name
 	}
@@ -142,16 +129,56 @@ func (sv *SublocationValidator) ValidateSublocationUpdate(update, existing model
 		validated.LocationType = update.LocationType
 	}
 
-	if update.BgColor != "" {
-		validated.BgColor = update.BgColor
-	}
-
 	if update.StoredItems != existing.StoredItems {
 		validated.StoredItems = update.StoredItems
 	}
 
 	return validated, nil
 }
+
+// ValidateSublocationCreation validates a sublocation for creation (duplicate name check)
+func (sv *SublocationValidator) ValidateSublocationCreation(sublocation models.Sublocation) (models.Sublocation, error) {
+	// First sanitize the name
+	sanitizedName, err := sv.sanitizer.SanitizeString(sublocation.Name)
+	if err != nil {
+		return models.Sublocation{}, &validationErrors.ValidationError{
+			Field: "name",
+			Message: fmt.Sprintf("invalid name content: %v", err),
+		}
+	}
+
+	// Create a copy of the sublocation with sanitized for duplicate checking
+	sublocationToCheck := sublocation
+	sublocationToCheck.Name = sanitizedName
+
+	// Check for duplicate name within the physical location
+	cachedSublocations, err := sv.cacheWrapper.GetCachedSublocations(
+		context.Background(),
+		sublocation.UserID,
+	)
+	if err != nil {
+		sv.logger.Warn("Cache error during duplicate name check", map[string]any{
+			"error": err,
+			"userID": sublocation.UserID,
+		})
+	} else {
+		for i := 0; i < len(cachedSublocations); i++ {
+			if cachedSublocations[i].PhysicalLocationID == sublocation.PhysicalLocationID &&
+				 strings.EqualFold(cachedSublocations[i].Name, sanitizedName) {
+
+					return models.Sublocation{}, &validationErrors.ValidationError{
+							Field: "name",
+							Message: "a sublocation with this name already exists in this physical location",
+					}
+			}
+		}
+	}
+
+	// Perform regular validation
+	return sv.ValidateSublocation(sublocationToCheck)
+}
+
+
 
 func (v *SublocationValidator) validateName(name string) error {
 	// First sanitize the name
@@ -195,35 +222,6 @@ func (v *SublocationValidator) validateLocationType(locationType string) error {
 		return &validationErrors.ValidationError{
 			Field:   "locationType",
 			Message: fmt.Sprintf("location type must be one of %v", ValidSublocationTypes),
-		}
-	}
-
-	return nil
-}
-
-func (v *SublocationValidator) validateBackgroundColor(bgColor string) error {
-	// First sanitize the background color
-	sanitized, err := v.sanitizer.SanitizeString(bgColor)
-	if err != nil {
-		return &validationErrors.ValidationError{
-			Field:   "bgColor",
-			Message: fmt.Sprintf("invalid background color content: %v", err),
-		}
-	}
-
-	// Next check if background color is valid
-	isValid := false
-	for _, validColor := range ValidBgColors {
-		if strings.EqualFold(sanitized, validColor) {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return &validationErrors.ValidationError{
-			Field:     "bgColor",
-			Message:   fmt.Sprintf("background color must be one of %v", ValidBgColors),
 		}
 	}
 

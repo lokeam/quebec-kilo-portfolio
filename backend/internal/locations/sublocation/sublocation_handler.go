@@ -32,11 +32,11 @@ func RegisterSublocationRoutes(
 ) {
 	// Base routes
 	r.Get("/", GetSublocations(appCtx, service))
-	r.Post("/", AddSublocation(appCtx, service, analyticsService))
+	r.Post("/", CreateSublocation(appCtx, service, analyticsService))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", GetSublocation(appCtx, service))
+		r.Get("/", GetSingleSublocation(appCtx, service))
 		r.Put("/", UpdateSublocation(appCtx, service, analyticsService))
 		r.Delete("/", DeleteSublocation(appCtx, service, analyticsService))
 	})
@@ -149,13 +149,11 @@ func GetSublocations(appCtx *appcontext.AppContext, service services.Sublocation
 			return
 		}
 
-		data := struct {
-			Sublocations  []models.Sublocation   `json:"sublocations"`
-		}{
-			Sublocations: locations,
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": locations,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -166,8 +164,8 @@ func GetSublocations(appCtx *appcontext.AppContext, service services.Sublocation
 	}
 }
 
-// GetSublocation handles GET requests for a single sublocation
-func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+// GetSingleSublocation handles GET requests for a single sublocation
+func GetSingleSublocation(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
@@ -205,7 +203,7 @@ func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 			return
 		}
 
-		sublocation, err := service.GetSublocation(r.Context(), userID, locationID)
+		sublocation, err := service.GetSingleSublocation(r.Context(), userID, locationID)
 		if err != nil {
 			statusCode := http.StatusInternalServerError
 			if errors.Is(err, ErrSublocationNotFound) {
@@ -222,13 +220,11 @@ func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 			return
 		}
 
-		data := struct {
-			Location    models.Sublocation   `json:"location"`
-		}{
-			Location:   sublocation,
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": sublocation,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -239,8 +235,8 @@ func GetSublocation(appCtx *appcontext.AppContext, service services.SublocationS
 	}
 }
 
-// AddSublocation handles POST requests for creating a new sublocation
-func AddSublocation(
+// CreateSublocation handles POST requests for creating a new sublocation
+func CreateSublocation(
 	appCtx *appcontext.AppContext,
 	service services.SublocationService,
 	analyticsService analytics.Service,
@@ -317,14 +313,13 @@ func AddSublocation(
 			UserID:             userID,
 			Name:               locationRequest.Name,
 			LocationType:       locationRequest.LocationType,
-			BgColor:            locationRequest.BgColor,
 			StoredItems:        locationRequest.StoredItems,
 			PhysicalLocationID: locationRequest.PhysicalLocationID,
 			CreatedAt:          now,
 			UpdatedAt:          now,
 		}
 
-		createdLocation, err := service.AddSublocation(r.Context(), userID, location)
+		createdLocation, err := service.CreateSublocation(r.Context(), userID, location)
 		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
@@ -345,13 +340,11 @@ func AddSublocation(
 			})
 		}
 
-		data := struct {
-			Sublocation   models.Sublocation    `json:"sublocation"`
-		}{
-			Sublocation:  createdLocation,
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": createdLocation,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -417,7 +410,6 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 			UserID:             userID,
 			Name:               locationRequest.Name,
 			LocationType:       locationRequest.LocationType,
-			BgColor:            locationRequest.BgColor,
 			StoredItems:        locationRequest.StoredItems,
 			PhysicalLocationID: locationRequest.PhysicalLocationID,
 			UpdatedAt:          time.Now(),
@@ -444,13 +436,11 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 			})
 		}
 
-		data := struct {
-			Sublocation    models.Sublocation    `json:"sublocation"`
-		}{
-			Sublocation:   location,
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": location,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -524,15 +514,14 @@ func DeleteSublocation(
 			})
 		}
 
-		data := struct {
-			ID        string  `json:"id"`
-			Message   string  `json:"message"`
-		}{
-			ID:       locationID,
-			Message:  "Sublocation deleted successfully",
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": map[string]any{
+				"id":      locationID,
+				"message": "Sublocation deleted successfully",
+			},
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),

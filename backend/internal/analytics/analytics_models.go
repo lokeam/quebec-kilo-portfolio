@@ -56,14 +56,15 @@ type DigitalLocation struct {
 }
 
 type PhysicalLocation struct {
-	ID            string                  `json:"id"`
-	Name          string                  `json:"name"`
-	LocationType  string                  `json:"location_type"`
-	MapCoordinates string                 `json:"map_coordinates"`
-	CreatedAt     time.Time               `json:"created_at"`
-	UpdatedAt     time.Time               `json:"updated_at"`
-	ItemCount     int                     `json:"item_count"`
-	Sublocations  []SublocationSummary    `json:"sublocations"`
+	ID               string                  `json:"id"`
+	Name             string                  `json:"name"`
+	LocationType     string                  `json:"location_type"`
+	MapCoordinates   string                  `json:"map_coordinates"`
+	BgColor          string                  `json:"bg_color"`
+	CreatedAt        time.Time               `json:"created_at"`
+	UpdatedAt        time.Time               `json:"updated_at"`
+	ItemCount        int                     `json:"item_count"`
+	Sublocations    []SublocationSummary     `json:"sublocations"`
 }
 
 // LocationSummary represents a summary of a storage location
@@ -75,6 +76,7 @@ type LocationSummary struct {
 	IsSubscription  bool      `json:"is_subscription,omitempty"`
 	MonthlyCost     float64   `json:"monthly_cost,omitempty"`
 	MapCoordinates  string    `json:"map_coordinates,omitempty"`
+	BgColor         string    `json:"bg_color,omitempty"`
 	IsActive        bool      `json:"is_active,omitempty"`
 	URL             string    `json:"url,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -93,7 +95,6 @@ type SublocationSummary struct {
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
 	LocationType string        `json:"location_type"`
-	BgColor     string         `json:"bg_color"`
 	StoredItems int           `json:"stored_items"`
 	CreatedAt   time.Time     `json:"created_at"`
 	UpdatedAt   time.Time     `json:"updated_at"`

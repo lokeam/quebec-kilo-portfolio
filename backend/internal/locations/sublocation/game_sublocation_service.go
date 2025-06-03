@@ -24,8 +24,8 @@ type GameSublocationService struct {
 
 type SublocationService interface {
 	GetSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
-	GetSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error)
-	AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error)
+	GetSingleSublocation(ctx context.Context, userID string, sublocationID string) (models.Sublocation, error)
+	CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error)
 	DeleteSublocation(ctx context.Context, userID string, sublocationID string) error
 	UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error
 }
@@ -50,14 +50,6 @@ func NewGameSublocationService(
 	}
 	appContext.Logger.Info("sanitizer created successfully", nil)
 
-	// Create validator
-	validator, err := NewSublocationValidator(sanitizer, dbAdapter)
-	if err != nil {
-		appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
-		return nil, err
-	}
-	appContext.Logger.Info("validator created successfully", nil)
-
 	// Create cache wrapper to handle Redis caching
 	cacheWrapper, err := cache.NewCacheWrapper(
 		appContext.RedisClient,
@@ -74,6 +66,18 @@ func NewGameSublocationService(
 	if err != nil {
 		return nil, err
 	}
+
+	// Create validator
+	validator, err := NewSublocationValidator(
+		sanitizer,
+		sublocationCacheAdapter,
+		appContext.Logger,
+	)
+	if err != nil {
+		appContext.Logger.Error("Failed to create validator", map[string]any{"error": err})
+		return nil, err
+	}
+	appContext.Logger.Info("validator created successfully", nil)
 
 	// Create physical media cache adapter
 	appContext.Logger.Info("GameSublocationService components intialized", map[string]any{
@@ -97,7 +101,7 @@ func NewGameSublocationService(
 }
 
 // GET
-func (gss *GameSublocationService) GetSublocation(
+func (gss *GameSublocationService) GetSingleSublocation(
 	ctx context.Context,
 	userID string,
 	sublocationID string,
@@ -109,7 +113,7 @@ func (gss *GameSublocationService) GetSublocation(
 	}
 
 	// Get from DB
-	return gss.dbAdapter.GetSublocation(ctx, userID, sublocationID)
+	return gss.dbAdapter.GetSingleSublocation(ctx, userID, sublocationID)
 }
 
 func (gss *GameSublocationService) GetSublocations(
@@ -125,7 +129,7 @@ func (gss *GameSublocationService) GetSublocations(
 
 	// Cache miss or error, get from DB
 	gss.logger.Debug("Cache miss for sublocations, fetching from DB", map[string]any{"userID": userID})
-	sublocations, err := gss.dbAdapter.GetUserSublocations(ctx, userID)
+	sublocations, err := gss.dbAdapter.GetAllSublocations(ctx, userID)
 	if err != nil {
 		gss.logger.Error("Failed to fetch sublocations from DB", map[string]any{"error": err})
 		return nil, err
@@ -145,31 +149,31 @@ func (gss *GameSublocationService) GetSublocations(
 }
 
 // POST
-// AddSublocation adds a new sublocation for a user.
+// CreateSublocation adds a new sublocation for a user.
 //
 // Cache Invalidation Strategy:
-// - The private addSublocationImpl method invalidates the user cache to ensure cache consistency
+// - The private createSublocationImpl method invalidates the user cache to ensure cache consistency
 //   even if called directly (defensive programming).
-// - The public AddSublocation method invalidates both the user cache and the parent physical
+// - The public CreateSublocation method invalidates both the user cache and the parent physical
 //   location's cache to maintain consistency across related caches.
 //
 // IMPORTANT: The double cache invalidation is INTENTIONAL and NECESSARY:
-// 1. addSublocationImpl handles basic user cache invalidation for consistency
-// 2. AddSublocation handles both user cache and physical location cache invalidation
+// 1. createSublocationImpl handles basic user cache invalidation for consistency
+// 2. CreateSublocation handles both user cache and physical location cache invalidation
 //
 // DO NOT attempt to "optimize" this by removing either cache invalidation:
-// - Removing addSublocationImpl's invalidation would break cache consistency if called directly
-// - Removing AddSublocation's invalidation would miss the physical location cache update
+// - Removing createSublocationImpl's invalidation would break cache consistency if called directly
+// - Removing CreateSublocation's invalidation would miss the physical location cache update
 //
 // This pattern is consistent with our production codebase and follows defensive programming
 // principles to ensure cache consistency across all possible code paths.
-func (gss *GameSublocationService) AddSublocation(
+func (gss *GameSublocationService) CreateSublocation(
 	ctx context.Context,
 	userID string,
 	sublocation models.Sublocation,
 ) (models.Sublocation, error) {
 	// Call existing implementation
-	createdSublocation, err := gss.addSublocationImpl(ctx, userID, sublocation)
+	createdSublocation, err := gss.createSublocationImpl(ctx, userID, sublocation)
 	if err != nil {
 		return models.Sublocation{}, err
 	}
@@ -193,7 +197,7 @@ func (gss *GameSublocationService) AddSublocation(
 
 	// Actively refresh the physical location data if service is available
 	if gss.physicalService != nil {
-		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		_, refreshErr := gss.physicalService.GetSinglePhysicalLocation(ctx, userID, physicalLocationID)
 		if refreshErr != nil {
 			gss.logger.Warn("Failed to refresh physical location cache", map[string]any{
 				"error": refreshErr,
@@ -211,7 +215,7 @@ func (gss *GameSublocationService) AddSublocation(
 	return *createdSublocation, nil
 }
 
-func (gss *GameSublocationService) addSublocationImpl(
+func (gss *GameSublocationService) createSublocationImpl(
 	ctx context.Context,
 	userID string,
 	location models.Sublocation,
@@ -224,13 +228,13 @@ func (gss *GameSublocationService) addSublocationImpl(
 	}
 
 	// Add to db
-	createdSublocation, err := gss.dbAdapter.AddSublocation(ctx, userID, validatedLocation)
+	createdSublocation, err := gss.dbAdapter.CreateSublocation(ctx, userID, validatedLocation)
 	if err != nil {
 		gss.logger.Error("Failed to add sublocation to DB", map[string]any{"error": err})
 		return nil, err
 	}
 
-	// Cache invalidation is handled by the public AddSublocation method
+	// Cache invalidation is handled by the public CreateSublocation method
 	return &createdSublocation, nil
 }
 
@@ -241,7 +245,7 @@ func (gss *GameSublocationService) UpdateSublocation(
 	sublocation models.Sublocation,
 ) error {
 	// First get the existing sublocation
-	existingSublocation, err := gss.dbAdapter.GetSublocation(ctx, userID, sublocation.ID)
+	existingSublocation, err := gss.dbAdapter.GetSingleSublocation(ctx, userID, sublocation.ID)
 	if err != nil {
 		gss.logger.Error("Failed to get existing sublocation", map[string]any{"error": err})
 		return err
@@ -287,7 +291,7 @@ func (gss *GameSublocationService) UpdateSublocation(
 
 	// Actively refresh the physical location data if service is available
 	if gss.physicalService != nil {
-		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		_, refreshErr := gss.physicalService.GetSinglePhysicalLocation(ctx, userID, physicalLocationID)
 		if refreshErr != nil {
 			gss.logger.Warn("Failed to refresh physical location cache after update", map[string]any{
 				"error": refreshErr,
@@ -312,7 +316,7 @@ func (gss *GameSublocationService) DeleteSublocation(
 	sublocationID string,
 ) error {
 	// First get the sublocation to get its physical location ID
-	sublocation, err := gss.dbAdapter.GetSublocation(ctx, userID, sublocationID)
+	sublocation, err := gss.dbAdapter.GetSingleSublocation(ctx, userID, sublocationID)
 	if err != nil {
 		gss.logger.Error("Failed to get sublocation before deletion", map[string]any{"error": err})
 		return err
@@ -322,7 +326,7 @@ func (gss *GameSublocationService) DeleteSublocation(
 	physicalLocationID := sublocation.PhysicalLocationID
 
 	// Remove from database
-	if err := gss.dbAdapter.RemoveSublocation(
+	if err := gss.dbAdapter.DeleteSublocation(
 		ctx,
 		userID,
 		sublocationID,
@@ -352,7 +356,7 @@ func (gss *GameSublocationService) DeleteSublocation(
 
 	// Actively refresh the physical location data if service is available
 	if gss.physicalService != nil {
-		_, refreshErr := gss.physicalService.GetPhysicalLocation(ctx, userID, physicalLocationID)
+		_, refreshErr := gss.physicalService.GetSinglePhysicalLocation(ctx, userID, physicalLocationID)
 		if refreshErr != nil {
 			gss.logger.Warn("Failed to refresh physical location cache after deletion", map[string]any{
 				"error": refreshErr,

@@ -9,7 +9,7 @@ DROP INDEX IF EXISTS idx_digital_game_locations_user_game_id;
 DROP INDEX IF EXISTS idx_digital_location_payments_payment_date;
 DROP INDEX IF EXISTS idx_digital_location_payments_digital_location_id;
 DROP INDEX IF EXISTS idx_digital_location_subscriptions_next_payment;
-DROP INDEX IF EXISTS idx_digital_locations_service_type;
+DROP INDEX IF EXISTS idx_digital_locations_is_subscription;
 DROP INDEX IF EXISTS idx_digital_locations_user_id;
 DROP INDEX IF EXISTS idx_physical_game_locations_sublocation_id;
 DROP INDEX IF EXISTS idx_physical_game_locations_user_game_id;

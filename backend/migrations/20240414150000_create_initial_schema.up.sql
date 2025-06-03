@@ -90,6 +90,7 @@ CREATE TABLE physical_locations (
     label VARCHAR(255),
     location_type VARCHAR(50) NOT NULL CHECK (location_type IN ('house', 'apartment', 'office', 'warehouse', 'vehicle')),
     map_coordinates VARCHAR(255),
+    bg_color VARCHAR(50) NOT NULL CHECK (bg_color IN ('red', 'green', 'blue', 'orange', 'gold', 'purple', 'brown', 'pink', 'gray')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -101,7 +102,6 @@ CREATE TABLE sublocations (
     physical_location_id UUID REFERENCES physical_locations(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     location_type VARCHAR(50) NOT NULL CHECK (location_type IN ('shelf', 'console', 'cabinet', 'closet', 'drawer', 'box', 'device')),
-    bg_color VARCHAR(50) NOT NULL CHECK (bg_color IN ('red', 'green', 'blue', 'orange', 'gold', 'purple', 'brown', 'gray')),
     stored_items INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

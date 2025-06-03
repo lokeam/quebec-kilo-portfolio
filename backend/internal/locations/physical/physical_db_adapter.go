@@ -54,18 +54,18 @@ func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter
 const (
 	createPhysicalLocationQuery = `
 		INSERT INTO physical_locations (
-			id, user_id, name, label, location_type, map_coordinates
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+			id, user_id, name, label, location_type, map_coordinates, bg_color
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 	`
 
-	getPhysicalLocationQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+	getSinglePhysicalLocationQuery = `
+		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 		FROM physical_locations
 		WHERE id = $1 AND user_id = $2
 	`
 
-	getPhysicalLocationSublocationsQuery = `
+	getSinglePhysicalLocationSublocationsQuery = `
 		SELECT json_agg(
 			json_build_object(
 				'id', sl.id,
@@ -73,7 +73,6 @@ const (
 				'physical_location_id', sl.physical_location_id,
 				'name', sl.name,
 				'location_type', sl.location_type,
-				'bg_color', sl.bg_color,
 				'stored_items', sl.stored_items,
 				'created_at', sl.created_at,
 				'updated_at', sl.updated_at,
@@ -103,14 +102,14 @@ const (
 		WHERE sl.physical_location_id = $1
 	`
 
-	getUserPhysicalLocationsQuery = `
-		SELECT id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+	getAllPhysicalLocationsQuery = `
+		SELECT id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 		FROM physical_locations
 		WHERE user_id = $1
 		ORDER BY created_at
 	`
 
-	getUserPhysicalLocationSublocationsQuery = `
+	getAllPhysicalLocationSublocationsQuery = `
 		SELECT json_agg(
 			json_build_object(
 				'id', sl.id,
@@ -118,7 +117,6 @@ const (
 				'physical_location_id', sl.physical_location_id,
 				'name', sl.name,
 				'location_type', sl.location_type,
-				'bg_color', sl.bg_color,
 				'stored_items', sl.stored_items,
 				'created_at', sl.created_at,
 				'updated_at', sl.updated_at,
@@ -150,15 +148,15 @@ const (
 
 	updatePhysicalLocationQuery = `
 		UPDATE physical_locations
-		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, updated_at = NOW()
+		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, bg_color = $7, updated_at = NOW()
 		WHERE id = $1 AND user_id = $2
 		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
 	`
 )
 
 // GET
-func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
-	pa.logger.Debug("GetPhysicalLocation called", map[string]any{
+func (pa *PhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+	pa.logger.Debug("GetSinglePhysicalLocation called", map[string]any{
 		"userID":     userID,
 		"locationID": locationID,
 	})
@@ -171,7 +169,7 @@ func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID str
 	defer tx.Rollback()
 
 	var location models.PhysicalLocation
-	err = tx.QueryRowContext(ctx, getPhysicalLocationQuery, locationID, userID).Scan(
+	err = tx.QueryRowContext(ctx, getSinglePhysicalLocationQuery, locationID, userID).Scan(
 		&location.ID,
 		&location.UserID,
 		&location.Name,
@@ -190,7 +188,7 @@ func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID str
 
 	// Get sublocations
 	var subLocationsJSON []byte
-	err = tx.QueryRowContext(ctx, getPhysicalLocationSublocationsQuery, locationID).Scan(&subLocationsJSON)
+	err = tx.QueryRowContext(ctx, getSinglePhysicalLocationSublocationsQuery, locationID).Scan(&subLocationsJSON)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return models.PhysicalLocation{}, fmt.Errorf("failed to get sublocations: %w", err)
 	}
@@ -208,15 +206,15 @@ func (pa *PhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID str
 		return models.PhysicalLocation{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	pa.logger.Debug("GetPhysicalLocation success", map[string]any{
+	pa.logger.Debug("GetSinglePhysicalLocation success", map[string]any{
 		"location": location,
 	})
 
 	return location, nil
 }
 
-func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
-	pa.logger.Debug("GetUserPhysicalLocations called", map[string]any{
+func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+	pa.logger.Debug("GetAllPhysicalLocations called", map[string]any{
 		"userID": userID,
 	})
 
@@ -228,7 +226,7 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 	defer tx.Rollback()
 
 	// Get base locations
-	rows, err := tx.QueryContext(ctx, getUserPhysicalLocationsQuery, userID)
+	rows, err := tx.QueryContext(ctx, getAllPhysicalLocationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query user physical locations: %w", err)
 	}
@@ -260,7 +258,7 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 	// Get sublocations for each location
 	for i := range locations {
 		var subLocationsJSON []byte
-		err := tx.QueryRowContext(ctx, getUserPhysicalLocationSublocationsQuery, locations[i].ID).Scan(&subLocationsJSON)
+		err := tx.QueryRowContext(ctx, getAllPhysicalLocationSublocationsQuery, locations[i].ID).Scan(&subLocationsJSON)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("failed to get sublocations for location %s: %w", locations[i].ID, err)
 		}
@@ -279,7 +277,7 @@ func (pa *PhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userI
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	pa.logger.Debug("GetUserPhysicalLocations success", map[string]any{
+	pa.logger.Debug("GetAllPhysicalLocations success", map[string]any{
 		"locations": locations,
 	})
 
@@ -311,7 +309,7 @@ func (pa *PhysicalDbAdapter) ensureUserExists(ctx context.Context, userID string
 	return nil
 }
 
-func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
 	pa.logger.Debug("Adding physical location", map[string]any{"userID": userID, "location": location})
 
 	// Start transaction
@@ -377,7 +375,7 @@ func (pa *PhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID str
 		return models.PhysicalLocation{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	pa.logger.Debug("AddPhysicalLocation success", map[string]any{
+	pa.logger.Debug("CreatePhysicalLocation success", map[string]any{
 		"location": newLocation,
 	})
 
@@ -406,6 +404,7 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 		location.Label,
 		location.LocationType,
 		location.MapCoordinates,
+		location.BgColor,
 	).Scan(
 		&updatedLocation.ID,
 		&updatedLocation.UserID,
@@ -413,6 +412,7 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 		&updatedLocation.Label,
 		&updatedLocation.LocationType,
 		&updatedLocation.MapCoordinates,
+		&updatedLocation.BgColor,
 		&updatedLocation.CreatedAt,
 		&updatedLocation.UpdatedAt,
 	)
@@ -436,7 +436,7 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 }
 
 // DELETE
-func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
+func (pa *PhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
 	pa.logger.Debug("Removing physical location", map[string]any{
 		"userID":     userID,
 		"locationID": locationID,
@@ -479,7 +479,7 @@ func (pa *PhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID 
 				return ErrLocationNotFound
 			}
 
-			pa.logger.Debug("RemovePhysicalLocation success", map[string]any{
+			pa.logger.Debug("DeletePhysicalLocation success", map[string]any{
 				"rowsAffected": rowsAffected,
 				"locationID":   id,
 			})

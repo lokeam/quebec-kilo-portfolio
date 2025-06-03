@@ -7,10 +7,10 @@ import (
 )
 
 type SublocationDbAdapter interface {
-	GetUserSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
-	GetSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
-	AddSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error)
+	GetAllSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
+	GetSingleSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
+	CreateSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error)
 	UpdateSublocation(ctx context.Context, userID string, location models.Sublocation) error
-	RemoveSublocation(ctx context.Context, userID, locationID string) error
+	DeleteSublocation(ctx context.Context, userID, locationID string) error
 	CheckDuplicateSublocation(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error)
 }

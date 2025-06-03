@@ -7,9 +7,9 @@ import (
 )
 
 type PhysicalDbAdapter interface {
-	GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error)
-	AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
+	GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
+	GetSinglePhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error)
+	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
-	RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error
+	DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error
 }

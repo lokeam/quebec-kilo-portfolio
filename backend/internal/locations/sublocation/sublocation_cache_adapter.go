@@ -109,6 +109,6 @@ func (sca *SublocationCacheAdapter) InvalidateLocationCache(
 	}
 
 	// Also delete the collection of physical locations for this user
-	// This ensures that when GetUserPhysicalLocations is called, it will fetch fresh data
+	// This ensures that when GetAllPhysicalLocations is called, it will fetch fresh data
 	return sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationsKey)
 }

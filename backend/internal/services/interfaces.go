@@ -36,9 +36,9 @@ type DigitalService interface {
 
 // PhysicalService defines operations for managing physical locations
 type PhysicalService interface {
-	GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
-	GetPhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
-	AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
+	GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
+	GetSinglePhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
+	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	DeletePhysicalLocation(ctx context.Context, userID, locationID string) error
 }
@@ -46,8 +46,8 @@ type PhysicalService interface {
 // SublocationService defines operations for managing sublocations
 type SublocationService interface {
 	GetSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
-	GetSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
-	AddSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error)
+	GetSingleSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
+	CreateSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error)
 	UpdateSublocation(ctx context.Context, userID string, location models.Sublocation) error
 	DeleteSublocation(ctx context.Context, userID, locationID string) error
 }

@@ -23,19 +23,20 @@ type PhysicalLocationRequest struct {
 	Label          string `json:"label"`
 	LocationType   string `json:"location_type"`
 	MapCoordinates string `json:"map_coordinates"`
+	BgColor        string `json:"bg_color"`
 }
 
 // RegisterPhysicalRoutes registers all physical location routes
 func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service services.PhysicalService, analyticsService analytics.Service) {
 	// Base routes
-	r.Get("/", GetUserPhysicalLocations(appCtx, service))
-	r.Post("/", AddPhysicalLocation(appCtx, service, analyticsService))
+	r.Get("/", GetAllPhysicalLocations(appCtx, service))
+	r.Post("/", CreatePhysicalLocation(appCtx, service, analyticsService))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
-		r.Get("/", GetPhysicalLocation(appCtx, service))
+		r.Get("/", GetSinglePhysicalLocation(appCtx, service))
 		r.Put("/", UpdatePhysicalLocation(appCtx, service, analyticsService))
-		r.Delete("/", RemovePhysicalLocation(appCtx, service, analyticsService))
+		r.Delete("/", DeletePhysicalLocation(appCtx, service, analyticsService))
 	})
 }
 
@@ -51,8 +52,8 @@ func handleError(w http.ResponseWriter, logger interfaces.Logger, requestID stri
 	)
 }
 
-// GetUserPhysicalLocations handles GET requests for listing all physical locations
-func GetUserPhysicalLocations(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+// GetAllPhysicalLocations handles GET requests for listing all physical locations
+func GetAllPhysicalLocations(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
 
@@ -70,21 +71,19 @@ func GetUserPhysicalLocations(appCtx *appcontext.AppContext, service services.Ph
 			"userID":    userID,
 		})
 
-		locations, err := service.GetUserPhysicalLocations(r.Context(), userID)
+		locations, err := service.GetAllPhysicalLocations(r.Context(), userID)
 		if err != nil {
 			handleError(w, appCtx.Logger, requestID, err)
 			return
 		}
 
-		data := struct {
-			UserID      string                  `json:"user_id"`
-			Locations   []map[string]any        `json:"locations"`
-		} {
-			UserID:      userID,
-			Locations:   formatters.FormatPhysicalLocationsToFrontend(locations),
-		}
+		physicalLocations := formatters.FormatPhysicalLocationsToFrontend(locations)
 
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": physicalLocations,
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -95,8 +94,8 @@ func GetUserPhysicalLocations(appCtx *appcontext.AppContext, service services.Ph
 	}
 }
 
-// GetPhysicalLocation handles GET requests for a single physical location
-func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+// GetSinglePhysicalLocation handles GET requests for a single physical location
+func GetSinglePhysicalLocation(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
 
@@ -121,19 +120,17 @@ func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 			return
 		}
 
-		location, err := service.GetPhysicalLocation(r.Context(), userID, locationID)
+		location, err := service.GetSinglePhysicalLocation(r.Context(), userID, locationID)
 		if err != nil {
 			handleError(w, appCtx.Logger, requestID, err)
 			return
 		}
 
-		data := struct {
-			Location map[string]any     `json:"location"`
-		}{
-			Location: formatters.FormatPhysicalLocationToFrontend(&location),
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": formatters.FormatPhysicalLocationToFrontend(&location),
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -144,8 +141,8 @@ func GetPhysicalLocation(appCtx *appcontext.AppContext, service services.Physica
 	}
 }
 
-// AddPhysicalLocation handles POST requests for creating a new physical location
-func AddPhysicalLocation(
+// CreatePhysicalLocation handles POST requests for creating a new physical location
+func CreatePhysicalLocation(
 	appCtx *appcontext.AppContext,
 	service services.PhysicalService,
 	analyticsService analytics.Service,
@@ -184,11 +181,12 @@ func AddPhysicalLocation(
 			Label:          locationRequest.Label,
 			LocationType:   locationRequest.LocationType,
 			MapCoordinates: locationRequest.MapCoordinates,
+			BgColor:        locationRequest.BgColor,
 			CreatedAt:      now,
 			UpdatedAt:      now,
 		}
 
-		createdLocation, err := service.AddPhysicalLocation(r.Context(), userID, location)
+		createdLocation, err := service.CreatePhysicalLocation(r.Context(), userID, location)
 		if err != nil {
 			handleError(w, appCtx.Logger, requestID, err)
 			return
@@ -203,13 +201,11 @@ func AddPhysicalLocation(
 			})
 		}
 
-		data := struct {
-			Location map[string]any        `json:"location"`
-		} {
-			Location: formatters.FormatPhysicalLocationToFrontend(&createdLocation),
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": formatters.FormatPhysicalLocationToFrontend(&createdLocation),
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -281,13 +277,11 @@ func UpdatePhysicalLocation(
 			})
 		}
 
-		data := struct {
-			Location map[string]any        `json:"location"`
-		} {
-			Location: formatters.FormatPhysicalLocationToFrontend(&updatedLocation),
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": formatters.FormatPhysicalLocationToFrontend(&updatedLocation),
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
@@ -298,8 +292,8 @@ func UpdatePhysicalLocation(
 	}
 }
 
-// RemovePhysicalLocation handles DELETE requests for removing a physical location
-func RemovePhysicalLocation(
+// DeletePhysicalLocation handles DELETE requests for removing a physical location
+func DeletePhysicalLocation(
 	appCtx *appcontext.AppContext,
 	service services.PhysicalService,
 	analyticsService analytics.Service,
@@ -343,15 +337,14 @@ func RemovePhysicalLocation(
 			})
 		}
 
-		data := struct {
-			ID      string   `json:"id"`
-			Message string   `json:"message"`
-		} {
-			ID:      locationID,
-			Message: "Physical location removed successfully",
-		}
-
-		response := httputils.NewAPIResponse(r, userID, data)
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": map[string]any{
+				"id":      locationID,
+				"message": "Physical location removed successfully",
+			},
+		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
