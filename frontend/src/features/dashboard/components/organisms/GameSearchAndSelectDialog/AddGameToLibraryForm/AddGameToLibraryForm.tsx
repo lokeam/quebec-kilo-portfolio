@@ -12,7 +12,6 @@ import {
   FormMessage,
 } from '@/shared/components/ui/form';
 import { Button } from '@/shared/components/ui/button';
-
 import * as RadioGroup from "@radix-ui/react-radio-group";
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { ErrorBoundary } from 'react-error-boundary';
@@ -130,19 +129,19 @@ export function AddGameToLibraryForm({
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
   // Add detailed debug logging without stringifying
-  console.log('AddGameToLibraryForm - Raw Props:', {
-    selectedGame,
-    physicalLocations,
-    digitalLocations,
-  });
+  // console.log('AddGameToLibraryForm - Raw Props:', {
+  //   selectedGame,
+  //   physicalLocations,
+  //   digitalLocations,
+  // });
 
   // Type check the physical locations
-  console.log('Physical Locations Type Check:', {
-    isArray: Array.isArray(physicalLocations),
-    length: physicalLocations?.length,
-    firstLocation: physicalLocations?.[0],
-    firstLocationSublocations: physicalLocations?.[0]?.sublocations,
-  });
+  // console.log('Physical Locations Type Check:', {
+  //   isArray: Array.isArray(physicalLocations),
+  //   length: physicalLocations?.length,
+  //   firstLocation: physicalLocations?.[0],
+  //   firstLocationSublocations: physicalLocations?.[0]?.sublocations,
+  // });
 
   const form = useForm<z.infer<typeof AddGameToLibraryFormSchema>>({
     resolver: zodResolver(AddGameToLibraryFormSchema),
@@ -237,7 +236,6 @@ export function AddGameToLibraryForm({
       console.log('🔍 DEBUG: Form submission - Final payload:', payload);
 
       await createMutation.mutateAsync(payload);
-
       if (onClose) onClose();
 
     } catch (error) {
@@ -256,10 +254,10 @@ export function AddGameToLibraryForm({
           name="storageType"
           render={({ field }) => {
             // Log the field state
-            console.log('Storage type field:', {
-              value: field.value,
-              onChange: field.onChange,
-            });
+            // console.log('Storage type field:', {
+            //   value: field.value,
+            //   onChange: field.onChange,
+            // });
 
             return (
               <FormItem>
@@ -308,10 +306,10 @@ export function AddGameToLibraryForm({
               name="selectedLocations"
               render={({ field }) => {
                 // Add debug logging for field render
-                console.log('selectedLocations field:', {
-                  value: field.value,
-                  onChange: field.onChange,
-                });
+                // console.log('selectedLocations field:', {
+                //   value: field.value,
+                //   onChange: field.onChange,
+                // });
 
                 return (
                   <FormItem>
@@ -355,34 +353,34 @@ export function AddGameToLibraryForm({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {Array.isArray(physicalLocations) && physicalLocations.map((location) => {
                                 // Add detailed debug logging for physical locations
-                                console.log('Rendering physical location:', {
-                                  locationId: location.id,
-                                  locationName: location.name,
-                                  sublocations: location.sublocations,
-                                  sublocationsLength: location.sublocations?.length,
-                                  sublocationsType: typeof location.sublocations,
-                                  isArray: Array.isArray(location.sublocations),
-                                });
+                                // console.log('Rendering physical location:', {
+                                //   locationId: location.id,
+                                //   locationName: location.name,
+                                //   sublocations: location.sublocations,
+                                //   sublocationsLength: location.sublocations?.length,
+                                //   sublocationsType: typeof location.sublocations,
+                                //   isArray: Array.isArray(location.sublocations),
+                                // });
 
                                 return Array.isArray(location.sublocations) && location.sublocations.map((sublocation) => {
                                   // Add detailed debug logging for sublocations
-                                  console.log('Rendering sublocation:', {
-                                    sublocationId: sublocation.id,
-                                    sublocationName: sublocation.name,
-                                    sublocationType: sublocation.type,
-                                    parentLocation: location.name,
-                                  });
+                                  // console.log('Rendering sublocation:', {
+                                  //   sublocationId: sublocation.id,
+                                  //   sublocationName: sublocation.name,
+                                  //   sublocationType: sublocation.type,
+                                  //   parentLocation: location.name,
+                                  // });
 
                                   return (
                                     <CheckboxPrimitive.Root
                                       key={sublocation.id}
                                       checked={field.value[sublocation.id] || false}
                                       onCheckedChange={(checked) => {
-                                        console.log('Checkbox changed:', {
-                                          sublocationId: sublocation.id,
-                                          checked,
-                                          currentValue: field.value,
-                                        });
+                                        // console.log('Checkbox changed:', {
+                                        //   sublocationId: sublocation.id,
+                                        //   checked,
+                                        //   currentValue: field.value,
+                                        // });
                                         field.onChange({
                                           ...field.value,
                                           [sublocation.id]: checked
@@ -486,7 +484,7 @@ export function AddGameToLibraryForm({
             className="w-full"
             disabled={!form.formState.isValid || !selectedStorageType || isFormSubmitting || createMutation.isPending}
           >
-            {isFormSubmitting
+            {isFormSubmitting || createMutation.isPending
               ? 'Adding to Library...'
               : selectedLocationsCount > 0
                 ? `Add to Library (${selectedLocationsCount} location${selectedLocationsCount === 1 ? '' : 's'})`

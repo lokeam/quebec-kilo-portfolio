@@ -6,7 +6,7 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 // Components
 import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
-import { OnlineServicesToolbar } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesToolbar/OnlineServicesToolbar';
+import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
 import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
@@ -77,7 +77,7 @@ const CardSkeleton = () => (
   </div>
 );
 
-export function OnlineServicesPageContent() {
+export function PhysicalLocationsPageContent() {
   // Add state for edit mode
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
@@ -141,7 +141,7 @@ export function OnlineServicesPageContent() {
     if (error) {
       return (
         <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-          <p className="text-red-500">Error loading digital services</p>
+          <p className="text-red-500">Error loading physical location data</p>
         </div>
       );
     }
@@ -149,7 +149,7 @@ export function OnlineServicesPageContent() {
     if (services.length === 0) {
       return (
         <div className="p-4 border rounded-md">
-          <p className="text-gray-500">No digital services found. Add a service to get started.</p>
+          <p className="text-gray-500">No physical location found. Add a location to get started.</p>
         </div>
       );
     }
@@ -169,7 +169,7 @@ export function OnlineServicesPageContent() {
 
     return (
       <div className="p-4 border rounded-md">
-        <h2 className="text-lg font-semibold">Digital Services</h2>
+        <h2 className="text-lg font-semibold">Physical Locations</h2>
         <p className="text-gray-500 mb-4">{
           filteredServices.length === 1
             ? '1 service found'
@@ -195,7 +195,7 @@ export function OnlineServicesPageContent() {
     <PageMain>
       <PageHeadline>
         <div className="flex items-center">
-          <h1 className='text-2xl font-bold tracking-tight'>Online Services</h1>
+          <h1 className='text-2xl font-bold tracking-tight'>Physical Locations</h1>
         </div>
 
         <div className="flex items-center space-x-2">
@@ -203,10 +203,10 @@ export function OnlineServicesPageContent() {
           <DrawerContainer
             open={addServiceOpen}
             onOpenChange={setAddServiceOpen}
-            triggerAddLocation="Add Digital Service"
+            triggerAddLocation="Add Physical Location"
             title="Digital Service"
             description="Tell us about the service you want to add"
-            triggerBtnIcon="digital"
+            triggerBtnIcon="location"
           >
             <OnlineServiceForm
               onSuccess={handleAddService}
@@ -239,7 +239,7 @@ export function OnlineServicesPageContent() {
 
       {/* Digital Services Display Section */}
       <div className="mt-6">
-        <OnlineServicesToolbar />
+        <PhysicalLocationsToolbar />
         <div className="mt-4 space-y-4">
           {renderContent()}
         </div>

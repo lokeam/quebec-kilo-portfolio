@@ -16,6 +16,10 @@ import {
 import { cn } from '@/shared/components/ui/utils';
 import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosition';
 
+// Icons
+import { Building2 } from 'lucide-react';
+import { IconCloudDataConnection } from '@tabler/icons-react';
+
 /**
  * DrawerContainer Component
  *
@@ -86,6 +90,7 @@ interface DrawerContainerProps {
   drawerPosition?: 'right' | 'bottom' | 'left' | 'top';
   mobilePosition?: 'bottom' | 'top';
   desktopBreakpoint?: string;
+  triggerBtnIcon?: 'location' | 'digital';
 }
 
 /**
@@ -149,6 +154,7 @@ export function DrawerContainer({
   drawerPosition = 'right',
   mobilePosition = 'bottom',
   desktopBreakpoint = '(min-width: 768px)',
+  triggerBtnIcon,
   ...rest /* <-- This collects any additional props to pass to DrawerContent */
 }: DrawerContainerProps) {
   const { positionStyles, currentPosition } = useDrawerPosition({
@@ -186,6 +192,8 @@ export function DrawerContainer({
             variant={triggerVariant}
             data-testid="drawer-trigger"
           >
+            {triggerBtnIcon === 'location' && <Building2 />}
+            {triggerBtnIcon === 'digital' && <IconCloudDataConnection />}
             {triggerAddLocation}
           </Button>
         </DrawerTrigger>

@@ -13,7 +13,7 @@ import {
   IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
-import { Bell, Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
+import { Bell, Building2, Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
 import { type SidebarData } from '@/features/navigation/organisms/SideNav/sideNav.types'
 
 export const sidebarData: SidebarData = {
@@ -79,6 +79,11 @@ export const sidebarData: SidebarData = {
           url: '/wishlist',
           badge: '3',
           icon: IconShoppingCartHeart,
+        },
+        {
+          title: 'Physical Locations',
+          icon: Building2,
+          url: '/physical-locations',
         },
         {
           title: 'Online Services',

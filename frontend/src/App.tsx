@@ -23,6 +23,11 @@ const OnlineServicesPage = lazy(() => import(
   '@/features/dashboard/pages/OnlineServices/OnlineServicesPage'
 ));
 
+const PhysicalLocationsPage = lazy(() => import(
+  /* webpackChunkName: "PhysicalLocationsPage" */
+  '@/features/dashboard/pages/PhysicalLocations/PhysicalLocationsPage'
+));
+
 const LibraryPage = lazy(() => import(
   /* webpackChunkName: "LibraryPage" */
   '@/features/dashboard/pages/LibraryPage/LibraryPage'
@@ -118,6 +123,7 @@ function App() {
                       <Route path="/" element={<HomePage />} />
                       <Route path="/library" element={<LibraryPage />}/>
                       <Route path="/online-services" element={<OnlineServicesPage />} />
+                      <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
                       <Route path="/wishlist" element={<WishListPage />} />
                       <Route path="/media-storage" element={<MediStoragePage />} />
                       <Route path="/spend-tracking" element={<SpendTrackingPage />} />
