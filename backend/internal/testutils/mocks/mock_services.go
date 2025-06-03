@@ -179,15 +179,15 @@ func (m *MockDigitalService) GetSinglePayment(ctx context.Context, paymentID int
 // MockPhysicalService implements services.PhysicalService
 type MockPhysicalService struct{}
 
-func (m *MockPhysicalService) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+func (m *MockPhysicalService) GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
 	return []models.PhysicalLocation{}, nil
 }
 
-func (m *MockPhysicalService) GetPhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error) {
+func (m *MockPhysicalService) GetSinglePhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error) {
 	return models.PhysicalLocation{}, nil
 }
 
-func (m *MockPhysicalService) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+func (m *MockPhysicalService) CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
 	return models.PhysicalLocation{}, nil
 }
 
@@ -206,11 +206,11 @@ func (m *MockSublocationService) GetSublocations(ctx context.Context, userID str
 	return []models.Sublocation{}, nil
 }
 
-func (m *MockSublocationService) GetSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error) {
+func (m *MockSublocationService) GetSingleSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error) {
 	return models.Sublocation{}, nil
 }
 
-func (m *MockSublocationService) AddSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error) {
+func (m *MockSublocationService) CreateSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error) {
 	return models.Sublocation{}, nil
 }
 

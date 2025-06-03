@@ -46,7 +46,7 @@ const (
 	testLocationID = "test-location-id"
 )
 
-var testError = errors.New("test error")
+var errTest = errors.New("test error")
 
 type MockCacheWrapper struct {
 	mock.Mock
@@ -96,7 +96,6 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		UserID:          testUserID,
 		Name:            "Test Sublocation",
 		LocationType:    "shelf",
-		BgColor:         "blue",
 		StoredItems:     20,
 	}
 	testSublocations := []models.Sublocation{testSublocation}
@@ -172,7 +171,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run(`GetCachedSublocations - Cache Error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("GetCachedResults", mock.Anything, "sublocation:test-user-id", mock.Anything).Return(false, testError)
+		mockCache.On("GetCachedResults", mock.Anything, "sublocation:test-user-id", mock.Anything).Return(false, errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -180,8 +179,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		sublocations, err := adapter.GetCachedSublocations(context.Background(), testUserID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		if sublocations != nil {
 			t.Errorf("Expected nil sublocations, got %v", sublocations)
@@ -220,7 +219,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run(`SetCachedSublocations - error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id", testSublocations).Return(testError)
+		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id", testSublocations).Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -228,8 +227,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.SetCachedSublocations(context.Background(), testUserID, testSublocations)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v but instead got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v but instead got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -305,7 +304,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run(`GetSingleCachedSublocation - Cache Error`, func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("GetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", mock.Anything).Return(false, testError)
+		mockCache.On("GetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", mock.Anything).Return(false, errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -313,8 +312,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		sublocation, found, err := adapter.GetSingleCachedSublocation(context.Background(), testUserID, testSublocationID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		if found {
 			t.Errorf("Expected found to be false")
@@ -356,7 +355,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("SetSingleCachedSublocation - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", testSublocation).Return(testError)
+		mockCache.On("SetCachedResults", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id", testSublocation).Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -364,8 +363,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.SetSingleCachedSublocation(context.Background(), testUserID, testSublocation)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v but instead got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v but instead got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -401,7 +400,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateUserCache - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id").Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id").Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -409,8 +408,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateUserCache(context.Background(), testUserID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -446,7 +445,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateSublocationCache - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id").Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "sublocation:test-user-id:sublocation:test-sublocation-id").Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -454,8 +453,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateSublocationCache(context.Background(), testUserID, testSublocationID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -492,7 +491,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 	t.Run("InvalidateLocationCache - error", func(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
-		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -500,8 +499,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})
@@ -515,7 +514,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
 		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
-		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(testError)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(errTest)
 
 		adapter := createAdapter(mockCache)
 
@@ -523,8 +522,8 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateLocationCache(context.Background(), testUserID, testLocationID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err != errTest {
+			t.Errorf("Expected error %v, got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
 	})

@@ -23,22 +23,22 @@ import (
 	- Ensuring user may only access their own locations
 
 	Scenarios:
-	- GetPhysicalLocation:
+	- GetSinglePhysicalLocation:
 		- Successfully retrieves a valid location
 		- Returns error when location not found
 		- Handles db errors
-	- GetUserPhysicalLocations:
+	- GetAllPhysicalLocations:
 		- Successfully retrieves all locations for a user
 		- Returns empty slice when no locations exist
 		- Handles db errors
-	- AddPhysicalLocation:
+	- CreatePhysicalLocation:
 		- Successfully adds new location
 		- Handles db errors
 	- UpdatePhysicalLocation:
 		- Successfully updates a location
 		- Returns error when location not found
 		- Handles db errors
-	- RemovePhysicalLocation:
+	- DeletePhysicalLocation:
 		- Successfully removes a location
 		- Returns errors when location not found
 		- Handles db errors
@@ -66,13 +66,13 @@ func TestSublocationDbAdapter(t *testing.T) {
 		return adapter, mock, nil
 	}
 
-	// -------- GetSublocation -------
+	// -------- GetSingleSublocation -------
 	/*
 		GIVEN a valid sublocation ID
-		WHEN GetSublocation is called
+		WHEN GetSingleSublocation is called
 		THEN it returns the sublocation
 	*/
-	t.Run("GetSublocation", func(t *testing.T) {
+	t.Run("GetSingleSublocation", func(t *testing.T) {
 		adapter, mock, err := setupMockDB()
 		if err != nil {
 			t.Fatalf("Failed to setup mock DB: %v", err)
@@ -112,7 +112,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WithArgs(sublocationID, userID).
 			WillReturnRows(gameRows)
 
-		sublocation, err := adapter.GetSublocation(context.Background(), userID, sublocationID)
+		sublocation, err := adapter.GetSingleSublocation(context.Background(), userID, sublocationID)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -189,7 +189,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 	/*
 		GIVEN a non-existent sublocation ID
-		WHEN GetSublocation is called
+		WHEN GetSingleSublocation is called
 		THEN it returns an error
 	*/
 	t.Run("GetSublocation_NotFound", func(t *testing.T) {
@@ -206,7 +206,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WithArgs(sublocationID, userID).
 			WillReturnError(sql.ErrNoRows)
 
-		_, err = adapter.GetSublocation(context.Background(), userID, sublocationID)
+		_, err = adapter.GetSingleSublocation(context.Background(), userID, sublocationID)
 
 		if err == nil {
 			t.Error("Expected error, got nil")
@@ -218,10 +218,10 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 	/*
 		GIVEN a valid user ID
-		WHEN GetUserSublocations is called
+		WHEN GetAllSublocations is called
 		THEN it returns all user sublocations
 	*/
-	t.Run("GetUserSublocations", func(t *testing.T) {
+	t.Run("GetAllSublocations", func(t *testing.T) {
 		adapter, mock, err := setupMockDB()
 		if err != nil {
 			t.Fatalf("Failed to setup mock DB: %v", err)
@@ -273,7 +273,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WillReturnRows(gameRows2)
 
 		// Execute
-		sublocations, err := adapter.GetUserSublocations(context.Background(), userID)
+		sublocations, err := adapter.GetAllSublocations(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -322,7 +322,6 @@ func TestSublocationDbAdapter(t *testing.T) {
 			PhysicalLocationID: physicalLocationID,
 			Name:              "Updated Sublocation",
 			LocationType:      "shelf",
-			BgColor:           "green",
 			StoredItems:       5,
 			CreatedAt:         now,
 			UpdatedAt:         now,
@@ -332,7 +331,6 @@ func TestSublocationDbAdapter(t *testing.T) {
 			WithArgs(
 				sublocation.Name,
 				sublocation.LocationType,
-				sublocation.BgColor,
 				sublocation.StoredItems,
 				sqlmock.AnyArg(),
 				sublocation.ID,
@@ -370,7 +368,6 @@ func TestSublocationDbAdapter(t *testing.T) {
 			UserID:       userID,
 			Name:         "Updated Sublocation",
 			LocationType: "cabinet",
-			BgColor:      "purple",
 			StoredItems:     40,
 		}
 
@@ -393,10 +390,10 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 	/*
 		GIVEN a valid sublocation
-		WHEN AddSublocation is called
+		WHEN CreateSublocation is called
 		THEN it creates the sublocation
 	*/
-	t.Run("AddSublocation", func(t *testing.T) {
+	t.Run("CreateSublocation", func(t *testing.T) {
 		adapter, mock, err := setupMockDB()
 		if err != nil {
 			t.Fatalf("Failed to setup mock DB: %v", err)
@@ -414,7 +411,6 @@ func TestSublocationDbAdapter(t *testing.T) {
 			PhysicalLocationID: physicalLocationID,
 			Name:              "New Sublocation",
 			LocationType:      "shelf",
-			BgColor:           "blue",
 			StoredItems:       0,
 			CreatedAt:         now,
 			UpdatedAt:         now,
@@ -427,15 +423,14 @@ func TestSublocationDbAdapter(t *testing.T) {
 				sublocation.PhysicalLocationID,
 				sublocation.Name,
 				sublocation.LocationType,
-				sublocation.BgColor,
 				sublocation.StoredItems,
 				sqlmock.AnyArg(), // Use AnyArg() for timestamps to avoid precision issues
 				sqlmock.AnyArg(),
 			).
 			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "physical_location_id", "name", "location_type", "bg_color", "stored_items", "created_at", "updated_at"}).
-				AddRow(sublocation.ID, sublocation.UserID, sublocation.PhysicalLocationID, sublocation.Name, sublocation.LocationType, sublocation.BgColor, sublocation.StoredItems, sublocation.CreatedAt, sublocation.UpdatedAt))
+				AddRow(sublocation.ID, sublocation.UserID, sublocation.PhysicalLocationID, sublocation.Name, sublocation.LocationType, sublocation.StoredItems, sublocation.CreatedAt, sublocation.UpdatedAt))
 
-		result, err := adapter.AddSublocation(context.Background(), userID, sublocation)
+		result, err := adapter.CreateSublocation(context.Background(), userID, sublocation)
 
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
@@ -450,10 +445,10 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 	/*
 		GIVEN a valid sublocation ID
-		WHEN RemoveSublocation is called
+		WHEN DeleteSublocation is called
 		THEN it deletes the sublocation
 	*/
-	t.Run("RemoveSublocation", func(t *testing.T) {
+	t.Run("DeleteSublocation", func(t *testing.T) {
 		adapter, mock, err := setupMockDB()
 		if err != nil {
 			t.Fatalf("Failed to setup mock DB: %v", err)
@@ -480,7 +475,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.RemoveSublocation(context.Background(), userID, sublocationID)
+		err = adapter.DeleteSublocation(context.Background(), userID, sublocationID)
 
 		// Verify
 		if err != nil {
@@ -493,7 +488,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 	/*
 		GIVEN a non-existent sublocation ID
-		WHEN RemoveSublocation is called
+		WHEN DeleteSublocation is called
 		THEN it returns an error
 	*/
 	t.Run("RemoveSublocation_NotFound", func(t *testing.T) {
@@ -517,7 +512,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute
-		err = adapter.RemoveSublocation(context.Background(), userID, sublocationID)
+		err = adapter.DeleteSublocation(context.Background(), userID, sublocationID)
 
 		// Verify
 		if err == nil {

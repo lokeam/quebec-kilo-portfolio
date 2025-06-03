@@ -123,6 +123,9 @@ func DefaultSublocationValidator() *MockSublocationValidator {
 		ValidateSublocationUpdateFunc: func(update, existing models.Sublocation) (models.Sublocation, error) {
 			return update, nil
 		},
+		ValidateSublocationCreationFunc: func(sublocation models.Sublocation) (models.Sublocation, error) {
+			return sublocation, nil
+		},
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
 )
 
@@ -16,10 +17,9 @@ import (
 	1. Main method: ValidateSublocation()
 	2. Helpers:
 		- validateName()
-		- validateLabel()
 		- validateLocationType()
-		- validateBgColor()
-		- validateCapacity()
+		- validateStoredItems()
+		- validatePhysicalLocationID()
 
 	validateName()
 		- Ensure name is:
@@ -32,24 +32,25 @@ import (
 			- one of allowed values
 			- sanitized
 
-	validateBgColor()
-		- Ensure bgColor is:
-			- one of allowed string values
+	validateStoredItems()
+		- Ensure stored items is:
+			- not negative
+			- within reasonable bounds (0-1000)
+
+	validatePhysicalLocationID()
+		- Ensure physical location ID is:
+			- not empty
+			- valid UUID
 			- sanitized
-
-	validateCapacity()
-		- Ensure capacity is:
-			- a positive number
-			- within reasonable bounds (1-1000)
-
 
 	Scenarios:
 		Reject sublocations with:
 			- empty name
 			- name longer than 100 chars
-			- invalid bg colors
-			- negative or 0 capacity
-			- capacity grreater than max allowed
+			- invalid location types
+			- negative stored items
+			- stored items greater than max allowed
+			- invalid physical location ID
 		Pass validation with complete, valid sublocation
 		Collect errors when multiple violations are met
 */
@@ -59,8 +60,9 @@ var _ interfaces.Sanitizer = (*mocks.MockSanitizer)(nil)
 
 func TestSublocationValidator(t *testing.T) {
 	testSanitizer := &mocks.MockSanitizer{}
-	testDbAdapter := &mocks.MockSublocationDbAdapter{}
-	testValidator, testErr := NewSublocationValidator(testSanitizer, testDbAdapter)
+	testCacheWrapper := &mocks.MockSublocationCacheWrapper{}
+	testLogger := testutils.NewTestLogger()
+	testValidator, testErr := NewSublocationValidator(testSanitizer, testCacheWrapper, testLogger)
 	if testErr != nil {
 		t.Fatalf("failed to create test validator: %v", testErr)
 	}
@@ -73,9 +75,9 @@ func TestSublocationValidator(t *testing.T) {
 		return text, nil
 	}
 
-	// Setup mock db adapter behavior
-	testDbAdapter.CheckDuplicateSublocationFunc = func(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error) {
-		return false, nil
+	// Setup mock cache wrapper behavior
+	testCacheWrapper.GetCachedSublocationsFunc = func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+		return []models.Sublocation{}, nil
 	}
 
 	// ----------- validateName() ------------
@@ -151,44 +153,6 @@ func TestSublocationValidator(t *testing.T) {
 
 		if testErr != nil {
 			t.Errorf("expected no error for valid location type, but got %v", testErr)
-		}
-	})
-
-	// ----------- validateBackgroundColor() ------------
-	t.Run(`validateBackgroundColor() rejects invalid background colors`, func(t *testing.T) {
-		testColor := "not-a-color"
-		testErr := testValidator.validateBackgroundColor(testColor)
-
-		if testErr == nil {
-			t.Errorf("expected an error for invalid background color, but got nil")
-		}
-
-		expectedError := "background color must be one of"
-		if !strings.Contains(testErr.Error(), expectedError) {
-			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
-		}
-	})
-
-	t.Run(`validateBackgroundColor() fails when sanitizer fails`, func(t *testing.T) {
-		testColor := "<script>alert('xss');</script>"
-		testErr := testValidator.validateBackgroundColor(testColor)
-
-		if testErr == nil {
-			t.Errorf("expected an error when sanitizer fails, but got nil")
-		}
-
-		expectedError := "invalid background color content: sanitizer failure"
-		if !strings.Contains(testErr.Error(), expectedError) {
-			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
-		}
-	})
-
-	t.Run(`validateBackgroundColor() Happy Path - Accepts valid input`, func(t *testing.T) {
-		testColor := "red"
-		testErr := testValidator.validateBackgroundColor(testColor)
-
-		if testErr != nil {
-			t.Errorf("expected no error for valid background color, but got %v", testErr)
 		}
 	})
 
@@ -288,7 +252,6 @@ func TestSublocationValidator(t *testing.T) {
 			UserID:             "test-user-id",
 			Name:               "", // Empty name
 			LocationType:       "Invalid", // Invalid type
-			BgColor:            "not-a-color", // Invalid color
 			StoredItems:        -10, // Negative stored items
 			PhysicalLocationID: "not-a-uuid", // Invalid UUID
 		}
@@ -304,7 +267,6 @@ func TestSublocationValidator(t *testing.T) {
 		expectedErrors := []string{
 			"name must be at least 1 characters long",
 			"location type must be one of",
-			"background color must be one of",
 			"stored_items cannot be negative",
 			"physical_location_id must be a valid UUID",
 		}
@@ -317,7 +279,7 @@ func TestSublocationValidator(t *testing.T) {
 
 		// Check that the returned sublocation is empty
 		if validatedSublocation.Name != "" || validatedSublocation.LocationType != "" ||
-			validatedSublocation.BgColor != "" || validatedSublocation.StoredItems != 0 {
+			validatedSublocation.StoredItems != 0 {
 			t.Errorf("expected validated sublocation to be empty on error, but got %+v", validatedSublocation)
 		}
 	})
@@ -327,7 +289,6 @@ func TestSublocationValidator(t *testing.T) {
 			UserID:             "test-user-id",
 			Name:               "Game Shelf",
 			LocationType:       "shelf",
-			BgColor:            "blue",
 			StoredItems:        50,
 			PhysicalLocationID: "123e4567-e89b-12d3-a456-426614174000", // Valid UUID
 		}
@@ -341,7 +302,6 @@ func TestSublocationValidator(t *testing.T) {
 		// Check that the validated sublocation matches the input
 		if validatedSublocation.Name != testSublocation.Name ||
 			validatedSublocation.LocationType != testSublocation.LocationType ||
-			validatedSublocation.BgColor != testSublocation.BgColor ||
 			validatedSublocation.StoredItems != testSublocation.StoredItems ||
 			validatedSublocation.PhysicalLocationID != testSublocation.PhysicalLocationID ||
 			validatedSublocation.UserID != testSublocation.UserID {

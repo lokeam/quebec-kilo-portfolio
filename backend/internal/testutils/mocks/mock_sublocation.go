@@ -9,6 +9,7 @@ import (
 type MockSublocationValidator struct {
 	ValidateSublocationFunc func(sublocation models.Sublocation) (models.Sublocation, error)
 	ValidateSublocationUpdateFunc func(update, existing models.Sublocation) (models.Sublocation, error)
+	ValidateSublocationCreationFunc func(sublocation models.Sublocation) (models.Sublocation, error)
 }
 
 func (m *MockSublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
@@ -25,6 +26,13 @@ func (m *MockSublocationValidator) ValidateSublocationUpdate(update, existing mo
 	return update, nil
 }
 
+func (m *MockSublocationValidator) ValidateSublocationCreation(sublocation models.Sublocation) (models.Sublocation, error) {
+	if m.ValidateSublocationCreationFunc != nil {
+		return m.ValidateSublocationCreationFunc(sublocation)
+	}
+	return sublocation, nil
+}
+
 type MockSublocationDbAdapter struct {
 	GetSublocationFunc func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error)
 	GetSublocationsFunc func(ctx context.Context, userID string) ([]models.Sublocation, error)
@@ -36,7 +44,7 @@ type MockSublocationDbAdapter struct {
 
 
 // GET
-func (m *MockSublocationDbAdapter) GetSublocation(
+func (m *MockSublocationDbAdapter) GetSingleSublocation(
 	ctx context.Context,
 	userID,
 	sublocationID string,
@@ -45,7 +53,7 @@ func (m *MockSublocationDbAdapter) GetSublocation(
 	return sublocation, err
 }
 
-func (m *MockSublocationDbAdapter) GetUserSublocations(
+func (m *MockSublocationDbAdapter) GetAllSublocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.Sublocation, error) {
@@ -53,7 +61,7 @@ func (m *MockSublocationDbAdapter) GetUserSublocations(
 }
 
 // POST
-func (m *MockSublocationDbAdapter) AddSublocation(
+func (m *MockSublocationDbAdapter) CreateSublocation(
 	ctx context.Context,
 	userID string,
 	sublocation models.Sublocation,
@@ -71,7 +79,7 @@ func (m *MockSublocationDbAdapter) UpdateSublocation(
 }
 
 // DELETE
-func (m *MockSublocationDbAdapter) RemoveSublocation(
+func (m *MockSublocationDbAdapter) DeleteSublocation(
 	ctx context.Context,
 	userID string,
 	sublocationID string,

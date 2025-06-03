@@ -18,7 +18,7 @@ import (
 		- Falls back to database on cache miss
 		- Caches database results for future requests
 
-	- AddSublocation adds a new sublocation
+	- CreateSublocation adds a new sublocation
 		- Validates the sublocation data
 		- Adds the sublocation to the database
 		- Invalidates the user's cache
@@ -39,7 +39,7 @@ import (
 			- Database error
 			- No locations found
 
-		- AddSublocation:
+		- CreateSublocation:
 			- validation success + db success
 			- validation failure
 			- validation success + db failure
@@ -88,15 +88,15 @@ type mockDbAdapter struct {
 	CheckDuplicateSublocationFunc func(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error)
 }
 
-func (m *mockDbAdapter) GetUserSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
+func (m *mockDbAdapter) GetAllSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
 	return m.GetUserSublocationsFunc(ctx, userID)
 }
 
-func (m *mockDbAdapter) GetSublocation(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+func (m *mockDbAdapter) GetSingleSublocation(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
 	return m.GetSublocationFunc(ctx, userID, sublocationID)
 }
 
-func (m *mockDbAdapter) AddSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
+func (m *mockDbAdapter) CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
 	return m.AddSublocationFunc(ctx, userID, sublocation)
 }
 
@@ -104,7 +104,7 @@ func (m *mockDbAdapter) UpdateSublocation(ctx context.Context, userID string, su
 	return m.UpdateSublocationFunc(ctx, userID, sublocation)
 }
 
-func (m *mockDbAdapter) RemoveSublocation(ctx context.Context, userID, sublocationID string) error {
+func (m *mockDbAdapter) DeleteSublocation(ctx context.Context, userID, sublocationID string) error {
 	return m.RemoveSublocationFunc(ctx, userID, sublocationID)
 }
 
@@ -122,7 +122,6 @@ func TestGameSublocationService(t *testing.T) {
 		UserID:       testUserID,
 		Name:         "Test Sublocation",
 		LocationType: "shelf",
-		BgColor:      "blue",
 		StoredItems:  50,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
@@ -170,7 +169,7 @@ func TestGameSublocationService(t *testing.T) {
 		WHEN the GetSublocations method is called
 		THEN the service should query the database and cache the results
 	*/
-	t.Run("GetSublocation - Cache Miss", func(t *testing.T) {
+	t.Run("GetSingleSublocation - Cache Miss", func(t *testing.T) {
 		testLogger := testutils.NewTestLogger()
 		service := newMockGameSublocationServiceWithDefaults(testLogger)
 
@@ -189,7 +188,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.dbAdapter = mockDb
 
 		// WHEN
-		sublocation, err := service.GetSublocation(ctx, testUserID, testSublocationID)
+		sublocation, err := service.GetSingleSublocation(ctx, testUserID, testSublocationID)
 
 		// THEN
 		if err != nil {
@@ -201,17 +200,17 @@ func TestGameSublocationService(t *testing.T) {
 	})
 
 
-	// --------- AddSublocation: Success ---------
+	// --------- CreateSublocation: Success ---------
 	/*
 		GIVEN a user ID and a valid sublocation
-		WHEN the AddSublocation method is called
+		WHEN the CreateSublocation method is called
 		THEN the service should add the sublocation to the database and invalidate the cache
 	*/
-	t.Run(`AddSublocation - Success`, func(t *testing.T) {
+	t.Run(`CreateSublocation - Success`, func(t *testing.T) {
 		testLogger := testutils.NewTestLogger()
 		service := newMockGameSublocationServiceWithDefaults(testLogger)
 
-		// Track if AddSublocation func was called
+		// Track if CreateSublocation func was called
 		dbAddCalled := false
 		mockDB := mocks.DefaultSublocationDbAdapter()
 		mockDB.AddSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
@@ -230,7 +229,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.cacheWrapper = mockCache
 
 		// WHEN
-		createdSublocation, err := service.AddSublocation(ctx, testUserID, testSublocation)
+		createdSublocation, err := service.CreateSublocation(ctx, testUserID, testSublocation)
 
 		// THEN
 		if err != nil {
@@ -248,13 +247,13 @@ func TestGameSublocationService(t *testing.T) {
 	})
 
 
-	// --------- AddSublocation: Validation Failure ---------
+	// --------- CreateSublocation: Validation Failure ---------
 	/*
 		GIVEN a user ID and an invalid sublocation
-		WHEN the AddSublocation method is called
+		WHEN the CreateSublocation method is called
 		THEN the service should return a validation error without calling the database
 	*/
-	t.Run("AddSublocation - Validation Failure", func(t *testing.T) {
+	t.Run("CreateSublocation - Validation Failure", func(t *testing.T) {
 		testLogger := testutils.NewTestLogger()
 		service := newMockGameSublocationServiceWithDefaults(testLogger)
 
@@ -275,7 +274,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.dbAdapter = mockDb
 
 		// WHEN
-		createdSublocation, err := service.AddSublocation(ctx, testUserID, testSublocation)
+		createdSublocation, err := service.CreateSublocation(ctx, testUserID, testSublocation)
 
 		// THEN
 		if err == nil {
@@ -352,13 +351,13 @@ func TestGameSublocationService(t *testing.T) {
 		testLogger := testutils.NewTestLogger()
 		service := newMockGameSublocationServiceWithDefaults(testLogger)
 
-		// Setup mock to return a sublocation for GetSublocation call
+		// Setup mock to return a sublocation for GetSingleSublocation call
 		mockDb := mocks.DefaultSublocationDbAdapter()
 		mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
 			return testSublocation, nil
 		}
 
-		// Track if RemoveSublocation was called via DeleteSublocationFunc
+		// Track if DeleteSublocation was called via DeleteSublocationFunc
 		dbDeleteCalled := false
 		mockDb.DeleteSublocationFunc = func(ctx context.Context, userID, sublocationID string) error {
 			dbDeleteCalled = true
