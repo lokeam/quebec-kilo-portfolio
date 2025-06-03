@@ -78,17 +78,18 @@ func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {
 		Label:          "Primary",
 		LocationType:   "Home",
 		MapCoordinates: "40.7128,-74.0060",
+		BgColor:        "red",
 	}
 
-	m.On("GetPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+	m.On("GetSinglePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 		Return(defaultLocation, nil)
-	m.On("GetUserPhysicalLocations", mock.Anything, mock.Anything).
+	m.On("GetAllPhysicalLocations", mock.Anything, mock.Anything).
 		Return([]models.PhysicalLocation{defaultLocation}, nil)
-	m.On("AddPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+	m.On("CreatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 		Return(defaultLocation, nil)
 	m.On("UpdatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 		Return(defaultLocation, nil)
-	m.On("RemovePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+	m.On("DeletePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil)
 
 	return m
@@ -138,7 +139,6 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 				PhysicalLocationID: "physical-location-1",
 				Name:              "Sublocation 1",
 				LocationType:      "shelf",
-				BgColor:           "red",
 				StoredItems:       0,
 				CreatedAt:         time.Now(),
 				UpdatedAt:         time.Now(),
@@ -155,7 +155,6 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 					PhysicalLocationID: "physical-location-1",
 					Name:              "Sublocation 1",
 					LocationType:      "shelf",
-					BgColor:           "red",
 					StoredItems:       0,
 					CreatedAt:         time.Now(),
 					UpdatedAt:         time.Now(),
@@ -166,7 +165,6 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 					PhysicalLocationID: "physical-location-1",
 					Name:              "Sublocation 2",
 					LocationType:      "console",
-					BgColor:           "blue",
 					StoredItems:       0,
 					CreatedAt:         time.Now(),
 					UpdatedAt:         time.Now(),
