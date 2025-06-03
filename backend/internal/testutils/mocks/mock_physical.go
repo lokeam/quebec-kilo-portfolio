@@ -9,6 +9,8 @@ import (
 
 type MockPhysicalValidator struct {
 	ValidatePhysicalLocationFunc func(location models.PhysicalLocation) (models.PhysicalLocation, error)
+	ValidatePhysicalLocationCreationFunc func(location models.PhysicalLocation) (models.PhysicalLocation, error)
+	ValidatePhysicalLocationUpdateFunc func(update, existing models.PhysicalLocation) (models.PhysicalLocation, error)
 }
 
 func (m *MockPhysicalValidator) ValidatePhysicalLocation(location models.PhysicalLocation) (models.PhysicalLocation, error) {
@@ -18,21 +20,35 @@ func (m *MockPhysicalValidator) ValidatePhysicalLocation(location models.Physica
 	return location, nil
 }
 
+func (m *MockPhysicalValidator) ValidatePhysicalLocationCreation(location models.PhysicalLocation) (models.PhysicalLocation, error) {
+	if m.ValidatePhysicalLocationCreationFunc != nil {
+		return m.ValidatePhysicalLocationCreationFunc(location)
+	}
+	return location, nil
+}
+
+func (m *MockPhysicalValidator) ValidatePhysicalLocationUpdate(update, existing models.PhysicalLocation) (models.PhysicalLocation, error) {
+	if m.ValidatePhysicalLocationUpdateFunc != nil {
+		return m.ValidatePhysicalLocationUpdateFunc(update, existing)
+	}
+	return update, nil
+}
+
 type MockPhysicalDbAdapter struct {
 	mock.Mock
 }
 
-func (m *MockPhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID, locationID)
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID, location)
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
@@ -42,7 +58,7 @@ func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, user
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
+func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
 	args := m.Called(ctx, userID, locationID)
 	return args.Error(0)
 }

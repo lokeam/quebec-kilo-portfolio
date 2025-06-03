@@ -19,7 +19,7 @@ import (
 		- Falls back to database on cache miss
 		- Caches database results for future requests
 
-	- AddPhysicalLocation adds a new physical location
+	- CreatePhysicalLocation adds a new physical location
 		- Validates the location data
 		- Adds the location to the database
 		- Invalidates the user's cache
@@ -40,7 +40,7 @@ import (
 			- Database error
 			- No locations found
 
-		- AddPhysicalLocation:
+		- CreatePhysicalLocation:
 			- validation success + db success
 			- validation failure
 			- validation success + db failure
@@ -62,17 +62,17 @@ type MockPhysicalDbAdapter struct {
 	mock.Mock
 }
 
-func (m *MockPhysicalDbAdapter) GetPhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, userID string, locationID string) (models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID, locationID)
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) GetUserPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).([]models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) AddPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+func (m *MockPhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
 	args := m.Called(ctx, userID, location)
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
@@ -82,7 +82,7 @@ func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, user
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, userID string, locationID string) error {
+func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
 	args := m.Called(ctx, userID, locationID)
 	return args.Error(0)
 }
@@ -92,15 +92,15 @@ func (m *MockPhysicalDbAdapter) RemovePhysicalLocation(ctx context.Context, user
 // 	mockDbAdapter := &MockPhysicalDbAdapter{}
 
 // 	// Set up default mock responses
-// 	mockDbAdapter.On("GetPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 	mockDbAdapter.On("GetSinglePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 // 		Return(models.PhysicalLocation{}, nil)
-// 	mockDbAdapter.On("GetUserPhysicalLocations", mock.Anything, mock.Anything).
+// 	mockDbAdapter.On("GetAllPhysicalLocations", mock.Anything, mock.Anything).
 // 		Return([]models.PhysicalLocation{}, nil)
-// 	mockDbAdapter.On("AddPhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 	mockDbAdapter.On("CreatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 // 		Return(models.PhysicalLocation{}, nil)
 // 	mockDbAdapter.On("UpdatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 // 		Return(models.PhysicalLocation{}, nil)
-// 	mockDbAdapter.On("RemovePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
+// 	mockDbAdapter.On("DeletePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 // 		Return(nil)
 
 // 	return &GamePhysicalService{
@@ -150,8 +150,8 @@ func TestGamePhysicalService(t *testing.T) {
 	// Create the service with mocks
 	service := createTestService(mockDb, mockCache)
 
-	// Test GetPhysicalLocation
-	t.Run("GetPhysicalLocation", func(t *testing.T) {
+	// Test GetSinglePhysicalLocation
+	t.Run("GetSinglePhysicalLocation", func(t *testing.T) {
 		expectedLocation := models.PhysicalLocation{
 			ID:             "loc1",
 			UserID:         "user1",
@@ -165,26 +165,26 @@ func TestGamePhysicalService(t *testing.T) {
 		var nilLocation *models.PhysicalLocation = nil
 		mockCache.On("GetSingleCachedPhysicalLocation", ctx, "user1", "loc1").
 			Return(nilLocation, false, fmt.Errorf("cache miss"))
-		mockDb.On("GetPhysicalLocation", ctx, "user1", "loc1").
+		mockDb.On("GetSinglePhysicalLocation", ctx, "user1", "loc1").
 			Return(expectedLocation, nil)
 		mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", expectedLocation).
 			Return(nil)
 
-		location, err := service.GetPhysicalLocation(ctx, "user1", "loc1")
+		location, err := service.GetSinglePhysicalLocation(ctx, "user1", "loc1")
 		if err != nil {
-			t.Errorf("GetPhysicalLocation() error = %v", err)
+			t.Errorf("GetSinglePhysicalLocation() error = %v", err)
 			return
 		}
 		if !reflect.DeepEqual(location, expectedLocation) {
-			t.Errorf("GetPhysicalLocation() location = %v, expectedLocation %v", location, expectedLocation)
+			t.Errorf("GetSinglePhysicalLocation() location = %v, expectedLocation %v", location, expectedLocation)
 		}
 
 		mockDb.AssertExpectations(t)
 		mockCache.AssertExpectations(t)
 	})
 
-	// Test GetUserPhysicalLocations
-	t.Run("GetUserPhysicalLocations", func(t *testing.T) {
+	// Test GetAllPhysicalLocations
+	t.Run("GetAllPhysicalLocations", func(t *testing.T) {
 		expectedLocations := []models.PhysicalLocation{
 			{
 				ID:             "loc1",
@@ -207,26 +207,26 @@ func TestGamePhysicalService(t *testing.T) {
 		// Return an empty slice instead of nil to avoid type casting issues
 		mockCache.On("GetCachedPhysicalLocations", ctx, "user1").
 			Return([]models.PhysicalLocation{}, fmt.Errorf("cache miss"))
-		mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 			Return(expectedLocations, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", expectedLocations).
 			Return(nil)
 
-		locations, err := service.GetUserPhysicalLocations(ctx, "user1")
+		locations, err := service.GetAllPhysicalLocations(ctx, "user1")
 		if err != nil {
-			t.Errorf("GetUserPhysicalLocations() error = %v", err)
+			t.Errorf("GetAllPhysicalLocations() error = %v", err)
 			return
 		}
 		if !reflect.DeepEqual(locations, expectedLocations) {
-			t.Errorf("GetUserPhysicalLocations() locations = %v, expectedLocations %v", locations, expectedLocations)
+			t.Errorf("GetAllPhysicalLocations() locations = %v, expectedLocations %v", locations, expectedLocations)
 		}
 
 		mockDb.AssertExpectations(t)
 		mockCache.AssertExpectations(t)
 	})
 
-	// Test AddPhysicalLocation
-	t.Run("AddPhysicalLocation", func(t *testing.T) {
+	// Test CreatePhysicalLocation
+	t.Run("CreatePhysicalLocation", func(t *testing.T) {
 		// Create fresh mocks for this test
 		mockDb := new(mocks.MockPhysicalDbAdapter)
 		mockCache := new(mocks.MockPhysicalCacheWrapper)
@@ -241,25 +241,25 @@ func TestGamePhysicalService(t *testing.T) {
 			MapCoordinates: "1.0,2.0",
 		}
 
-		mockDb.On("AddPhysicalLocation", ctx, "user1", location).
+		mockDb.On("CreatePhysicalLocation", ctx, "user1", location).
 			Return(location, nil)
 
 		// After adding, it fetches all locations to update cache
 		allLocations := []models.PhysicalLocation{location}
-		mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 			Return(allLocations, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", allLocations).
 			Return(nil)
 		mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", location).
 			Return(nil)
 
-		createdLocation, err := service.AddPhysicalLocation(ctx, "user1", location)
+		createdLocation, err := service.CreatePhysicalLocation(ctx, "user1", location)
 		if err != nil {
-			t.Errorf("AddPhysicalLocation() error = %v", err)
+			t.Errorf("CreatePhysicalLocation() error = %v", err)
 			return
 		}
 		if !reflect.DeepEqual(createdLocation, location) {
-			t.Errorf("AddPhysicalLocation() createdLocation = %v, location %v", createdLocation, location)
+			t.Errorf("CreatePhysicalLocation() createdLocation = %v, location %v", createdLocation, location)
 		}
 
 		mockDb.AssertExpectations(t)
@@ -295,7 +295,7 @@ func TestGamePhysicalService(t *testing.T) {
 			Return(nil)
 		mockCache.On("InvalidateUserCache", ctx, userID).
 			Return(nil)
-		mockDb.On("GetUserPhysicalLocations", ctx, userID).
+		mockDb.On("GetAllPhysicalLocations", ctx, userID).
 			Return([]models.PhysicalLocation{updatedLocation}, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, userID, []models.PhysicalLocation{updatedLocation}).
 			Return(nil)
@@ -320,9 +320,9 @@ func TestGamePhysicalService(t *testing.T) {
 		mockCache := new(mocks.MockPhysicalCacheWrapper)
 		service := createTestService(mockDb, mockCache)
 
-		mockDb.On("RemovePhysicalLocation", ctx, "user1", "loc1").
+		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
 			Return(nil)
-		mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 			Return([]models.PhysicalLocation{}, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", []models.PhysicalLocation{}).
 			Return(nil)
@@ -346,9 +346,9 @@ func TestGamePhysicalService(t *testing.T) {
 		mockCache := new(mocks.MockPhysicalCacheWrapper)
 		service := createTestService(mockDb, mockCache)
 
-		mockDb.On("RemovePhysicalLocation", ctx, "user1", "loc1").
+		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
 			Return(nil)
-		mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 			Return([]models.PhysicalLocation{}, nil)
 
 		// Simulate cache update error - NOTE: should not block deletion
@@ -376,7 +376,7 @@ func TestGamePhysicalService(t *testing.T) {
 		service := createTestService(mockDb, mockCache)
 
 		dbErr := fmt.Errorf("database error")
-		mockDb.On("RemovePhysicalLocation", ctx, "user1", "loc1").
+		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
 			Return(dbErr)
 
 		err := service.DeletePhysicalLocation(ctx, "user1", "loc1")
@@ -460,7 +460,7 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					Return(nil)
 
 				updatedLocations := []models.PhysicalLocation{updatedLocation}
-				mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+				mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 					Return(updatedLocations, nil)
 				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", updatedLocations).
 					Return(nil)
@@ -543,7 +543,7 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					Return(cacheErr)
 
 				updatedLocations := []models.PhysicalLocation{updatedLocation}
-				mockDb.On("GetUserPhysicalLocations", ctx, "user1").
+				mockDb.On("GetAllPhysicalLocations", ctx, "user1").
 					Return(updatedLocations, nil)
 				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", updatedLocations).
 					Return(cacheErr)

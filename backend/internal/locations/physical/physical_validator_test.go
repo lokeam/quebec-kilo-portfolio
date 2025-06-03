@@ -7,6 +7,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
 )
 
@@ -63,7 +64,9 @@ var ValidLocationsTypes = []string{
 func TestPhysicalValidator(t *testing.T) {
 	// Setup
 	testSanitizer := &mocks.MockSanitizer{}
-	testValidator, testErr := NewPhysicalValidator(testSanitizer)
+	testCacheWrapper := mocks.DefaultPhysicalCacheWrapper()
+	testLogger := testutils.NewTestLogger()
+	testValidator, testErr := NewPhysicalValidator(testSanitizer, testCacheWrapper, testLogger)
 	if testErr != nil {
 		t.Fatalf("failed to create test validator: %v", testErr)
 	}

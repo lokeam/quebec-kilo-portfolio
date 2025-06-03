@@ -66,6 +66,12 @@ func DefaultPhysicalValidator() *MockPhysicalValidator {
 		ValidatePhysicalLocationFunc: func(location models.PhysicalLocation) (models.PhysicalLocation, error) {
 			return location, nil
 		},
+		ValidatePhysicalLocationCreationFunc: func(location models.PhysicalLocation) (models.PhysicalLocation, error) {
+			return location, nil
+		},
+		ValidatePhysicalLocationUpdateFunc: func(update, existing models.PhysicalLocation) (models.PhysicalLocation, error) {
+			return update, nil
+		},
 	}
 }
 

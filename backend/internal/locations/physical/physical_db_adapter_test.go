@@ -28,22 +28,22 @@ import (
 	- Ensuring user may only access their own locations
 
 	Scenarios:
-	- GetPhysicalLocation:
+	- GetSinglePhysicalLocation:
 		- Successfully retrieves a valid location
 		- Returns error when location not found
 		- Handles db errors
-	- GetUserPhysicalLocations:
+	- GetAllPhysicalLocations:
 		- Successfully retrieves all locations for a user
 		- Returns empty slice when no locations exist
 		- Handles db errors
-	- AddPhysicalLocation:
+	- CreatePhysicalLocation:
 		- Successfully adds new location
 		- Handles db errors
 	- UpdatePhysicalLocation:
 		- Successfully updates a location
 		- Returns error when location not found
 		- Handles db errors
-	- RemovePhysicalLocation:
+	- DeletePhysicalLocation:
 		- Successfully removes a location
 		- Returns errors when location not found
 		- Handles db errors
@@ -78,7 +78,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the location exists in the database
 		THEN the adapter returns the location
 	*/
-	t.Run(`GetPhysicalLocation - Successfully retrieves a valid location`, func(t *testing.T) {
+	t.Run(`GetSinglePhysicalLocation - Successfully retrieves a valid location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -110,7 +110,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute
-		location, err := adapter.GetPhysicalLocation(context.Background(), userID, locationID)
+		location, err := adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err != nil {
@@ -146,7 +146,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnError(sql.ErrNoRows)
 
 		// Execute
-		_, err = adapter.GetPhysicalLocation(context.Background(), userID, locationID)
+		_, err = adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
@@ -165,7 +165,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the db returns an error
 		THEN the adapter also returns an error
 	*/
-	t.Run(`GetPhysicalLocation - Handles database errors`, func(t *testing.T) {
+	t.Run(`GetSinglePhysicalLocation - Handles database errors`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -183,7 +183,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute the fucntion
-		_, err = adapter.GetPhysicalLocation(context.Background(), userID, locationID)
+		_, err = adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
@@ -202,7 +202,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN locations exist in the db
 		THEN the adapter returns all locations
 	*/
-	t.Run("GetUserPhysicalLocations - Successfully retrieves all locations", func(t *testing.T) {
+	t.Run("GetAllPhysicalLocations - Successfully retrieves all locations", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -223,7 +223,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute the function
-		locations, err := adapter.GetUserPhysicalLocations(context.Background(), userID)
+		locations, err := adapter.GetAllPhysicalLocations(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -245,7 +245,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN NO locations exist in the db
 		THEN the adapter returns an empty slice
 	*/
-	t.Run(`GetUserPhysicalLocations - Returns empty slice when locations exist`, func(t *testing.T) {
+	t.Run(`GetAllPhysicalLocations - Returns empty slice when locations exist`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -263,7 +263,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute the function
-		locations, err := adapter.GetUserPhysicalLocations(context.Background(), userID)
+		locations, err := adapter.GetAllPhysicalLocations(context.Background(), userID)
 
 		// Verify
 		if err != nil {
@@ -282,7 +282,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the database returns an error
 		THEN the adapter returns the error
 	*/
-	t.Run(`GetUserPhysicalLocations - Handles database errors`, func(t *testing.T) {
+	t.Run(`GetAllPhysicalLocations - Handles database errors`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -299,7 +299,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute
-		_, err = adapter.GetUserPhysicalLocations(context.Background(), userID)
+		_, err = adapter.GetAllPhysicalLocations(context.Background(), userID)
 
 		// Verify
 		if err == nil {
@@ -318,7 +318,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the db operation is successful
 		THEN the adapter adds the location and returns it with generated fields
 	*/
-	t.Run(`AddPhysicalLocation - Successfully adds a new location`, func(t *testing.T) {
+	t.Run(`CreatePhysicalLocation - Successfully adds a new location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -347,7 +347,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnRows(rows)
 
 		// Execute
-		result, err := adapter.AddPhysicalLocation(context.Background(), userID, location)
+		result, err := adapter.CreatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
 		if err != nil {
@@ -366,7 +366,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the db returns an error
 		THEN then the adapter also returns an error
 	*/
-	t.Run("AddPhysicalLocation - Handles database errors", func(t *testing.T) {
+	t.Run("CreatePhysicalLocation - Handles database errors", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -392,7 +392,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			WillReturnError(dbError)
 
 		// Execute the function
-		_, err = adapter.AddPhysicalLocation(context.Background(), userID, location)
+		_, err = adapter.CreatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
 		if err == nil {
@@ -584,7 +584,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the location exists AND belongs to the user
 		THEN the adapter removes the location
 	*/
-	t.Run(`RemovePhysicalLocation - Successfully removes a location`, func(t *testing.T) {
+	t.Run(`DeletePhysicalLocation - Successfully removes a location`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -613,7 +613,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.RemovePhysicalLocation(context.Background(), userID, locationID)
+		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err != nil {
@@ -629,7 +629,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the location doesn't exist or doesn't belong to the user
 		THEN the adapter returns an error
 	*/
-	t.Run(`RemovePhysicalLocation - Returns error when location not found`, func(t *testing.T) {
+	t.Run(`DeletePhysicalLocation - Returns error when location not found`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -652,7 +652,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute the function
-		err = adapter.RemovePhysicalLocation(context.Background(), userID, locationID)
+		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
@@ -668,7 +668,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the database returns an error during deletion
 		THEN the adapter returns the error
 	*/
-	t.Run(`RemovePhysicalLocation - Handles database errors during deletion`, func(t *testing.T) {
+	t.Run(`DeletePhysicalLocation - Handles database errors during deletion`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -698,7 +698,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		mock.ExpectRollback()
 
 		// Execute the function
-		err = adapter.RemovePhysicalLocation(context.Background(), userID, locationID)
+		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
 
 		// Verify
 		if err == nil {
