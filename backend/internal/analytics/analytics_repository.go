@@ -192,6 +192,9 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 		return nil, fmt.Errorf("failed to get location counts: %w", err)
 	}
 
+	stats.TotalPhysicalLocations = physicalCount
+	stats.TotalDigitalLocations = digitalCount
+
 	// Debug log the counts
 	fmt.Printf("[DEBUG] Location counts - Physical: %d, Digital: %d\n", physicalCount, digitalCount)
 
