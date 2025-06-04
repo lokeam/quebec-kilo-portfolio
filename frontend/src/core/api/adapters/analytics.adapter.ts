@@ -77,27 +77,44 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
     return [];
   }
 
-  return storage.physicalLocations.map((location: LocationSummary) => ({
-    id: location.id,
-    name: location.name,
-    type: PhysicalLocationType.HOUSE,
-    sublocations: location.sublocations?.map(subloc => ({
-      id: subloc.id,
-      name: subloc.name,
-      type: subloc.locationType as SublocationType,
-      parentLocationId: location.id,
-      metadata: {
-        bgColor: subloc.bgColor,
-        notes: subloc.storedItems?.toString()
-      },
-      items: subloc.items || [],
-      createdAt: new Date(subloc.createdAt),
-      updatedAt: new Date(subloc.updatedAt)
-    })) || [],
-    items: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-  }));
+  console.log('[DEBUG] Analytics Data:', analyticsData);
+  console.log('[DEBUG] Storage Data:', storage);
+  console.log('[DEBUG] Physical Locations:', storage.physicalLocations);
+
+  return storage.physicalLocations.map((location: LocationSummary) => {
+    console.log('[DEBUG] Processing Location:', location);
+    console.log('[DEBUG] Location Map Coordinates:', location.map_coordinates);
+
+    const transformed = {
+      id: location.id,
+      name: location.name,
+      type: location.locationType as PhysicalLocationType,
+      bgColor: location.bgColor,
+      mapCoordinates: location.mapCoordinates ? {
+        coords: location.mapCoordinates.coords,
+        googleMapsLink: location.mapCoordinates.googleMapsLink
+      } : undefined,
+      sublocations: location.sublocations?.map(subloc => ({
+        id: subloc.id,
+        name: subloc.name,
+        type: subloc.locationType as SublocationType,
+        parentLocationId: location.id,
+        metadata: {
+          bgColor: location.bgColor,
+          notes: subloc.storedItems?.toString()
+        },
+        items: subloc.items || [],
+        createdAt: new Date(subloc.createdAt),
+        updatedAt: new Date(subloc.updatedAt)
+      })) || [],
+      items: [],
+      createdAt: new Date(location.createdAt),
+      updatedAt: new Date(location.updatedAt)
+    };
+
+    console.log('[DEBUG] Transformed Location:', transformed);
+    return transformed;
+  });
 }
 
 /**
@@ -209,10 +226,10 @@ export function adaptPhysicalLocationToCardData(location: PhysicalLocation): Loc
     name: subloc.name,
     description: subloc.description,
     locationType: subloc.type,
-    bgColor: subloc.metadata?.bgColor,
+    bgColor: location.bgColor,
     items: [],
     sublocations: [],
-    mapCoordinates: subloc.metadata?.notes,
+    mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
     createdAt: subloc.createdAt,
     updatedAt: subloc.updatedAt
   }));

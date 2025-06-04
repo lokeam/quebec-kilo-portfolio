@@ -10,6 +10,11 @@ export interface PhysicalLocationMetadata {
   notes?: string;
 }
 
+export interface MapCoordinates {
+  coords: string;
+  googleMapsLink: string;
+}
+
 export interface PhysicalLocation {
   id: string;
   name: string;
@@ -19,4 +24,16 @@ export interface PhysicalLocation {
   sublocations?: Sublocation[];
   createdAt: Date;
   updatedAt: Date;
+  bgColor?: string;
+  mapCoordinates?: MapCoordinates;
+}
+
+/**
+ * Request type for creating a new physical location
+ */
+export interface CreatePhysicalLocationRequest {
+  name: string;
+  type: PhysicalLocationType;
+  description?: string;
+  metadata?: PhysicalLocationMetadata;
 }

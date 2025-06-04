@@ -15,6 +15,18 @@ export interface Sublocation {
   description?: string;
   metadata?: SublocationMetadata;
   items?: unknown[];
+  storedItems?: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * Request type for creating a new sublocation
+ */
+export interface CreateSublocationRequest {
+  name: string;
+  type: SublocationType;
+  parentLocationId: string;
+  description?: string;
+  metadata?: SublocationMetadata;
 }
