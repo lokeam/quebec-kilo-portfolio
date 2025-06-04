@@ -169,13 +169,14 @@ func (pa *PhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, user
 	defer tx.Rollback()
 
 	var location models.PhysicalLocation
+	var rawCoords string
 	err = tx.QueryRowContext(ctx, getSinglePhysicalLocationQuery, locationID, userID).Scan(
 		&location.ID,
 		&location.UserID,
 		&location.Name,
 		&location.Label,
 		&location.LocationType,
-		&location.MapCoordinates,
+		&rawCoords,
 		&location.BgColor,
 		&location.CreatedAt,
 		&location.UpdatedAt,
@@ -185,6 +186,11 @@ func (pa *PhysicalDbAdapter) GetSinglePhysicalLocation(ctx context.Context, user
 			return models.PhysicalLocation{}, ErrLocationNotFound
 		}
 		return models.PhysicalLocation{}, fmt.Errorf("failed to get physical location: %w", err)
+	}
+
+	// Convert raw coordinates to struct
+	location.MapCoordinates = models.PhysicalMapCoordinates{
+		Coords: rawCoords,
 	}
 
 	// Get sublocations
@@ -236,13 +242,14 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID
 	var locations []models.PhysicalLocation
 	for rows.Next() {
 		var location models.PhysicalLocation
+		var rawCoords string
 		err := rows.Scan(
 			&location.ID,
 			&location.UserID,
 			&location.Name,
 			&location.Label,
 			&location.LocationType,
-			&location.MapCoordinates,
+			&rawCoords,
 			&location.BgColor,
 			&location.CreatedAt,
 			&location.UpdatedAt,
@@ -250,6 +257,12 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan physical location: %w", err)
 		}
+
+		// Convert raw coordinates to struct
+		location.MapCoordinates = models.PhysicalMapCoordinates{
+			Coords: rawCoords,
+		}
+
 		locations = append(locations, location)
 	}
 
@@ -351,13 +364,14 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 	location.UpdatedAt = now
 
 	var newLocation models.PhysicalLocation
+	var rawCoords string
 	err = tx.QueryRowContext(ctx, createPhysicalLocationQuery,
 		location.ID,
 		userID,
 		location.Name,
 		location.Label,
 		location.LocationType,
-		location.MapCoordinates,
+		location.MapCoordinates.Coords,
 		location.BgColor,
 	).Scan(
 		&newLocation.ID,
@@ -365,13 +379,18 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 		&newLocation.Name,
 		&newLocation.Label,
 		&newLocation.LocationType,
-		&newLocation.MapCoordinates,
+		&rawCoords,
 		&newLocation.BgColor,
 		&newLocation.CreatedAt,
 		&newLocation.UpdatedAt,
 	)
 	if err != nil {
 		return models.PhysicalLocation{}, fmt.Errorf("failed to create physical location: %w", err)
+	}
+
+	// Convert raw coordinates to struct
+	newLocation.MapCoordinates = models.PhysicalMapCoordinates{
+		Coords: rawCoords,
 	}
 
 	// Commit transaction
@@ -401,13 +420,14 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 	defer tx.Rollback()
 
 	var updatedLocation models.PhysicalLocation
+	var rawCoords string
 	err = tx.QueryRowContext(ctx, updatePhysicalLocationQuery,
 		location.ID,
 		userID,
 		location.Name,
 		location.Label,
 		location.LocationType,
-		location.MapCoordinates,
+		location.MapCoordinates.Coords,
 		location.BgColor,
 	).Scan(
 		&updatedLocation.ID,
@@ -415,7 +435,7 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 		&updatedLocation.Name,
 		&updatedLocation.Label,
 		&updatedLocation.LocationType,
-		&updatedLocation.MapCoordinates,
+		&rawCoords,
 		&updatedLocation.BgColor,
 		&updatedLocation.CreatedAt,
 		&updatedLocation.UpdatedAt,
@@ -425,6 +445,11 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 			return models.PhysicalLocation{}, ErrLocationNotFound
 		}
 		return models.PhysicalLocation{}, fmt.Errorf("failed to update physical location: %w", err)
+	}
+
+	// Convert raw coordinates to struct
+	updatedLocation.MapCoordinates = models.PhysicalMapCoordinates{
+		Coords: rawCoords,
 	}
 
 	// Commit transaction

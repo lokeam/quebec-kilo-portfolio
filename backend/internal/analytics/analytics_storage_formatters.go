@@ -2,6 +2,9 @@ package analytics
 
 import (
 	"fmt"
+
+	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/shared/utils"
 )
 
 // Helper function to format currency
@@ -55,10 +58,29 @@ func FormatStorageStats(stats *StorageStats) {
 		loc := &stats.PhysicalLocations[i]
 		loc.LocationType = "physical"
 
-		// Log before formatting
 		fmt.Printf("\n[Formatter] Before formatting %s:\n", loc.Name)
 		fmt.Printf("  Location Type: %v\n", loc.LocationType)
+		fmt.Printf("  Map Coordinates: %+v\n", loc.MapCoordinates)
 		fmt.Printf("  Sublocations Count: %v\n", len(loc.Sublocations))
+
+		// Generate Google Maps link if coordinates exist
+		if loc.MapCoordinates.Coords != "" {
+			fmt.Printf("  Attempting to parse coordinates: %q\n", loc.MapCoordinates.Coords)
+			lat, lng, err := utils.ParseCoordinates(loc.MapCoordinates.Coords)
+			if err != nil {
+				fmt.Printf("  Failed to parse coordinates: %v\n", err)
+			} else {
+				fmt.Printf("  Successfully parsed coordinates: lat=%f, lng=%f\n", lat, lng)
+				// Create a new PhysicalMapCoordinates struct with both fields
+				loc.MapCoordinates = models.PhysicalMapCoordinates{
+					Coords:         loc.MapCoordinates.Coords,
+					GoogleMapsLink: utils.BuildGoogleMapsURL(lat, lng),
+				}
+				fmt.Printf("  Generated Google Maps link: %s\n", loc.MapCoordinates.GoogleMapsLink)
+			}
+		} else {
+			fmt.Printf("  No coordinates to parse\n")
+		}
 
 		// Format sublocations if any exist
 		for j := range loc.Sublocations {
@@ -66,9 +88,9 @@ func FormatStorageStats(stats *StorageStats) {
 			subloc.LocationType = "sublocation" // Ensure sublocation type is set
 		}
 
-		// Log after formatting
 		fmt.Printf("\n[Formatter] After formatting %s:\n", loc.Name)
 		fmt.Printf("  Location Type: %v\n", loc.LocationType)
+		fmt.Printf("  Map Coordinates: %+v\n", loc.MapCoordinates)
 		fmt.Printf("  Sublocations Count: %v\n", len(loc.Sublocations))
 	}
 }

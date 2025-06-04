@@ -2,6 +2,8 @@ package analytics
 
 import (
 	"time"
+
+	"github.com/lokeam/qko-beta/internal/models"
 )
 
 // GeneralStats contains high-level metrics about the user's library
@@ -56,38 +58,38 @@ type DigitalLocation struct {
 }
 
 type PhysicalLocation struct {
-	ID               string                  `json:"id"`
-	Name             string                  `json:"name"`
-	LocationType     string                  `json:"location_type"`
-	MapCoordinates   string                  `json:"map_coordinates"`
-	BgColor          string                  `json:"bg_color"`
-	CreatedAt        time.Time               `json:"created_at"`
-	UpdatedAt        time.Time               `json:"updated_at"`
-	ItemCount        int                     `json:"item_count"`
-	Sublocations    []SublocationSummary     `json:"sublocations"`
+	ID               string                        `json:"id"`
+	Name             string                        `json:"name"`
+	LocationType     string                        `json:"location_type"`
+	MapCoordinates   models.PhysicalMapCoordinates `json:"map_coordinates"`
+	BgColor          string                        `json:"bg_color"`
+	CreatedAt        time.Time                     `json:"created_at"`
+	UpdatedAt        time.Time                     `json:"updated_at"`
+	ItemCount        int                           `json:"item_count"`
+	Sublocations    []SublocationSummary           `json:"sublocations"`
 }
 
 // LocationSummary represents a summary of a storage location
 type LocationSummary struct {
-	ID              string    `json:"id"`
-	Name            string    `json:"name"`
-	LocationType    string    `json:"location_type"`
-	ItemCount       int       `json:"item_count"`
-	IsSubscription  bool      `json:"is_subscription,omitempty"`
-	MonthlyCost     float64   `json:"monthly_cost,omitempty"`
-	MapCoordinates  string    `json:"map_coordinates,omitempty"`
-	BgColor         string    `json:"bg_color,omitempty"`
-	IsActive        bool      `json:"is_active,omitempty"`
-	URL             string    `json:"url,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	Sublocations    []SublocationSummary `json:"sublocations"`
-	Items           []ItemSummary        `json:"items"`
-	PaymentMethod   string               `json:"payment_method"`
-	PaymentDate     time.Time            `json:"payment_date"`
-	BillingCycle    string               `json:"billing_cycle"`
-	CostPerCycle    float64              `json:"cost_per_cycle"`
-	NextPaymentDate time.Time            `json:"next_payment_date"`
+	ID              string                        `json:"id"`
+	Name            string                        `json:"name"`
+	LocationType    string                        `json:"location_type"`
+	ItemCount       int                           `json:"item_count"`
+	IsSubscription  bool                          `json:"is_subscription,omitempty"`
+	MonthlyCost     float64                       `json:"monthly_cost,omitempty"`
+	MapCoordinates  models.PhysicalMapCoordinates `json:"map_coordinates,omitempty"`
+	BgColor         string                        `json:"bg_color,omitempty"`
+	IsActive        bool                          `json:"is_active,omitempty"`
+	URL             string                        `json:"url,omitempty"`
+	CreatedAt       time.Time                     `json:"created_at"`
+	UpdatedAt       time.Time                     `json:"updated_at"`
+	Sublocations    []SublocationSummary          `json:"sublocations"`
+	Items           []ItemSummary                 `json:"items"`
+	PaymentMethod   string                        `json:"payment_method"`
+	PaymentDate     time.Time                     `json:"payment_date"`
+	BillingCycle    string                        `json:"billing_cycle"`
+	CostPerCycle    float64                       `json:"cost_per_cycle"`
+	NextPaymentDate time.Time                     `json:"next_payment_date"`
 }
 
 // SublocationSummary represents a summary of a sublocation
@@ -95,10 +97,10 @@ type SublocationSummary struct {
 	ID          string         `json:"id"`
 	Name        string         `json:"name"`
 	LocationType string        `json:"location_type"`
-	StoredItems int           `json:"stored_items"`
-	CreatedAt   time.Time     `json:"created_at"`
-	UpdatedAt   time.Time     `json:"updated_at"`
-	Items       []ItemSummary `json:"items,omitempty"`
+	StoredItems int            `json:"stored_items"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	Items       []ItemSummary  `json:"items,omitempty"`
 }
 
 // ItemSummary represents a summary of a game item

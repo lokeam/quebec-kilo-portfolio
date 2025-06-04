@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/shared/utils"
 	validationErrors "github.com/lokeam/qko-beta/internal/shared/validation"
 )
 
@@ -352,65 +352,56 @@ func (v *PhysicalValidator) validateLocationType(locationType string) (string, e
 	return sanitized, nil
 }
 
-func (v *PhysicalValidator) validateMapCoordinates(coordinates string) (string, error) {
-	// Empty coordinates are allowed
-	if coordinates == "" {
-		return "", nil
+func (v *PhysicalValidator) validateMapCoordinates(coordinates models.PhysicalMapCoordinates) (models.PhysicalMapCoordinates, error) {
+	// If coordinates are empty, that's valid
+	if coordinates.Coords == "" {
+		return coordinates, nil
 	}
 
-	// Check format using regex
-	re := regexp.MustCompile(CoordinatePattern)
-	if !re.MatchString(coordinates) {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: "map coordinates must be in format latitude,longitude (e.g. 45.5017,-73.5673)",
-		}
-	}
-
-	// Parse and validate coordinate values
-	parts := strings.Split(coordinates, ",")
-	lat, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
+	// Validate coordinate format
+	matched, err := regexp.MatchString(CoordinatePattern, coordinates.Coords)
 	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: "invalid latitude value",
+		return coordinates, &validationErrors.ValidationError{
+			Field:   "map_coordinates",
+			Message: fmt.Sprintf("error validating coordinate format: %v", err),
+		}
+	}
+	if !matched {
+		return coordinates, &validationErrors.ValidationError{
+			Field:   "map_coordinates",
+			Message: "coordinates must be in the format 'latitude, longitude' with valid numbers",
 		}
 	}
 
-	lng, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+	// Parse coordinates to validate they are valid numbers
+	lat, lng, err := utils.ParseCoordinates(coordinates.Coords)
 	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: "invalid longitude value",
+		return coordinates, &validationErrors.ValidationError{
+			Field:   "map_coordinates",
+			Message: fmt.Sprintf("invalid coordinates: %v", err),
 		}
 	}
 
-	// Check latitude range (-90 to 90)
+	// Validate latitude range (-90 to 90)
 	if lat < -90 || lat > 90 {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: "latitude must be between -90 and 90",
+		return coordinates, &validationErrors.ValidationError{
+			Field:   "map_coordinates",
+			Message: "latitude must be between -90 and 90 degrees",
 		}
 	}
 
-	// Check longitude range (-180 to 180)
+	// Validate longitude range (-180 to 180)
 	if lng < -180 || lng > 180 {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: "longitude must be between -180 and 180",
+		return coordinates, &validationErrors.ValidationError{
+			Field:   "map_coordinates",
+			Message: "longitude must be between -180 and 180 degrees",
 		}
 	}
 
-	// Sanitize coordinates
-	sanitized, err := v.sanitizer.SanitizeString(coordinates)
-	if err != nil {
-		return "", &validationErrors.ValidationError{
-			Field:   "mapCoordinates",
-			Message: fmt.Sprintf("invalid coordinates content: %v", err),
-		}
-	}
+	// Generate Google Maps link
+	coordinates.GoogleMapsLink = utils.BuildGoogleMapsURL(lat, lng)
 
-	return sanitized, nil
+	return coordinates, nil
 }
 
 func (v *PhysicalValidator) validateBackgroundColor(bgColor string) error {

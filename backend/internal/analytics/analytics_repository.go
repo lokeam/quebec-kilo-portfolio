@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/shared/utils"
 )
 
 // Repository defines the interface for analytics data retrieval
@@ -259,78 +261,15 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 	}
 	defer rows.Close()
 
-	// Debug log if we got any rows
-	fmt.Printf("[DEBUG] Physical locations query returned rows: %v\n", rows.Next())
-
-	// Reset the rows cursor since we just checked Next()
-	rows.Close()
-	rows, err = r.db.QueryxContext(ctx, `
-		WITH physical_location_data AS (
-			SELECT
-				l.id,
-				l.name,
-				l.location_type,
-				l.map_coordinates,
-				l.bg_color,
-				l.created_at,
-				l.updated_at,
-				COUNT(DISTINCT pgl.id) as item_count
-			FROM physical_locations l
-			LEFT JOIN sublocations sl ON l.id = sl.physical_location_id
-			LEFT JOIN physical_game_locations pgl ON sl.id = pgl.sublocation_id
-			WHERE l.user_id = $1
-			GROUP BY l.id, l.name, l.location_type, l.map_coordinates, l.bg_color, l.created_at, l.updated_at
-		)
-		SELECT
-			pld.*,
-			COALESCE(
-				json_agg(
-					json_build_object(
-						'id', sl.id,
-						'name', sl.name,
-						'location_type', sl.location_type,
-						'stored_items', sl.stored_items,
-						'created_at', sl.created_at,
-						'updated_at', sl.updated_at,
-						'items', COALESCE(
-							(
-								SELECT json_agg(
-									json_build_object(
-										'id', ug.id,
-										'name', g.name,
-										'platform', p.name,
-										'acquired_date', ug.created_at
-									)
-								)
-								FROM physical_game_locations pgl
-								JOIN user_games ug ON pgl.user_game_id = ug.id
-								JOIN games g ON ug.game_id = g.id
-								JOIN platforms p ON ug.platform_id = p.id
-								WHERE pgl.sublocation_id = sl.id
-							),
-							'[]'::json
-						)
-					)
-				) FILTER (WHERE sl.id IS NOT NULL),
-				'[]'::json
-			) as sublocations
-		FROM physical_location_data pld
-		LEFT JOIN sublocations sl ON pld.id = sl.physical_location_id
-		GROUP BY pld.id, pld.name, pld.location_type, pld.map_coordinates, pld.bg_color, pld.created_at, pld.updated_at, pld.item_count
-		ORDER BY pld.name`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get physical locations: %w", err)
-	}
-	defer rows.Close()
-
 	for rows.Next() {
 		var location PhysicalLocation
+		var rawCoords string
 		var sublocationsJSON []byte
 		err := rows.Scan(
 			&location.ID,
 			&location.Name,
 			&location.LocationType,
-			&location.MapCoordinates,
+			&rawCoords,
 			&location.BgColor,
 			&location.CreatedAt,
 			&location.UpdatedAt,
@@ -341,8 +280,10 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 			return nil, fmt.Errorf("failed to scan physical location: %w", err)
 		}
 
-		// Debug log each physical location as we process it
-		fmt.Printf("[DEBUG] Processing physical location: %s (ID: %s)\n", location.Name, location.ID)
+		// Convert raw coordinates to struct
+		location.MapCoordinates = models.PhysicalMapCoordinates{
+			Coords: rawCoords,
+		}
 
 		// Unescape HTML entities in the name
 		location.Name = html.UnescapeString(location.Name)
@@ -358,6 +299,18 @@ func (r *repository) GetStorageStats(ctx context.Context, userID string) (*Stora
 		// Unescape HTML entities in sublocation names using index-based loop
 		for i := 0; i < len(location.Sublocations); i++ {
 			location.Sublocations[i].Name = html.UnescapeString(location.Sublocations[i].Name)
+		}
+
+		if location.MapCoordinates.Coords != "" {
+			fmt.Printf("[DEBUG] Parsing coordinates: %s\n", location.MapCoordinates.Coords)
+			lat, lng, err := utils.ParseCoordinates(location.MapCoordinates.Coords)
+			if err != nil {
+				fmt.Printf("[DEBUG] Failed to parse coordinates: %v\n", err)
+			} else {
+				fmt.Printf("[DEBUG] Parsed coordinates: lat=%f, lng=%f\n", lat, lng)
+				location.MapCoordinates.GoogleMapsLink = utils.BuildGoogleMapsURL(lat, lng)
+				fmt.Printf("[DEBUG] Generated Google Maps link: %s\n", location.MapCoordinates.GoogleMapsLink)
+			}
 		}
 
 		physicalLocations = append(physicalLocations, location)

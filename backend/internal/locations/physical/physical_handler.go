@@ -19,11 +19,11 @@ import (
 
 // PhysicalLocationRequest represents the request payload for physical location operations
 type PhysicalLocationRequest struct {
-	Name           string `json:"name"`
-	Label          string `json:"label"`
-	LocationType   string `json:"location_type"`
-	MapCoordinates string `json:"map_coordinates"`
-	BgColor        string `json:"bg_color"`
+	Name           string                         `json:"name"`
+	Label          string                         `json:"label"`
+	LocationType   string                         `json:"location_type"`
+	MapCoordinates models.PhysicalMapCoordinates  `json:"map_coordinates"`
+	BgColor        string                         `json:"bg_color"`
 }
 
 // RegisterPhysicalRoutes registers all physical location routes
@@ -259,6 +259,7 @@ func UpdatePhysicalLocation(
 			Label:          locationRequest.Label,
 			LocationType:   locationRequest.LocationType,
 			MapCoordinates: locationRequest.MapCoordinates,
+			BgColor:        locationRequest.BgColor,
 			UpdatedAt:      time.Now(),
 		}
 

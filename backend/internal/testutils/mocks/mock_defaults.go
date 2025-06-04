@@ -83,7 +83,10 @@ func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {
 		Name:           "Home",
 		Label:          "Primary",
 		LocationType:   "Home",
-		MapCoordinates: "40.7128,-74.0060",
+		MapCoordinates: models.PhysicalMapCoordinates{
+			Coords:         "40.7128,-74.0060",
+			GoogleMapsLink: "https://www.google.com/maps/search/?api=1&query=40.7128,-74.0060",
+		},
 		BgColor:        "red",
 	}
 

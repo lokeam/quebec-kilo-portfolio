@@ -5,16 +5,32 @@ import (
 	"time"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/shared/utils"
 )
 
 // FormatPhysicalLocationToFrontend converts a physical location model to a frontend-compatible format
 func FormatPhysicalLocationToFrontend(pl *models.PhysicalLocation) map[string]any {
+	// Parse coordinates and create Google Maps link
+	var mapCoords models.PhysicalMapCoordinates
+	if pl.MapCoordinates.Coords != "" {
+		lat, lng, err := utils.ParseCoordinates(pl.MapCoordinates.Coords)
+		if err == nil {
+			mapCoords = models.PhysicalMapCoordinates{
+				Coords:         pl.MapCoordinates.Coords,
+				GoogleMapsLink: utils.BuildGoogleMapsURL(lat, lng),
+			}
+		} else {
+			// If parsing fails, just use the original coordinates
+			mapCoords = pl.MapCoordinates
+		}
+	}
+
 	result := map[string]any{
 		"id":                pl.ID,
 		"name":              html.UnescapeString(pl.Name),
 		"label":             html.UnescapeString(pl.Label),
 		"location_type":     pl.LocationType,
-		"map_coordinates":   pl.MapCoordinates,
+		"map_coordinates":   mapCoords,
 		"bg_color":          pl.BgColor,
 		"created_at":        pl.CreatedAt.Format(time.RFC3339),
 		"updated_at":        pl.UpdatedAt.Format(time.RFC3339),
