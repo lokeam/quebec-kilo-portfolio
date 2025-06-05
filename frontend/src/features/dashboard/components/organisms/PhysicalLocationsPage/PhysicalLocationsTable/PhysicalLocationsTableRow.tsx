@@ -17,44 +17,12 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
-import { isValidLocationBgColor } from '@/features/dashboard/lib/utils/validateLocationBgColor';
+import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
-
-// Types for flattened sublocation data
-export type SublocationRowData = {
-  sublocationId: string;
-  sublocationName: string;
-  sublocationType: string;
-  parentLocationId: string;
-  parentLocationName: string;
-  parentLocationType: string;
-  mapCoordinates: string;
-  storedItems: number;
-  bgColor?: LocationIconBgColor;
-};
-
-// Helper function to flatten physical locations into sublocation rows
-export function flattenSublocations(physicalLocations: PhysicalLocation[]): SublocationRowData[] {
-  return physicalLocations.flatMap(location =>
-    (location.sublocations || []).map(sublocation => ({
-      sublocationId: sublocation.id,
-      sublocationName: sublocation.name,
-      sublocationType: sublocation.type,
-      parentLocationId: location.id,
-      parentLocationName: location.name,
-      parentLocationType: location.locationType,
-      mapCoordinates: location.metadata?.address || '',
-      storedItems: 0, // TODO: Add storedItems to Sublocation type
-      bgColor: isValidLocationBgColor(location.bgColor) ? location.bgColor : undefined
-    }))
-  );
-}
 
 interface PhysicalLocationsTableRowComponentProps {
   sublocation: SublocationRowData;

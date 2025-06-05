@@ -20,7 +20,7 @@ import { useFilteredPhysicalLocations } from '@/features/dashboard/lib/hooks/use
 
 // Types
 import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { SublocationRowData } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTableRow';
+import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -56,14 +56,13 @@ export function PhysicalLocationsPageContent() {
   const { data: storageData, isLoading, error } = useStorageAnalytics();
 
   // Get filtered locations using the new hook
-  const locations = storageData?.physicalLocations || [];
-  const filteredLocations = useFilteredPhysicalLocations(locations);
+  const filteredSublocationRows = useFilteredPhysicalLocations(storageData?.sublocationRows || []);
 
   console.log('[DEBUG] PhysicalLocationsPageContent: Render', {
     isLoading,
     hasError: !!error,
-    locationsCount: locations.length,
-    filteredLocationsCount: filteredLocations.length,
+    sublocationRowsCount: storageData?.sublocationRows.length || 0,
+    filteredSublocationRowsCount: filteredSublocationRows.length,
     viewMode,
     timestamp: new Date().toISOString()
   });
@@ -77,14 +76,14 @@ export function PhysicalLocationsPageContent() {
     });
 
     // Find the parent location
-    const parentLocation = locations.find(loc =>
+    const parentLocation = storageData?.physicalLocations.find(loc =>
       loc.sublocations?.some(sub => sub.id === sublocation.sublocationId)
     );
     if (parentLocation) {
       setServiceBeingEdited(parentLocation);
       setEditServiceOpen(true);
     }
-  }, [locations]);
+  }, [storageData]);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -105,8 +104,8 @@ export function PhysicalLocationsPageContent() {
     console.log('[DEBUG] PhysicalLocationsPageContent: renderContent', {
       isLoading,
       hasError: !!error,
-      locationsCount: locations.length,
-      filteredLocationsCount: filteredLocations.length,
+      sublocationRowsCount: storageData?.sublocationRows.length || 0,
+      filteredSublocationRowsCount: filteredSublocationRows.length,
       viewMode,
       timestamp: new Date().toISOString()
     });
@@ -123,7 +122,7 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (locations.length === 0) {
+    if (storageData?.sublocationRows.length === 0) {
       return (
         <div className="p-4 border rounded-md">
           <p className="text-gray-500">No physical location found. Add a location to get started.</p>
@@ -131,14 +130,14 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (filteredLocations.length === 0) {
+    if (filteredSublocationRows.length === 0) {
       return <NoResultsFound />;
     }
 
     if (viewMode === 'table') {
       return (
         <PhysicalLocationsTable
-          services={filteredLocations}
+          sublocationRows={filteredSublocationRows}
           onEdit={handleEditService}
         />
       );
@@ -148,26 +147,14 @@ export function PhysicalLocationsPageContent() {
       <div className="p-4 border rounded-md">
         <h2 className="text-lg font-semibold">Physical Locations</h2>
         <p className="text-gray-500 mb-4">{
-          filteredLocations.length === 1
+          filteredSublocationRows.length === 1
             ? '1 location found'
-            : `${filteredLocations.length} locations found`
+            : `${filteredSublocationRows.length} locations found`
         }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
         }`}>
-          {filteredLocations.flatMap(location =>
-            (location.sublocations || []).map((sublocation, index) => ({
-              sublocationId: sublocation.id,
-              sublocationName: sublocation.name,
-              sublocationType: sublocation.type,
-              parentLocationId: location.id,
-              parentLocationName: location.name,
-              parentLocationType: location.locationType,
-              mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
-              bgColor: location.bgColor,
-              storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0
-            }))
-          ).map((sublocation, index) => (
+          {filteredSublocationRows.map((sublocation, index) => (
             <SinglePhysicalLocationCard
               key={sublocation.sublocationId}
               location={sublocation}

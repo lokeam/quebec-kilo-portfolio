@@ -10,7 +10,8 @@ import { logger } from '@/core/utils/logger/logger';
 import {
   adaptAnalyticsToStorageMetadata,
   adaptAnalyticsToPhysicalLocations,
-  adaptAnalyticsToDigitalLocations
+  adaptAnalyticsToDigitalLocations,
+  adaptPhysicalLocationsToSublocationRows
 } from '@/core/api/adapters/analytics.adapter';
 import { useMemo } from 'react';
 
@@ -104,15 +105,18 @@ export function useStorageAnalytics(options?: { enabled?: boolean }) {
       timestamp: new Date().toISOString()
     });
 
+    const physicalLocations = adaptAnalyticsToPhysicalLocations(data);
     const result = {
       metadata: adaptAnalyticsToStorageMetadata(data),
-      physicalLocations: adaptAnalyticsToPhysicalLocations(data),
-      digitalLocations: adaptAnalyticsToDigitalLocations(data)
+      physicalLocations,
+      digitalLocations: adaptAnalyticsToDigitalLocations(data),
+      sublocationRows: adaptPhysicalLocationsToSublocationRows(physicalLocations)
     };
 
     console.log('[DEBUG] useStorageAnalytics: Transformed data', {
       physicalLocationsCount: result.physicalLocations.length,
       digitalLocationsCount: result.digitalLocations.length,
+      sublocationRowsCount: result.sublocationRows.length,
       timestamp: new Date().toISOString()
     });
 

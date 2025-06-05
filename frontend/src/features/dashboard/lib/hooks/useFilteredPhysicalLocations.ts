@@ -1,20 +1,20 @@
 import { useMemo } from 'react';
 import { useOnlineServicesSearch } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
 
-export function useFilteredPhysicalLocations(locations: PhysicalLocation[]) {
+export function useFilteredPhysicalLocations(locations: SublocationRowData[]) {
   const searchQuery = useOnlineServicesSearch();
 
   return useMemo(() => {
-    return locations.filter((location) => {
-      // Search filter - match against BOTH location name and sublocation names
-      const matchesSearch = !searchQuery ||
-        location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        location.sublocations?.some(sublocation =>
-          sublocation.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+    if (!searchQuery) {
+      return locations;
+    }
 
-      return matchesSearch;
+    const query = searchQuery.toLowerCase();
+    return locations.filter((location) => {
+      // Search in both sublocation name and parent location name
+      return location.sublocationName.toLowerCase().includes(query) ||
+             location.parentLocationName.toLowerCase().includes(query);
     });
   }, [locations, searchQuery]);
 }

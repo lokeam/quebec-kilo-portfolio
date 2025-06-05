@@ -83,9 +83,6 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
   console.log('[DEBUG] Physical Locations:', storage.physicalLocations);
 
   return storage.physicalLocations.map((location: LocationSummary) => {
-    console.log('[DEBUG] Processing Location:', location);
-    console.log('[DEBUG] Location Map Coordinates:', location.mapCoordinates);
-
     // Get bg_color from the raw data
     const rawData = location as unknown as { bgColor?: string };
     const bgColor = rawData.bgColor as LocationIconBgColor | undefined;
@@ -272,4 +269,37 @@ export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponseWrapper
     digitalCards,
     metadata: adaptAnalyticsToStorageMetadata(analyticsData)
   };
+}
+
+// Types for flattened sublocation data
+export type SublocationRowData = {
+  sublocationId: string;
+  sublocationName: string;
+  sublocationType: string;
+  parentLocationId: string;
+  parentLocationName: string;
+  parentLocationType: string;
+  mapCoordinates: string;
+  storedItems: number;
+  bgColor?: LocationIconBgColor;
+};
+
+/**
+ * Transforms physical locations into a flattened array of SublocationRowData
+ * This is the single source of truth for sublocation data transformation
+ */
+export function adaptPhysicalLocationsToSublocationRows(physicalLocations: PhysicalLocation[]): SublocationRowData[] {
+  return physicalLocations.flatMap(location =>
+    (location.sublocations || []).map(sublocation => ({
+      sublocationId: sublocation.id,
+      sublocationName: sublocation.name,
+      sublocationType: sublocation.type,
+      parentLocationId: location.id,
+      parentLocationName: location.name,
+      parentLocationType: location.locationType,
+      mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
+      storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0,
+      bgColor: location.bgColor
+    }))
+  );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button'
@@ -27,40 +27,16 @@ import {
 import { IconTrash } from '@tabler/icons-react'
 
 // Types
-import type { PhysicalLocation } from '@/types/domain/physical-location'
-import type { SublocationRowData } from './PhysicalLocationsTableRow'
+import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter'
 
 interface PhysicalLocationsTableProps {
-  services: PhysicalLocation[]
+  sublocationRows: SublocationRowData[]
   onEdit?: (sublocation: SublocationRowData) => void
 }
 
-export function PhysicalLocationsTable({ services, onEdit }: PhysicalLocationsTableProps) {
+export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLocationsTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // Flatten the physical locations into sublocation rows
-  const sublocationRows = useMemo(() => {
-    const rows = services.flatMap(location => {
-      return (location.sublocations || []).map(sublocation => {
-        const row = {
-          sublocationId: sublocation.id,
-          sublocationName: sublocation.name,
-          sublocationType: sublocation.type,
-          parentLocationId: location.id,
-          parentLocationName: location.name,
-          parentLocationType: location.locationType,
-          mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
-          bgColor: location.bgColor,
-          storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0
-        };
-
-        return row;
-      });
-    });
-
-    return rows;
-  }, [services]);
 
   // Handle select all checkbox
   const handleSelectAll = (checked: boolean) => {
