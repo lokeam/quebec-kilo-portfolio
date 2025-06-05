@@ -2,9 +2,8 @@ import { memo, useCallback, useState } from 'react';
 
 // Shadcn Components
 import { Button } from '@/shared/components/ui/button';
-import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Switch } from "@/shared/components/ui/switch";
+import { TableCell, TableRow } from "@/shared/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -15,97 +14,88 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
-
-// Hooks
-import { useOnlineServicesToggleActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import { isPaidService} from '@/features/dashboard/lib/utils/online-service-status';
-import { useDeleteDigitalLocation } from '@/core/api/queries/digitalLocation.queries';
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
+import { isValidLocationBgColor } from '@/features/dashboard/lib/utils/validateLocationBgColor';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
-import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
-import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
+import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
-type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
-
-const isValidPaymentMethod = (method: string): method is PaymentMethodType => {
-  const validMethods = [
-    "Alipay", "Amex", "Code", "CodeFront", "Diners", "Discover", "Elo",
-    "Generic", "Hiper", "Hipercard", "Jcb", "Maestro", "Mastercard",
-    "Mir", "Paypal", "Unionpay", "Visa"
-  ];
-  return validMethods.includes(method);
+// Types for flattened sublocation data
+export type SublocationRowData = {
+  sublocationId: string;
+  sublocationName: string;
+  sublocationType: string;
+  parentLocationId: string;
+  parentLocationName: string;
+  parentLocationType: string;
+  mapCoordinates: string;
+  storedItems: number;
+  bgColor?: LocationIconBgColor;
 };
+
+// Helper function to flatten physical locations into sublocation rows
+export function flattenSublocations(physicalLocations: PhysicalLocation[]): SublocationRowData[] {
+  return physicalLocations.flatMap(location =>
+    (location.sublocations || []).map(sublocation => ({
+      sublocationId: sublocation.id,
+      sublocationName: sublocation.name,
+      sublocationType: sublocation.type,
+      parentLocationId: location.id,
+      parentLocationName: location.name,
+      parentLocationType: location.locationType,
+      mapCoordinates: location.metadata?.address || '',
+      storedItems: 0, // TODO: Add storedItems to Sublocation type
+      bgColor: isValidLocationBgColor(location.bgColor) ? location.bgColor : undefined
+    }))
+  );
+}
 
 interface PhysicalLocationsTableRowComponentProps {
-  service: DigitalLocation;
-  index: number
+  sublocation: SublocationRowData;
+  index: number;
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
-  onEdit?: (service: DigitalLocation) => void;
-};
-
-const createToggleActiveOnlineServiceToast = (label: string, isActive: boolean) => {
-    showToast({
-      message: `Recorded ${label} as ${isActive ? 'active' : 'inactive'}`,
-      variant: 'success',
-      duration: 2500,
-    });
-};
+  onEdit?: (sublocation: SublocationRowData) => void;
+}
 
 function PhysicalLocationsTableRowComponent({
-  service,
+  sublocation,
   isSelected = false,
   onSelectionChange,
   onEdit
 }: PhysicalLocationsTableRowComponentProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const deleteDigitalLocation = useDeleteDigitalLocation();
-
-  const paymentDate = service.nextPaymentDate
-    ? new Date(service.nextPaymentDate).toLocaleDateString('en-CA')
-    : '--';
-
-  // Handlers for online service activation
-  const toggleActiveOnlineService = useOnlineServicesToggleActive();
-
-  const handleToggleActiveOnlineService = useCallback((isChecked: boolean) => {
-    toggleActiveOnlineService(service.id, isChecked);
-    createToggleActiveOnlineServiceToast(service.name, isChecked);
-  }, [service.id, service.name, toggleActiveOnlineService]);
-
-  const handleCheckboxChange = useCallback((checked: boolean) => {
-    onSelectionChange?.(checked);
-  }, [onSelectionChange]);
 
   const handleEditService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
-    onEdit?.(service);
-  }, [service, onEdit]);
+    onEdit?.(sublocation);
+  }, [sublocation, onEdit]);
 
   const handleDeleteService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
     setDeleteDialogOpen(true);
   }, []);
 
+  const handleCheckboxChange = useCallback((checked: boolean) => {
+    onSelectionChange?.(checked);
+  }, [onSelectionChange]);
+
   const handleConfirmDelete = useCallback(() => {
-    deleteDigitalLocation.mutate(service.id, {
-      onSuccess: () => {
-        setDeleteDialogOpen(false);
-      }
-    });
-  }, [service.id, deleteDigitalLocation]);
+    // TODO: Implement delete functionality
+    setDeleteDialogOpen(false);
+  }, []);
 
   return (
     <>
       <TableRow
         className={cn(
-          "h-[72px] relative group hover:border-",
+          "h-[80px] relative group hover:border-",
           isSelected && "bg-muted/50",
           "transition-all duration-200",
           "hover:ring-1 hover:ring-white/20 hover:ring-inset",
@@ -119,61 +109,33 @@ function PhysicalLocationsTableRowComponent({
           />
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-black flex items-center justify-center">
-              <DigitalLocationIcon name={service.name} className="w-full h-full" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-medium">{service.name}</span>
-              <span className="text-sm text-muted-foreground">{service.locationType}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.bgColor} />
+            <span>{sublocation.sublocationName}</span>
           </div>
         </TableCell>
         <TableCell>
-          <Switch
-            checked={service.isActive}
-            onCheckedChange={handleToggleActiveOnlineService}
-          />
+          <div className="flex items-center gap-2">
+            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.bgColor} />
+            <span>{sublocation.parentLocationName}</span>
+          </div>
         </TableCell>
         <TableCell>
-          {
-            isPaidService(service) ? (
-              <span>{service.billingCycle}</span>
-            ) : (
-              <span>--</span>
-            )
-          }
-        </TableCell>
-        <TableCell>
-          {
-            isPaidService(service) ? (
-              <span>{service.costPerCycle.toString()}</span>
-            ) : (
-              <span>--</span>
-            )
-          }
-        </TableCell>
-        <TableCell>
-          {isValidPaymentMethod(service.paymentMethod) ? (
-            <PaymentIcon
-              type={service.paymentMethod}
-              format="flatRounded"
-            />
+          {sublocation.mapCoordinates ? (
+            <a
+              href={sublocation.mapCoordinates}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline"
+            >
+              View on Google Maps
+            </a>
           ) : (
-            <PaymentIcon
-              type="Generic"
-              format="flatRounded"
-            />
+            <span className="text-gray-500">No coordinates</span>
           )}
         </TableCell>
         <TableCell>
-          {
-            isPaidService(service) ? (
-              <span>{paymentDate}</span>
-            ) : (
-              <span>--</span>
-            )
-          }
+          {sublocation.storedItems} items
         </TableCell>
 
         {/* Edit and Delete Buttons */}
@@ -190,7 +152,7 @@ function PhysicalLocationsTableRowComponent({
               onClick={handleEditService}
             >
               <IconEdit className="h-16 w-16" />
-              <span className="sr-only">Edit {service.name}</span>
+              <span className="sr-only">Edit {sublocation.sublocationName}</span>
             </Button>
             <Button
               variant="destructive"
@@ -199,7 +161,7 @@ function PhysicalLocationsTableRowComponent({
               onClick={handleDeleteService}
             >
               <IconTrash className="h-16 w-16" />
-              <span className="sr-only">Delete {service.name}</span>
+              <span className="sr-only">Delete {sublocation.sublocationName}</span>
             </Button>
           </div>
         </TableCell>
@@ -208,32 +170,23 @@ function PhysicalLocationsTableRowComponent({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Physical Location</DialogTitle>
+            <DialogTitle>Delete Sublocation</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {service.name}? This action cannot be undone.
+              Are you sure you want to delete {sublocation.sublocationName}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleteDigitalLocation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={deleteDigitalLocation.isPending}
             >
-              {deleteDigitalLocation.isPending ? (
-                <>
-                  <span className="animate-spin mr-2">⊚</span>
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -242,17 +195,14 @@ function PhysicalLocationsTableRowComponent({
   );
 }
 
-export const OnlineServicesTableRow = memo(
+export const PhysicalLocationsTableRow = memo(
   PhysicalLocationsTableRowComponent,
   (prevProps, nextProps) => {
     return (
       prevProps.index === nextProps.index &&
-      prevProps.service.name === nextProps.service.name &&
-      prevProps.service.billingCycle === nextProps.service.billingCycle &&
-      prevProps.service.monthlyCost === nextProps.service.monthlyCost &&
-      prevProps.service.paymentMethod === nextProps.service.paymentMethod &&
-      prevProps.service.nextPaymentDate === nextProps.service.nextPaymentDate &&
-      prevProps.service.isActive === nextProps.service.isActive &&
+      prevProps.sublocation.sublocationId === nextProps.sublocation.sublocationId &&
+      prevProps.sublocation.sublocationName === nextProps.sublocation.sublocationName &&
+      prevProps.sublocation.storedItems === nextProps.sublocation.storedItems &&
       prevProps.isSelected === nextProps.isSelected
     );
   }

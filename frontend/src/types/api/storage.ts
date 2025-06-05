@@ -1,3 +1,5 @@
+import type { LocationIconBgColor } from '@/types/domain/location-types';
+
 /**
  * Storage Analytics Types
  * These types exactly match the shape of data returned by the /v1/analytics?domains=storage endpoint
@@ -30,7 +32,7 @@ export interface PhysicalLocation {
   created_at: string;
   item_count: number;
   location_type: 'house' | 'apartment' | 'office' | 'warehouse' | 'vehicle';
-  bg_color?: 'red' | 'green' | 'blue' | 'orange' | 'gold' | 'purple' | 'brown' | 'pink' | 'gray';
+  bgColor?: LocationIconBgColor;
   name: string;
   sublocations: Sublocation[];
   updated_at: string;

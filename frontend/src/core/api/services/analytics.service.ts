@@ -53,6 +53,11 @@ export interface SublocationSummary {
   items?: ItemSummary[];
 }
 
+export interface MapCoordinates {
+  coords: string;
+  googleMapsLink: string;
+}
+
 export interface LocationSummary {
   id: string;
   name: string;
@@ -60,7 +65,8 @@ export interface LocationSummary {
   itemCount: number;
   isSubscription?: boolean;
   monthlyCost?: number;
-  mapCoordinates?: string;
+  mapCoordinates?: MapCoordinates;
+  bgColor?: string;
   isActive?: boolean;
   url?: string;
   createdAt: string;

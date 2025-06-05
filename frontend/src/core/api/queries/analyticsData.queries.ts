@@ -75,9 +75,9 @@ export function useAnalyticsData(
         throw error;
       }
     },
-    staleTime: 0,
+    staleTime: 30000,
     enabled: options?.enabled,
-    refetchOnMount: 'always',
+    refetchOnMount: false,
   });
 }
 
@@ -93,13 +93,30 @@ export function useStorageAnalytics(options?: { enabled?: boolean }) {
   const { data, isLoading, error } = useAnalyticsData(['storage'], options);
 
   const transformedData = useMemo(() => {
-    if (!data) return null;
+    if (!data) {
+      console.log('[DEBUG] useStorageAnalytics: No data available');
+      return null;
+    }
 
-    return {
+    console.log('[DEBUG] useStorageAnalytics: Transforming data', {
+      hasData: !!data,
+      domains: Object.keys(data),
+      timestamp: new Date().toISOString()
+    });
+
+    const result = {
       metadata: adaptAnalyticsToStorageMetadata(data),
       physicalLocations: adaptAnalyticsToPhysicalLocations(data),
       digitalLocations: adaptAnalyticsToDigitalLocations(data)
     };
+
+    console.log('[DEBUG] useStorageAnalytics: Transformed data', {
+      physicalLocationsCount: result.physicalLocations.length,
+      digitalLocationsCount: result.digitalLocations.length,
+      timestamp: new Date().toISOString()
+    });
+
+    return result;
   }, [data]);
 
   return {

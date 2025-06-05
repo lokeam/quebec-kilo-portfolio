@@ -5,54 +5,22 @@ import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 // Components
-import { SingleOnlineServiceCard } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/SingleOnlineServiceCard';
+import { SinglePhysicalLocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SinglePhysicalLocationCard/SinglePhysicalLocationCard';
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
-import { OnlineServicesTable } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTable';
+import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
+
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
-import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
 // API Hooks and Utilities
 import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
-import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
+import { useFilteredPhysicalLocations } from '@/features/dashboard/lib/hooks/useFilteredPhysicalLocations';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
-import type { FormValues } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
-
-// Utils
-const DEFAULT_FORM_VALUES = {
-  name: '',
-  isActive: true,
-  url: '',
-  isSubscriptionService: false,
-  billingCycle: '',
-  costPerCycle: 0,
-  nextPaymentDate: new Date(),
-  paymentMethod: '',
-};
-
-const transformServiceToFormValues = (service: DigitalLocation): FormValues => {
-  // Ensure we have a valid service object
-  if (!service) {
-    return DEFAULT_FORM_VALUES;
-  }
-
-  return {
-    name: service.name || '',
-    isActive: service.isActive ?? true,
-    url: service.url || '',
-    isSubscriptionService: service.isSubscription ?? false,
-    billingCycle: service.billingCycle || '',
-    costPerCycle: service.costPerCycle || 0,
-    nextPaymentDate: service.nextPaymentDate
-      ? new Date(service.nextPaymentDate)
-      : new Date(),
-    paymentMethod: service.paymentMethod || '',
-  };
-};
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { SublocationRowData } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTableRow';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -78,45 +46,45 @@ const CardSkeleton = () => (
 );
 
 export function PhysicalLocationsPageContent() {
-  // Add state for edit mode
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
-  const [serviceBeingEdited, setServiceBeingEdited] = useState<DigitalLocation | null>(null);
+  const [serviceBeingEdited, setServiceBeingEdited] = useState<PhysicalLocation | null>(null);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
-  // Fetch digital locations using analytics
+  // Fetch physical locations using analytics
   const { data: storageData, isLoading, error } = useStorageAnalytics();
 
-  // Get filtered services using the unified hook
-  const services = storageData?.digitalLocations || [];
-  const filteredServices = useFilteredServices(services);
+  // Get filtered locations using the new hook
+  const locations = storageData?.physicalLocations || [];
+  const filteredLocations = useFilteredPhysicalLocations(locations);
 
-  const handleAddService = useCallback((data: FormValues) => {
-    console.log('Add service:', data);
-    setAddServiceOpen(false);
-  }, []);
-
-  const handleCloseAddDrawer = useCallback(() => {
-    setAddServiceOpen(false);
-  }, []);
+  console.log('[DEBUG] PhysicalLocationsPageContent: Render', {
+    isLoading,
+    hasError: !!error,
+    locationsCount: locations.length,
+    filteredLocationsCount: filteredLocations.length,
+    viewMode,
+    timestamp: new Date().toISOString()
+  });
 
   // Enhanced edit handlers
-  const handleEditService = useCallback((service: DigitalLocation) => {
-    setServiceBeingEdited(service);
-    setEditServiceOpen(true);
-  }, []);
+  const handleEditService = useCallback((sublocation: SublocationRowData) => {
+    console.log('[DEBUG] PhysicalLocationsPageContent: Edit service', {
+      sublocationId: sublocation.sublocationId,
+      parentLocationId: sublocation.parentLocationId,
+      timestamp: new Date().toISOString()
+    });
 
-  const handleCloseEditDrawer = useCallback(() => {
-    setEditServiceOpen(false);
-    setServiceBeingEdited(null);
-  }, []);
-
-  const handleEditSubmit = useCallback((data: FormValues) => {
-    console.log('Edit service:', data);
-    setEditServiceOpen(false);
-    setServiceBeingEdited(null);
-  }, []);
+    // Find the parent location
+    const parentLocation = locations.find(loc =>
+      loc.sublocations?.some(sub => sub.id === sublocation.sublocationId)
+    );
+    if (parentLocation) {
+      setServiceBeingEdited(parentLocation);
+      setEditServiceOpen(true);
+    }
+  }, [locations]);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -134,6 +102,15 @@ export function PhysicalLocationsPageContent() {
 
   // Render content based on the selected view mode
   const renderContent = () => {
+    console.log('[DEBUG] PhysicalLocationsPageContent: renderContent', {
+      isLoading,
+      hasError: !!error,
+      locationsCount: locations.length,
+      filteredLocationsCount: filteredLocations.length,
+      viewMode,
+      timestamp: new Date().toISOString()
+    });
+
     if (isLoading) {
       return viewMode === 'table' ? <TableSkeleton /> : <CardSkeleton />;
     }
@@ -146,7 +123,7 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (services.length === 0) {
+    if (locations.length === 0) {
       return (
         <div className="p-4 border rounded-md">
           <p className="text-gray-500">No physical location found. Add a location to get started.</p>
@@ -154,14 +131,14 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (filteredServices.length === 0) {
+    if (filteredLocations.length === 0) {
       return <NoResultsFound />;
     }
 
     if (viewMode === 'table') {
       return (
-        <OnlineServicesTable
-          services={filteredServices}
+        <PhysicalLocationsTable
+          services={filteredLocations}
           onEdit={handleEditService}
         />
       );
@@ -171,17 +148,29 @@ export function PhysicalLocationsPageContent() {
       <div className="p-4 border rounded-md">
         <h2 className="text-lg font-semibold">Physical Locations</h2>
         <p className="text-gray-500 mb-4">{
-          filteredServices.length === 1
-            ? '1 service found'
-            : `${filteredServices.length} services found`
+          filteredLocations.length === 1
+            ? '1 location found'
+            : `${filteredLocations.length} locations found`
         }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
         }`}>
-          {filteredServices.map((service, index) => (
-            <SingleOnlineServiceCard
-              key={`${service.id}-${index}`}
-              service={service}
+          {filteredLocations.flatMap(location =>
+            (location.sublocations || []).map((sublocation, index) => ({
+              sublocationId: sublocation.id,
+              sublocationName: sublocation.name,
+              sublocationType: sublocation.type,
+              parentLocationId: location.id,
+              parentLocationName: location.name,
+              parentLocationType: location.locationType,
+              mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
+              bgColor: location.bgColor,
+              storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0
+            }))
+          ).map((sublocation, index) => (
+            <SinglePhysicalLocationCard
+              key={sublocation.sublocationId}
+              location={sublocation}
               onEdit={handleEditService}
               isWatchedByResizeObserver={index === 0}
             />
@@ -199,45 +188,33 @@ export function PhysicalLocationsPageContent() {
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Add Service Drawer */}
+          {/* Add Location Drawer */}
           <DrawerContainer
             open={addServiceOpen}
             onOpenChange={setAddServiceOpen}
             triggerAddLocation="Add Physical Location"
-            title="Digital Service"
-            description="Tell us about the service you want to add"
+            title="Physical Location"
+            description="Tell us about the location you want to add"
             triggerBtnIcon="location"
           >
-            <OnlineServiceForm
-              onSuccess={handleAddService}
-              onClose={handleCloseAddDrawer}
-              buttonText="Add Service"
-              isEditMode={false}
-            />
+            <p>Add Physical Location Form</p>
           </DrawerContainer>
 
-          {/* Edit Service Drawer */}
+          {/* Edit Location Drawer */}
           <DrawerContainer
             open={editServiceOpen}
             onOpenChange={setEditServiceOpen}
-            title="Edit Digital Service"
-            description="Update your service details"
+            title="Edit Physical Location"
+            description="Update your location details"
           >
             {serviceBeingEdited && (
-              <OnlineServiceForm
-                onSuccess={handleEditSubmit}
-                onClose={handleCloseEditDrawer}
-                buttonText="Edit Service"
-                initialValues={transformServiceToFormValues(serviceBeingEdited)}
-                isEditMode={true}
-                serviceId={serviceBeingEdited.id}
-              />
+              <p>Edit Physical Location Form</p>
             )}
           </DrawerContainer>
         </div>
       </PageHeadline>
 
-      {/* Digital Services Display Section */}
+      {/* Physical Locations Display Section */}
       <div className="mt-6">
         <PhysicalLocationsToolbar />
         <div className="mt-4 space-y-4">

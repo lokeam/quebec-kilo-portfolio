@@ -7,6 +7,7 @@ import type { GameItem } from '@/types/domain/game-item';
 import type { Sublocation } from '@/types/domain/sublocation';
 import { GamePlatform as GamePlatformEnum } from '@/types/domain/game-platform';
 import { PhysicalLocationType, SublocationType } from '@/types/domain/location-types';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 export function adaptAnalyticsToStorageMetadata(analyticsData: AnalyticsResponseWrapper): MediaStorageMetadata {
   const storage = analyticsData.storage;
@@ -83,13 +84,17 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
 
   return storage.physicalLocations.map((location: LocationSummary) => {
     console.log('[DEBUG] Processing Location:', location);
-    console.log('[DEBUG] Location Map Coordinates:', location.map_coordinates);
+    console.log('[DEBUG] Location Map Coordinates:', location.mapCoordinates);
+
+    // Get bg_color from the raw data
+    const rawData = location as unknown as { bgColor?: string };
+    const bgColor = rawData.bgColor as LocationIconBgColor | undefined;
 
     const transformed = {
       id: location.id,
       name: location.name,
-      type: location.locationType as PhysicalLocationType,
-      bgColor: location.bgColor,
+      locationType: location.locationType as PhysicalLocationType,  // This is the PhysicalLocationType
+      bgColor,
       mapCoordinates: location.mapCoordinates ? {
         coords: location.mapCoordinates.coords,
         googleMapsLink: location.mapCoordinates.googleMapsLink

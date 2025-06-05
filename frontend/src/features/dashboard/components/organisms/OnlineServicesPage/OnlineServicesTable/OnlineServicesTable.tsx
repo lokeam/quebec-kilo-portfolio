@@ -94,26 +94,25 @@ export function OnlineServicesTable({ services, onEdit }: OnlineServicesTablePro
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]">
-              <Checkbox
-                checked={allSelected}
-                onCheckedChange={handleSelectAll}
-                aria-label="Select all"
-              />
-            </TableHead>
-            <TableHead colSpan={6}>
-              {selectedRows.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteSelectedRows}
-                  className="flex items-center gap-2"
-                >
-                  <IconTrash size={16} />
-                  Delete Selected ({selectedRows.length})
-                </Button>
-              )}
-            </TableHead>
+          <TableHead>Service</TableHead>
+          <TableHead>Active</TableHead>
+          <TableHead>Billing Cycle</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Payment Method</TableHead>
+          <TableHead>Renewal Date</TableHead>
+          <TableHead colSpan={6}>
+            {selectedRows.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDeleteSelectedRows}
+                className="flex items-center gap-2"
+              >
+                <IconTrash size={16} />
+                Delete Selected ({selectedRows.length})
+              </Button>
+            )}
+          </TableHead>
           </TableRow>
           <TableHeaderRow />
         </TableHeader>

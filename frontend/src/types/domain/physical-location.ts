@@ -1,4 +1,4 @@
-import type { PhysicalLocationType } from './location-types';
+import type { PhysicalLocationType, LocationIconBgColor } from './location-types';
 import type { Sublocation } from './sublocation';
 
 /**
@@ -18,13 +18,13 @@ export interface MapCoordinates {
 export interface PhysicalLocation {
   id: string;
   name: string;
-  type: PhysicalLocationType;
+  locationType: PhysicalLocationType;  // 'house', 'apartment', etc.
   description?: string;
   metadata?: PhysicalLocationMetadata;
   sublocations?: Sublocation[];
   createdAt: Date;
   updatedAt: Date;
-  bgColor?: string;
+  bgColor?: LocationIconBgColor;
   mapCoordinates?: MapCoordinates;
 }
 

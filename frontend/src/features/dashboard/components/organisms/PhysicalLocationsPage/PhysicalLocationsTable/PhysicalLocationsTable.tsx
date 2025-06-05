@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button'
@@ -12,7 +12,8 @@ import {
 import { Checkbox } from "@/shared/components/ui/checkbox"
 
 // Custom Components
-import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
+import { PhysicalLocationsTableRow } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTableRow'
+
 import {
   Dialog,
   DialogContent,
@@ -22,40 +23,49 @@ import {
   DialogDescription
 } from '@/shared/components/ui/dialog';
 
-// Query hooks
-import { useDeleteDigitalLocation } from '@/core/api/queries/digitalLocation.queries'
-
 // Icons
 import { IconTrash } from '@tabler/icons-react'
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service'
+import type { PhysicalLocation } from '@/types/domain/physical-location'
+import type { SublocationRowData } from './PhysicalLocationsTableRow'
 
 interface PhysicalLocationsTableProps {
-  services: DigitalLocation[]
-  onEdit?: (service: DigitalLocation) => void
+  services: PhysicalLocation[]
+  onEdit?: (sublocation: SublocationRowData) => void
 }
-
-const TableHeaderRow: React.FC = () => (
-  <TableRow>
-    <TableHead className="w-[50px]" />
-    <TableHead>Sublocation Name</TableHead>
-    <TableHead>Parent Location</TableHead>
-    <TableHead>Google Maps Link</TableHead>
-    <TableHead>Number of Games Stored</TableHead>
-  </TableRow>
-)
 
 export function PhysicalLocationsTable({ services, onEdit }: PhysicalLocationsTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const deleteDigitalLocation = useDeleteDigitalLocation();
 
+  // Flatten the physical locations into sublocation rows
+  const sublocationRows = useMemo(() => {
+    const rows = services.flatMap(location => {
+      return (location.sublocations || []).map(sublocation => {
+        const row = {
+          sublocationId: sublocation.id,
+          sublocationName: sublocation.name,
+          sublocationType: sublocation.type,
+          parentLocationId: location.id,
+          parentLocationName: location.name,
+          parentLocationType: location.locationType,
+          mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
+          bgColor: location.bgColor,
+          storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0
+        };
+
+        return row;
+      });
+    });
+
+    return rows;
+  }, [services]);
 
   // Handle select all checkbox
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(services.map(service => service.id));
+      setSelectedRows(sublocationRows.map(row => row.sublocationId));
     } else {
       setSelectedRows([]);
     }
@@ -76,53 +86,55 @@ export function PhysicalLocationsTable({ services, onEdit }: PhysicalLocationsTa
   };
 
   const handleConfirmDelete = () => {
-    deleteDigitalLocation.mutate(selectedRows, {
-      onSuccess: () => {
-        setSelectedRows([]);
-        setDeleteDialogOpen(false);
-      }
-    });
+    // TODO: Implement delete functionality
+    setSelectedRows([]);
+    setDeleteDialogOpen(false);
   };
 
   // Calculate if all rows are selected
-  const allSelected = services.length > 0 && selectedRows.length === services.length;
+  const allSelected = sublocationRows.length > 0 && selectedRows.length === sublocationRows.length;
+
+  console.log('Physical Locations Table, sublocationRows: ', sublocationRows);
 
   return (
     <div className="w-full">
-      <Table>
+      <Table className="rounded-xl border">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px]">
+            <TableHead>
               <Checkbox
                 checked={allSelected}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all"
               />
             </TableHead>
-            <TableHead colSpan={6}>
+            <TableHead>Sublocation Name</TableHead>
+            <TableHead>Parent Location</TableHead>
+            <TableHead>Google Maps Link</TableHead>
+            <TableHead>Number of Games Stored</TableHead>
+            <TableHead className="w-[100px]">
               {selectedRows.length > 0 && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDeleteSelectedRows}
-                  className="flex items-center gap-2"
-                >
-                  <IconTrash size={16} />
-                  Delete Selected ({selectedRows.length})
-                </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteSelectedRows}
+                    className="flex items-center gap-2"
+                  >
+                    <IconTrash size={16} />
+                    Delete Selected ({selectedRows.length})
+                  </Button>
               )}
             </TableHead>
           </TableRow>
-          <TableHeaderRow />
         </TableHeader>
         <TableBody>
-          {services.map((service, index) => (
-            <OnlineServicesTableRow
-              key={service.name}
-              service={service}
+          {sublocationRows.map((sublocation, index) => (
+            <PhysicalLocationsTableRow
+              key={sublocation.sublocationId}
+              sublocation={sublocation}
               index={index}
-              isSelected={selectedRows.includes(service.id)}
-              onSelectionChange={(checked) => handleRowSelection(service.id, checked)}
+              isSelected={selectedRows.includes(sublocation.sublocationId)}
+              onSelectionChange={(checked) => handleRowSelection(sublocation.sublocationId, checked)}
               onEdit={onEdit}
             />
           ))}
@@ -132,32 +144,23 @@ export function PhysicalLocationsTable({ services, onEdit }: PhysicalLocationsTa
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Selected Physical Locations</DialogTitle>
+            <DialogTitle>Delete Selected Sublocations</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedRows.length} selected physical location{selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.
+              Are you sure you want to delete {selectedRows.length} selected sublocation{selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleteDigitalLocation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={deleteDigitalLocation.isPending}
             >
-              {deleteDigitalLocation.isPending ? (
-                <>
-                  <span className="animate-spin mr-2">⊚</span>
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

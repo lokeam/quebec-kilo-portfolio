@@ -36,3 +36,17 @@ export const SublocationType = {
 } as const;
 
 export type SublocationType = typeof SublocationType[keyof typeof SublocationType];
+
+/**
+ * Valid background colors for location icons (both physical locations and sublocations)
+ */
+export type LocationIconBgColor =
+  | 'red'
+  | 'green'
+  | 'blue'
+  | 'orange'
+  | 'gold'
+  | 'purple'
+  | 'brown'
+  | 'gray'
+  | 'pink';
