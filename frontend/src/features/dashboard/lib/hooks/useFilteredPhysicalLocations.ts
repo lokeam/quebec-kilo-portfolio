@@ -1,20 +1,29 @@
 import { useMemo } from 'react';
-import { useOnlineServicesSearch } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import { useOnlineServicesSearch, useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
 
 export function useFilteredPhysicalLocations(locations: SublocationRowData[]) {
   const searchQuery = useOnlineServicesSearch();
+  const { sublocationTypeFilters, parentLocationTypeFilters } = useOnlineServicesStore();
 
   return useMemo(() => {
-    if (!searchQuery) {
+    if (!searchQuery && sublocationTypeFilters.length === 0 && parentLocationTypeFilters.length === 0) {
       return locations;
     }
 
     const query = searchQuery.toLowerCase();
     return locations.filter((location) => {
-      // Search in both sublocation name and parent location name
-      return location.sublocationName.toLowerCase().includes(query) ||
-             location.parentLocationName.toLowerCase().includes(query);
+      const matchesSearch = !searchQuery ||
+        location.sublocationName.toLowerCase().includes(query) ||
+        location.parentLocationName.toLowerCase().includes(query);
+
+      const matchesSublocationType = sublocationTypeFilters.length === 0 ||
+        sublocationTypeFilters.includes(location.sublocationType);
+
+      const matchesParentType = parentLocationTypeFilters.length === 0 ||
+        parentLocationTypeFilters.includes(location.parentLocationType);
+
+      return matchesSearch && matchesSublocationType && matchesParentType;
     });
-  }, [locations, searchQuery]);
+  }, [locations, searchQuery, sublocationTypeFilters, parentLocationTypeFilters]);
 }

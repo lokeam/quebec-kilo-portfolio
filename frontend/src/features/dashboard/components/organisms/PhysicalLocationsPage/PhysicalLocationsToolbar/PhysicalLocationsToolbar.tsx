@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, LayoutList, Sheet } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
@@ -9,23 +9,63 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 // Hooks
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
+import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 
-// Constants
-import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
+// Types
+import { PhysicalLocationType } from '@/types/domain/location-types';
+import { SublocationType } from '@/types/domain/location-types';
 
 export function PhysicalLocationsToolbar() {
   const {
     viewMode,
     setViewMode,
     setSearchQuery,
-    setBillingCycleFilters,
-    setPaymentMethodFilters,
+    setSublocationTypeFilters,
+    setParentLocationTypeFilters,
   } = useOnlineServicesStore();
-  const billingCycleFilter = useFilterCheckboxes(
-    BILLING_CYCLE_OPTIONS.map(option => option.key)
+
+  const { data: storageData } = useStorageAnalytics();
+
+  // Generate filter options from the data
+  const filterOptions = useMemo(() => {
+    if (!storageData?.sublocationRows) return { sublocationTypes: [], parentTypes: [] };
+
+    // Get unique sublocation types and format them for display
+    const uniqueSublocationTypes = Array.from(new Set(
+      storageData.sublocationRows.map(row => row.sublocationType)
+    ))
+    .filter((type): type is SublocationType =>
+      Object.values(SublocationType).includes(type as SublocationType)
+    )
+    .map(type => ({
+      key: type,
+      label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
+    }));
+
+    // Get unique physical location types and format them for display
+    const uniqueParentTypes = Array.from(new Set(
+      storageData.sublocationRows.map(row => row.parentLocationType)
+    ))
+    .filter((type): type is PhysicalLocationType =>
+      Object.values(PhysicalLocationType).includes(type as PhysicalLocationType)
+    )
+    .map(type => ({
+      key: type,
+      label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
+    }));
+
+    return {
+      sublocationTypes: uniqueSublocationTypes,
+      parentTypes: uniqueParentTypes
+    };
+  }, [storageData?.sublocationRows]);
+
+  const sublocationTypeFilter = useFilterCheckboxes(
+    filterOptions.sublocationTypes.map(option => option.key)
   );
-  const paymentMethodFilter = useFilterCheckboxes(
-    PAYMENT_METHOD_OPTIONS.map(option => option.key)
+
+  const parentTypeFilter = useFilterCheckboxes(
+    filterOptions.parentTypes.map(option => option.key)
   );
 
   const handleSearchChange = useCallback(
@@ -36,23 +76,20 @@ export function PhysicalLocationsToolbar() {
   );
 
   useEffect(() => {
-
-    const selectedBillingCycles = Object.entries(billingCycleFilter.checkboxes)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(([_, isChecked]) => isChecked === true)
+    const selectedSublocationTypes = Object.entries(sublocationTypeFilter.checkboxes)
+      .filter(([, isChecked]) => isChecked === true)
       .map(([key]) => key);
 
-    setBillingCycleFilters(selectedBillingCycles);
-  }, [billingCycleFilter.checkboxes, setBillingCycleFilters]);
+    setSublocationTypeFilters(selectedSublocationTypes);
+  }, [sublocationTypeFilter.checkboxes, setSublocationTypeFilters]);
 
   useEffect(() => {
-    const selectedPaymentMethods = Object.entries(paymentMethodFilter.checkboxes)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    .filter(([_, isChecked]) => isChecked === true)
-    .map(([key]) => key);
+    const selectedParentTypes = Object.entries(parentTypeFilter.checkboxes)
+      .filter(([, isChecked]) => isChecked === true)
+      .map(([key]) => key);
 
-    setPaymentMethodFilters(selectedPaymentMethods);
-  }, [paymentMethodFilter.checkboxes, setPaymentMethodFilters]);
+    setParentLocationTypeFilters(selectedParentTypes);
+  }, [parentTypeFilter.checkboxes, setParentLocationTypeFilters]);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
@@ -66,18 +103,18 @@ export function PhysicalLocationsToolbar() {
         <span className="text-sm text-gray-500">Filter by</span>
 
         <FilterDropdown
-          label="Parent Physical Location"
-          options={BILLING_CYCLE_OPTIONS}
+          label="Storage Type"
+          options={filterOptions.sublocationTypes}
           width="230px"
-          {...billingCycleFilter}
+          {...sublocationTypeFilter}
         />
 
-        {/* <FilterDropdown
-          label="Payment Method"
-          options={PAYMENT_METHOD_OPTIONS}
+        <FilterDropdown
+          label="Property Type"
+          options={filterOptions.parentTypes}
           width="180px"
-          {...paymentMethodFilter}
-        /> */}
+          {...parentTypeFilter}
+        />
       </div>
 
       <div className="flex items-center gap-3">

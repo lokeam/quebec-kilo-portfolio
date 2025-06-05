@@ -22,10 +22,14 @@ interface OnlineServicesState {
   searchQuery: string;
   billingCycleFilters: string[];
   paymentMethodFilters: string[];
+  sublocationTypeFilters: string[];
+  parentLocationTypeFilters: string[];
   setViewMode: (mode: OnlineServicesViewMode) => void;
   setSearchQuery: (query: string) => void;
   setBillingCycleFilters: (filters: string[]) => void;
   setPaymentMethodFilters: (filters: string[]) => void;
+  setSublocationTypeFilters: (filters: string[]) => void;
+  setParentLocationTypeFilters: (filters: string[]) => void;
   services: DigitalLocation[];
   setServices: (services: DigitalLocation[]) => void;
   toggleActiveOnlineService: (serviceName: string, isActive: boolean) => void;
@@ -40,6 +44,8 @@ export const useOnlineServicesStore = create<OnlineServicesState>((set) => ({
   searchQuery: '',
   billingCycleFilters: [],
   paymentMethodFilters: [],
+  sublocationTypeFilters: [],
+  parentLocationTypeFilters: [],
   setViewMode: (mode) => {
     // Only allow modes that are valid for online services
     if (featureViewModes.onlineServices.allowed.includes(mode)) {
@@ -50,6 +56,8 @@ export const useOnlineServicesStore = create<OnlineServicesState>((set) => ({
   setSearchQuery: (query) => set({ searchQuery: query }),
   setBillingCycleFilters: (filters) => set({ billingCycleFilters: filters }),
   setPaymentMethodFilters: (filters) => set({ paymentMethodFilters: filters }),
+  setSublocationTypeFilters: (filters) => set({ sublocationTypeFilters: filters }),
+  setParentLocationTypeFilters: (filters) => set({ parentLocationTypeFilters: filters }),
   services: [],
   setServices: (services) => set({ services }),
   toggleActiveOnlineService: (serviceName, isActive) =>
