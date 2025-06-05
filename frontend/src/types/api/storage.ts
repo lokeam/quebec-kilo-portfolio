@@ -30,6 +30,7 @@ export interface PhysicalLocation {
   created_at: string;
   item_count: number;
   location_type: 'house' | 'apartment' | 'office' | 'warehouse' | 'vehicle';
+  bg_color?: 'red' | 'green' | 'blue' | 'orange' | 'gold' | 'purple' | 'brown' | 'pink' | 'gray';
   name: string;
   sublocations: Sublocation[];
   updated_at: string;
@@ -37,7 +38,6 @@ export interface PhysicalLocation {
 
 export interface Sublocation {
   id: string;
-  bg_color: 'red' | 'green' | 'blue' | 'orange' | 'gold' | 'purple' | 'brown' | 'gray';
   created_at: string;
   location_type: 'shelf' | 'console' | 'cabinet' | 'closet' | 'drawer' | 'box' | 'device';
   name: string;

@@ -1,21 +1,67 @@
-import { Box, Columns, BookOpen, BookmarkIcon } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
+import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
+import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
+import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
+import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
+import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
+import { useLocationBgColor } from './getLocationBgColor';
+
+interface SublocationIconProps {
+  type: string;
+  bgColor?: LocationIconBgColor;
+}
 
 /**
- * Gets an icon component for the specified sublocation type
+ * Renders the appropriate icon component for a sublocation type with background color
+ *
+ * @param type - The sublocation type (shelf, drawer, box, cabinet, closet, console)
+ * @param bgColor - Optional background color for the icon
+ * @returns A React component for the icon, or a default icon if no matching icon is found
+ *
+ * @example
+ * ```tsx
+ * <SublocationIcon type="box" bgColor="blue" />
+ * ```
  */
-export function getSublocationTypeIcon(type: string): JSX.Element {
-  // Different icon mapping based on sublocation type
+export function SublocationIcon({ type, bgColor }: SublocationIconProps) {
+  const { background } = useLocationBgColor(bgColor);
+  const wrapperStyle = {
+    backgroundColor: background,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    width: 42,
+    height: 42,
+    padding: 3,
+    marginRight: 8,
+  } as React.CSSProperties;
+
+  let IconComponent;
   switch (type) {
     case SublocationType.shelf:
-      return <Columns className="h-4 w-4 mr-1" />;
+      IconComponent = <BookshelfIcon size={30} color='#fff' />;
+      break;
     case SublocationType.drawer:
-      return <Box className="h-4 w-4 mr-1" />;
+      IconComponent = <DrawerIcon size={30} color='#fff' />;
+      break;
     case SublocationType.box:
-      return <BookmarkIcon className="h-4 w-4 mr-1" />;
+      IconComponent = <Package size={30} color='#fff' />;
+      break;
     case SublocationType.cabinet:
-      return <BookOpen className="h-4 w-4 mr-1" />;
+      IconComponent = <CabinetIcon size={30} color='#fff' />;
+      break;
+    case SublocationType.closet:
+      IconComponent = <ClosetIcon size={30} color='#fff' />;
+      break;
+    case SublocationType.console:
+      IconComponent = <MediaConsoleIcon size={30} color='#fff' />;
+      break;
     default:
-      return <Box className="h-4 w-4 mr-1" />;
+      IconComponent = <Package size={30} color='#fff' />;
   }
+
+  return <span style={wrapperStyle}>{IconComponent}</span>;
 }

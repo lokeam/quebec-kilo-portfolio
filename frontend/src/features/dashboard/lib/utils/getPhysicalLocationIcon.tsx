@@ -1,33 +1,59 @@
 import { Home, Building2, Warehouse, Building } from 'lucide-react';
 import type { PhysicalLocationType } from '@/types/domain/location-types';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
+import { useLocationBgColor } from './getLocationBgColor';
+
+interface PhysicalLocationIconProps {
+  type: PhysicalLocationType | string | undefined;
+  bgColor?: LocationIconBgColor;
+}
 
 /**
- * Gets the appropriate icon component for a physical location type
+ * Renders the appropriate icon component for a physical location type with background color
  *
  * @param type - The physical location type (house, apartment, office, warehouse)
+ * @param bgColor - Optional background color for the icon
  * @returns A React component for the icon, or null if no matching icon is found
  *
  * @example
  * ```tsx
- * const icon = getPhysicalLocationIcon('house');
- * return <div>{icon}</div>;
+ * <PhysicalLocationIcon type="house" bgColor="blue" />
  * ```
  */
-export function getPhysicalLocationIcon(type: PhysicalLocationType | string | undefined) {
+export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProps) {
+  const { background } = useLocationBgColor(bgColor);
+  const wrapperStyle = {
+    backgroundColor: background,
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    width: 42,
+    height: 42,
+    padding: 3,
+    marginRight: 8,
+  } as React.CSSProperties;
+
   if (!type) return null;
 
   const normalizedType = type.toLowerCase();
-
+  let IconComponent;
   switch (normalizedType) {
     case 'house':
-      return <Home className="h-4 w-4" />;
+      IconComponent = <Home className="h-6 w-6" />;
+      break;
     case 'apartment':
-      return <Building2 className="h-4 w-4" />;
+      IconComponent = <Building2 className="h-6 w-6" />;
+      break;
     case 'office':
-      return <Building className="h-4 w-4" />;
+      IconComponent = <Building className="h-6 w-6" />;
+      break;
     case 'warehouse':
-      return <Warehouse className="h-4 w-4" />;
+      IconComponent = <Warehouse className="h-6 w-6" />;
+      break;
     default:
       return null;
   }
+
+  return <span style={wrapperStyle}>{IconComponent}</span>;
 }
