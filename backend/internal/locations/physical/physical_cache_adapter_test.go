@@ -96,7 +96,10 @@ func TestPhysicalCacheAdapter(t *testing.T) {
 		Name:           "Test Location",
 		Label:          "Home",
 		LocationType:   "Residence",
-		MapCoordinates: "123,456",
+		MapCoordinates: models.PhysicalMapCoordinates{
+			Coords:         "123,456",
+			GoogleMapsLink: "https://www.google.com/maps?q=123,456",
+		},
 	}
 	testLocations := []models.PhysicalLocation{testLocation}
 	testError := errors.New("cache error")

@@ -195,8 +195,8 @@ func (m *MockPhysicalService) UpdatePhysicalLocation(ctx context.Context, userID
 	return models.PhysicalLocation{}, nil
 }
 
-func (m *MockPhysicalService) DeletePhysicalLocation(ctx context.Context, userID, locationID string) error {
-	return nil
+func (m *MockPhysicalService) DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+	return 0, nil
 }
 
 func (m *MockPhysicalService) GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error) {

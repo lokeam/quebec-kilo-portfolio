@@ -32,9 +32,9 @@ func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, user
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
-	args := m.Called(ctx, userID, locationID)
-	return args.Error(0)
+func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+	args := m.Called(ctx, userID, locationIDs)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {

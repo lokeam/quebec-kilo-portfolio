@@ -11,6 +11,7 @@ var (
 	ErrValidationFailed = errors.New("validation failed")
 	ErrUnauthorizedLocation = errors.New("unauthorized: location does not belong to user")
 	ErrDuplicateLocation    = errors.New("a physical location with this name already exists")
+	ErrEmptyLocationIDs = errors.New("no location IDs provided")
 )
 
 // GetStatusCodeForError returns the appropriate HTTP status code for a given error

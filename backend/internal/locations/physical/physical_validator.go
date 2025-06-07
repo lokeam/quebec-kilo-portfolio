@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/shared/utils"
@@ -20,6 +21,7 @@ const (
 	MinNameLength     = 1
 	MaxLabelLength    = 50
 	CoordinatePattern = `^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$`
+	MaxBulkSize       = 12 // Maximum number of location IDs allowed in bulk operations
 )
 
 // Valid location types
@@ -250,6 +252,99 @@ func (v *PhysicalValidator) ValidatePhysicalLocationUpdate(update, existing mode
 	return validated, nil
 }
 
+// ValidateRemovePhysicalLocation validates location IDs for deletion operations.
+// It handles both single and bulk deletion scenarios.
+func (v *PhysicalValidator) ValidateRemovePhysicalLocation(
+	userID string,
+	locationIDs []string,
+) ([]string, error) {
+	v.logger.Debug("Validating location IDs for deletion", map[string]any{
+		"userID": userID,
+		"locationIDsCount": len(locationIDs),
+		"isBulkOperation": len(locationIDs) > 1,
+	})
+
+	// Validate userID
+	if userID == "" {
+		return nil, &validationErrors.ValidationError{
+			Field:   "userID",
+			Message: "user ID cannot be empty",
+		}
+	}
+
+	// Validate locationIDs array
+	if len(locationIDs) == 0 {
+		return nil, &validationErrors.ValidationError{
+			Field:   "locationIDs",
+			Message: "no location IDs provided for deletion",
+		}
+	}
+
+	// Enforce maximum number of IDs in bulk operations
+	if len(locationIDs) > MaxBulkSize {
+		return nil, &validationErrors.ValidationError{
+			Field:   "locationIDs",
+			Message: fmt.Sprintf("too many location IDs, maximum allowed is %d", MaxBulkSize),
+		}
+	}
+
+	// Sanitize and deduplicate location IDs
+	locationSeen := make(map[string]bool)
+	var validatedIDs []string
+	for i := 0; i < len(locationIDs); i++ {
+		// Skip empty IDs
+		if locationIDs[i] == "" {
+			continue
+		}
+
+		// Sanitize ID
+		sanitizedID, err := v.sanitizer.SanitizeString(locationIDs[i])
+		if err != nil {
+			return nil, &validationErrors.ValidationError{
+				Field:   "locationIDs",
+				Message: fmt.Sprintf("invalid location ID: %s", locationIDs[i]),
+			}
+		}
+
+		// Deduplicate
+		if !locationSeen[sanitizedID] {
+			locationSeen[sanitizedID] = true
+			validatedIDs = append(validatedIDs, sanitizedID)
+		}
+	}
+
+	if len(validatedIDs) == 0 {
+		return nil, &validationErrors.ValidationError{
+			Field:   "locationIDs",
+			Message: "no valid location IDs after sanitization and deduplication",
+		}
+	}
+
+	// Validate that each sanitized ID is a valid UUID
+	for i := 0; i < len(validatedIDs); i++ {
+		if _, err := uuid.Parse(validatedIDs[i]); err != nil {
+			return nil, &validationErrors.ValidationError{
+				Field:   "locationIDs",
+				Message: fmt.Sprintf("failed to sanitize location ID: %s", validatedIDs[i]),
+			}
+		}
+	}
+
+	// Log if dupes were removed
+	if len(validatedIDs) < len(locationIDs) {
+		v.logger.Debug("Duplicate location IDs removed", map[string]any{
+			"original_count": len(locationIDs),
+			"deduplicated_count": len(validatedIDs),
+		})
+	}
+
+	v.logger.Debug("Location IDs validation successful", map[string]any{
+		"userID": userID,
+		"count": len(validatedIDs),
+	})
+
+	return validatedIDs, nil
+}
 
 // Individual validation rules
 func (v *PhysicalValidator) validateName(name string) (string, error) {

@@ -72,6 +72,9 @@ func DefaultPhysicalValidator() *MockPhysicalValidator {
 		ValidatePhysicalLocationUpdateFunc: func(update, existing models.PhysicalLocation) (models.PhysicalLocation, error) {
 			return update, nil
 		},
+		ValidateRemovePhysicalLocationFunc: func(userID string, locationIDs []string) ([]string, error) {
+			return locationIDs, nil
+		},
 	}
 }
 
@@ -99,7 +102,7 @@ func DefaultPhysicalDbAdapter() *MockPhysicalDbAdapter {
 	m.On("UpdatePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
 		Return(defaultLocation, nil)
 	m.On("DeletePhysicalLocation", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil)
+		Return(int64(1), nil)
 
 	return m
 }

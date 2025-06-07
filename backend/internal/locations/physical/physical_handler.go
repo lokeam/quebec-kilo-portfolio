@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -31,12 +32,12 @@ func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service
 	// Base routes
 	r.Get("/", GetAllPhysicalLocations(appCtx, service))
 	r.Post("/", CreatePhysicalLocation(appCtx, service, analyticsService))
+	r.Delete("/", DeletePhysicalLocation(appCtx, service, analyticsService))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
 		r.Get("/", GetSinglePhysicalLocation(appCtx, service))
 		r.Put("/", UpdatePhysicalLocation(appCtx, service, analyticsService))
-		r.Delete("/", DeletePhysicalLocation(appCtx, service, analyticsService))
 	})
 
 	// BFF route
@@ -336,13 +337,15 @@ func UpdatePhysicalLocation(
 	}
 }
 
-// DeletePhysicalLocation handles DELETE requests for removing a physical location
+// DeletePhysicalLocation handles DELETE requests for removing physical locations
+// It supports both single location deletion (via URL param) and bulk deletion (via request body)
 func DeletePhysicalLocation(
 	appCtx *appcontext.AppContext,
 	service services.PhysicalService,
 	analyticsService analytics.Service,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Get Request ID for tracing
 		requestID := httputils.GetRequestID(r)
 
 		userID := httputils.GetUserID(r)
@@ -350,43 +353,84 @@ func DeletePhysicalLocation(
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
 			})
-			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
 			return
 		}
 
-		locationID := chi.URLParam(r, "id")
-		appCtx.Logger.Info("Removing physical location", map[string]any{
+		// Get IDs from query parameters
+		physicalLocationIDs := r.URL.Query().Get("ids")
+		if physicalLocationIDs == "" {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				ErrEmptyLocationIDs,
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// if multiple IDs are provided, split into array
+		physicalLocationIDsArr := strings.Split(physicalLocationIDs, ",")
+		appCtx.Logger.Info("Deleting physical location(s)", map[string]any{
 			"requestID":  requestID,
 			"userID":     userID,
-			"locationID": locationID,
+			"locationID": physicalLocationIDsArr,
 		})
 
-		if locationID == "" {
-			handleError(w, appCtx.Logger, requestID, errors.New("location ID is required"))
-			return
-		}
-
-		err := service.DeletePhysicalLocation(r.Context(), userID, locationID)
+		// Call service method to delete locations
+		deletedCount, err := service.DeletePhysicalLocation(r.Context(), userID, physicalLocationIDsArr)
 		if err != nil {
-			handleError(w, appCtx.Logger, requestID, err)
+			appCtx.Logger.Error("Failed to delete physical locations", map[string]any{
+				"error": err,
+				"request_id": requestID,
+				"location_ids": physicalLocationIDsArr,
+			})
+
+			statusCode := http.StatusInternalServerError
+			if errors.Is(err, ErrLocationNotFound) {
+				statusCode = http.StatusNotFound
+			}
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				statusCode,
+			)
 			return
 		}
 
-		// Invalidate analytics cache for inventory domain
+		// After successful deletion, invalidate analytics cache
 		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
-			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
-				"requestID": requestID,
-				"userID":    userID,
-				"error":     err,
+			appCtx.Logger.Error("Failed to invalidate analytics cache after deleting location", map[string]any{
+				"error": err,
+				"userID": userID,
 			})
+			// Continue despite error, since the location was deleted successfully
 		}
+
+		// Log success
+		appCtx.Logger.Info("Successfully deleted physical locations", map[string]any{
+			"request_id": requestID,
+			"user_id": userID,
+			"deleted_count": deletedCount,
+			"total_count": len(physicalLocationIDsArr),
+		})
 
 		// Use standard response format
 		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"physical": map[string]any{
-				"id":      locationID,
-				"message": "Physical location removed successfully",
+				"success": true,
+				"deleted_count": deletedCount,
+				"location_ids": physicalLocationIDsArr,
 			},
 		})
 

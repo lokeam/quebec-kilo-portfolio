@@ -82,9 +82,9 @@ func (m *MockPhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, user
 	return args.Get(0).(models.PhysicalLocation), args.Error(1)
 }
 
-func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
-	args := m.Called(ctx, userID, locationID)
-	return args.Error(0)
+func (m *MockPhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+	args := m.Called(ctx, userID, locationIDs)
+	return args.Get(0).(int64), args.Error(1)
 }
 
 // func newMockGamePhysicalServiceWithDefaults(logger *testutils.TestLogger) *GamePhysicalService {
@@ -153,12 +153,15 @@ func TestGamePhysicalService(t *testing.T) {
 	// Test GetSinglePhysicalLocation
 	t.Run("GetSinglePhysicalLocation", func(t *testing.T) {
 		expectedLocation := models.PhysicalLocation{
-			ID:             "loc1",
-			UserID:         "user1",
-			Name:           "Test Location",
-			Label:          "Test Label",
-			LocationType:   "type1",
-			MapCoordinates: "1.0,2.0",
+			ID:           "loc1",
+			UserID:       "user1",
+			Name:         "Test Location",
+			Label:        "Test Label",
+			LocationType: "type1",
+			MapCoordinates: models.PhysicalMapCoordinates{
+				Coords:         "1.0,2.0",
+				GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+			},
 		}
 
 		// Be explicit about the nil pointer return to avoid type conversion issues
@@ -187,20 +190,26 @@ func TestGamePhysicalService(t *testing.T) {
 	t.Run("GetAllPhysicalLocations", func(t *testing.T) {
 		expectedLocations := []models.PhysicalLocation{
 			{
-				ID:             "loc1",
-				UserID:         "user1",
-				Name:           "Test Location 1",
-				Label:          "Test Label 1",
-				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				ID:           "loc1",
+				UserID:       "user1",
+				Name:         "Test Location 1",
+				Label:        "Test Label 1",
+				LocationType: "type1",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 			{
-				ID:             "loc2",
-				UserID:         "user1",
-				Name:           "Test Location 2",
-				Label:          "Test Label 2",
-				LocationType:   "type2",
-				MapCoordinates: "3.0,4.0",
+				ID:           "loc2",
+				UserID:       "user1",
+				Name:         "Test Location 2",
+				Label:        "Test Label 2",
+				LocationType: "type2",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "3.0,4.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=3.0,4.0",
+				},
 			},
 		}
 
@@ -233,12 +242,15 @@ func TestGamePhysicalService(t *testing.T) {
 		service := createTestService(mockDb, mockCache)
 
 		location := models.PhysicalLocation{
-			ID:             "loc1",
-			UserID:         "user1",
-			Name:           "Test Location",
-			Label:          "Test Label",
-			LocationType:   "type1",
-			MapCoordinates: "1.0,2.0",
+			ID:           "loc1",
+			UserID:       "user1",
+			Name:         "Test Location",
+			Label:        "Test Label",
+			LocationType: "type1",
+			MapCoordinates: models.PhysicalMapCoordinates{
+				Coords:         "1.0,2.0",
+				GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+			},
 		}
 
 		mockDb.On("CreatePhysicalLocation", ctx, "user1", location).
@@ -250,8 +262,6 @@ func TestGamePhysicalService(t *testing.T) {
 			Return(allLocations, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", allLocations).
 			Return(nil)
-		mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", location).
-			Return(nil)
 
 		createdLocation, err := service.CreatePhysicalLocation(ctx, "user1", location)
 		if err != nil {
@@ -259,7 +269,7 @@ func TestGamePhysicalService(t *testing.T) {
 			return
 		}
 		if !reflect.DeepEqual(createdLocation, location) {
-			t.Errorf("CreatePhysicalLocation() createdLocation = %v, location %v", createdLocation, location)
+			t.Errorf("CreatePhysicalLocation() location = %v, expectedLocation %v", createdLocation, location)
 		}
 
 		mockDb.AssertExpectations(t)
@@ -286,7 +296,10 @@ func TestGamePhysicalService(t *testing.T) {
 			Name:           "John's condo",
 			Label:          "Home",
 			LocationType:   "apartment",
-			MapCoordinates: "40.69041162815012, -74.04432918344848",
+			MapCoordinates: models.PhysicalMapCoordinates{
+				Coords:         "40.69041162815012, -74.04432918344848",
+				GoogleMapsLink: "https://www.google.com/maps?q=40.69041162815012,-74.04432918344848",
+			},
 		}
 
 		mockDb.On("UpdatePhysicalLocation", ctx, userID, updatedLocation).
@@ -313,83 +326,58 @@ func TestGamePhysicalService(t *testing.T) {
 		mockCache.AssertExpectations(t)
 	})
 
-	// Test DeletePhysicalLocation - Success Path
-	t.Run("DeletePhysicalLocation - Success Path", func(t *testing.T) {
-		// Create fresh mocks for this test
-		mockDb := new(mocks.MockPhysicalDbAdapter)
-		mockCache := new(mocks.MockPhysicalCacheWrapper)
-		service := createTestService(mockDb, mockCache)
+	// Test DeletePhysicalLocation
+	t.Run("DeletePhysicalLocation", func(t *testing.T) {
+		// Test successful deletion
+		t.Run("success", func(t *testing.T) {
+			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
+				Return(int64(1), nil)
+			mockDb.On("GetAllPhysicalLocations", ctx, "user1").
+				Return([]models.PhysicalLocation{}, nil)
+			mockCache.On("InvalidateUserCache", ctx, "user1").
+				Return(nil)
 
-		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
-			Return(nil)
-		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-			Return([]models.PhysicalLocation{}, nil)
-		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", []models.PhysicalLocation{}).
-			Return(nil)
-		mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
-			Return(nil)
+			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
+			if err != nil {
+				t.Errorf("DeletePhysicalLocation() error = %v", err)
+			}
+			if deletedCount != 1 {
+				t.Errorf("DeletePhysicalLocation() deletedCount = %v, want %v", deletedCount, 1)
+			}
+		})
 
-		err := service.DeletePhysicalLocation(ctx, "user1", "loc1")
-		if err != nil {
-			t.Errorf("DeletePhysicalLocation() error = %v", err)
-			return
-		}
+		// Test cache invalidation failure
+		t.Run("cache invalidation failure", func(t *testing.T) {
+			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
+				Return(int64(1), nil)
+			mockDb.On("GetAllPhysicalLocations", ctx, "user1").
+				Return([]models.PhysicalLocation{}, nil)
+			mockCache.On("InvalidateUserCache", ctx, "user1").
+				Return(fmt.Errorf("cache error"))
 
-		mockDb.AssertExpectations(t)
-		mockCache.AssertExpectations(t)
-	})
+			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
+			if err != nil {
+				t.Errorf("DeletePhysicalLocation() should succeed despite cache error, but got: %v", err)
+			}
+			if deletedCount != 1 {
+				t.Errorf("DeletePhysicalLocation() deletedCount = %v, want %v", deletedCount, 1)
+			}
+		})
 
-	// Test DeletePhysicalLocation with cache update error
-	t.Run("DeletePhysicalLocation - Cache Error Handling", func(t *testing.T) {
-		// Create fresh mocks for this test
-		mockDb := new(mocks.MockPhysicalDbAdapter)
-		mockCache := new(mocks.MockPhysicalCacheWrapper)
-		service := createTestService(mockDb, mockCache)
+		// Test database error
+		t.Run("database error", func(t *testing.T) {
+			dbErr := fmt.Errorf("database error")
+			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
+				Return(int64(0), dbErr)
 
-		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
-			Return(nil)
-		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-			Return([]models.PhysicalLocation{}, nil)
-
-		// Simulate cache update error - NOTE: should not block deletion
-		cacheErr := fmt.Errorf("cache error")
-		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", []models.PhysicalLocation{}).
-			Return(cacheErr)
-		mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
-			Return(nil)
-
-		err := service.DeletePhysicalLocation(ctx, "user1", "loc1")
-		if err != nil {
-			t.Errorf("DeletePhysicalLocation() should succeed despite cache error, but got: %v", err)
-			return
-		}
-
-		mockDb.AssertExpectations(t)
-		mockCache.AssertExpectations(t)
-	})
-
-	// Test DeletePhysicalLocation with db error
-	t.Run("DeletePhysicalLocation - DB Error", func(t *testing.T) {
-		// Create fresh mocks for this test
-		mockDb := new(mocks.MockPhysicalDbAdapter)
-		mockCache := new(mocks.MockPhysicalCacheWrapper)
-		service := createTestService(mockDb, mockCache)
-
-		dbErr := fmt.Errorf("database error")
-		mockDb.On("DeletePhysicalLocation", ctx, "user1", "loc1").
-			Return(dbErr)
-
-		err := service.DeletePhysicalLocation(ctx, "user1", "loc1")
-		if err == nil {
-			t.Errorf("DeletePhysicalLocation() should fail on DB error")
-			return
-		}
-		if err.Error() != "database error" {
-			t.Errorf("Expected error 'database error', got: %v", err)
-		}
-
-		mockDb.AssertExpectations(t)
-		// Cache functions should not be called if DB operation fails
+			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
+			if err == nil {
+				t.Errorf("DeletePhysicalLocation() should fail on DB error")
+			}
+			if deletedCount != 0 {
+				t.Errorf("DeletePhysicalLocation() deletedCount = %v, want %v", deletedCount, 0)
+			}
+		})
 	})
 }
 
@@ -440,7 +428,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
 				updatedLocation := models.PhysicalLocation{
@@ -449,7 +440,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					Name:           "Updated Location",
 					Label:          "Updated Label",
 					LocationType:   "type1",
-					MapCoordinates: "1.0,2.0",
+					MapCoordinates: models.PhysicalMapCoordinates{
+						Coords:         "1.0,2.0",
+						GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+					},
 				}
 
 				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
@@ -472,7 +466,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 		},
 		{
@@ -484,7 +481,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
 				// NOTE: no mocks needed since we expect an early return due to user ID mismatch
@@ -501,7 +501,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
 				dbErr := fmt.Errorf("database error")
@@ -520,7 +523,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
 				updatedLocation := models.PhysicalLocation{
@@ -529,7 +535,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					Name:           "Updated Location",
 					Label:          "Updated Label",
 					LocationType:   "type1",
-					MapCoordinates: "1.0,2.0",
+					MapCoordinates: models.PhysicalMapCoordinates{
+						Coords:         "1.0,2.0",
+						GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+					},
 				}
 
 				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
@@ -555,7 +564,10 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
-				MapCoordinates: "1.0,2.0",
+				MapCoordinates: models.PhysicalMapCoordinates{
+					Coords:         "1.0,2.0",
+					GoogleMapsLink: "https://www.google.com/maps?q=1.0,2.0",
+				},
 			},
 		},
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -610,56 +611,60 @@ func (pa *PhysicalDbAdapter) UpdatePhysicalLocation(ctx context.Context, userID 
 }
 
 // DELETE
-func (pa *PhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationID string) error {
-	pa.logger.Debug("Removing physical location", map[string]any{
-		"userID":     userID,
-		"locationID": locationID,
+func (pa *PhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+	pa.logger.Debug("Removing physical location(s)", map[string]any{
+		"userID":      userID,
+		"locationIDs": locationIDs,
 	})
 
-	return postgres.WithTransaction(
+	var rowsAffected int64
+	err := postgres.WithTransaction(
 		ctx,
 		pa.db,
 		pa.logger,
 		func(tx *sqlx.Tx) error {
-			// First try to find the location by ID
-			var id string
+			// First verify all locations belong to the user
+			var count int
 			err := tx.QueryRowxContext(ctx, `
-				SELECT id FROM physical_locations
-				WHERE id = $1 AND user_id = $2
-			`, locationID, userID).Scan(&id)
+				SELECT COUNT(*) FROM physical_locations
+				WHERE id = ANY($1) AND user_id = $2
+			`, pq.Array(locationIDs), userID).Scan(&count)
 
 			if err != nil {
-				if err == sql.ErrNoRows {
-					return ErrLocationNotFound
-				}
-				return fmt.Errorf("error checking physical location: %w", err)
+				return fmt.Errorf("error verifying physical locations: %w", err)
 			}
 
-			// Delete the location
+			if count != len(locationIDs) {
+				return ErrLocationNotFound
+			}
+
+			// Delete the locations (sublocations will be deleted automatically via ON DELETE CASCADE)
 			result, err := tx.ExecContext(ctx, `
 				DELETE FROM physical_locations
-				WHERE id = $1 AND user_id = $2
-			`, id, userID)
+				WHERE id = ANY($1) AND user_id = $2
+			`, pq.Array(locationIDs), userID)
 			if err != nil {
-				return fmt.Errorf("error deleting physical location: %w", err)
+				return fmt.Errorf("error deleting physical locations: %w", err)
 			}
 
-			rowsAffected, err := result.RowsAffected()
+			rowsAffected, err = result.RowsAffected()
 			if err != nil {
 				return fmt.Errorf("error getting rows affected: %w", err)
 			}
 
-			if rowsAffected == 0 {
-				return ErrLocationNotFound
-			}
-
 			pa.logger.Debug("DeletePhysicalLocation success", map[string]any{
 				"rowsAffected": rowsAffected,
-				"locationID":   id,
+				"locationIDs":  locationIDs,
 			})
 
 			return nil
 		})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return rowsAffected, nil
 }
 
 // Helpers

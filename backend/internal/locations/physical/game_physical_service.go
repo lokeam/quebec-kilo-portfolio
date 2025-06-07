@@ -29,7 +29,7 @@ type PhysicalService interface {
 
 	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
-	DeletePhysicalLocation(ctx context.Context, userID, locationID string) error
+	DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error)
 }
 
 func NewGamePhysicalService(appContext *appcontext.AppContext) (*GamePhysicalService, error) {
@@ -255,29 +255,62 @@ func (gps *GamePhysicalService) UpdatePhysicalLocation(ctx context.Context, user
 func (gps *GamePhysicalService) DeletePhysicalLocation(
 	ctx context.Context,
 	userID string,
-	locationID string,
-) error {
-	// Remove from database
-	if err := gps.dbAdapter.DeletePhysicalLocation(ctx, userID, locationID); err != nil {
-		gps.logger.Error("Failed to delete physical location from DB", map[string]any{"error": err})
-		return err
+	locationIDs []string,
+) (int64, error) {
+	gps.logger.Debug("DeletePhysicalLocation called", map[string]any{
+		"userID":      userID,
+		"locationIDs": locationIDs,
+		"isBulk":      len(locationIDs) > 1,
+	})
+
+	// Validate input and get sanitized, deduplicated IDs
+	validatedIDs, err := gps.validator.ValidateRemovePhysicalLocation(userID, locationIDs)
+	if err != nil {
+		gps.logger.Error("Validation failed for DeletePhysicalLocation", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationIDs": locationIDs,
+		})
+		return 0, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Invalidate both the user's locations cache and the specific location cache
+	// Remove locations from database using validated IDs
+	count, err := gps.dbAdapter.DeletePhysicalLocation(ctx, userID, validatedIDs)
+	if err != nil {
+		gps.logger.Error("Failed to remove physical locations from database", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationIDs": validatedIDs,
+		})
+		return 0, fmt.Errorf("failed to remove physical locations: %w", err)
+	}
+
+	// Invalidate cache for each location
+	for _, locationID := range validatedIDs {
+		if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, locationID); err != nil {
+			gps.logger.Error("Failed to invalidate cache for location", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationID": locationID,
+			})
+			// Continue with other invalidations even if one fails
+		}
+	}
+
+	// Invalidate the user's locations cache
 	if err := gps.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		gps.logger.Error("Failed to invalidate user locations cache", map[string]any{
 			"error": err,
 			"userID": userID,
 		})
+		// Continue despite error, since the DB update was successful
 	}
 
-	if err := gps.cacheWrapper.InvalidateLocationCache(ctx, userID, locationID); err != nil {
-		gps.logger.Error("Failed to invalidate location cache", map[string]any{
-			"error": err,
-			"userID": userID,
-			"locationID": locationID,
-		})
-	}
+	gps.logger.Debug("DeletePhysicalLocation completed successfully", map[string]any{
+		"userID": userID,
+		"locationIDs": validatedIDs,
+		"deletedCount": count,
+	})
 
-	return nil
+	return count, nil
 }
