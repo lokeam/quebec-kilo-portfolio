@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+  import { memo, useCallback, useState } from 'react';
 
 // Shadcn Components
 import { Button } from '@/shared/components/ui/button';
@@ -17,7 +17,7 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
+import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
@@ -25,11 +25,11 @@ import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysical
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
 interface PhysicalLocationsTableRowComponentProps {
-  sublocation: SublocationRowData;
+  sublocation: SublocationItemData;
   index: number;
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
-  onEdit?: (sublocation: SublocationRowData) => void;
+  onEdit?: (sublocation: SublocationItemData) => void;
 }
 
 function PhysicalLocationsTableRowComponent({
@@ -59,6 +59,8 @@ function PhysicalLocationsTableRowComponent({
     setDeleteDialogOpen(false);
   }, []);
 
+  console.log('*** [DEBUG] PhysicalLocationsTableRow: Sublocation', sublocation);
+
   return (
     <>
       <TableRow
@@ -78,20 +80,20 @@ function PhysicalLocationsTableRowComponent({
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.bgColor} />
+            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.parentLocationBgColor} />
             <span>{sublocation.sublocationName}</span>
           </div>
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.bgColor} />
+            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.parentLocationBgColor} />
             <span>{sublocation.parentLocationName}</span>
           </div>
         </TableCell>
         <TableCell>
           {sublocation.mapCoordinates ? (
             <a
-              href={sublocation.mapCoordinates}
+              href={sublocation.mapCoordinates.googleMapsLink}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:underline"

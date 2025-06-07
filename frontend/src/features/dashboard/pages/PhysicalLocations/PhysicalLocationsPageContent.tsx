@@ -8,19 +8,18 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { SinglePhysicalLocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SinglePhysicalLocationCard/SinglePhysicalLocationCard';
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
 import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
+import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationForm/PhysicalLocationForm';
 
-import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 
 // API Hooks and Utilities
-import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
-import { useFilteredPhysicalLocations } from '@/features/dashboard/lib/hooks/useFilteredPhysicalLocations';
+import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysicalLocationFilters';
 
 // Types
 import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
+import { useGetPhysicalLocationsBFFResponse } from '@/core/api/queries/physicalLocation.queries';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -52,38 +51,19 @@ export function PhysicalLocationsPageContent() {
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
-  // Fetch physical locations using analytics
-  const { data: storageData, isLoading, error } = useStorageAnalytics();
+  // Fetch physical locations using BFF
+  const { data: storageData, isLoading, error } = useGetPhysicalLocationsBFFResponse();
 
-  // Get filtered locations using the new hook
-  const filteredSublocationRows = useFilteredPhysicalLocations(storageData?.sublocationRows || []);
+  // Get filter options from BFF data
+  const filterOptions = usePhysicalLocationFilters(storageData);
 
-  console.log('[DEBUG] PhysicalLocationsPageContent: Render', {
-    isLoading,
-    hasError: !!error,
-    sublocationRowsCount: storageData?.sublocationRows.length || 0,
-    filteredSublocationRowsCount: filteredSublocationRows.length,
-    viewMode,
-    timestamp: new Date().toISOString()
-  });
+  console.log('[DEBUG] PhysicalLocationsPageContent: BFF data', storageData);
 
   // Enhanced edit handlers
-  const handleEditService = useCallback((sublocation: SublocationRowData) => {
-    console.log('[DEBUG] PhysicalLocationsPageContent: Edit service', {
-      sublocationId: sublocation.sublocationId,
-      parentLocationId: sublocation.parentLocationId,
-      timestamp: new Date().toISOString()
-    });
-
-    // Find the parent location
-    const parentLocation = storageData?.physicalLocations.find(loc =>
-      loc.sublocations?.some(sub => sub.id === sublocation.sublocationId)
-    );
-    if (parentLocation) {
-      setServiceBeingEdited(parentLocation);
-      setEditServiceOpen(true);
-    }
-  }, [storageData]);
+  const handleEditService = useCallback((location: PhysicalLocation) => {
+    setServiceBeingEdited(location);
+    setEditServiceOpen(true);
+  }, []);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -99,17 +79,13 @@ export function PhysicalLocationsPageContent() {
     }
   });
 
+  // Handle form submission success
+  const handleFormSuccess = useCallback(() => {
+    setAddServiceOpen(false);
+  }, []);
+
   // Render content based on the selected view mode
   const renderContent = () => {
-    console.log('[DEBUG] PhysicalLocationsPageContent: renderContent', {
-      isLoading,
-      hasError: !!error,
-      sublocationRowsCount: storageData?.sublocationRows.length || 0,
-      filteredSublocationRowsCount: filteredSublocationRows.length,
-      viewMode,
-      timestamp: new Date().toISOString()
-    });
-
     if (isLoading) {
       return viewMode === 'table' ? <TableSkeleton /> : <CardSkeleton />;
     }
@@ -122,7 +98,7 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (storageData?.sublocationRows.length === 0) {
+    if (!storageData?.physicalLocations || storageData.physicalLocations.length === 0) {
       return (
         <div className="p-4 border rounded-md">
           <p className="text-gray-500">No physical location found. Add a location to get started.</p>
@@ -130,14 +106,10 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    if (filteredSublocationRows.length === 0) {
-      return <NoResultsFound />;
-    }
-
     if (viewMode === 'table') {
       return (
         <PhysicalLocationsTable
-          sublocationRows={filteredSublocationRows}
+          sublocationRows={storageData.sublocations}
           onEdit={handleEditService}
         />
       );
@@ -147,17 +119,17 @@ export function PhysicalLocationsPageContent() {
       <div className="p-4 border rounded-md">
         <h2 className="text-lg font-semibold">Physical Locations</h2>
         <p className="text-gray-500 mb-4">{
-          filteredSublocationRows.length === 1
+          storageData.physicalLocations.length === 1
             ? '1 location found'
-            : `${filteredSublocationRows.length} locations found`
+            : `${storageData.physicalLocations.length} locations found`
         }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
         }`}>
-          {filteredSublocationRows.map((sublocation, index) => (
+          {storageData.sublocations.map((location, index) => (
             <SinglePhysicalLocationCard
-              key={sublocation.sublocationId}
-              location={sublocation}
+              key={location.sublocationID}
+              location={location}
               onEdit={handleEditService}
               isWatchedByResizeObserver={index === 0}
             />
@@ -184,7 +156,10 @@ export function PhysicalLocationsPageContent() {
             description="Tell us about the location you want to add"
             triggerBtnIcon="location"
           >
-            <p>Add Physical Location Form</p>
+            <PhysicalLocationForm
+              onSuccess={handleFormSuccess}
+              buttonText="Add Location"
+            />
           </DrawerContainer>
 
           {/* Edit Location Drawer */}
@@ -203,7 +178,10 @@ export function PhysicalLocationsPageContent() {
 
       {/* Physical Locations Display Section */}
       <div className="mt-6">
-        <PhysicalLocationsToolbar />
+        <PhysicalLocationsToolbar
+          sublocationTypes={filterOptions.sublocationTypes}
+          parentTypes={filterOptions.parentTypes}
+        />
         <div className="mt-4 space-y-4">
           {renderContent()}
         </div>

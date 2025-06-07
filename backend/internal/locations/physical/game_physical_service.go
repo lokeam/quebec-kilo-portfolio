@@ -10,6 +10,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type GamePhysicalService struct {
@@ -24,6 +25,8 @@ type GamePhysicalService struct {
 type PhysicalService interface {
 	GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
 	GetSinglePhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
+	GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error)
+
 	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	DeletePhysicalLocation(ctx context.Context, userID, locationID string) error
@@ -155,6 +158,34 @@ func (gps *GamePhysicalService) GetSinglePhysicalLocation(
 
 	return location, nil
 }
+
+// --- BFF ---
+
+func (gps *GamePhysicalService) GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error) {
+	// Try to get from cache first
+	cachedLocations, err := gps.cacheWrapper.GetCachedPhysicalLocationsBFF(ctx, userID)
+	if err == nil {
+		gps.logger.Debug("Cache hit for physical locations", map[string]any{"userID": userID})
+		return cachedLocations, nil
+	}
+
+	// Cache miss or error, get from DB
+	locations, err := gps.dbAdapter.GetAllPhysicalLocationsBFF(ctx, userID)
+	if err != nil {
+		gps.logger.Error("Failed to fetch physical locations from DB", map[string]any{"error": err})
+		return types.LocationsBFFResponse{}, err
+	}
+
+	// Cache the results
+	if err := gps.cacheWrapper.SetCachedPhysicalLocationsBFF(ctx, userID, locations); err != nil {
+		gps.logger.Error("Failed to cache physical locations", map[string]any{"error": err})
+	}
+
+	return locations, nil
+}
+
+// ---
+
 
 // POST
 func (gps *GamePhysicalService) CreatePhysicalLocation(

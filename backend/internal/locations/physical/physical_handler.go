@@ -38,6 +38,9 @@ func RegisterPhysicalRoutes(r chi.Router, appCtx *appcontext.AppContext, service
 		r.Put("/", UpdatePhysicalLocation(appCtx, service, analyticsService))
 		r.Delete("/", DeletePhysicalLocation(appCtx, service, analyticsService))
 	})
+
+	// BFF route
+	r.Get("/bff", GetAllPhysicalLocationsBFF(appCtx, service))
 }
 
 // handleError is a helper function to standardize error handling
@@ -130,6 +133,46 @@ func GetSinglePhysicalLocation(appCtx *appcontext.AppContext, service services.P
 		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"physical": formatters.FormatPhysicalLocationToFrontend(&location),
+		})
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// GetAllPhysicalLocationsBFF handles GET requests for the /physical-locations page
+func GetAllPhysicalLocationsBFF(appCtx *appcontext.AppContext, service services.PhysicalService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		appCtx.Logger.Info("Listing physical locations", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		locations, err := service.GetAllPhysicalLocationsBFF(r.Context(), userID)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"physical": locations,
 		})
 
 		httputils.RespondWithJSON(

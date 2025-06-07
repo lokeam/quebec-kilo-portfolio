@@ -12,7 +12,7 @@ import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 
 // Service Layer methods
 import {
-  getAllPhysicalLocations,
+  getPhysicalLocationsBFFResponse,
   getSinglePhysicalLocation,
   createPhysicalLocation,
   updatePhysicalLocation,
@@ -28,7 +28,7 @@ import {
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Types
-import type { PhysicalLocation, CreatePhysicalLocationRequest } from '@/types/domain/physical-location';
+import type { PhysicalLocation, CreatePhysicalLocationRequest, LocationsBFFResponse } from '@/types/domain/physical-location';
 import type { Sublocation, CreateSublocationRequest } from '@/types/domain/sublocation';
 import type { DeletePhysicalLocationResponse, DeleteSublocationResponse } from '@/core/api/services/physicalLocation.service';
 
@@ -55,13 +55,42 @@ export const physicalLocationKeys = {
 /**
  * Hook to fetch all physical locations
  */
-export const useGetAllPhysicalLocations = () => {
-  return useAPIQuery<PhysicalLocation[]>({
+export const useGetPhysicalLocationsBFFResponse = () => {
+  return useAPIQuery<LocationsBFFResponse>({
     queryKey: physicalLocationKeys.lists(),
     queryFn: async () => {
-      const locations = await getAllPhysicalLocations();
-      return locations;
+      try {
+        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Starting query function');
+        const response = await getPhysicalLocationsBFFResponse();
+        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Raw response:', response);
+
+        if (!response) {
+          console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Response is null or undefined');
+          throw new Error('No data received from server');
+        }
+
+        if (!response.physicalLocations || !response.sublocations) {
+          console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Invalid response structure:', {
+            hasPhysicalLocations: !!response.physicalLocations,
+            hasSublocations: !!response.sublocations,
+            response
+          });
+          throw new Error('Invalid response structure from server');
+        }
+
+        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Successfully parsed response:', {
+          physicalLocationsCount: response.physicalLocations.length,
+          sublocationsCount: response.sublocations.length
+        });
+
+        return response;
+      } catch (error) {
+        console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Error fetching data:', error);
+        throw error;
+      }
     },
+    staleTime: 30000,
+    refetchOnMount: false,
   });
 };
 

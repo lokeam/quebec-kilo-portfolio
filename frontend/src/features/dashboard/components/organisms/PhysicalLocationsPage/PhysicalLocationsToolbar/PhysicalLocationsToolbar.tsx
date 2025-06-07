@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { LayoutGrid, LayoutList, Sheet } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
@@ -9,13 +9,22 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 // Hooks
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 
 // Types
 import { PhysicalLocationType } from '@/types/domain/location-types';
 import { SublocationType } from '@/types/domain/location-types';
 
-export function PhysicalLocationsToolbar() {
+interface FilterOption {
+  key: string;
+  label: string;
+}
+
+interface PhysicalLocationsToolbarProps {
+  sublocationTypes: FilterOption[];
+  parentTypes: FilterOption[];
+}
+
+export function PhysicalLocationsToolbar({ sublocationTypes, parentTypes }: PhysicalLocationsToolbarProps) {
   const {
     viewMode,
     setViewMode,
@@ -24,48 +33,12 @@ export function PhysicalLocationsToolbar() {
     setParentLocationTypeFilters,
   } = useOnlineServicesStore();
 
-  const { data: storageData } = useStorageAnalytics();
-
-  // Generate filter options from the data
-  const filterOptions = useMemo(() => {
-    if (!storageData?.sublocationRows) return { sublocationTypes: [], parentTypes: [] };
-
-    // Get unique sublocation types and format them for display
-    const uniqueSublocationTypes = Array.from(new Set(
-      storageData.sublocationRows.map(row => row.sublocationType)
-    ))
-    .filter((type): type is SublocationType =>
-      Object.values(SublocationType).includes(type as SublocationType)
-    )
-    .map(type => ({
-      key: type,
-      label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
-    }));
-
-    // Get unique physical location types and format them for display
-    const uniqueParentTypes = Array.from(new Set(
-      storageData.sublocationRows.map(row => row.parentLocationType)
-    ))
-    .filter((type): type is PhysicalLocationType =>
-      Object.values(PhysicalLocationType).includes(type as PhysicalLocationType)
-    )
-    .map(type => ({
-      key: type,
-      label: type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
-    }));
-
-    return {
-      sublocationTypes: uniqueSublocationTypes,
-      parentTypes: uniqueParentTypes
-    };
-  }, [storageData?.sublocationRows]);
-
   const sublocationTypeFilter = useFilterCheckboxes(
-    filterOptions.sublocationTypes.map(option => option.key)
+    sublocationTypes.map(option => option.key)
   );
 
   const parentTypeFilter = useFilterCheckboxes(
-    filterOptions.parentTypes.map(option => option.key)
+    parentTypes.map(option => option.key)
   );
 
   const handleSearchChange = useCallback(
@@ -104,14 +77,14 @@ export function PhysicalLocationsToolbar() {
 
         <FilterDropdown
           label="Storage Type"
-          options={filterOptions.sublocationTypes}
+          options={sublocationTypes}
           width="230px"
           {...sublocationTypeFilter}
         />
 
         <FilterDropdown
           label="Property Type"
-          options={filterOptions.parentTypes}
+          options={parentTypes}
           width="180px"
           {...parentTypeFilter}
         />

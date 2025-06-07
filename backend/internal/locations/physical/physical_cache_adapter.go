@@ -6,6 +6,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type PhysicalCacheAdapter struct {
@@ -47,6 +48,37 @@ func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocations(
 	cacheKey := fmt.Sprintf("physical:%s", userID)
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
 }
+
+// --- BFF ---
+func (pca *PhysicalCacheAdapter) GetCachedPhysicalLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.LocationsBFFResponse, error) {
+	cacheKey := fmt.Sprintf("physical:bff:%s", userID)
+
+	var response types.LocationsBFFResponse
+	cacheHit, err := pca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
+	if err != nil {
+			return types.LocationsBFFResponse{}, err
+	}
+
+	if cacheHit {
+			return response, nil
+	}
+
+	return types.LocationsBFFResponse{}, nil
+}
+
+func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocationsBFF(
+	ctx context.Context,
+	userID string,
+	response types.LocationsBFFResponse,
+) error {
+	cacheKey := fmt.Sprintf("physical:bff:%s", userID)
+	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
+}
+
+// ---
 
 func (pca *PhysicalCacheAdapter) GetSingleCachedPhysicalLocation(
 	ctx context.Context,

@@ -38,6 +38,9 @@ export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProp
 
   const normalizedType = type.toLowerCase();
   let IconComponent;
+
+  console.log('---> [DEBUG] PhysicalLocationIcon render:', normalizedType);
+
   switch (normalizedType) {
     case 'house':
       IconComponent = <Home className="h-6 w-6" />;

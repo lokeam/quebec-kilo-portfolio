@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, useEffect } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 // Shadcn Components
 import { Card } from "@/shared/components/ui/card"
@@ -16,18 +16,19 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { SublocationRowData } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTableRow';
+import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
-
 interface SinglePhysicalLocationCardProps {
-  location: SublocationRowData;
+  location: SublocationItemData;
   onDelete?: (id: string) => void;
-  onEdit?: (sublocation: SublocationRowData) => void;
+  onEdit?: (location: SublocationItemData) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
@@ -41,42 +42,13 @@ export const SinglePhysicalLocationCard = memo(({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log('[DEBUG] SinglePhysicalLocationCard mounted:', {
-      id: location.sublocationId,
-      name: location.sublocationName,
-      sublocationType: location.sublocationType,
-      parentLocationType: location.parentLocationType,
-      bgColor: location.bgColor,
-      timestamp: new Date().toISOString()
-    });
-
-    return () => {
-      console.log('[DEBUG] SinglePhysicalLocationCard unmounted:', {
-        id: location.sublocationId,
-        name: location.sublocationName,
-        timestamp: new Date().toISOString()
-      });
-    };
-  }, [location.sublocationId, location.sublocationName, location.sublocationType, location.bgColor]);
-
-  console.log('[DEBUG] SinglePhysicalLocationCard render:', {
-    id: location.sublocationId,
-    name: location.sublocationName,
-    sublocationType: location.sublocationType,
-    parentLocationType: location.parentLocationType,
-    bgColor: location.bgColor,
-    isWatchedByResizeObserver,
+  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
+    location,
     timestamp: new Date().toISOString()
   });
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card onClick from firing
-    console.log('[DEBUG] SinglePhysicalLocationCard: Edit clicked', {
-      id: location.sublocationId,
-      name: location.sublocationName,
-      timestamp: new Date().toISOString()
-    });
     onEdit?.(location);
   }, [location, onEdit]);
 
@@ -101,6 +73,11 @@ export const SinglePhysicalLocationCard = memo(({
     }
   }, [location.sublocationId, onDelete]);
 
+  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
+    location,
+    timestamp: new Date().toISOString()
+  });
+
   return (
     <>
       <Card
@@ -119,7 +96,7 @@ export const SinglePhysicalLocationCard = memo(({
             <div className="flex items-center">
               <SublocationIcon
                 type={location.sublocationType}
-                bgColor={location.bgColor}
+                bgColor={location.parentLocationBgColor}
               />
             </div>
 
@@ -129,7 +106,7 @@ export const SinglePhysicalLocationCard = memo(({
               <div className="flex items-center justify-end transition-opacity duration-200 group-hover:opacity-0">
                 <PhysicalLocationIcon
                   type={location.parentLocationType}
-                  bgColor={location.bgColor}
+                  bgColor={location.parentLocationBgColor}
                 />
               </div>
 

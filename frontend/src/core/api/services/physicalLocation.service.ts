@@ -6,7 +6,7 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
-import type { PhysicalLocation, CreatePhysicalLocationRequest } from '@/types/domain/physical-location';
+import type { PhysicalLocation, CreatePhysicalLocationRequest, LocationsBFFResponse } from '@/types/domain/physical-location';
 import type { Sublocation, CreateSublocationRequest } from '@/types/domain/sublocation';
 
 // Response wrappers for physical locations
@@ -26,6 +26,12 @@ interface PhysicalLocationsResponseWrapper {
     timestamp: string;
     request_id: string;
   };
+}
+
+interface PhysicalLocationsBFFResponseWrapper {
+  success: boolean;
+  physical: LocationsBFFResponse;
+  metadata: { timestamp: string; request_id: string; };
 }
 
 interface SublocationResponseWrapper {
@@ -61,21 +67,29 @@ export interface DeleteSublocationResponse {
     sublocation_ids: string[];
   };
 }
-
-const PHYSICAL_LOCATION_ENDPOINT = '/v1/locations/physical';
-const SUBLOCATION_ENDPOINT = '/v1/locations/sublocations';
+const PHYSICAL_LOCATION_BFF_ENDPOINT = '/v1/locations/physical/bff';
+const PHYSICAL_LOCATION_CRUD_ENDPOINT = '/v1/locations/physical';
+const SUBLOCATION_CRUD_ENDPOINT = '/v1/locations/sublocations';
 
 // Physical Location Operations
 
 /**
  * Fetches all physical locations for the current user
  */
-export const getAllPhysicalLocations = (): Promise<PhysicalLocation[]> =>
-  apiRequest('getAllPhysicalLocations', () =>
-    axiosInstance
-      .get<PhysicalLocationsResponseWrapper>(PHYSICAL_LOCATION_ENDPOINT)
-      .then(response => response.data.physical)
-  );
+export const getPhysicalLocationsBFFResponse = (): Promise<LocationsBFFResponse> =>
+  apiRequest('getPhysicalLocationsBFFResponse', async () => {
+    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Making API request');
+    const response = await axiosInstance.get<{ physical: LocationsBFFResponse }>(PHYSICAL_LOCATION_BFF_ENDPOINT);
+    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Raw API response:', response.data);
+
+    if (!response.data.physical) {
+      console.error('[DEBUG] getPhysicalLocationsBFFResponse: No physical data in response:', response.data);
+      throw new Error('No physical data in response');
+    }
+
+    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Successfully extracted physical data:', response.data.physical);
+    return response.data.physical;
+  });
 
 /**
  * Fetches a specific physical location by ID
@@ -83,7 +97,7 @@ export const getAllPhysicalLocations = (): Promise<PhysicalLocation[]> =>
 export const getSinglePhysicalLocation = (id: string): Promise<PhysicalLocation> =>
   apiRequest(`getPhysicalLocationById(${id})`, () =>
     axiosInstance
-      .get<PhysicalLocationResponseWrapper>(`${PHYSICAL_LOCATION_ENDPOINT}/${id}`)
+      .get<PhysicalLocationResponseWrapper>(`${PHYSICAL_LOCATION_CRUD_ENDPOINT}/${id}`)
       .then(response => response.data.physical)
   );
 
@@ -93,7 +107,7 @@ export const getSinglePhysicalLocation = (id: string): Promise<PhysicalLocation>
 export const createPhysicalLocation = (input: CreatePhysicalLocationRequest): Promise<PhysicalLocation> =>
   apiRequest('createPhysicalLocation', () =>
     axiosInstance
-      .post<PhysicalLocationResponseWrapper>(PHYSICAL_LOCATION_ENDPOINT, input)
+      .post<PhysicalLocationResponseWrapper>(PHYSICAL_LOCATION_CRUD_ENDPOINT, input)
       .then(response => response.data.physical)
   );
 
@@ -103,7 +117,7 @@ export const createPhysicalLocation = (input: CreatePhysicalLocationRequest): Pr
 export const updatePhysicalLocation = (id: string, input: Partial<CreatePhysicalLocationRequest>): Promise<PhysicalLocation> =>
   apiRequest(`updatePhysicalLocation(${id})`, () =>
     axiosInstance
-      .put<PhysicalLocationResponseWrapper>(`${PHYSICAL_LOCATION_ENDPOINT}/${id}`, input)
+      .put<PhysicalLocationResponseWrapper>(`${PHYSICAL_LOCATION_CRUD_ENDPOINT}/${id}`, input)
       .then(response => response.data.physical)
   );
 
@@ -115,9 +129,9 @@ export const deletePhysicalLocation = (ids: string | string[]): Promise<DeletePh
   console.log('Making delete request for physical location(s):', idParam);
 
   return apiRequest(`deletePhysicalLocation(${idParam})`, () => {
-    console.log('Executing delete request to:', `${PHYSICAL_LOCATION_ENDPOINT}?ids=${idParam}`);
+    console.log('Executing delete request to:', `${PHYSICAL_LOCATION_CRUD_ENDPOINT}?ids=${idParam}`);
     return axiosInstance
-      .delete<DeletePhysicalLocationResponse>(`${PHYSICAL_LOCATION_ENDPOINT}?ids=${idParam}`)
+      .delete<DeletePhysicalLocationResponse>(`${PHYSICAL_LOCATION_CRUD_ENDPOINT}?ids=${idParam}`)
       .then((response) => {
         console.log('Delete request successful');
         return response.data.physical;
@@ -137,7 +151,7 @@ export const deletePhysicalLocation = (ids: string | string[]): Promise<DeletePh
 export const getAllSublocations = (physicalLocationId: string): Promise<Sublocation[]> =>
   apiRequest(`getAllSublocations(${physicalLocationId})`, () =>
     axiosInstance
-      .get<SublocationsResponseWrapper>(`${PHYSICAL_LOCATION_ENDPOINT}/${physicalLocationId}/sublocations`)
+      .get<SublocationsResponseWrapper>(`${PHYSICAL_LOCATION_CRUD_ENDPOINT}/${physicalLocationId}/sublocations`)
       .then(response => response.data.sublocations)
   );
 
@@ -147,7 +161,7 @@ export const getAllSublocations = (physicalLocationId: string): Promise<Sublocat
 export const getSingleSublocation = (id: string): Promise<Sublocation> =>
   apiRequest(`getSublocationById(${id})`, () =>
     axiosInstance
-      .get<SublocationResponseWrapper>(`${SUBLOCATION_ENDPOINT}/${id}`)
+      .get<SublocationResponseWrapper>(`${SUBLOCATION_CRUD_ENDPOINT}/${id}`)
       .then(response => response.data.sublocation)
   );
 
@@ -157,7 +171,7 @@ export const getSingleSublocation = (id: string): Promise<Sublocation> =>
 export const createSublocation = (input: CreateSublocationRequest): Promise<Sublocation> =>
   apiRequest('createSublocation', () =>
     axiosInstance
-      .post<SublocationResponseWrapper>(SUBLOCATION_ENDPOINT, input)
+      .post<SublocationResponseWrapper>(SUBLOCATION_CRUD_ENDPOINT, input)
       .then(response => response.data.sublocation)
   );
 
@@ -167,7 +181,7 @@ export const createSublocation = (input: CreateSublocationRequest): Promise<Subl
 export const updateSublocation = (id: string, input: Partial<CreateSublocationRequest>): Promise<Sublocation> =>
   apiRequest(`updateSublocation(${id})`, () =>
     axiosInstance
-      .put<SublocationResponseWrapper>(`${SUBLOCATION_ENDPOINT}/${id}`, input)
+      .put<SublocationResponseWrapper>(`${SUBLOCATION_CRUD_ENDPOINT}/${id}`, input)
       .then(response => response.data.sublocation)
   );
 
@@ -179,9 +193,9 @@ export const deleteSublocation = (ids: string | string[]): Promise<DeleteSubloca
   console.log('Making delete request for sublocation(s):', idParam);
 
   return apiRequest(`deleteSublocation(${idParam})`, () => {
-    console.log('Executing delete request to:', `${SUBLOCATION_ENDPOINT}?ids=${idParam}`);
+    console.log('Executing delete request to:', `${SUBLOCATION_CRUD_ENDPOINT}?ids=${idParam}`);
     return axiosInstance
-      .delete<DeleteSublocationResponse>(`${SUBLOCATION_ENDPOINT}?ids=${idParam}`)
+      .delete<DeleteSublocationResponse>(`${SUBLOCATION_CRUD_ENDPOINT}?ids=${idParam}`)
       .then((response) => {
         console.log('Delete request successful');
         return response.data.sublocation;

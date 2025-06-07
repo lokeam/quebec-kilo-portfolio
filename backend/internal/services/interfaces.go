@@ -37,6 +37,7 @@ type DigitalService interface {
 // PhysicalService defines operations for managing physical locations
 type PhysicalService interface {
 	GetAllPhysicalLocations(ctx context.Context, userID string) ([]models.PhysicalLocation, error)
+	GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error)
 	GetSinglePhysicalLocation(ctx context.Context, userID, locationID string) (models.PhysicalLocation, error)
 	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)

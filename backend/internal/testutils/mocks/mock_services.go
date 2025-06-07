@@ -199,6 +199,10 @@ func (m *MockPhysicalService) DeletePhysicalLocation(ctx context.Context, userID
 	return nil
 }
 
+func (m *MockPhysicalService) GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error) {
+	return types.LocationsBFFResponse{}, nil
+}
+
 // MockSublocationService implements services.SublocationService
 type MockSublocationService struct{}
 

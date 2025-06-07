@@ -15,6 +15,8 @@ import (
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/postgres"
+	"github.com/lokeam/qko-beta/internal/shared/utils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type PhysicalDbAdapter struct {
@@ -151,6 +153,39 @@ const (
 		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, bg_color = $7, updated_at = NOW()
 		WHERE id = $1 AND user_id = $2
 		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+	`
+
+	getAllPhysicalLocationsBFFPhysicalQuery = `
+		SELECT
+				id,
+				name,
+				location_type,
+				map_coordinates,
+				bg_color,
+				created_at,
+				updated_at
+		FROM physical_locations
+		WHERE user_id = $1
+		ORDER BY created_at
+	`
+
+	getAllPhysicalLocationsBFFSublocationQuery = `
+		SELECT
+				sl.id as sublocation_id,
+				sl.name as sublocation_name,
+				sl.location_type as sublocation_type,
+				sl.stored_items,
+				pl.id as parent_location_id,
+				pl.name as parent_location_name,
+				pl.location_type as parent_location_type,
+				pl.bg_color as parent_location_bg_color,
+				pl.map_coordinates,
+				sl.created_at,
+				sl.updated_at
+		FROM sublocations sl
+		JOIN physical_locations pl ON sl.physical_location_id = pl.id
+		WHERE pl.user_id = $1
+		ORDER BY pl.name, sl.name
 	`
 )
 
@@ -298,6 +333,117 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID
 
 	return locations, nil
 }
+
+
+// --- BFF ---
+
+func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.LocationsBFFResponse, error) {
+	pa.logger.Debug("GetLocationsBFFResponse called", map[string]any{
+		"userID": userID,
+	})
+
+	// Start transaction
+	tx, err := pa.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return types.LocationsBFFResponse{}, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// --- Build Physical Locations ---
+	physicalLocationRows, err := tx.QueryContext(ctx, getAllPhysicalLocationsBFFPhysicalQuery, userID)
+	if err != nil {
+		return types.LocationsBFFResponse{}, fmt.Errorf("failed to query physical locations: %w", err)
+	}
+	defer physicalLocationRows.Close()
+
+	var physicalLocations []types.LocationsBFFPhysicalLocationResponse
+	for physicalLocationRows.Next() {
+		var id, name, locationType, mapCoords, bgColor string
+		var createdAt, updatedAt time.Time
+		err := physicalLocationRows.Scan(
+			&id,
+			&name,
+			&locationType,
+			&mapCoords,
+			&bgColor,
+			&createdAt,
+			&updatedAt,
+		)
+		if err != nil {
+			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan physical location: %w", err)
+		}
+		physicalLocations = append(physicalLocations, types.LocationsBFFPhysicalLocationResponse{
+			PhysicalLocationID:   id,
+			Name:                 name,
+			PhysicalLocationType: locationType,
+			MapCoordinates:       utils.BuildMapCoordinatesResponse(mapCoords),
+			BgColor:              bgColor,
+			CreatedAt:            createdAt,
+			UpdatedAt:            updatedAt,
+		})
+	}
+
+	// --- Build Sublocations Array ---
+	sublocationRows, err := tx.QueryContext(ctx, getAllPhysicalLocationsBFFSublocationQuery, userID)
+	if err != nil {
+		return types.LocationsBFFResponse{}, fmt.Errorf("failed to query sublocations: %w", err)
+	}
+	defer sublocationRows.Close()
+
+	var sublocations []types.LocationsBFFSublocationResponse
+
+	for sublocationRows.Next() {
+		var sublocationID, sublocationName, sublocationType string
+		var storedItems int
+		var parentID, parentName, parentType, parentBgColor, parentMapCoords string
+		var createdAt, updatedAt time.Time
+
+		err := sublocationRows.Scan(
+			&sublocationID,
+			&sublocationName,
+			&sublocationType,
+			&storedItems,
+			&parentID,
+			&parentName,
+			&parentType,
+			&parentBgColor,
+			&parentMapCoords,
+			&createdAt,
+			&updatedAt,
+		)
+		if err != nil {
+			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan sublocation: %w", err)
+		}
+		sublocations = append(sublocations, types.LocationsBFFSublocationResponse{
+			SublocationID:         sublocationID,
+			SublocationName:       sublocationName,
+			SublocationType:       sublocationType,
+			StoredItems:           storedItems,
+			ParentLocationID:      parentID,
+			ParentLocationName:    parentName,
+			ParentLocationType:    parentType,
+			ParentLocationBgColor: parentBgColor,
+			MapCoordinates:        utils.BuildMapCoordinatesResponse(parentMapCoords),
+			CreatedAt:             createdAt,
+			UpdatedAt:             updatedAt,
+		})
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return types.LocationsBFFResponse{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return types.LocationsBFFResponse{
+		PhysicalLocations: physicalLocations,
+		Sublocations:      sublocations,
+	}, nil
+}
+
+// ---
 
 // POST
 func (pa *PhysicalDbAdapter) ensureUserExists(ctx context.Context, userID string) error {

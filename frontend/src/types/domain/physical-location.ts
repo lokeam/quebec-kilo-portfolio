@@ -37,3 +37,38 @@ export interface CreatePhysicalLocationRequest {
   description?: string;
   metadata?: PhysicalLocationMetadata;
 }
+
+/* yet another fucking refactor ----- bff response types ------ */
+export interface MapCoordinatesResponse {
+  coords: string;
+  googleMapsLink: string;
+}
+
+export interface LocationsBFFPhysicalLocationResponse {
+  physicalLocationID: string;
+  name: string;
+  physicalLocationType: string;
+  mapCoordinates: MapCoordinatesResponse;
+  bgColor: string;
+  createdAt: string; // or Date, depending on your usage
+  updatedAt: string; // or Date
+}
+
+export interface LocationsBFFSublocationResponse {
+  sublocationId: string;
+  sublocationName: string;
+  sublocationType: string;
+  storedItems: number;
+  parentLocationID: string;
+  parentLocationName: string;
+  parentLocationType: string;
+  parentLocationBgColor: string;
+  mapCoordinates: MapCoordinatesResponse;
+  createdAt: string; // or Date
+  updatedAt: string; // or Date
+}
+
+export interface LocationsBFFResponse {
+  physicalLocations: LocationsBFFPhysicalLocationResponse[];
+  sublocations: LocationsBFFSublocationResponse[];
+}
