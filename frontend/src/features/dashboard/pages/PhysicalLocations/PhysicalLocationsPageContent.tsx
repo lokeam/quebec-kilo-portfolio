@@ -20,6 +20,7 @@ import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysic
 // Types
 import type { PhysicalLocation } from '@/types/domain/physical-location';
 import { useGetPhysicalLocationsBFFResponse } from '@/core/api/queries/physicalLocation.queries';
+import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -47,7 +48,7 @@ const CardSkeleton = () => (
 export function PhysicalLocationsPageContent() {
   const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
-  const [serviceBeingEdited, setServiceBeingEdited] = useState<PhysicalLocation | null>(null);
+  const [serviceBeingEdited, setServiceBeingEdited] = useState<SublocationItemData | PhysicalLocation | null>(null);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
@@ -57,10 +58,9 @@ export function PhysicalLocationsPageContent() {
   // Get filter options from BFF data
   const filterOptions = usePhysicalLocationFilters(storageData);
 
-  console.log('[DEBUG] PhysicalLocationsPageContent: BFF data', storageData);
 
   // Enhanced edit handlers
-  const handleEditService = useCallback((location: PhysicalLocation) => {
+  const handleEditService = useCallback((location: SublocationItemData | PhysicalLocation) => {
     setServiceBeingEdited(location);
     setEditServiceOpen(true);
   }, []);
@@ -128,7 +128,7 @@ export function PhysicalLocationsPageContent() {
         }`}>
           {storageData.sublocations.map((location, index) => (
             <SinglePhysicalLocationCard
-              key={location.sublocationID}
+              key={location.sublocationId}
               location={location}
               onEdit={handleEditService}
               isWatchedByResizeObserver={index === 0}
@@ -170,7 +170,22 @@ export function PhysicalLocationsPageContent() {
             description="Update your location details"
           >
             {serviceBeingEdited && (
-              <p>Edit Physical Location Form</p>
+              <PhysicalLocationForm
+                onSuccess={handleFormSuccess}
+                buttonText="Update Location"
+                isEditing={true}
+                locationData={{
+                  id: 'sublocationId' in serviceBeingEdited ? serviceBeingEdited.sublocationId : serviceBeingEdited.id || '',
+                  name: 'sublocationName' in serviceBeingEdited ? serviceBeingEdited.sublocationName : serviceBeingEdited.name || '',
+                  locationType: 'sublocationType' in serviceBeingEdited ? serviceBeingEdited.sublocationType : serviceBeingEdited.locationType || '',
+                  mapCoordinates: typeof serviceBeingEdited.mapCoordinates === 'string'
+                    ? serviceBeingEdited.mapCoordinates
+                    : serviceBeingEdited.mapCoordinates?.coords,
+                  bgColor: 'parentLocationBgColor' in serviceBeingEdited ? serviceBeingEdited.parentLocationBgColor : serviceBeingEdited.bgColor,
+                  createdAt: serviceBeingEdited.createdAt ? new Date(serviceBeingEdited.createdAt) : undefined,
+                  updatedAt: serviceBeingEdited.updatedAt ? new Date(serviceBeingEdited.updatedAt) : undefined
+                }}
+              />
             )}
           </DrawerContainer>
         </div>

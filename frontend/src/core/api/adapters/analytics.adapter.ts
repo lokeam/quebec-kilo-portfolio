@@ -272,34 +272,47 @@ export function adaptAnalyticsToUIFormat(analyticsData: AnalyticsResponseWrapper
 }
 
 // Types for flattened sublocation data
-export type SublocationRowData = {
+export type SublocationItemData = {
+  id?: string;
+  name?: string;
+  locationType?: string;
   sublocationId: string;
   sublocationName: string;
   sublocationType: string;
-  parentLocationId: string;
+  storedItems: number;
+  parentLocationId?: string;
   parentLocationName: string;
   parentLocationType: string;
-  mapCoordinates: string;
-  storedItems: number;
-  bgColor?: LocationIconBgColor;
+  parentLocationBgColor: LocationIconBgColor;
+  mapCoordinates: {
+    coords: string;
+    googleMapsLink: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 };
 
 /**
- * Transforms physical locations into a flattened array of SublocationRowData
+ * Transforms physical locations into a flattened array of SublocationItemData
  * This is the single source of truth for sublocation data transformation
  */
-export function adaptPhysicalLocationsToSublocationRows(physicalLocations: PhysicalLocation[]): SublocationRowData[] {
+export function adaptPhysicalLocationsToSublocationRows(physicalLocations: PhysicalLocation[]): SublocationItemData[] {
   return physicalLocations.flatMap(location =>
     (location.sublocations || []).map(sublocation => ({
       sublocationId: sublocation.id,
       sublocationName: sublocation.name,
       sublocationType: sublocation.type,
+      storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0,
       parentLocationId: location.id,
       parentLocationName: location.name,
       parentLocationType: location.locationType,
-      mapCoordinates: location.mapCoordinates?.googleMapsLink || '',
-      storedItems: sublocation.metadata?.notes ? parseInt(sublocation.metadata.notes) : 0,
-      bgColor: location.bgColor
+      parentLocationBgColor: location.bgColor as LocationIconBgColor,
+      mapCoordinates: {
+        coords: location.mapCoordinates?.coords || '',
+        googleMapsLink: location.mapCoordinates?.googleMapsLink || ''
+      },
+      createdAt: sublocation.createdAt.toISOString(),
+      updatedAt: sublocation.updatedAt.toISOString()
     }))
   );
 }
