@@ -8,7 +8,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableCell
 } from "@/shared/components/ui/table"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 
@@ -23,9 +22,6 @@ import {
   DialogHeader,
   DialogDescription
 } from '@/shared/components/ui/dialog';
-
-// Icons
-import { IconTrash } from '@tabler/icons-react'
 
 // Types
 import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location'

@@ -17,6 +17,7 @@ import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
@@ -41,9 +42,18 @@ export const SinglePhysicalLocationCard = memo(({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const associatedSublocations = sublocations.filter(
-    sublocation => sublocation.parentLocationId === location.physicalLocationID
-  );
+  const associatedSublocations = sublocations.filter(sublocation => {
+    console.log('Comparing:', {
+      sublocationParentId: sublocation.parentLocationId,
+      locationId: location.physicalLocationId,
+      match: sublocation.parentLocationId === location.physicalLocationId
+    });
+    return sublocation.parentLocationId === location.physicalLocationId;
+  });
+
+  console.log('Debug - Location:', location);
+  console.log('Debug - All Sublocations:', sublocations);
+  console.log('Debug - Associated Sublocations:', associatedSublocations);
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -57,19 +67,19 @@ export const SinglePhysicalLocationCard = memo(({
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (!location.physicalLocationID || !onDelete) return;
+    if (!location.physicalLocationId || !onDelete) return;
 
     setIsDeleting(true);
     setDeleteError(null);
 
     try {
-      onDelete(location.physicalLocationID);
+      onDelete(location.physicalLocationId);
     } catch (err) {
       setIsDeleting(false);
       setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
       console.error("Error deleting location:", err);
     }
-  }, [location.physicalLocationID, onDelete]);
+  }, [location.physicalLocationId, onDelete]);
 
   return (
     <>
@@ -100,7 +110,7 @@ export const SinglePhysicalLocationCard = memo(({
               <div className="flex items-center justify-end transition-opacity duration-200 group-hover:opacity-0">
                 <PhysicalLocationIcon
                   type={location.physicalLocationType}
-                  bgColor={location.bgColor}
+                  bgColor={(location.bgColor as LocationIconBgColor) || 'red'}
                 />
               </div>
 

@@ -19,9 +19,8 @@ import { useCardLabelWidth } from '@/features/dashboard/components/organisms/Onl
 import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysicalLocationFilters';
 
 // Types
-import type { PhysicalLocation } from '@/types/domain/physical-location';
+import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 import { useGetPhysicalLocationsBFFResponse } from '@/core/api/queries/physicalLocation.queries';
-import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -50,7 +49,7 @@ export function PhysicalLocationsPageContent() {
   const [addPhysicalLocationOpen, setAddPhysicalLocationOpen] = useState<boolean>(false);
   const [addSublocationOpen, setAddSublocationOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
-  const [serviceBeingEdited, setServiceBeingEdited] = useState<SublocationItemData | PhysicalLocation | null>(null);
+  const [serviceBeingEdited, setServiceBeingEdited] = useState<LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse | null>(null);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
@@ -60,9 +59,8 @@ export function PhysicalLocationsPageContent() {
   // Get filter options from BFF data
   const filterOptions = usePhysicalLocationFilters(storageData);
 
-
   // Enhanced edit handlers
-  const handleEditService = useCallback((location: SublocationItemData | PhysicalLocation) => {
+  const handleEditService = useCallback((location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => {
     setServiceBeingEdited(location);
     setEditServiceOpen(true);
   }, []);
@@ -225,15 +223,21 @@ export function PhysicalLocationsPageContent() {
                 buttonText="Update Location"
                 isEditing={true}
                 locationData={{
-                  id: ('sublocationId' in serviceBeingEdited ? serviceBeingEdited.sublocationId : serviceBeingEdited.id) ?? '',
-                  name: ('sublocationName' in serviceBeingEdited ? serviceBeingEdited.sublocationName : serviceBeingEdited.name) ?? '',
-                  locationType: ('sublocationType' in serviceBeingEdited ? serviceBeingEdited.sublocationType : serviceBeingEdited.locationType) ?? '',
+                  id: 'sublocationId' in serviceBeingEdited
+                    ? serviceBeingEdited.sublocationId
+                    : serviceBeingEdited.physicalLocationID,
+                  name: 'sublocationName' in serviceBeingEdited
+                    ? serviceBeingEdited.sublocationName
+                    : serviceBeingEdited.name,
+                  locationType: 'sublocationType' in serviceBeingEdited
+                    ? serviceBeingEdited.sublocationType
+                    : serviceBeingEdited.physicalLocationType,
+                  bgColor: 'parentLocationBgColor' in serviceBeingEdited
+                    ? serviceBeingEdited.parentLocationBgColor
+                    : serviceBeingEdited.bgColor,
                   mapCoordinates: typeof serviceBeingEdited.mapCoordinates === 'string'
                     ? serviceBeingEdited.mapCoordinates
                     : serviceBeingEdited.mapCoordinates?.coords,
-                    bgColor: 'parentLocationBgColor' in serviceBeingEdited
-                    ? serviceBeingEdited.parentLocationBgColor
-                    : ('bgColor' in serviceBeingEdited ? serviceBeingEdited.bgColor : undefined),
                   createdAt: serviceBeingEdited.createdAt ? new Date(serviceBeingEdited.createdAt) : undefined,
                   updatedAt: serviceBeingEdited.updatedAt ? new Date(serviceBeingEdited.updatedAt) : undefined
                 }}

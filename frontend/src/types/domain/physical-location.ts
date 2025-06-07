@@ -47,7 +47,7 @@ export interface MapCoordinatesResponse {
 }
 
 export interface LocationsBFFPhysicalLocationResponse {
-  physicalLocationID: string;
+  physicalLocationId: string;
   name: string;
   physicalLocationType: string;
   mapCoordinates: MapCoordinatesResponse;
