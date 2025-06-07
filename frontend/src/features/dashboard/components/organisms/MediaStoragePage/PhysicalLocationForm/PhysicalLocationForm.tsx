@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useCreatePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
+import type { CreatePhysicalLocationRequest } from '@/types/domain/physical-location';
 
 // Shadcn UI Components
+import { Button } from "@/shared/components/ui/button"
 import { Input } from "@/shared/components/ui/input"
 import { Switch } from "@/shared/components/ui/switch"
-import { Button } from "@/shared/components/ui/button";
 import {
   FormControl,
   FormDescription,
@@ -12,7 +17,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form"
-
 import {
   Select,
   SelectContent,
@@ -20,69 +24,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select"
-
-// Hooks
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, FormProvider as HookFormProvider } from "react-hook-form"
-
-// Zod
-import { z } from "zod"
-
-// Icons
-import { House, Building, Building2, Warehouse } from 'lucide-react';
-import { IconCar } from '@tabler/icons-react';
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
 
-// Utils
-import { validateCoordinateFormat, parseCoordinates } from '@/features/dashboard/lib/utils/validateCoordinates';
+// Icons
+import { IconCar } from '@tabler/icons-react';
+import { House, Building, Building2, Warehouse } from 'lucide-react';
 
 export const PhysicalLocationFormSchema = z.object({
-  locationName: z
-    .string({
-      required_error: "Please enter a location name",
-    })
-    .min(3, {
-      message: "Location name must be at least 3 characters long",
-    }),
-  locationType: z
-    .string({
-      required_error: "Please select a location type",
-    })
-    .min(1, {
-      message: "Please select a location type",
-    }),
-  bgColor: z
-    .string({
-      required_error: "Please select a background color",
-    })
-    .min(1, {
-      message: "Please select a background color",
-    }),
+  locationName: z.string().min(3, 'Location name must be at least 3 characters'),
+  locationType: z.enum(['house', 'apartment', 'office', 'warehouse', 'vehicle'] as const),
+  bgColor: z.enum(['red', 'green', 'blue', 'orange', 'gold', 'purple', 'brown', 'gray', 'pink'] as const),
   coordinates: z.object({
-    enabled: z.boolean().default(false),
-    value: z.string().optional().superRefine((val, ctx) => {
-      const parentEnabled = ctx.path && ctx.path.length > 1 ?
-        ((ctx as z.RefinementCtx & { data?: { enabled: boolean } }).data?.enabled || false) : false;
-
-      if (val === undefined && parentEnabled) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Coordinates are required when enabled",
-        });
-        return;
-      }
-
-      if (val && parentEnabled) {
-        const isValidFormat = validateCoordinateFormat(val);
-        if (!isValidFormat) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Coordinates must be in the format 'latitude,longitude' with valid decimal values",
-          });
-        }
-      }
-    }),
-  }).default({ enabled: false, value: undefined }),
+    enabled: z.boolean(),
+    value: z.string()
+  })
 });
 
 type FormValues = z.infer<typeof PhysicalLocationFormSchema>;
@@ -104,14 +59,15 @@ interface PhysicalLocationFormProps {
   locationData?: PhysicalLocationData;
   isEditing?: boolean;
   onDelete?: (id: string) => void;
+  onClose?: () => void;
 }
 
 export function PhysicalLocationForm({
   buttonText = "Add Location",
   defaultValues = {
     locationName: '',
-    locationType: '',
-    bgColor: 'red',
+    locationType: 'house' as const,
+    bgColor: 'red' as const,
     coordinates: {
       enabled: false,
       value: ''
@@ -120,52 +76,35 @@ export function PhysicalLocationForm({
   locationData,
   isEditing = false,
   onDelete,
+  onClose,
   onSuccess,
 }: PhysicalLocationFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
   const methods = useForm<FormValues>({
     resolver: zodResolver(PhysicalLocationFormSchema),
-    defaultValues: isEditing && locationData
-      ? {
-          locationName: locationData.name || '',
-          locationType: locationData.locationType || '',
-          bgColor: locationData.bgColor || 'gray',
-          coordinates: {
-            enabled: !!locationData.mapCoordinates,
-            value: locationData.mapCoordinates || ''
-          }
-        }
-      : defaultValues,
-    mode: 'onTouched',
+    defaultValues,
+    mode: 'onTouched'
   });
 
-  useEffect(() => {
-    if (isEditing && locationData) {
-      methods.reset({
-        locationName: locationData.name || '',
-        locationType: locationData.locationType || '',
-        bgColor: locationData.bgColor || 'gray',
-        coordinates: {
-          enabled: !!locationData.mapCoordinates,
-          value: locationData.mapCoordinates || ''
-        }
-      });
-    }
-  }, [methods, isEditing, locationData]);
+  const { handleSubmit, control } = methods;
+  const createMutation = useCreatePhysicalLocation();
 
   const onSubmit = useCallback((data: FormValues) => {
-    const locationPayload = {
+    const locationPayload: CreatePhysicalLocationRequest = {
       name: data.locationName,
       locationType: data.locationType,
+      type: data.locationType,
       bgColor: data.bgColor,
-      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : ''
+      mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined
     };
 
-    console.log('Form submitted with payload:', locationPayload);
-
-    if (onSuccess) onSuccess(data);
-  }, [onSuccess]);
+    createMutation.mutate(locationPayload, {
+      onSuccess: () => {
+        if (onClose) onClose();
+        if (onSuccess) onSuccess(data);
+      }
+    });
+  }, [createMutation, onSuccess, onClose]);
 
   const handleDelete = useCallback((id: string) => {
     if (onDelete) onDelete(id);
@@ -174,10 +113,10 @@ export function PhysicalLocationForm({
 
   return (
     <HookFormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Location Name */}
         <FormField
-          control={methods.control}
+          control={control}
           name="locationName"
           render={({ field, fieldState: { error } }) => (
             <FormItem>
@@ -199,7 +138,7 @@ export function PhysicalLocationForm({
 
         {/* Location Type */}
         <FormField
-          control={methods.control}
+          control={control}
           name="locationType"
           render={({ field, fieldState: { error } }) => (
             <FormItem>
@@ -256,7 +195,7 @@ export function PhysicalLocationForm({
 
         {/* Icon BG Color */}
         <FormField
-          control={methods.control}
+          control={control}
           name="bgColor"
           render={({ field, fieldState: { error } }) => (
             <FormItem>
@@ -292,64 +231,35 @@ export function PhysicalLocationForm({
 
         {/* Coordinates */}
         <FormField
-          control={methods.control}
+          control={control}
           name="coordinates"
           render={({ field, fieldState: { error } }) => (
-            <FormItem className="space-y-4">
-              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">
-                    Coordinates
-                  </FormLabel>
-                  <FormDescription>
-                    Optionally add map coordinates for the location.
-                  </FormDescription>
-                </div>
+            <FormItem>
+              <FormLabel>Map Coordinates</FormLabel>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={field.value.enabled}
+                  onCheckedChange={(checked: boolean) => {
+                    field.onChange({ ...field.value, enabled: checked });
+                  }}
+                />
+                <FormLabel>Enable coordinates</FormLabel>
+              </div>
+              {field.value.enabled && (
                 <FormControl>
-                  <Switch
-                    checked={field.value?.enabled}
-                    onCheckedChange={(checked) => {
-                      field.onChange({
-                        enabled: checked,
-                        value: checked ? field.value?.value : undefined
-                      });
+                  <Input
+                    placeholder="Enter coordinates (e.g., 45.5017,-73.5673)"
+                    value={field.value.value}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      field.onChange({ ...field.value, value: event.target.value });
                     }}
                   />
                 </FormControl>
-              </div>
-
-              {field.value?.enabled && (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder="Enter latitude and logitude coordinates or paste a GoogleMaps URL"
-                      value={field.value.value ?? ''}
-                      onChange={(event) => {
-                        const input = event.target.value;
-                        field.onChange({
-                          enabled: true,
-                          value: input || ''
-                        });
-
-                        const parsedCoordinates = parseCoordinates(input);
-                        if (parsedCoordinates && parsedCoordinates !== input) {
-                          setTimeout(() => {
-                            field.onChange({
-                              enabled: true,
-                              value: parsedCoordinates
-                            });
-                          }, 300);
-                        }
-                      }}
-                      aria-invalid={!!error}
-                    />
-                  </FormControl>
-                  <FormDescription className="text-xs">
-                    Format: latitude, longitude (e.g., 40.69007948941017, -74.04439419553563) or paste a Google Maps URL
-                  </FormDescription>
-                  {error && <FormMessage>{error.message}</FormMessage>}
-                </FormItem>
               )}
+              <FormDescription>
+                Optional: Add map coordinates for this location.
+              </FormDescription>
+              {error && <FormMessage>{error.message}</FormMessage>}
             </FormItem>
           )}
         />
@@ -359,8 +269,13 @@ export function PhysicalLocationForm({
           <Button
             type="submit"
             className={isEditing && onDelete ? "flex-1" : "w-full"}
+            disabled={createMutation.isPending}
           >
-            {isEditing ? "Update Location" : buttonText}
+            {createMutation.isPending
+              ? "Creating..."
+              : isEditing
+                ? "Update Location"
+                : buttonText}
           </Button>
 
           {isEditing && onDelete && locationData && (
@@ -369,6 +284,7 @@ export function PhysicalLocationForm({
               variant="destructive"
               className="ml-2"
               onClick={() => setDeleteDialogOpen(true)}
+              disabled={createMutation.isPending}
             >
               Delete
             </Button>

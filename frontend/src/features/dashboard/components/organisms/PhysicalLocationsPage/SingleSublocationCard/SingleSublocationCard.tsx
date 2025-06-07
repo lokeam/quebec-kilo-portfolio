@@ -25,24 +25,24 @@ import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
-interface SinglePhysicalLocationCardProps {
+interface SingleSublocationCardProps {
   location: SublocationItemData;
   onDelete?: (id: string) => void;
   onEdit?: (location: SublocationItemData) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
-export const SinglePhysicalLocationCard = memo(({
+export const SingleSublocationCard = memo(({
   location,
   onDelete,
   onEdit,
   isWatchedByResizeObserver
-}: SinglePhysicalLocationCardProps) => {
+}: SingleSublocationCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
+  console.log('&&&& [DEBUG] SingleSublocationCard render:', {
     location,
     timestamp: new Date().toISOString()
   });
@@ -73,7 +73,7 @@ export const SinglePhysicalLocationCard = memo(({
     }
   }, [location.sublocationId, onDelete]);
 
-  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
+  console.log('&&&& [DEBUG] SingleSublocationCard render:', {
     location,
     timestamp: new Date().toISOString()
   });
@@ -82,7 +82,7 @@ export const SinglePhysicalLocationCard = memo(({
     <>
       <Card
         className={cn(
-          "flex flex-col relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
+          "flex flex-col relative cursor-pointer group w-full min-h-[180px] max-h-[180px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
           "transition-all duration-200",
           "hover:ring-1 hover:ring-white/20 hover:ring-inset",
           "hover:shadow-[0_0_4px_0_rgba(95,99,104,0.6),0_0_6px_2px_rgba(95,99,104,0.6)]",
@@ -94,15 +94,10 @@ export const SinglePhysicalLocationCard = memo(({
           <div className="flex items-center justify-between w-full mb-8">
             {/* Left side - Sublocation Icon */}
             <div className="flex items-center">
-              <span
-                  className="font-bold text-lg text-white truncate overflow-hidden"
-                  style={{
-                    maxWidth: 'var(--label-max-width)',
-                    display: 'block',
-                  }}
-                >
-                  {location.name}
-                </span>
+              <SublocationIcon
+                type={location.sublocationType}
+                bgColor={location.parentLocationBgColor}
+              />
             </div>
 
             {/* Right side - Physical Location Icon or Edit Section */}
@@ -110,8 +105,8 @@ export const SinglePhysicalLocationCard = memo(({
               {/* Physical Location Icon (shown by default) */}
               <div className="flex items-center justify-end transition-opacity duration-200 group-hover:opacity-0">
                 <PhysicalLocationIcon
-                  type={location.physicalLocationType}
-                  bgColor={location.bgColor}
+                  type={location.parentLocationType}
+                  bgColor={location.parentLocationBgColor}
                 />
               </div>
 
@@ -136,6 +131,35 @@ export const SinglePhysicalLocationCard = memo(({
                   <span className="sr-only">Delete {location.sublocationName}</span>
                 </Button>
               </div>
+            </div>
+          </div>
+
+          {/* Second Row - Text Content */}
+          <div className="flex flex-col">
+            {/* Parent Location Name */}
+            <div className="flex mb-2">
+              <span
+                className="font-bold text-lg text-white truncate overflow-hidden"
+                style={{
+                  maxWidth: 'var(--label-max-width)',
+                  display: 'block',
+                }}
+              >
+                {location.parentLocationName}
+              </span>
+            </div>
+
+            {/* Sublocation Name */}
+            <div className="flex">
+              <span
+                className="font-medium text-sm text-white truncate overflow-hidden"
+                style={{
+                  maxWidth: 'var(--label-max-width)',
+                  display: 'block',
+                }}
+              >
+                {location.sublocationName}
+              </span>
             </div>
           </div>
         </div>
@@ -185,4 +209,4 @@ export const SinglePhysicalLocationCard = memo(({
   );
 });
 
-SinglePhysicalLocationCard.displayName = 'SinglePhysicalLocationCard';
+SingleSublocationCard.displayName = 'SingleSublocationCard';

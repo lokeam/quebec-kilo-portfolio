@@ -37,7 +37,6 @@ import { z } from "zod"
 import { House, Building, Building2, Warehouse } from 'lucide-react';
 import { IconCar } from '@tabler/icons-react';
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
-import { useLocationManager } from '@/core/api/hooks/useLocationManager';
 
 // Utils
 import { validateCoordinateFormat, parseCoordinates } from '@/features/dashboard/lib/utils/validateCoordinates';

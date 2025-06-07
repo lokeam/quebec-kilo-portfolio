@@ -276,14 +276,14 @@ export type SublocationItemData = {
   id?: string;
   name?: string;
   locationType?: string;
-  sublocationId: string;
-  sublocationName: string;
-  sublocationType: string;
-  storedItems: number;
+  sublocationId?: string;
+  sublocationName?: string;
+  sublocationType?: string;
+  storedItems?: number;
   parentLocationId?: string;
-  parentLocationName: string;
-  parentLocationType: string;
-  parentLocationBgColor: LocationIconBgColor;
+  parentLocationName?: string;
+  parentLocationType?: string;
+  parentLocationBgColor?: LocationIconBgColor;
   mapCoordinates: {
     coords: string;
     googleMapsLink: string;

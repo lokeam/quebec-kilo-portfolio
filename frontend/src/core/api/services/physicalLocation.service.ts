@@ -104,10 +104,10 @@ export const getSinglePhysicalLocation = (id: string): Promise<PhysicalLocation>
 /**
  * Creates a new physical location
  */
-export const createPhysicalLocation = (input: CreatePhysicalLocationRequest): Promise<PhysicalLocation> =>
+export const createPhysicalLocation = (input: CreatePhysicalLocationRequest): Promise<LocationsBFFResponse> =>
   apiRequest('createPhysicalLocation', () =>
     axiosInstance
-      .post<PhysicalLocationResponseWrapper>(PHYSICAL_LOCATION_CRUD_ENDPOINT, input)
+      .post<PhysicalLocationsBFFResponseWrapper>(PHYSICAL_LOCATION_CRUD_ENDPOINT, input)
       .then(response => response.data.physical)
   );
 

@@ -2,12 +2,13 @@
  * Primary location type discriminator.
  * Used to distinguish between physical and digital storage locations.
  */
-export const LocationType = {
-  PHYSICAL: 'physical',
-  DIGITAL: 'digital'
-} as const;
+// LEGACY TYPE: DO NOT USE - MARKED FOR DELETION
+// export const LocationType = {
+//   PHYSICAL: 'physical',
+//   DIGITAL: 'digital'
+// } as const;
 
-export type LocationType = typeof LocationType[keyof typeof LocationType];
+// export type LocationType = typeof LocationType[keyof typeof LocationType];
 
 /**
  * Types of physical storage locations.
@@ -18,6 +19,7 @@ export const PhysicalLocationType = {
   APARTMENT: 'apartment',
   OFFICE: 'office',
   WAREHOUSE: 'warehouse',
+  VEHICLE: 'vehicle'
 } as const;
 
 export type PhysicalLocationType = typeof PhysicalLocationType[keyof typeof PhysicalLocationType];

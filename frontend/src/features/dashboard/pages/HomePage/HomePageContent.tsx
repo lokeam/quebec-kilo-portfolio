@@ -38,24 +38,28 @@ export function HomePageContent() {
           value={72}
           lastUpdated="six months ago"
           icon="games"
+          size="sm"
         />
         <SingleStatisticsCard
           title="Monthly Online Services Costs"
           value={120}
           lastUpdated="last month"
           icon="coin"
+          size="sm"
         />
         <SingleStatisticsCard
           title="Digital Storage Locations"
           value={3}
           lastUpdated="last month"
           icon="onlineServices"
+          size="sm"
         />
         <SingleStatisticsCard
           title="Physical Storage Locations"
           value={5}
           lastUpdated="three months ago"
           icon="package"
+          size="sm"
         />
 
         {/* Larger Cards */}

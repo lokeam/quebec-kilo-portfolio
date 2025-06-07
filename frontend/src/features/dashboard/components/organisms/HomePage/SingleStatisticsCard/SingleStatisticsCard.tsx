@@ -12,6 +12,12 @@ interface SingleStatisticsCardProps {
   value: number;
   lastUpdated: string;
   icon: string;
+  size: 'sm' | 'lg';
+};
+
+const CARD_SIZE_MAP = {
+  sm: 'md:col-span-1',
+  lg: 'lg:col-span-2 flex flex-col h-full',
 };
 
 export const SingleStatisticsCard = ({
@@ -19,11 +25,12 @@ export const SingleStatisticsCard = ({
   value,
   lastUpdated,
   icon,
+  size = 'sm',
 }: SingleStatisticsCardProps) => {
     const IconComponent = SINGLE_STATISTICS_ICONS[icon as StatCardIconType];
 
   return (
-    <Card className="col-span-full md:col-span-1">
+    <Card className={`col-span-full ${CARD_SIZE_MAP[size]}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
         <CardTitle className="text-md font-medium">{title}</CardTitle>
         <IconComponent className="h-[2rem] w-[2rem]" />

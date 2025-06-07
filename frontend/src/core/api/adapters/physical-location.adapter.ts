@@ -1,7 +1,7 @@
 import type { LocationsBFFResponse } from '@/types/domain/physical-location';
-import type { SublocationRowData } from './analytics.adapter';
+import type { SublocationItemData } from './analytics.adapter';
 
-export function adaptBFFToSublocationRows(data: LocationsBFFResponse | undefined): SublocationRowData[] {
+export function adaptBFFToSublocationRows(data: LocationsBFFResponse | undefined): SublocationItemData[] {
   if (!data?.physicalLocations || !data?.sublocations) {
     return [];
   }
@@ -31,5 +31,5 @@ export function adaptBFFToSublocationRows(data: LocationsBFFResponse | undefined
       storedItems: subloc.storedItems,
       parentLocationBgColor: parentLocation.bgColor
     };
-  }).filter((row): row is SublocationRowData => row !== null);
+  }).filter((row): row is SublocationItemData => row !== null);
 }

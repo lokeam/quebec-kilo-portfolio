@@ -33,9 +33,11 @@ export interface PhysicalLocation {
  */
 export interface CreatePhysicalLocationRequest {
   name: string;
+  bgColor?: LocationIconBgColor;
   type: PhysicalLocationType;
   description?: string;
-  metadata?: PhysicalLocationMetadata;
+  locationType: PhysicalLocationType
+  mapCoordinates?: string;
 }
 
 /* yet another fucking refactor ----- bff response types ------ */
@@ -59,10 +61,10 @@ export interface LocationsBFFSublocationResponse {
   sublocationName: string;
   sublocationType: string;
   storedItems: number;
-  parentLocationID: string;
+  parentLocationId: string;
   parentLocationName: string;
   parentLocationType: string;
-  parentLocationBgColor: string;
+  parentLocationBgColor: LocationIconBgColor;
   mapCoordinates: MapCoordinatesResponse;
   createdAt: string; // or Date
   updatedAt: string; // or Date

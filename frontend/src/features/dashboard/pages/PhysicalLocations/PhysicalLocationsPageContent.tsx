@@ -6,6 +6,7 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 // Components
 import { SinglePhysicalLocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SinglePhysicalLocationCard/SinglePhysicalLocationCard';
+import { SingleSublocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SingleSublocationCard/SingleSublocationCard';
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
 import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
 import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationForm/PhysicalLocationForm';
@@ -46,7 +47,8 @@ const CardSkeleton = () => (
 );
 
 export function PhysicalLocationsPageContent() {
-  const [addServiceOpen, setAddServiceOpen] = useState<boolean>(false);
+  const [addPhysicalLocationOpen, setAddPhysicalLocationOpen] = useState<boolean>(false);
+  const [addSublocationOpen, setAddSublocationOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const [serviceBeingEdited, setServiceBeingEdited] = useState<SublocationItemData | PhysicalLocation | null>(null);
 
@@ -81,7 +83,7 @@ export function PhysicalLocationsPageContent() {
 
   // Handle form submission success
   const handleFormSuccess = useCallback(() => {
-    setAddServiceOpen(false);
+    setAddPhysicalLocationOpen(false);
   }, []);
 
   // Render content based on the selected view mode
@@ -116,18 +118,41 @@ export function PhysicalLocationsPageContent() {
     }
 
     return (
-      <div className="p-4 border rounded-md">
-        <h2 className="text-lg font-semibold">Physical Locations</h2>
+      <>
+        <div className="p-4 border rounded-md">
+          <h2 className="text-lg font-semibold">Physical Locations</h2>
+          <p className="text-gray-500 mb-4">{
+            storageData.physicalLocations.length === 1
+              ? '1 location found'
+              : `${storageData.physicalLocations.length} locations found`
+          }</p>
+          <div className={`grid grid-cols-1 gap-4 ${
+            viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
+          }`}>
+            {storageData.physicalLocations.map((location, index) => (
+              <SinglePhysicalLocationCard
+                key={location.physicalLocationID}
+                location={location}
+                onEdit={handleEditService}
+                isWatchedByResizeObserver={index === 0}
+              />
+            ))}
+          </div>
+        </div>
+
+
+        <div className="p-4 border rounded-md">
+        <h2 className="text-lg font-semibold">Sublocations</h2>
         <p className="text-gray-500 mb-4">{
-          storageData.physicalLocations.length === 1
-            ? '1 location found'
-            : `${storageData.physicalLocations.length} locations found`
+          storageData.sublocations.length === 1
+            ? '1 sublocation found'
+            : `${storageData.sublocations.length} sublocations found`
         }</p>
         <div className={`grid grid-cols-1 gap-4 ${
           viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
         }`}>
           {storageData.sublocations.map((location, index) => (
-            <SinglePhysicalLocationCard
+            <SingleSublocationCard
               key={location.sublocationId}
               location={location}
               onEdit={handleEditService}
@@ -136,6 +161,8 @@ export function PhysicalLocationsPageContent() {
           ))}
         </div>
       </div>
+      </>
+
     );
   };
 
@@ -149,8 +176,8 @@ export function PhysicalLocationsPageContent() {
         <div className="flex items-center space-x-2">
           {/* Add Location Drawer */}
           <DrawerContainer
-            open={addServiceOpen}
-            onOpenChange={setAddServiceOpen}
+            open={addPhysicalLocationOpen}
+            onOpenChange={setAddPhysicalLocationOpen}
             triggerAddLocation="Add Physical Location"
             title="Physical Location"
             description="Tell us about the location you want to add"
@@ -161,6 +188,22 @@ export function PhysicalLocationsPageContent() {
               buttonText="Add Location"
             />
           </DrawerContainer>
+
+          {/* Add Sublocation Drawer */}
+          {
+            storageData?.physicalLocations && storageData.physicalLocations.length > 0 && (
+              <DrawerContainer
+                open={addSublocationOpen}
+                onOpenChange={setAddSublocationOpen}
+                triggerAddLocation="Add Sublocation"
+                title="Sublocation"
+                description="Tell us about the sublocation you want to add"
+                triggerBtnIcon="location"
+              >
+                <p>Sublocation Form</p>
+              </DrawerContainer>
+            )
+          }
 
           {/* Edit Location Drawer */}
           <DrawerContainer
@@ -175,13 +218,15 @@ export function PhysicalLocationsPageContent() {
                 buttonText="Update Location"
                 isEditing={true}
                 locationData={{
-                  id: 'sublocationId' in serviceBeingEdited ? serviceBeingEdited.sublocationId : serviceBeingEdited.id || '',
-                  name: 'sublocationName' in serviceBeingEdited ? serviceBeingEdited.sublocationName : serviceBeingEdited.name || '',
-                  locationType: 'sublocationType' in serviceBeingEdited ? serviceBeingEdited.sublocationType : serviceBeingEdited.locationType || '',
+                  id: ('sublocationId' in serviceBeingEdited ? serviceBeingEdited.sublocationId : serviceBeingEdited.id) ?? '',
+                  name: ('sublocationName' in serviceBeingEdited ? serviceBeingEdited.sublocationName : serviceBeingEdited.name) ?? '',
+                  locationType: ('sublocationType' in serviceBeingEdited ? serviceBeingEdited.sublocationType : serviceBeingEdited.locationType) ?? '',
                   mapCoordinates: typeof serviceBeingEdited.mapCoordinates === 'string'
                     ? serviceBeingEdited.mapCoordinates
                     : serviceBeingEdited.mapCoordinates?.coords,
-                  bgColor: 'parentLocationBgColor' in serviceBeingEdited ? serviceBeingEdited.parentLocationBgColor : serviceBeingEdited.bgColor,
+                    bgColor: 'parentLocationBgColor' in serviceBeingEdited
+                    ? serviceBeingEdited.parentLocationBgColor
+                    : ('bgColor' in serviceBeingEdited ? serviceBeingEdited.bgColor : undefined),
                   createdAt: serviceBeingEdited.createdAt ? new Date(serviceBeingEdited.createdAt) : undefined,
                   updatedAt: serviceBeingEdited.updatedAt ? new Date(serviceBeingEdited.updatedAt) : undefined
                 }}
