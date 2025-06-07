@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useOnlineServicesSearch, useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
-import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter';
+import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
 
-export function useFilteredPhysicalLocations(locations: SublocationRowData[]) {
+export function useFilteredPhysicalLocations(locations: SublocationItemData[]) {
   const searchQuery = useOnlineServicesSearch();
   const { sublocationTypeFilters, parentLocationTypeFilters } = useOnlineServicesStore();
 

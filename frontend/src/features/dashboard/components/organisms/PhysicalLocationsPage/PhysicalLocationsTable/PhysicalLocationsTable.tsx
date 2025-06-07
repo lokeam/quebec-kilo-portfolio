@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { memo, useState } from 'react'
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button'
@@ -8,6 +8,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableCell
 } from "@/shared/components/ui/table"
 import { Checkbox } from "@/shared/components/ui/checkbox"
 
@@ -27,48 +28,47 @@ import {
 import { IconTrash } from '@tabler/icons-react'
 
 // Types
-import type { SublocationRowData } from '@/core/api/adapters/analytics.adapter'
+import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location'
 
 interface PhysicalLocationsTableProps {
-  sublocationRows: SublocationRowData[]
-  onEdit?: (sublocation: SublocationRowData) => void
+  sublocationRows: LocationsBFFSublocationResponse[]
+  onEdit?: (sublocation: LocationsBFFSublocationResponse) => void
+  onDelete?: (id: string) => void
 }
 
-export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLocationsTableProps) {
-  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+export const PhysicalLocationsTable = memo(({
+  sublocationRows,
+  onEdit,
+  onDelete
+}: PhysicalLocationsTableProps) => {
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Handle select all checkbox
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRows(sublocationRows.map(row => row.sublocationId));
-    } else {
-      setSelectedRows([]);
-    }
-  }
-
-  // Handle individual row selection
-  const handleRowSelection = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedRows(prev => [...prev, id]);
-    } else {
-      setSelectedRows(prev => prev.filter(rowId => rowId !== id));
-    }
-  }
+  const handleSelectionChange = (sublocationId: string, checked: boolean) => {
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(sublocationId);
+      } else {
+        next.delete(sublocationId);
+      }
+      return next;
+    });
+  };
 
   const handleDeleteSelectedRows = () => {
-    if (selectedRows.length === 0) return;
+    if (selectedRows.size === 0) return;
     setDeleteDialogOpen(true);
   };
 
   const handleConfirmDelete = () => {
     // TODO: Implement delete functionality
-    setSelectedRows([]);
+    setSelectedRows(new Set());
     setDeleteDialogOpen(false);
   };
 
   // Calculate if all rows are selected
-  const allSelected = sublocationRows.length > 0 && selectedRows.length === sublocationRows.length;
+  const allSelected = sublocationRows.length > 0 && selectedRows.size === sublocationRows.length;
 
   console.log('Physical Locations Table, sublocationRows: ', sublocationRows);
 
@@ -77,30 +77,24 @@ export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLoca
       <Table className="rounded-xl border">
         <TableHeader>
           <TableRow>
-            <TableHead>
+            <TableHead className="w-[50px]">
               <Checkbox
                 checked={allSelected}
-                onCheckedChange={handleSelectAll}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSelectedRows(new Set(sublocationRows.map(row => row.sublocationId)));
+                  } else {
+                    setSelectedRows(new Set());
+                  }
+                }}
                 aria-label="Select all"
               />
             </TableHead>
-            <TableHead>Sublocation Name</TableHead>
+            <TableHead>Sublocation</TableHead>
             <TableHead>Parent Location</TableHead>
-            <TableHead>Google Maps Link</TableHead>
-            <TableHead>Number of Games Stored</TableHead>
-            <TableHead className="w-[100px]">
-              {selectedRows.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteSelectedRows}
-                    className="flex items-center gap-2"
-                  >
-                    <IconTrash size={16} />
-                    Delete Selected ({selectedRows.length})
-                  </Button>
-              )}
-            </TableHead>
+            <TableHead>Map Coordinates</TableHead>
+            <TableHead>Stored Items</TableHead>
+            <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -109,9 +103,10 @@ export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLoca
               key={sublocation.sublocationId}
               sublocation={sublocation}
               index={index}
-              isSelected={selectedRows.includes(sublocation.sublocationId)}
-              onSelectionChange={(checked) => handleRowSelection(sublocation.sublocationId, checked)}
+              isSelected={selectedRows.has(sublocation.sublocationId)}
+              onSelectionChange={(checked) => handleSelectionChange(sublocation.sublocationId, checked)}
               onEdit={onEdit}
+              onDelete={onDelete}
             />
           ))}
         </TableBody>
@@ -122,7 +117,7 @@ export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLoca
           <DialogHeader>
             <DialogTitle>Delete Selected Sublocations</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedRows.length} selected sublocation{selectedRows.length > 1 ? 's' : ''}? This action cannot be undone.
+              Are you sure you want to delete {selectedRows.size} selected sublocation{selectedRows.size > 1 ? 's' : ''}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -143,4 +138,4 @@ export function PhysicalLocationsTable({ sublocationRows, onEdit }: PhysicalLoca
       </Dialog>
     </div>
   );
-}
+});

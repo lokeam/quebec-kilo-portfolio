@@ -1,4 +1,4 @@
-  import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 // Shadcn Components
 import { Button } from '@/shared/components/ui/button';
@@ -17,7 +17,7 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
+import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
@@ -25,20 +25,24 @@ import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysical
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
 interface PhysicalLocationsTableRowComponentProps {
-  sublocation: SublocationItemData;
+  sublocation: LocationsBFFSublocationResponse;
   index: number;
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
-  onEdit?: (sublocation: SublocationItemData) => void;
+  onEdit?: (sublocation: LocationsBFFSublocationResponse) => void;
+  onDelete?: (id: string) => void;
 }
 
 function PhysicalLocationsTableRowComponent({
   sublocation,
   isSelected = false,
   onSelectionChange,
-  onEdit
+  onEdit,
+  onDelete
 }: PhysicalLocationsTableRowComponentProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleEditService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
@@ -48,6 +52,7 @@ function PhysicalLocationsTableRowComponent({
   const handleDeleteService = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
     setDeleteDialogOpen(true);
+    setDeleteError(null);
   }, []);
 
   const handleCheckboxChange = useCallback((checked: boolean) => {
@@ -55,11 +60,19 @@ function PhysicalLocationsTableRowComponent({
   }, [onSelectionChange]);
 
   const handleConfirmDelete = useCallback(() => {
-    // TODO: Implement delete functionality
-    setDeleteDialogOpen(false);
-  }, []);
+    if (!sublocation.sublocationId || !onDelete) return;
 
-  console.log('*** [DEBUG] PhysicalLocationsTableRow: Sublocation', sublocation);
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      onDelete(sublocation.sublocationId);
+    } catch (err) {
+      setIsDeleting(false);
+      setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
+      console.error("Error deleting sublocation:", err);
+    }
+  }, [sublocation.sublocationId, onDelete]);
 
   return (
     <>
@@ -80,13 +93,13 @@ function PhysicalLocationsTableRowComponent({
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.parentLocationBgColor} />
+            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.parentLocationBgColor || 'gray'} />
             <span>{sublocation.sublocationName}</span>
           </div>
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.parentLocationBgColor} />
+            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.parentLocationBgColor || 'gray'} />
             <span>{sublocation.parentLocationName}</span>
           </div>
         </TableCell>
@@ -140,23 +153,41 @@ function PhysicalLocationsTableRowComponent({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Sublocation</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {sublocation.sublocationName}? This action cannot be undone.
+            <DialogTitle>Delete {sublocation.sublocationName}</DialogTitle>
+            <DialogDescription asChild>
+              {deleteError ? (
+                <div className="text-red-500">
+                  {deleteError}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p>Are you sure you want to delete this sublocation?</p>
+                  <p>This action cannot be undone.</p>
+                </div>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting && !deleteError}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
+              disabled={isDeleting && !deleteError}
             >
-              Delete
+              {isDeleting && !deleteError ? (
+                <>
+                  <span className="animate-spin mr-2">⊚</span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

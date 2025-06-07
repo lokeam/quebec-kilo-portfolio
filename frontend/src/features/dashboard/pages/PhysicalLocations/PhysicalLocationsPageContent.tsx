@@ -86,6 +86,11 @@ export function PhysicalLocationsPageContent() {
     setAddPhysicalLocationOpen(false);
   }, []);
 
+  const handleDeleteLocation = useCallback((locationId: string) => {
+    // TODO: Implement delete functionality
+    console.log('Deleting location:', locationId);
+  }, []);
+
   // Render content based on the selected view mode
   const renderContent = () => {
     if (isLoading) {
@@ -133,7 +138,9 @@ export function PhysicalLocationsPageContent() {
               <SinglePhysicalLocationCard
                 key={location.physicalLocationID}
                 location={location}
+                sublocations={storageData.sublocations}
                 onEdit={handleEditService}
+                onDelete={handleDeleteLocation}
                 isWatchedByResizeObserver={index === 0}
               />
             ))}

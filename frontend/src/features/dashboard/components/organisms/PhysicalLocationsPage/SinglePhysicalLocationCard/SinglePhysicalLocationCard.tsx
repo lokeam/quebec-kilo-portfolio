@@ -16,24 +16,23 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
+import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
-import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
 interface SinglePhysicalLocationCardProps {
-  location: SublocationItemData;
+  location: LocationsBFFPhysicalLocationResponse;
+  sublocations: LocationsBFFSublocationResponse[];
   onDelete?: (id: string) => void;
-  onEdit?: (location: SublocationItemData) => void;
+  onEdit?: (location: LocationsBFFPhysicalLocationResponse) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
 export const SinglePhysicalLocationCard = memo(({
   location,
+  sublocations,
   onDelete,
   onEdit,
   isWatchedByResizeObserver
@@ -42,41 +41,35 @@ export const SinglePhysicalLocationCard = memo(({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
-    location,
-    timestamp: new Date().toISOString()
-  });
+  const associatedSublocations = sublocations.filter(
+    sublocation => sublocation.parentLocationId === location.physicalLocationID
+  );
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card onClick from firing
+    e.stopPropagation();
     onEdit?.(location);
   }, [location, onEdit]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card onClick from firing
+    e.stopPropagation();
     setDeleteDialogOpen(true);
     setDeleteError(null);
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (!location.sublocationId || !onDelete) return;
+    if (!location.physicalLocationID || !onDelete) return;
 
     setIsDeleting(true);
     setDeleteError(null);
 
     try {
-      onDelete(location.sublocationId);
+      onDelete(location.physicalLocationID);
     } catch (err) {
       setIsDeleting(false);
       setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
       console.error("Error deleting location:", err);
     }
-  }, [location.sublocationId, onDelete]);
-
-  console.log('&&&& [DEBUG] SinglePhysicalLocationCard render:', {
-    location,
-    timestamp: new Date().toISOString()
-  });
+  }, [location.physicalLocationID, onDelete]);
 
   return (
     <>
@@ -90,24 +83,20 @@ export const SinglePhysicalLocationCard = memo(({
         )}
       >
         <div className="flex flex-col w-full">
-          {/* First Row - Icons and Edit Section */}
           <div className="flex items-center justify-between w-full mb-8">
-            {/* Left side - Sublocation Icon */}
             <div className="flex items-center">
               <span
-                  className="font-bold text-lg text-white truncate overflow-hidden"
-                  style={{
-                    maxWidth: 'var(--label-max-width)',
-                    display: 'block',
-                  }}
-                >
-                  {location.name}
-                </span>
+                className="font-bold text-lg text-white truncate overflow-hidden"
+                style={{
+                  maxWidth: 'var(--label-max-width)',
+                  display: 'block',
+                }}
+              >
+                {location.name}
+              </span>
             </div>
 
-            {/* Right side - Physical Location Icon or Edit Section */}
             <div className="relative w-32">
-              {/* Physical Location Icon (shown by default) */}
               <div className="flex items-center justify-end transition-opacity duration-200 group-hover:opacity-0">
                 <PhysicalLocationIcon
                   type={location.physicalLocationType}
@@ -115,7 +104,6 @@ export const SinglePhysicalLocationCard = memo(({
                 />
               </div>
 
-              {/* Edit Section (shown on hover) */}
               <div className="absolute top-0 right-0 flex items-center gap-2 opacity-0 invisible transition-opacity duration-200 group-hover:opacity-100 group-hover:visible">
                 <Button
                   variant="outline"
@@ -124,7 +112,7 @@ export const SinglePhysicalLocationCard = memo(({
                   onClick={handleEditLocation}
                 >
                   <IconEdit className="h-5 w-5" />
-                  <span className="sr-only">Edit {location.sublocationName}</span>
+                  <span className="sr-only">Edit {location.name}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -133,7 +121,7 @@ export const SinglePhysicalLocationCard = memo(({
                   onClick={handleDeleteClick}
                 >
                   <IconTrash className="h-5 w-5" />
-                  <span className="sr-only">Delete {location.sublocationName}</span>
+                  <span className="sr-only">Delete {location.name}</span>
                 </Button>
               </div>
             </div>
@@ -141,18 +129,32 @@ export const SinglePhysicalLocationCard = memo(({
         </div>
       </Card>
 
-      {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {location.sublocationName}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle>Delete {location.name}</DialogTitle>
+            <DialogDescription asChild>
               {deleteError ? (
                 <div className="text-red-500">
                   {deleteError}
                 </div>
               ) : (
-                "Are you sure you want to delete this location? This action cannot be undone."
+                <div className="space-y-4">
+                  <p>Are you sure you want to delete this physical location?</p>
+                  {associatedSublocations.length > 0 && (
+                    <>
+                      <p>You will also delete all associated sublocations:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {associatedSublocations.map((sublocation) => (
+                          <li key={sublocation.sublocationId}>
+                            {sublocation.sublocationName}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                  <p>This action cannot be undone.</p>
+                </div>
               )}
             </DialogDescription>
           </DialogHeader>

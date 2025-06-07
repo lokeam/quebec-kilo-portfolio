@@ -16,9 +16,7 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { SublocationItemData } from '@/core/api/adapters/analytics.adapter';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
+import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
@@ -26,9 +24,9 @@ import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysical
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
 interface SingleSublocationCardProps {
-  location: SublocationItemData;
+  location: LocationsBFFSublocationResponse;
   onDelete?: (id: string) => void;
-  onEdit?: (location: SublocationItemData) => void;
+  onEdit?: (location: LocationsBFFSublocationResponse) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
@@ -41,11 +39,6 @@ export const SingleSublocationCard = memo(({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  console.log('&&&& [DEBUG] SingleSublocationCard render:', {
-    location,
-    timestamp: new Date().toISOString()
-  });
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card onClick from firing
@@ -73,11 +66,6 @@ export const SingleSublocationCard = memo(({
     }
   }, [location.sublocationId, onDelete]);
 
-  console.log('&&&& [DEBUG] SingleSublocationCard render:', {
-    location,
-    timestamp: new Date().toISOString()
-  });
-
   return (
     <>
       <Card
@@ -96,7 +84,7 @@ export const SingleSublocationCard = memo(({
             <div className="flex items-center">
               <SublocationIcon
                 type={location.sublocationType}
-                bgColor={location.parentLocationBgColor}
+                bgColor={location.parentLocationBgColor || 'gray'}
               />
             </div>
 
@@ -106,7 +94,7 @@ export const SingleSublocationCard = memo(({
               <div className="flex items-center justify-end transition-opacity duration-200 group-hover:opacity-0">
                 <PhysicalLocationIcon
                   type={location.parentLocationType}
-                  bgColor={location.parentLocationBgColor}
+                  bgColor={location.parentLocationBgColor || 'gray'}
                 />
               </div>
 
