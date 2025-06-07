@@ -59,6 +59,7 @@ type MockCacheWrapper struct {
 	GetCachedResultsFunc func(ctx context.Context, sq searchdef.SearchQuery) (*searchdef.SearchResult, error)
 	SetCachedResultsFunc func(ctx context.Context, sq searchdef.SearchQuery, result *searchdef.SearchResult) error
 	TimeToLive           int // or time.Duration
+	InvalidateCacheFunc  func(ctx context.Context, cacheKey string) error
 }
 
 func (mcw *MockCacheWrapper) GetCachedResults(ctx context.Context, sq searchdef.SearchQuery) (*searchdef.SearchResult, error) {
@@ -71,6 +72,13 @@ func (mcw *MockCacheWrapper) GetCachedResults(ctx context.Context, sq searchdef.
 func (mcw *MockCacheWrapper) SetCachedResults(ctx context.Context, sq searchdef.SearchQuery, result *searchdef.SearchResult) error {
 	if mcw.SetCachedResultsFunc != nil {
 		return mcw.SetCachedResultsFunc(ctx, sq, result)
+	}
+	return nil
+}
+
+func (mcw *MockCacheWrapper) InvalidateCache(ctx context.Context, cacheKey string) error {
+	if mcw.InvalidateCacheFunc != nil {
+		return mcw.InvalidateCacheFunc(ctx, cacheKey)
 	}
 	return nil
 }

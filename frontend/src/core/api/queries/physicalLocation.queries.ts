@@ -209,29 +209,36 @@ export const useDeletePhysicalLocation = () => {
 
   return useMutation<DeletePhysicalLocationResponse['physical'], Error, string | string[]>({
     mutationFn: (ids: string | string[]) => deletePhysicalLocation(ids),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       // Log the deletion results
-      console.log('Successfully deleted locations:', {
+      logger.debug('Successfully deleted locations:', {
         count: response.deleted_count,
         ids: response.location_ids
       });
 
-      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      // First, invalidate all physical location queries
+      await queryClient.invalidateQueries({ queryKey: physicalLocationKeys.all });
+
+      // Then, force a refetch of the BFF data
+      await queryClient.refetchQueries({
+        queryKey: physicalLocationKeys.lists(),
+        exact: true,
+        type: 'active'
+      });
 
       showToast({
         message: TOAST_SUCCESS_MESSAGES.PHYSICAL_LOCATION.DELETE,
         variant: 'success',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
+      });
     },
     onError: (error) => {
-      console.error('Failed to delete physical location:', error);
+      logger.error('Failed to delete physical location:', error);
       showToast({
         message: TOAST_ERROR_MESSAGES.PHYSICAL_LOCATION.DELETE.DEFAULT,
         variant: 'error',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
+      });
     }
   });
 };

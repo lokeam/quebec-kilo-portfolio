@@ -3,6 +3,7 @@ package physical
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -20,11 +21,11 @@ import (
 
 // PhysicalLocationRequest represents the request payload for physical location operations
 type PhysicalLocationRequest struct {
-	Name           string                         `json:"name"`
-	Label          string                         `json:"label"`
-	LocationType   string                         `json:"location_type"`
-	MapCoordinates models.PhysicalMapCoordinates  `json:"map_coordinates"`
-	BgColor        string                         `json:"bg_color"`
+	Name           string  `json:"name"`
+	Label          string  `json:"label"`
+	LocationType   string  `json:"location_type"`
+	MapCoordinates string  `json:"map_coordinates"`
+	BgColor        string  `json:"bg_color"`
 }
 
 // RegisterPhysicalRoutes registers all physical location routes
@@ -218,13 +219,18 @@ func CreatePhysicalLocation(
 		locationID := uuid.New().String()
 		now := time.Now()
 
+		// Convert string coordinates to PhysicalMapCoordinates struct
+		mapCoords := models.PhysicalMapCoordinates{
+			Coords: locationRequest.MapCoordinates,
+		}
+
 		location := models.PhysicalLocation{
 			ID:             locationID,
 			UserID:         userID,
 			Name:           locationRequest.Name,
 			Label:          locationRequest.Label,
 			LocationType:   locationRequest.LocationType,
-			MapCoordinates: locationRequest.MapCoordinates,
+			MapCoordinates: mapCoords,
 			BgColor:        locationRequest.BgColor,
 			CreatedAt:      now,
 			UpdatedAt:      now,
@@ -236,7 +242,16 @@ func CreatePhysicalLocation(
 			return
 		}
 
-		// Invalidate analytics cache for inventory domain
+		// Invalidate both BFF and analytics caches
+		bffCacheKey := fmt.Sprintf("physical:bff:%s", userID)
+		if err := service.InvalidateCache(r.Context(), bffCacheKey); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate BFF cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
 			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
 				"requestID": requestID,
@@ -246,7 +261,6 @@ func CreatePhysicalLocation(
 		}
 
 		// Use standard response format
-		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"physical": formatters.FormatPhysicalLocationToFrontend(&createdLocation),
 		})
@@ -296,13 +310,18 @@ func UpdatePhysicalLocation(
 			return
 		}
 
+		// Convert string coordinates to PhysicalMapCoordinates struct
+		mapCoords := models.PhysicalMapCoordinates{
+			Coords: locationRequest.MapCoordinates,
+		}
+
 		location := models.PhysicalLocation{
 			ID:             locationID,
 			UserID:         userID,
 			Name:           locationRequest.Name,
 			Label:          locationRequest.Label,
 			LocationType:   locationRequest.LocationType,
-			MapCoordinates: locationRequest.MapCoordinates,
+			MapCoordinates: mapCoords,
 			BgColor:        locationRequest.BgColor,
 			UpdatedAt:      time.Now(),
 		}
@@ -313,7 +332,16 @@ func UpdatePhysicalLocation(
 			return
 		}
 
-		// Invalidate analytics cache for inventory domain
+		// Invalidate both BFF and analytics caches
+		bffCacheKey := fmt.Sprintf("physical:bff:%s", userID)
+		if err := service.InvalidateCache(r.Context(), bffCacheKey); err != nil {
+			appCtx.Logger.Warn("Failed to invalidate BFF cache", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"error":     err,
+			})
+		}
+
 		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
 			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
 				"requestID": requestID,
@@ -323,7 +351,6 @@ func UpdatePhysicalLocation(
 		}
 
 		// Use standard response format
-		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"physical": formatters.FormatPhysicalLocationToFrontend(&updatedLocation),
 		})
@@ -407,13 +434,20 @@ func DeletePhysicalLocation(
 			return
 		}
 
-		// After successful deletion, invalidate analytics cache
+		// Invalidate both BFF and analytics caches
+		bffCacheKey := fmt.Sprintf("physical:bff:%s", userID)
+		if err := service.InvalidateCache(r.Context(), bffCacheKey); err != nil {
+			appCtx.Logger.Error("Failed to invalidate BFF cache after deleting location", map[string]any{
+				"error": err,
+				"userID": userID,
+			})
+		}
+
 		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
 			appCtx.Logger.Error("Failed to invalidate analytics cache after deleting location", map[string]any{
 				"error": err,
 				"userID": userID,
 			})
-			// Continue despite error, since the location was deleted successfully
 		}
 
 		// Log success

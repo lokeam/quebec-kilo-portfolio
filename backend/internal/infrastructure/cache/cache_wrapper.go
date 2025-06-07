@@ -161,3 +161,28 @@ func (cw *CacheWrapper) DeleteCacheKey(
 
 	return nil
 }
+
+// InvalidateCache invalidates a specific cache key
+func (cw *CacheWrapper) InvalidateCache(ctx context.Context, cacheKey string) error {
+	// Validate cache key
+	if cacheKey == "" {
+		cw.logger.Error("Cache Wrapper - Cache key cannot be empty", map[string]any{
+			"cacheKey": cacheKey,
+		})
+		return errors.New("cache key cannot be empty")
+	}
+
+	if err := cw.cacheClient.Delete(ctx, cacheKey); err != nil {
+		cw.logger.Error("Cache Wrapper - Cache invalidation failed", map[string]any{
+			"cacheKey": cacheKey,
+			"error":    err,
+		})
+		return err
+	}
+
+	cw.logger.Info("Cache Wrapper - Cache invalidation successful", map[string]any{
+		"cacheKey": cacheKey,
+	})
+
+	return nil
+}

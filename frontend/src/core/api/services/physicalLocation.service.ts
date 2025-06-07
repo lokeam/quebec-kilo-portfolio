@@ -8,20 +8,12 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 import type { PhysicalLocation, CreatePhysicalLocationRequest, LocationsBFFResponse } from '@/types/domain/physical-location';
 import type { Sublocation, CreateSublocationRequest } from '@/types/domain/sublocation';
+import { logger } from '@/core/utils/logger/logger';
 
 // Response wrappers for physical locations
 interface PhysicalLocationResponseWrapper {
   success: boolean;
   physical: PhysicalLocation;
-  metadata: {
-    timestamp: string;
-    request_id: string;
-  };
-}
-
-interface PhysicalLocationsResponseWrapper {
-  success: boolean;
-  physical: PhysicalLocation[];
   metadata: {
     timestamp: string;
     request_id: string;
@@ -126,18 +118,27 @@ export const updatePhysicalLocation = (id: string, input: Partial<CreatePhysical
  */
 export const deletePhysicalLocation = (ids: string | string[]): Promise<DeletePhysicalLocationResponse['physical']> => {
   const idParam = Array.isArray(ids) ? ids.join(',') : ids;
-  console.log('Making delete request for physical location(s):', idParam);
+  logger.debug('Making delete request for physical location(s):', { idParam });
 
   return apiRequest(`deletePhysicalLocation(${idParam})`, () => {
-    console.log('Executing delete request to:', `${PHYSICAL_LOCATION_CRUD_ENDPOINT}?ids=${idParam}`);
+    logger.debug('Executing delete request to:', { url: `${PHYSICAL_LOCATION_CRUD_ENDPOINT}?ids=${idParam}` });
     return axiosInstance
       .delete<DeletePhysicalLocationResponse>(`${PHYSICAL_LOCATION_CRUD_ENDPOINT}?ids=${idParam}`)
       .then((response) => {
-        console.log('Delete request successful');
+        logger.debug('Delete request successful', { response: response.data });
+
+        if (!response.data.physical) {
+          throw new Error('Invalid response: missing physical data');
+        }
+
+        if (!response.data.physical.success) {
+          throw new Error('Delete operation was not successful');
+        }
+
         return response.data.physical;
       })
       .catch((error) => {
-        console.error('Delete request failed:', error);
+        logger.error('Delete request failed:', error);
         throw error;
       });
   });

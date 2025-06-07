@@ -125,3 +125,8 @@ func (pca *PhysicalCacheAdapter) InvalidateLocationCache(
 	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
 	return pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
+
+// InvalidateCache invalidates a specific cache key
+func (pca *PhysicalCacheAdapter) InvalidateCache(ctx context.Context, cacheKey string) error {
+	return pca.cacheWrapper.InvalidateCache(ctx, cacheKey)
+}

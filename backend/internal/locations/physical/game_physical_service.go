@@ -314,3 +314,20 @@ func (gps *GamePhysicalService) DeletePhysicalLocation(
 
 	return count, nil
 }
+
+// InvalidateCache invalidates a specific cache key
+func (gps *GamePhysicalService) InvalidateCache(ctx context.Context, cacheKey string) error {
+	gps.logger.Debug("Invalidating cache", map[string]any{
+		"cacheKey": cacheKey,
+	})
+
+	if err := gps.cacheWrapper.InvalidateCache(ctx, cacheKey); err != nil {
+		gps.logger.Error("Failed to invalidate cache", map[string]any{
+			"error": err,
+			"cacheKey": cacheKey,
+		})
+		return err
+	}
+
+	return nil
+}

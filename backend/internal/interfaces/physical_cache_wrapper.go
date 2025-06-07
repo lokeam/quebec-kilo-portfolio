@@ -16,4 +16,5 @@ type PhysicalCacheWrapper interface {
 	SetSingleCachedPhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) error
 	InvalidateUserCache(ctx context.Context, userID string) error
 	InvalidateLocationCache(ctx context.Context, userID string, locationID string) error
+	InvalidateCache(ctx context.Context, cacheKey string) error
 }

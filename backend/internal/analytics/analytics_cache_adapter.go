@@ -78,3 +78,8 @@ func (aca *AnalyticsCacheAdapter) InvalidateDomains(ctx context.Context, userID 
 	}
 	return nil
 }
+
+// InvalidateCache invalidates a specific cache key
+func (aca *AnalyticsCacheAdapter) InvalidateCache(ctx context.Context, cacheKey string) error {
+	return aca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
+}

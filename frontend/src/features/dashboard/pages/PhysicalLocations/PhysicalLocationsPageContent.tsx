@@ -20,7 +20,7 @@ import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysic
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
-import { useGetPhysicalLocationsBFFResponse } from '@/core/api/queries/physicalLocation.queries';
+import { useGetPhysicalLocationsBFFResponse, useDeletePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
 
 // Skeleton Components
 const TableSkeleton = () => (
@@ -84,10 +84,12 @@ export function PhysicalLocationsPageContent() {
     setAddPhysicalLocationOpen(false);
   }, []);
 
+  // Add the mutation hook near the top of the component
+  const deleteMutation = useDeletePhysicalLocation();
+
   const handleDeleteLocation = useCallback((locationId: string) => {
-    // TODO: Implement delete functionality
-    console.log('Deleting location:', locationId);
-  }, []);
+    deleteMutation.mutate(locationId);
+  }, [deleteMutation]);
 
   // Render content based on the selected view mode
   const renderContent = () => {
@@ -134,7 +136,7 @@ export function PhysicalLocationsPageContent() {
           }`}>
             {storageData.physicalLocations.map((location, index) => (
               <SinglePhysicalLocationCard
-                key={location.physicalLocationID}
+                key={location.physicalLocationId}
                 location={location}
                 sublocations={storageData.sublocations}
                 onEdit={handleEditService}
@@ -225,7 +227,7 @@ export function PhysicalLocationsPageContent() {
                 locationData={{
                   id: 'sublocationId' in serviceBeingEdited
                     ? serviceBeingEdited.sublocationId
-                    : serviceBeingEdited.physicalLocationID,
+                    : serviceBeingEdited.physicalLocationId,
                   name: 'sublocationName' in serviceBeingEdited
                     ? serviceBeingEdited.sublocationName
                     : serviceBeingEdited.name,

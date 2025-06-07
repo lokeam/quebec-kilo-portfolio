@@ -42,6 +42,7 @@ type PhysicalService interface {
 	CreatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error)
 	DeletePhysicalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error)
+	InvalidateCache(ctx context.Context, cacheKey string) error
 }
 
 // SublocationService defines operations for managing sublocations
