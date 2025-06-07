@@ -336,7 +336,6 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocations(ctx context.Context, userID
 
 
 // --- BFF ---
-
 func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	ctx context.Context,
 	userID string,

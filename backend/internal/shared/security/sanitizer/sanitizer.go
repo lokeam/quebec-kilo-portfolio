@@ -33,7 +33,9 @@ type Sanitizer struct {
 // Constructor
 func NewSanitizer() (*Sanitizer, error) {
 	return &Sanitizer{
-		policy:         bluemonday.UGCPolicy(),
+		// Use StrictPolicy for plain text fields to prevent HTML encoding
+		// This ensures special characters like apostrophes remain as-is
+		policy:         bluemonday.StrictPolicy(),
 		safetyPattern:  regexp.MustCompile(`^[\w\s\-\.,?!]+$`),
 	}, nil
 }
