@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"strings"
 	"time"
 
@@ -375,9 +376,13 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 		if err != nil {
 			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan physical location: %w", err)
 		}
+
+		// Unescape HTML entities in the name
+		unescapedName := html.UnescapeString(name)
+
 		physicalLocations = append(physicalLocations, types.LocationsBFFPhysicalLocationResponse{
 			PhysicalLocationID:   id,
-			Name:                 name,
+			Name:                 unescapedName,
 			PhysicalLocationType: locationType,
 			MapCoordinates:       utils.BuildMapCoordinatesResponse(mapCoords),
 			BgColor:              bgColor,
@@ -394,39 +399,42 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	defer sublocationRows.Close()
 
 	var sublocations []types.LocationsBFFSublocationResponse
-
 	for sublocationRows.Next() {
 		var sublocationID, sublocationName, sublocationType string
 		var storedItems int
-		var parentID, parentName, parentType, parentBgColor, parentMapCoords string
+		var parentLocationID, parentLocationName, parentLocationType, parentLocationBgColor, mapCoords string
 		var createdAt, updatedAt time.Time
-
 		err := sublocationRows.Scan(
 			&sublocationID,
 			&sublocationName,
 			&sublocationType,
 			&storedItems,
-			&parentID,
-			&parentName,
-			&parentType,
-			&parentBgColor,
-			&parentMapCoords,
+			&parentLocationID,
+			&parentLocationName,
+			&parentLocationType,
+			&parentLocationBgColor,
+			&mapCoords,
 			&createdAt,
 			&updatedAt,
 		)
 		if err != nil {
 			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan sublocation: %w", err)
 		}
+
+		// Unescape HTML entities in both sublocation and parent location names
+		unescapedSublocationName := html.UnescapeString(sublocationName)
+		unescapedParentLocationName := html.UnescapeString(parentLocationName)
+
 		sublocations = append(sublocations, types.LocationsBFFSublocationResponse{
 			SublocationID:         sublocationID,
-			SublocationName:       sublocationName,
+			SublocationName:       unescapedSublocationName,
 			SublocationType:       sublocationType,
 			StoredItems:           storedItems,
-			ParentLocationID:      parentID,
-			ParentLocationName:    parentName,
-			ParentLocationType:    parentType,
-			ParentLocationBgColor: parentBgColor,
-			MapCoordinates:        utils.BuildMapCoordinatesResponse(parentMapCoords),
+			ParentLocationID:      parentLocationID,
+			ParentLocationName:    unescapedParentLocationName,
+			ParentLocationType:    parentLocationType,
+			ParentLocationBgColor: parentLocationBgColor,
+			MapCoordinates:        utils.BuildMapCoordinatesResponse(mapCoords),
 			CreatedAt:             createdAt,
 			UpdatedAt:             updatedAt,
 		})
