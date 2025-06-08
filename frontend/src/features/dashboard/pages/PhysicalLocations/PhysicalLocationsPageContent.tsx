@@ -10,6 +10,7 @@ import { SingleSublocationCard } from '@/features/dashboard/components/organisms
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
 import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
 import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationForm/PhysicalLocationForm';
+import { SublocationForm } from '@/features/dashboard/components/organisms/SublocationForm/SublocationForm';
 
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 
@@ -50,6 +51,7 @@ export function PhysicalLocationsPageContent() {
   const [addSublocationOpen, setAddSublocationOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const [serviceBeingEdited, setServiceBeingEdited] = useState<LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse | null>(null);
+  const [selectedParentLocation, setSelectedParentLocation] = useState<LocationsBFFPhysicalLocationResponse | null>(null);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
@@ -63,6 +65,17 @@ export function PhysicalLocationsPageContent() {
   const handleEditService = useCallback((location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => {
     setServiceBeingEdited(location);
     setEditServiceOpen(true);
+  }, []);
+
+  const handleAddSublocation = useCallback((location: LocationsBFFPhysicalLocationResponse) => {
+    console.log('Adding sublocation to:', {
+      physicalLocationId: location.physicalLocationId,
+      name: location.name,
+      physicalLocationType: location.physicalLocationType,
+      bgColor: location.bgColor
+    });
+    setSelectedParentLocation(location);
+    setAddSublocationOpen(true);
   }, []);
 
   // Set up card label width for responsive design
@@ -83,7 +96,9 @@ export function PhysicalLocationsPageContent() {
   const handleFormSuccess = useCallback(() => {
     setAddPhysicalLocationOpen(false);
     setEditServiceOpen(false);
+    setAddSublocationOpen(false);
     setServiceBeingEdited(null);
+    setSelectedParentLocation(null);
   }, []);
 
   // Add the mutation hook near the top of the component
@@ -143,35 +158,34 @@ export function PhysicalLocationsPageContent() {
                 sublocations={storageData.sublocations}
                 onEdit={handleEditService}
                 onDelete={handleDeleteLocation}
+                onAddSublocation={handleAddSublocation}
                 isWatchedByResizeObserver={index === 0}
               />
             ))}
           </div>
         </div>
 
-
         <div className="p-4 border rounded-md">
-        <h2 className="text-lg font-semibold">Sublocations</h2>
-        <p className="text-gray-500 mb-4">{
-          storageData.sublocations.length === 1
-            ? '1 sublocation found'
-            : `${storageData.sublocations.length} sublocations found`
-        }</p>
-        <div className={`grid grid-cols-1 gap-4 ${
-          viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
-        }`}>
-          {storageData.sublocations.map((location, index) => (
-            <SingleSublocationCard
-              key={location.sublocationId}
-              location={location}
-              onEdit={handleEditService}
-              isWatchedByResizeObserver={index === 0}
-            />
-          ))}
+          <h2 className="text-lg font-semibold">Sublocations</h2>
+          <p className="text-gray-500 mb-4">{
+            storageData.sublocations.length === 1
+              ? '1 sublocation found'
+              : `${storageData.sublocations.length} sublocations found`
+          }</p>
+          <div className={`grid grid-cols-1 gap-4 ${
+            viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
+          }`}>
+            {storageData.sublocations.map((location, index) => (
+              <SingleSublocationCard
+                key={location.sublocationId}
+                location={location}
+                onEdit={handleEditService}
+                isWatchedByResizeObserver={index === 0}
+              />
+            ))}
+          </div>
         </div>
-      </div>
       </>
-
     );
   };
 
@@ -209,7 +223,13 @@ export function PhysicalLocationsPageContent() {
                 description="Tell us about the sublocation you want to add"
                 triggerBtnIcon="location"
               >
-                <p>Sublocation Form</p>
+                {selectedParentLocation && (
+                  <SublocationForm
+                    parentLocation={selectedParentLocation}
+                    onSuccess={handleFormSuccess}
+                    buttonText="Add Sublocation"
+                  />
+                )}
               </DrawerContainer>
             )
           }

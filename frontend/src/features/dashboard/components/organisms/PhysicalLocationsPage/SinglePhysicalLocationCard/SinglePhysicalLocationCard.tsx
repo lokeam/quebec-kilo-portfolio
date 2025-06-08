@@ -14,6 +14,7 @@ import {
 
 // Icons
 import { IconEdit, IconTrash } from '@tabler/icons-react';
+import { PackagePlus } from 'lucide-react';
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
@@ -28,6 +29,7 @@ interface SinglePhysicalLocationCardProps {
   sublocations: LocationsBFFSublocationResponse[];
   onDelete?: (id: string) => void;
   onEdit?: (location: LocationsBFFPhysicalLocationResponse) => void;
+  onAddSublocation?: (location: LocationsBFFPhysicalLocationResponse) => void;
   isWatchedByResizeObserver?: boolean;
 }
 
@@ -36,6 +38,7 @@ export const SinglePhysicalLocationCard = memo(({
   sublocations,
   onDelete,
   onEdit,
+  onAddSublocation,
   isWatchedByResizeObserver
 }: SinglePhysicalLocationCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -50,6 +53,11 @@ export const SinglePhysicalLocationCard = memo(({
     e.stopPropagation();
     onEdit?.(location);
   }, [location, onEdit]);
+
+  const handleAddSublocation = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onAddSublocation?.(location);
+  }, [location, onAddSublocation]);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -106,6 +114,15 @@ export const SinglePhysicalLocationCard = memo(({
               </div>
 
               <div className="absolute top-0 right-0 flex items-center gap-2 opacity-0 invisible transition-opacity duration-200 group-hover:opacity-100 group-hover:visible">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 w-10 p-0"
+                  onClick={handleAddSublocation}
+                >
+                  <PackagePlus className="h-5 w-5" />
+                  <span className="sr-only">Add sublocation to {location.name}</span>
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
