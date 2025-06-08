@@ -154,7 +154,7 @@ const (
 		UPDATE physical_locations
 		SET name = $3, label = $4, location_type = $5, map_coordinates = $6, bg_color = $7, updated_at = NOW()
 		WHERE id = $1 AND user_id = $2
-		RETURNING id, user_id, name, label, location_type, map_coordinates, created_at, updated_at
+		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 	`
 
 	getAllPhysicalLocationsBFFPhysicalQuery = `

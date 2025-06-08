@@ -82,6 +82,8 @@ export function PhysicalLocationsPageContent() {
   // Handle form submission success
   const handleFormSuccess = useCallback(() => {
     setAddPhysicalLocationOpen(false);
+    setEditServiceOpen(false);
+    setServiceBeingEdited(null);
   }, []);
 
   // Add the mutation hook near the top of the component
@@ -243,6 +245,7 @@ export function PhysicalLocationsPageContent() {
                   createdAt: serviceBeingEdited.createdAt ? new Date(serviceBeingEdited.createdAt) : undefined,
                   updatedAt: serviceBeingEdited.updatedAt ? new Date(serviceBeingEdited.updatedAt) : undefined
                 }}
+                onClose={handleFormSuccess}
               />
             )}
           </DrawerContainer>

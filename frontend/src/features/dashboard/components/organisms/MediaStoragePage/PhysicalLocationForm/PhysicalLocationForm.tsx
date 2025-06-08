@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCreatePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
+import { useCreatePhysicalLocation, useUpdatePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
 import type { CreatePhysicalLocationRequest } from '@/types/domain/physical-location';
 
 // Shadcn UI Components
@@ -80,14 +80,27 @@ export function PhysicalLocationForm({
   onSuccess,
 }: PhysicalLocationFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Create form default values based on whether we're editing or creating
+  const formDefaultValues = isEditing && locationData ? {
+    locationName: locationData.name,
+    locationType: locationData.locationType as 'house' | 'apartment' | 'office' | 'warehouse' | 'vehicle',
+    bgColor: locationData.bgColor as 'red' | 'green' | 'blue' | 'orange' | 'gold' | 'purple' | 'brown' | 'gray' | 'pink',
+    coordinates: {
+      enabled: !!locationData.mapCoordinates,
+      value: locationData.mapCoordinates || ''
+    }
+  } : defaultValues;
+
   const methods = useForm<FormValues>({
     resolver: zodResolver(PhysicalLocationFormSchema),
-    defaultValues,
+    defaultValues: formDefaultValues,
     mode: 'onTouched'
   });
 
   const { handleSubmit, control } = methods;
   const createMutation = useCreatePhysicalLocation();
+  const updateMutation = useUpdatePhysicalLocation();
 
   const onSubmit = useCallback((data: FormValues) => {
     const locationPayload: CreatePhysicalLocationRequest = {
@@ -98,13 +111,28 @@ export function PhysicalLocationForm({
       mapCoordinates: data.coordinates.enabled ? data.coordinates.value : undefined
     };
 
-    createMutation.mutate(locationPayload, {
-      onSuccess: () => {
-        if (onClose) onClose();
-        if (onSuccess) onSuccess(data);
-      }
-    });
-  }, [createMutation, onSuccess, onClose]);
+    if (isEditing && locationData) {
+      updateMutation.mutate(
+        {
+          id: locationData.id,
+          data: locationPayload
+        },
+        {
+          onSuccess: () => {
+            if (onClose) onClose();
+            if (onSuccess) onSuccess(data);
+          }
+        }
+      );
+    } else {
+      createMutation.mutate(locationPayload, {
+        onSuccess: () => {
+          if (onClose) onClose();
+          if (onSuccess) onSuccess(data);
+        }
+      });
+    }
+  }, [createMutation, updateMutation, isEditing, locationData, onSuccess, onClose]);
 
   const handleDelete = useCallback((id: string) => {
     if (onDelete) onDelete(id);
@@ -269,10 +297,10 @@ export function PhysicalLocationForm({
           <Button
             type="submit"
             className={isEditing && onDelete ? "flex-1" : "w-full"}
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || updateMutation.isPending}
           >
-            {createMutation.isPending
-              ? "Creating..."
+            {createMutation.isPending || updateMutation.isPending
+              ? isEditing ? "Updating..." : "Creating..."
               : isEditing
                 ? "Update Location"
                 : buttonText}
@@ -284,7 +312,7 @@ export function PhysicalLocationForm({
               variant="destructive"
               className="ml-2"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending}
             >
               Delete
             </Button>

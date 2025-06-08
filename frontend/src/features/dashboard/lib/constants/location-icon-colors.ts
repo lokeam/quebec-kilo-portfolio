@@ -36,7 +36,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#4F9768',
-      background: '#242B26',
+      background: '#4F9768',
     },
   },
   blue: {
@@ -56,7 +56,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#CB7B37',
-      background: '#36291F',
+      background: '#CB7B37',
     },
   },
   gold: {
@@ -66,7 +66,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#C19138',
-      background: '#372E20',
+      background: '#C19138',
     },
   },
   purple: {
@@ -76,7 +76,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#865DBB',
-      background: '#2A2430',
+      background: '#865DBB',
     },
   },
   brown: {
@@ -86,7 +86,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#A27763',
-      background: '#2E2724',
+      background: '#A27763',
     },
   },
   gray: {
@@ -96,7 +96,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#9B9B9B',
-      background: '#252525',
+      background: '#9B9B9B',
     },
   },
   pink: {
@@ -106,7 +106,7 @@ export const LOCATION_ICON_COLORS: Record<LocationIconBgColor, ColorMapping> = {
     },
     dark: {
       text: '#BA4A78',
-      background: '#2E2328',
+      background: '#BA4A78',
     },
   },
 };

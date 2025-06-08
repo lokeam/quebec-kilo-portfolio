@@ -95,15 +95,8 @@ export function useStorageAnalytics(options?: { enabled?: boolean }) {
 
   const transformedData = useMemo(() => {
     if (!data) {
-      console.log('[DEBUG] useStorageAnalytics: No data available');
       return null;
     }
-
-    console.log('[DEBUG] useStorageAnalytics: Transforming data', {
-      hasData: !!data,
-      domains: Object.keys(data),
-      timestamp: new Date().toISOString()
-    });
 
     const physicalLocations = adaptAnalyticsToPhysicalLocations(data);
     const result = {
@@ -112,13 +105,6 @@ export function useStorageAnalytics(options?: { enabled?: boolean }) {
       digitalLocations: adaptAnalyticsToDigitalLocations(data),
       sublocationRows: adaptPhysicalLocationsToSublocationRows(physicalLocations)
     };
-
-    console.log('[DEBUG] useStorageAnalytics: Transformed data', {
-      physicalLocationsCount: result.physicalLocations.length,
-      digitalLocationsCount: result.digitalLocations.length,
-      sublocationRowsCount: result.sublocationRows.length,
-      timestamp: new Date().toISOString()
-    });
 
     return result;
   }, [data]);

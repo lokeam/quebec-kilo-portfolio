@@ -78,10 +78,6 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
     return [];
   }
 
-  console.log('[DEBUG] Analytics Data:', analyticsData);
-  console.log('[DEBUG] Storage Data:', storage);
-  console.log('[DEBUG] Physical Locations:', storage.physicalLocations);
-
   return storage.physicalLocations.map((location: LocationSummary) => {
     // Get bg_color from the raw data
     const rawData = location as unknown as { bgColor?: string };
@@ -114,7 +110,6 @@ export function adaptAnalyticsToPhysicalLocations(analyticsData: AnalyticsRespon
       updatedAt: new Date(location.updatedAt)
     };
 
-    console.log('[DEBUG] Transformed Location:', transformed);
     return transformed;
   });
 }

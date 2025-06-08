@@ -11,10 +11,10 @@ export const gameSearchResultAdapter = {
    * Transforms API search response to domain search results
    */
   toDomain: (response: SearchResponse): { results: SearchResult[]; metadata: SearchMetadata } => {
-    console.log('Raw API response:', response);
+    //console.log('Raw API response:', response);
 
     const results = response.games.map(game => {
-      console.log('Transforming game:', game);
+      //console.log('Transforming game:', game);
       const transformedGame: Game = {
         id: game.id,
         name: game.name,
@@ -28,7 +28,7 @@ export const gameSearchResultAdapter = {
         isInWishlist: game.isInWishlist,
         gameType: game.gameType,
       };
-      console.log('Transformed game:', transformedGame);
+      //console.log('Transformed game:', transformedGame);
 
       return {
         game: transformedGame,

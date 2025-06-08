@@ -21,7 +21,7 @@ import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 export function GameSearchAndSelectDialog() {
   const { data: storageData, isLoading: isStorageDataLoading, error: storageDataError } = useStorageAnalytics({ enabled: true});
 
-  console.log('storageData from analytics', storageData);
+  //console.log('storageData from analytics', storageData);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isOpen, setIsOpen] = useState<boolean>(false);

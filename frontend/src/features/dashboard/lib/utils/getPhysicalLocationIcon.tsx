@@ -1,4 +1,5 @@
 import { Home, Building2, Warehouse, Building } from 'lucide-react';
+import { IconCar } from '@tabler/icons-react';
 import type { PhysicalLocationType } from '@/types/domain/location-types';
 import type { LocationIconBgColor } from '@/types/domain/location-types';
 import { useLocationBgColor } from './getLocationBgColor';
@@ -11,7 +12,7 @@ interface PhysicalLocationIconProps {
 /**
  * Renders the appropriate icon component for a physical location type with background color
  *
- * @param type - The physical location type (house, apartment, office, warehouse)
+ * @param type - The physical location type (house, apartment, office, warehouse, vehicle)
  * @param bgColor - Optional background color for the icon
  * @returns A React component for the icon, or null if no matching icon is found
  *
@@ -39,8 +40,6 @@ export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProp
   const normalizedType = type.toLowerCase();
   let IconComponent;
 
-  console.log('---> [DEBUG] PhysicalLocationIcon render:', normalizedType);
-
   switch (normalizedType) {
     case 'house':
       IconComponent = <Home className="h-6 w-6" />;
@@ -53,6 +52,9 @@ export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProp
       break;
     case 'warehouse':
       IconComponent = <Warehouse className="h-6 w-6" />;
+      break;
+    case 'vehicle':
+      IconComponent = <IconCar className="h-6 w-6" />;
       break;
     default:
       return null;

@@ -60,28 +60,28 @@ export const useGetPhysicalLocationsBFFResponse = () => {
     queryKey: physicalLocationKeys.lists(),
     queryFn: async () => {
       try {
-        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Starting query function');
+        //console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Starting query function');
         const response = await getPhysicalLocationsBFFResponse();
         console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Raw response:', response);
 
         if (!response) {
-          console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Response is null or undefined');
+          //console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Response is null or undefined');
           throw new Error('No data received from server');
         }
 
         if (!response.physicalLocations || !response.sublocations) {
-          console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Invalid response structure:', {
-            hasPhysicalLocations: !!response.physicalLocations,
-            hasSublocations: !!response.sublocations,
-            response
-          });
+          // console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Invalid response structure:', {
+          //   hasPhysicalLocations: !!response.physicalLocations,
+          //   hasSublocations: !!response.sublocations,
+          //   response
+          // });
           throw new Error('Invalid response structure from server');
         }
 
-        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Successfully parsed response:', {
-          physicalLocationsCount: response.physicalLocations.length,
-          sublocationsCount: response.sublocations.length
-        });
+        // console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Successfully parsed response:', {
+        //   physicalLocationsCount: response.physicalLocations.length,
+        //   sublocationsCount: response.sublocations.length
+        // });
 
         return response;
       } catch (error) {
@@ -159,12 +159,13 @@ export const useUpdatePhysicalLocation = () => {
       }
     },
     onSuccess: (data) => {
-      // Invalidate relevant queries
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: physicalLocationKeys.detail(data.id) });
       queryClient.invalidateQueries({ queryKey: physicalLocationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.all }); // This will invalidate BFF queries
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
 
-      // Show success toast
+      // Show success toast with the correct message
       showToast({
         message: TOAST_SUCCESS_MESSAGES.PHYSICAL_LOCATION.UPDATE,
         variant: 'success',
@@ -377,10 +378,10 @@ export const useDeleteSublocation = () => {
     mutationFn: (ids: string | string[]) => deleteSublocation(ids),
     onSuccess: (response) => {
       // Log the deletion results
-      console.log('Successfully deleted sublocations:', {
-        count: response.deleted_count,
-        ids: response.sublocation_ids
-      });
+      // console.log('Successfully deleted sublocations:', {
+      //   count: response.deleted_count,
+      //   ids: response.sublocation_ids
+      // });
 
       // Note: We can't invalidate specific queries here since we don't know the parent location
       // Instead, we'll invalidate all physical location queries

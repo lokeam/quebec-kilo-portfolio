@@ -25,7 +25,7 @@ const (
 )
 
 // Valid location types
-var ValidLocationTypes = []string{"house", "apartment", "office", "warehouse"}
+var ValidLocationTypes = []string{"house", "apartment", "office", "warehouse", "vehicle"}
 
 // ValidBgColors lists all valid background colors
 var ValidBgColors = []string{

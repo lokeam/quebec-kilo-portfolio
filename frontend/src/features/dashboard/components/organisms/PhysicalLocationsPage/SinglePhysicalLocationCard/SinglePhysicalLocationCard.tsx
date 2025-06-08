@@ -43,17 +43,8 @@ export const SinglePhysicalLocationCard = memo(({
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const associatedSublocations = sublocations.filter(sublocation => {
-    console.log('Comparing:', {
-      sublocationParentId: sublocation.parentLocationId,
-      locationId: location.physicalLocationId,
-      match: sublocation.parentLocationId === location.physicalLocationId
-    });
     return sublocation.parentLocationId === location.physicalLocationId;
   });
-
-  console.log('Debug - Location:', location);
-  console.log('Debug - All Sublocations:', sublocations);
-  console.log('Debug - Associated Sublocations:', associatedSublocations);
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
