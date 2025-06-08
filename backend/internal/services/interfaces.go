@@ -49,9 +49,11 @@ type PhysicalService interface {
 type SublocationService interface {
 	GetSublocations(ctx context.Context, userID string) ([]models.Sublocation, error)
 	GetSingleSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
-	CreateSublocation(ctx context.Context, userID string, location models.Sublocation) (models.Sublocation, error)
-	UpdateSublocation(ctx context.Context, userID string, location models.Sublocation) error
+	CreateSublocation(ctx context.Context, userID string, req types.CreateSublocationRequest) (models.Sublocation, error)
+	UpdateSublocation(ctx context.Context, userID string, locationID string, req types.UpdateSublocationRequest) error
 	DeleteSublocation(ctx context.Context, userID, locationID string) error
+	MoveGame(ctx context.Context, userID string, req types.MoveGameRequest) error
+	RemoveGame(ctx context.Context, userID string, req types.RemoveGameRequest) error
 }
 
 // LibraryService defines operations for managing the game library

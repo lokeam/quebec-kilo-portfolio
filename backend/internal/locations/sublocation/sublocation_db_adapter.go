@@ -382,58 +382,110 @@ func (sa *SublocationDbAdapter) AddGameToSublocation(ctx context.Context, userID
 		})
 }
 
-func (sa *SublocationDbAdapter) RemoveGameFromSublocation(ctx context.Context, userID string, gameID string, sublocationID string) error {
+func (sa *SublocationDbAdapter) RemoveGameFromSublocation(ctx context.Context, userID string, userGameID string) error {
 	sa.logger.Debug("RemoveGameFromSublocation called", map[string]any{
-		"userID":        userID,
-		"gameID":        gameID,
+		"userID":     userID,
+		"userGameID": userGameID,
+	})
+
+	return postgres.WithTransaction(ctx, sa.db, sa.logger, func(tx *sqlx.Tx) error {
+		// 1. Verify game belongs to user
+		checkGameQuery := `SELECT id FROM user_games WHERE id = $1 AND user_id = $2`
+		var gameIDResult string
+		err := tx.QueryRowxContext(ctx, checkGameQuery, userGameID, userID).Scan(&gameIDResult)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("game not found or does not belong to user")
+			}
+			return fmt.Errorf("error checking game: %w", err)
+		}
+
+		// 2. Remove game from current sublocation
+		deleteQuery := `DELETE FROM physical_game_locations WHERE user_game_id = $1`
+		result, err := tx.ExecContext(ctx, deleteQuery, userGameID)
+		if err != nil {
+			return fmt.Errorf("error removing game from sublocation: %w", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error getting rows affected: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return fmt.Errorf("game is not in any sublocation")
+		}
+
+		return nil
+	})
+}
+
+// CheckGameInAnySublocation checks if a game is in any sublocation
+func (sa *SublocationDbAdapter) CheckGameInAnySublocation(ctx context.Context, userGameID string) (bool, error) {
+	sa.logger.Debug("CheckGameInAnySublocation called", map[string]any{
+		"userGameID": userGameID,
+	})
+
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM physical_game_locations
+			WHERE user_game_id = $1
+		)
+	`
+
+	var exists bool
+	err := sa.db.GetContext(ctx, &exists, query, userGameID)
+	if err != nil {
+		return false, fmt.Errorf("error checking game location: %w", err)
+	}
+
+	return exists, nil
+}
+
+// CheckGameInSublocation checks if a game is in a specific sublocation
+func (sa *SublocationDbAdapter) CheckGameInSublocation(ctx context.Context, userGameID string, sublocationID string) (bool, error) {
+	sa.logger.Debug("CheckGameInSublocation called", map[string]any{
+		"userGameID":    userGameID,
 		"sublocationID": sublocationID,
 	})
 
-	return postgres.WithTransaction(
-		ctx,
-		sa.db,
-		sa.logger,
-		func(tx *sqlx.Tx) error {
-			// Verify game belongs to user
-			checkGameQuery := `SELECT id FROM games WHERE id = $1 AND user_id = $2`
-			var gameIDResult string
-			err := tx.QueryRowxContext(ctx, checkGameQuery, gameID, userID).Scan(&gameIDResult)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return fmt.Errorf("game not found or does not belong to user")
-				}
-				return fmt.Errorf("error checking game: %w", err)
-			}
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM physical_game_locations
+			WHERE user_game_id = $1 AND sublocation_id = $2
+		)
+	`
 
-			// Verify sublocation belongs to user
-			checkSublocQuery := `SELECT id FROM sublocations WHERE id = $1 AND user_id = $2`
-			var sublocIDResult string
-			err = tx.QueryRowxContext(ctx, checkSublocQuery, sublocationID, userID).Scan(&sublocIDResult)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return fmt.Errorf("sublocation not found or does not belong to user")
-				}
-				return fmt.Errorf("error checking sublocation: %w", err)
-			}
+	var exists bool
+	err := sa.db.GetContext(ctx, &exists, query, userGameID, sublocationID)
+	if err != nil {
+		return false, fmt.Errorf("error checking game location: %w", err)
+	}
 
-			// Remove the relationship
-			deleteQuery := `DELETE FROM game_sub_locations WHERE game_id = $1 AND sub_location_id = $2`
-			result, err := tx.ExecContext(ctx, deleteQuery, gameID, sublocationID)
-			if err != nil {
-				return fmt.Errorf("error removing game from sublocation: %w", err)
-			}
+	return exists, nil
+}
 
-			rowsAffected, err := result.RowsAffected()
-			if err != nil {
-				return fmt.Errorf("error getting rows affected: %w", err)
-			}
+// CheckGameOwnership checks if a user owns a specific game
+func (sa *SublocationDbAdapter) CheckGameOwnership(ctx context.Context, userID string, userGameID string) (bool, error) {
+	sa.logger.Debug("CheckGameOwnership called", map[string]any{
+		"userID":     userID,
+		"userGameID": userGameID,
+	})
 
-			if rowsAffected == 0 {
-				return fmt.Errorf("game-sublocation relationship not found or not removed")
-			}
+	query := `
+		SELECT EXISTS (
+			SELECT 1 FROM user_games
+			WHERE id = $1 AND user_id = $2
+		)
+	`
 
-			return nil
-		})
+	var exists bool
+	err := sa.db.GetContext(ctx, &exists, query, userGameID, userID)
+	if err != nil {
+		return false, fmt.Errorf("error checking game ownership: %w", err)
+	}
+
+	return exists, nil
 }
 
 // Check if sublocation with same name exists in the same physical location
@@ -457,4 +509,68 @@ func (sa *SublocationDbAdapter) CheckDuplicateSublocation(ctx context.Context, u
 	}
 
 	return count > 0, nil
+}
+
+// MoveGameToSublocation moves a game to a new sublocation in a transaction
+func (sa *SublocationDbAdapter) MoveGameToSublocation(ctx context.Context, userID string, userGameID string, targetSublocationID string) error {
+	sa.logger.Debug("MoveGameToSublocation called", map[string]any{
+		"userID":        userID,
+		"userGameID":    userGameID,
+		"targetSublocationID": targetSublocationID,
+	})
+
+	return postgres.WithTransaction(ctx, sa.db, sa.logger, func(tx *sqlx.Tx) error {
+		// 1. Lock and get current sublocation
+		var currentSublocationID string
+		err := tx.QueryRowxContext(ctx,
+			`SELECT sublocation_id FROM physical_game_locations
+			 WHERE user_game_id = $1 FOR UPDATE`,
+			userGameID,
+		).Scan(&currentSublocationID)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("error getting current sublocation: %w", err)
+		}
+
+		// 2. Verify game ownership
+		checkGameQuery := `SELECT id FROM user_games WHERE id = $1 AND user_id = $2`
+		var gameIDResult string
+		err = tx.QueryRowxContext(ctx, checkGameQuery, userGameID, userID).Scan(&gameIDResult)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("game not found or does not belong to user")
+			}
+			return fmt.Errorf("error checking game: %w", err)
+		}
+
+		// 3. Verify target sublocation ownership
+		checkSublocQuery := `SELECT id FROM sublocations WHERE id = $1 AND user_id = $2`
+		var sublocIDResult string
+		err = tx.QueryRowxContext(ctx, checkSublocQuery, targetSublocationID, userID).Scan(&sublocIDResult)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("target sublocation not found or does not belong to user")
+			}
+			return fmt.Errorf("error checking sublocation: %w", err)
+		}
+
+		// 4. Move the game
+		deleteQuery := `DELETE FROM physical_game_locations WHERE user_game_id = $1`
+		_, err = tx.ExecContext(ctx, deleteQuery, userGameID)
+		if err != nil {
+			return fmt.Errorf("error removing game from current sublocation: %w", err)
+		}
+
+		insertQuery := `
+			INSERT INTO physical_game_locations (user_game_id, sublocation_id)
+			VALUES ($1, $2)
+			ON CONFLICT (user_game_id) DO UPDATE
+			SET sublocation_id = $2
+		`
+		_, err = tx.ExecContext(ctx, insertQuery, userGameID, targetSublocationID)
+		if err != nil {
+			return fmt.Errorf("error adding game to new sublocation: %w", err)
+		}
+
+		return nil
+	})
 }

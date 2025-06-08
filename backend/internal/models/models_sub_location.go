@@ -47,3 +47,14 @@ type Sublocation struct {
 	// Populated by a separate query
 	Items              []Game      `json:"items" db:"-"`
 }
+
+// GameLocationMove represents a request to move a game from one sublocation to another
+type GameLocationMove struct {
+	UserGameID         string `json:"user_game_id" db:"user_game_id"`
+	TargetSublocationID string `json:"target_sublocation_id" db:"target_sublocation_id"`
+}
+
+// GameLocationRemove represents a request to remove a game from a sublocation
+type GameLocationRemove struct {
+	UserGameID string `json:"user_game_id" db:"user_game_id"`
+}

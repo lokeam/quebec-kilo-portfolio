@@ -10,6 +10,9 @@ type MockSublocationValidator struct {
 	ValidateSublocationFunc func(sublocation models.Sublocation) (models.Sublocation, error)
 	ValidateSublocationUpdateFunc func(update, existing models.Sublocation) (models.Sublocation, error)
 	ValidateSublocationCreationFunc func(sublocation models.Sublocation) (models.Sublocation, error)
+	ValidateGameOwnershipFunc func(userID string, userGameID string) error
+	ValidateSublocationOwnershipFunc func(userID string, sublocationID string) error
+	ValidateGameNotInSublocationFunc func(userGameID string, sublocationID string) error
 }
 
 func (m *MockSublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
@@ -33,6 +36,27 @@ func (m *MockSublocationValidator) ValidateSublocationCreation(sublocation model
 	return sublocation, nil
 }
 
+func (m *MockSublocationValidator) ValidateGameOwnership(userID string, userGameID string) error {
+	if m.ValidateGameOwnershipFunc != nil {
+		return m.ValidateGameOwnershipFunc(userID, userGameID)
+	}
+	return nil
+}
+
+func (m *MockSublocationValidator) ValidateSublocationOwnership(userID string, sublocationID string) error {
+	if m.ValidateSublocationOwnershipFunc != nil {
+		return m.ValidateSublocationOwnershipFunc(userID, sublocationID)
+	}
+	return nil
+}
+
+func (m *MockSublocationValidator) ValidateGameNotInSublocation(userGameID string, sublocationID string) error {
+	if m.ValidateGameNotInSublocationFunc != nil {
+		return m.ValidateGameNotInSublocationFunc(userGameID, sublocationID)
+	}
+	return nil
+}
+
 type MockSublocationDbAdapter struct {
 	GetSublocationFunc func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error)
 	GetSublocationsFunc func(ctx context.Context, userID string) ([]models.Sublocation, error)
@@ -40,61 +64,68 @@ type MockSublocationDbAdapter struct {
 	UpdateSublocationFunc func(ctx context.Context, userID string, sublocation models.Sublocation) error
 	DeleteSublocationFunc func(ctx context.Context, userID string, sublocationID string) error
 	CheckDuplicateSublocationFunc func(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error)
+	CheckGameOwnershipFunc func(ctx context.Context, userID string, userGameID string) (bool, error)
+	CheckGameInSublocationFunc func(ctx context.Context, userGameID string, sublocationID string) (bool, error)
 }
-
 
 // GET
-func (m *MockSublocationDbAdapter) GetSingleSublocation(
-	ctx context.Context,
-	userID,
-	sublocationID string,
-) (models.Sublocation, error) {
-	sublocation, err := m.GetSublocationFunc(ctx, userID, sublocationID)
-	return sublocation, err
+func (m *MockSublocationDbAdapter) GetAllSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
+	if m.GetSublocationsFunc != nil {
+		return m.GetSublocationsFunc(ctx, userID)
+	}
+	return nil, nil
 }
 
-func (m *MockSublocationDbAdapter) GetAllSublocations(
-	ctx context.Context,
-	userID string,
-) ([]models.Sublocation, error) {
-	return m.GetSublocationsFunc(ctx, userID)
+func (m *MockSublocationDbAdapter) GetSingleSublocation(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+	if m.GetSublocationFunc != nil {
+		return m.GetSublocationFunc(ctx, userID, sublocationID)
+	}
+	return models.Sublocation{}, nil
 }
 
 // POST
-func (m *MockSublocationDbAdapter) CreateSublocation(
-	ctx context.Context,
-	userID string,
-	sublocation models.Sublocation,
-) (models.Sublocation, error) {
-	return m.AddSublocationFunc(ctx, userID, sublocation)
+func (m *MockSublocationDbAdapter) CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
+	if m.AddSublocationFunc != nil {
+		return m.AddSublocationFunc(ctx, userID, sublocation)
+	}
+	return sublocation, nil
 }
 
 // PUT
-func (m *MockSublocationDbAdapter) UpdateSublocation(
-	ctx context.Context,
-	userID string,
-	sublocation models.Sublocation,
-) error {
-	return m.UpdateSublocationFunc(ctx, userID, sublocation)
+func (m *MockSublocationDbAdapter) UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error {
+	if m.UpdateSublocationFunc != nil {
+		return m.UpdateSublocationFunc(ctx, userID, sublocation)
+	}
+	return nil
 }
 
 // DELETE
-func (m *MockSublocationDbAdapter) DeleteSublocation(
-	ctx context.Context,
-	userID string,
-	sublocationID string,
-) error {
-	return m.DeleteSublocationFunc(ctx, userID, sublocationID)
+func (m *MockSublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationID string) error {
+	if m.DeleteSublocationFunc != nil {
+		return m.DeleteSublocationFunc(ctx, userID, sublocationID)
+	}
+	return nil
 }
 
-// Check for duplicate sublocation
-func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(
-	ctx context.Context,
-	userID string,
-	physicalLocationID string,
-	name string,
-) (bool, error) {
-	return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
+func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error) {
+	if m.CheckDuplicateSublocationFunc != nil {
+		return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
+	}
+	return false, nil
+}
+
+func (m *MockSublocationDbAdapter) CheckGameOwnership(ctx context.Context, userID string, userGameID string) (bool, error) {
+	if m.CheckGameOwnershipFunc != nil {
+		return m.CheckGameOwnershipFunc(ctx, userID, userGameID)
+	}
+	return true, nil
+}
+
+func (m *MockSublocationDbAdapter) CheckGameInSublocation(ctx context.Context, userGameID string, sublocationID string) (bool, error) {
+	if m.CheckGameInSublocationFunc != nil {
+		return m.CheckGameInSublocationFunc(ctx, userGameID, sublocationID)
+	}
+	return false, nil
 }
 
 type MockSublocationCacheWrapper struct {

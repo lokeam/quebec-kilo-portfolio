@@ -3,16 +3,15 @@ package sublocation
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
-	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type SublocationRequest struct {
@@ -33,6 +32,10 @@ func RegisterSublocationRoutes(
 	// Base routes
 	r.Get("/", GetSublocations(appCtx, service))
 	r.Post("/", CreateSublocation(appCtx, service, analyticsService))
+
+	// Game management routes
+	r.Post("/move-game", MoveGame(appCtx, service))
+	r.Post("/remove-game", RemoveGame(appCtx, service))
 
 	// Nested routes with ID
 	r.Route("/{id}", func(r chi.Router) {
@@ -243,8 +246,8 @@ func CreateSublocation(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		requestID := httputils.GetRequestID(r)
-
 		userID := httputils.GetUserID(r)
+
 		if userID == "" {
 			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
 				"request_id": requestID,
@@ -259,68 +262,30 @@ func CreateSublocation(
 			return
 		}
 
-		appCtx.Logger.Info("Creating sublocation", map[string]any{
-			"requestID": requestID,
-			"userID":    userID,
-		})
-
-		var locationRequest SublocationRequest
-		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+		// Parse request body into CreateSublocationRequest
+		var req types.CreateSublocationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			appCtx.Logger.Error("Failed to decode request body", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("invalid request body"),
+				fmt.Errorf("invalid request body: %w", err),
 				http.StatusBadRequest,
 			)
 			return
 		}
 
-		appCtx.Logger.Debug("Decoded request", map[string]any{
-			"request": locationRequest,
-		})
-
-		// Validate required fields
-		if locationRequest.PhysicalLocationID == "" {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				errors.New("physical_location_id is required"),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		// Validate UUID format
-		if _, err := uuid.Parse(locationRequest.PhysicalLocationID); err != nil {
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				errors.New("physical_location_id must be a valid UUID"),
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		// Create a new UUID for the location
-		locationID := uuid.New().String()
-		now := time.Now()
-
-		location := models.Sublocation{
-			ID:                 locationID,
-			UserID:             userID,
-			Name:               locationRequest.Name,
-			LocationType:       locationRequest.LocationType,
-			StoredItems:        locationRequest.StoredItems,
-			PhysicalLocationID: locationRequest.PhysicalLocationID,
-			CreatedAt:          now,
-			UpdatedAt:          now,
-		}
-
-		createdLocation, err := service.CreateSublocation(r.Context(), userID, location)
+		// Create sublocation using service
+		createdLocation, err := service.CreateSublocation(r.Context(), userID, req)
 		if err != nil {
+			appCtx.Logger.Error("Failed to create sublocation", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
@@ -331,7 +296,7 @@ func CreateSublocation(
 			return
 		}
 
-		// Invalidate analytics cache for inventory domain
+		// Invalidate analytics cache
 		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
 			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
 				"requestID": requestID,
@@ -393,30 +358,28 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 			return
 		}
 
-		var locationRequest SublocationRequest
-		if err := json.NewDecoder(r.Body).Decode(&locationRequest); err != nil {
+		var req types.UpdateSublocationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			appCtx.Logger.Error("Failed to decode request body", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("invalid request body"),
+				fmt.Errorf("invalid request body: %w", err),
 				http.StatusBadRequest,
 			)
 			return
 		}
 
-		location := models.Sublocation{
-			ID:                 locationID,
-			UserID:             userID,
-			Name:               locationRequest.Name,
-			LocationType:       locationRequest.LocationType,
-			StoredItems:        locationRequest.StoredItems,
-			PhysicalLocationID: locationRequest.PhysicalLocationID,
-			UpdatedAt:          time.Now(),
-		}
-
-		err := service.UpdateSublocation(r.Context(), userID, location)
+		err := service.UpdateSublocation(r.Context(), userID, locationID, req)
 		if err != nil {
+			appCtx.Logger.Error("Failed to update sublocation", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
@@ -436,10 +399,27 @@ func UpdateSublocation(appCtx *appcontext.AppContext, service services.Sublocati
 			})
 		}
 
+		// Get the updated sublocation to return in response
+		updatedSublocation, err := service.GetSingleSublocation(r.Context(), userID, locationID)
+		if err != nil {
+			appCtx.Logger.Error("Failed to get updated sublocation", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
 		// Use standard response format
 		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
-			"sublocation": location,
+			"sublocation": updatedSublocation,
 		})
 
 		httputils.RespondWithJSON(
@@ -521,6 +501,140 @@ func DeleteSublocation(
 				"id":      locationID,
 				"message": "Sublocation deleted successfully",
 			},
+		})
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// MoveGame handles POST requests for moving a game to a different sublocation
+func MoveGame(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		// Parse request body
+		var req types.MoveGameRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			appCtx.Logger.Error("Failed to decode request body", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				fmt.Errorf("invalid request body: %w", err),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// Move game using service
+		if err := service.MoveGame(r.Context(), userID, req); err != nil {
+			appCtx.Logger.Error("Failed to move game", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		// Use standard response format
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"message": "Game moved successfully",
+		})
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
+// RemoveGame handles POST requests for removing a game from its current sublocation
+func RemoveGame(appCtx *appcontext.AppContext, service services.SublocationService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+		userID := httputils.GetUserID(r)
+
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("userID not found in request context"),
+				http.StatusUnauthorized,
+			)
+			return
+		}
+
+		// Parse request body
+		var req types.RemoveGameRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			appCtx.Logger.Error("Failed to decode request body", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				fmt.Errorf("invalid request body: %w", err),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		// Remove game using service
+		if err := service.RemoveGame(r.Context(), userID, req); err != nil {
+			appCtx.Logger.Error("Failed to remove game", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				err,
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		// Use standard response format
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"message": "Game removed successfully",
 		})
 
 		httputils.RespondWithJSON(

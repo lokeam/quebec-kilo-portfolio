@@ -178,8 +178,6 @@ func (sv *SublocationValidator) ValidateSublocationCreation(sublocation models.S
 	return sv.ValidateSublocation(sublocationToCheck)
 }
 
-
-
 func (v *SublocationValidator) validateName(name string) error {
 	// First sanitize the name
 	sanitized, err := v.sanitizer.SanitizeString(name)
@@ -272,6 +270,123 @@ func (v *SublocationValidator) validatePhysicalLocationID(physicalLocationID str
 		return &validationErrors.ValidationError{
 			Field:   "physical_location_id",
 			Message: "physical_location_id must be a valid UUID",
+		}
+	}
+
+	return nil
+}
+
+// ValidateGameOwnership validates the format of user ID and user game ID
+func (sv *SublocationValidator) ValidateGameOwnership(userID string, userGameID string) error {
+	// Sanitize and validate user ID
+	sanitizedUserID, err := sv.sanitizer.SanitizeString(userID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: fmt.Sprintf("invalid user_id content: %v", err),
+		}
+	}
+
+	// Validate user ID is not empty
+	if sanitizedUserID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: "user_id cannot be empty",
+		}
+	}
+
+	// Sanitize and validate user game ID
+	sanitizedUserGameID, err := sv.sanitizer.SanitizeString(userGameID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "user_game_id",
+			Message: fmt.Sprintf("invalid user_game_id content: %v", err),
+		}
+	}
+
+	// Validate user game ID is not empty
+	if sanitizedUserGameID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "user_game_id",
+			Message: "user_game_id cannot be empty",
+		}
+	}
+
+	return nil
+}
+
+// ValidateSublocationOwnership validates the format of user ID and sublocation ID
+func (sv *SublocationValidator) ValidateSublocationOwnership(userID string, sublocationID string) error {
+	// Sanitize and validate user ID
+	sanitizedUserID, err := sv.sanitizer.SanitizeString(userID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: fmt.Sprintf("invalid user_id content: %v", err),
+		}
+	}
+
+	// Validate user ID is not empty
+	if sanitizedUserID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: "user_id cannot be empty",
+		}
+	}
+
+	// Sanitize and validate sublocation ID
+	sanitizedSublocationID, err := sv.sanitizer.SanitizeString(sublocationID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "sublocation_id",
+			Message: fmt.Sprintf("invalid sublocation_id content: %v", err),
+		}
+	}
+
+	// Validate sublocation ID is not empty
+	if sanitizedSublocationID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "sublocation_id",
+			Message: "sublocation_id cannot be empty",
+		}
+	}
+
+	return nil
+}
+
+// ValidateGameNotInSublocation validates the format of user game ID and sublocation ID
+func (sv *SublocationValidator) ValidateGameNotInSublocation(userGameID string, sublocationID string) error {
+	// Sanitize and validate user game ID
+	sanitizedUserGameID, err := sv.sanitizer.SanitizeString(userGameID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "user_game_id",
+			Message: fmt.Sprintf("invalid user_game_id content: %v", err),
+		}
+	}
+
+	// Validate user game ID is not empty
+	if sanitizedUserGameID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "user_game_id",
+			Message: "user_game_id cannot be empty",
+		}
+	}
+
+	// Sanitize and validate sublocation ID
+	sanitizedSublocationID, err := sv.sanitizer.SanitizeString(sublocationID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "sublocation_id",
+			Message: fmt.Sprintf("invalid sublocation_id content: %v", err),
+		}
+	}
+
+	// Validate sublocation ID is not empty
+	if sanitizedSublocationID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "sublocation_id",
+			Message: "sublocation_id cannot be empty",
 		}
 	}
 
