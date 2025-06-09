@@ -91,6 +91,7 @@ interface DrawerContainerProps {
   mobilePosition?: 'bottom' | 'top';
   desktopBreakpoint?: string;
   triggerBtnIcon?: 'location' | 'digital';
+  onTriggerClick?: () => void;
 }
 
 /**
@@ -155,6 +156,7 @@ export function DrawerContainer({
   mobilePosition = 'bottom',
   desktopBreakpoint = '(min-width: 768px)',
   triggerBtnIcon,
+  onTriggerClick,
   ...rest /* <-- This collects any additional props to pass to DrawerContent */
 }: DrawerContainerProps) {
   const { positionStyles, currentPosition } = useDrawerPosition({
@@ -191,6 +193,7 @@ export function DrawerContainer({
           <Button
             variant={triggerVariant}
             data-testid="drawer-trigger"
+            onClick={onTriggerClick}
           >
             {triggerBtnIcon === 'location' && <Building2 />}
             {triggerBtnIcon === 'digital' && <IconCloudDataConnection />}

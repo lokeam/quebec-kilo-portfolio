@@ -52,6 +52,7 @@ export function PhysicalLocationsPageContent() {
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
   const [serviceBeingEdited, setServiceBeingEdited] = useState<LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse | null>(null);
   const [selectedParentLocation, setSelectedParentLocation] = useState<LocationsBFFPhysicalLocationResponse | null>(null);
+  const [isSelectingParentLocation, setIsSelectingParentLocation] = useState<boolean>(false);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
@@ -67,6 +68,7 @@ export function PhysicalLocationsPageContent() {
     setEditServiceOpen(true);
   }, []);
 
+  // Sublocation creation when clicking on a SinglePhysicalLocationCard's Add Sublocation button
   const handleAddSublocation = useCallback((location: LocationsBFFPhysicalLocationResponse) => {
     console.log('Adding sublocation to:', {
       physicalLocationId: location.physicalLocationId,
@@ -76,6 +78,18 @@ export function PhysicalLocationsPageContent() {
     });
     setSelectedParentLocation(location);
     setAddSublocationOpen(true);
+  }, []);
+
+  // Sublocation creation when clicking Page Content's Add Sublocation button
+  const handleStartSublocationCreation = useCallback(() => {
+    setIsSelectingParentLocation(true);
+    setSelectedParentLocation(null);
+    setAddSublocationOpen(true);
+  }, []);
+
+  const handleParentLocationSelect = useCallback((location: LocationsBFFPhysicalLocationResponse) => {
+    setSelectedParentLocation(location);
+    setIsSelectingParentLocation(false);
   }, []);
 
   // Set up card label width for responsive design
@@ -99,6 +113,7 @@ export function PhysicalLocationsPageContent() {
     setAddSublocationOpen(false);
     setServiceBeingEdited(null);
     setSelectedParentLocation(null);
+    setIsSelectingParentLocation(false);
   }, []);
 
   // Add the mutation hook near the top of the component
@@ -189,6 +204,90 @@ export function PhysicalLocationsPageContent() {
     );
   };
 
+  // Render drawer content based on the current state
+  const renderDrawerContent = () => {
+    if (isSelectingParentLocation) {
+      return (
+        <div
+          className="space-y-6"
+          role="region"
+          aria-label="Parent location selection"
+        >
+          {/* Header Section */}
+          <div className="space-y-2">
+            <h2
+              className="text-lg font-semibold"
+              id="selection-header"
+            >
+              Select a Parent Location
+            </h2>
+            <p
+              className="text-sm text-gray-500"
+              id="selection-description"
+            >
+              Choose the physical location where you want to add a sublocation
+            </p>
+          </div>
+
+          {/* Location List Section */}
+          <div
+            className="space-y-4"
+            role="listbox"
+            aria-labelledby="selection-header"
+            aria-describedby="selection-description"
+          >
+            {storageData?.physicalLocations.length === 0 ? (
+              <div
+                className="p-4 border rounded-md bg-gray-50"
+                role="alert"
+              >
+                <p className="text-gray-500">
+                  No physical locations found. Please add a physical location first.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {storageData?.physicalLocations.map((location) => (
+                  <SinglePhysicalLocationCard
+                    key={location.physicalLocationId}
+                    location={location}
+                    sublocations={storageData.sublocations}
+                    isSelectionMode={true}
+                    onSelect={handleParentLocationSelect}
+                    isSelected={selectedParentLocation?.physicalLocationId === location.physicalLocationId}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Selection Instructions */}
+          <div
+            className="p-4 border rounded-md bg-blue-50"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-sm text-blue-700">
+              Click on a location to select it as the parent for your new sublocation
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedParentLocation) {
+      return (
+        <SublocationForm
+          parentLocation={selectedParentLocation}
+          onSuccess={handleFormSuccess}
+          buttonText="Add Sublocation"
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <PageMain>
       <PageHeadline>
@@ -219,17 +318,12 @@ export function PhysicalLocationsPageContent() {
                 open={addSublocationOpen}
                 onOpenChange={setAddSublocationOpen}
                 triggerAddLocation="Add Sublocation"
-                title="Sublocation"
-                description="Tell us about the sublocation you want to add"
+                title={isSelectingParentLocation ? "Select Parent Location" : "Add Sublocation"}
+                description={isSelectingParentLocation ? "Choose a parent location for your new sublocation" : "Tell us about the sublocation you want to add"}
                 triggerBtnIcon="location"
+                onTriggerClick={handleStartSublocationCreation}
               >
-                {selectedParentLocation && (
-                  <SublocationForm
-                    parentLocation={selectedParentLocation}
-                    onSuccess={handleFormSuccess}
-                    buttonText="Add Sublocation"
-                  />
-                )}
+                {renderDrawerContent()}
               </DrawerContainer>
             )
           }
