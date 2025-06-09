@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/internal/analytics"
@@ -481,25 +482,43 @@ func DeleteSublocation(
 			return
 		}
 
-		locationID := chi.URLParam(r, "id")
-		appCtx.Logger.Info("Deleting sublocation", map[string]any{
-			"requestID":  requestID,
-			"userID":     userID,
-			"locationID": locationID,
-		})
-
-		if locationID == "" {
+		// Parse request body
+		var req types.DeleteSublocationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			appCtx.Logger.Error("Failed to decode request body", map[string]any{
+				"request_id": requestID,
+				"error":     err,
+			})
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
 				appCtx.Logger,
 				requestID,
-				errors.New("id is required"),
+				fmt.Errorf("invalid request body: %w", err),
 				http.StatusBadRequest,
 			)
 			return
 		}
 
-		err := service.DeleteSublocation(r.Context(), userID, locationID)
+		// Split comma-separated IDs into slice
+		ids := strings.Split(req.IDs, ",")
+		if len(ids) == 0 || (len(ids) == 1 && ids[0] == "") {
+			httputils.RespondWithError(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				requestID,
+				errors.New("at least one sublocation ID is required"),
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		appCtx.Logger.Info("Deleting sublocations", map[string]any{
+			"requestID":  requestID,
+			"userID":     userID,
+			"locationIDs": ids,
+		})
+
+		deleteResponse, err := service.DeleteSublocation(r.Context(), userID, ids)
 		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
@@ -522,18 +541,15 @@ func DeleteSublocation(
 
 		// Use standard response format
 		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
-		response := httputils.NewAPIResponse(r, userID, map[string]any{
-			"sublocation": map[string]any{
-				"id":      locationID,
-				"message": "Sublocation deleted successfully",
-			},
+		apiResponse := httputils.NewAPIResponse(r, userID, map[string]any{
+			"sublocation": deleteResponse,
 		})
 
 		httputils.RespondWithJSON(
 			httputils.NewResponseWriterAdapter(w),
 			appCtx.Logger,
 			http.StatusOK,
-			response,
+			apiResponse,
 		)
 	}
 }

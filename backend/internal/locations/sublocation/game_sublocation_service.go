@@ -2,6 +2,7 @@ package sublocation
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -304,68 +305,111 @@ func (gss *GameSublocationService) UpdateSublocation(
 }
 
 // DELETE
+// DeleteSublocation deletes one or more sublocations and handles orphaned games
 func (gss *GameSublocationService) DeleteSublocation(
 	ctx context.Context,
 	userID string,
-	sublocationID string,
-) error {
-	// First get the sublocation to get its physical location ID
-	sublocation, err := gss.dbAdapter.GetSingleSublocation(ctx, userID, sublocationID)
-	if err != nil {
-		gss.logger.Error("Failed to get sublocation before deletion", map[string]any{"error": err})
-		return err
+	sublocationIDs []string,
+) (types.DeleteSublocationResponse, error) {
+	gss.logger.Debug("DeleteSublocation called", map[string]any{
+		"userID": userID,
+		"sublocationIDs": sublocationIDs,
+	})
+
+	// Validate the request
+	if err := gss.validator.ValidateDeleteSublocationRequest(userID, sublocationIDs); err != nil {
+		gss.logger.Error("Delete request validation failed", map[string]any{
+			"error": err,
+			"userID": userID,
+			"sublocationIDs": sublocationIDs,
+		})
+		return types.DeleteSublocationResponse{
+			Success: false,
+			Error: err.Error(),
+		}, err
 	}
 
-	// Store the physical location ID before deletion
-	physicalLocationID := sublocation.PhysicalLocationID
+	// Get all sublocations to get their physical location IDs for cache invalidation
+	sublocations, err := gss.dbAdapter.GetAllSublocations(ctx, userID)
+	if err != nil {
+		gss.logger.Error("Failed to get sublocations for cache invalidation", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
+		return types.DeleteSublocationResponse{
+			Success: false,
+			Error: fmt.Sprintf("failed to get sublocations: %v", err),
+		}, err
+	}
 
-	// Remove from database
-	if err := gss.dbAdapter.DeleteSublocation(
-		ctx,
-		userID,
-		sublocationID,
-	); err != nil {
-		gss.logger.Error("Failed to delete sublocation from DB", map[string]any{"error": err})
-		return err
+	// Create a map of sublocation IDs to their physical location IDs
+	physicalLocationIDs := make(map[string]string)
+	for _, sublocation := range sublocations {
+		physicalLocationIDs[sublocation.ID] = sublocation.PhysicalLocationID
+	}
+
+	// Delete sublocations and handle orphaned games
+	response, err := gss.dbAdapter.DeleteSublocation(ctx, userID, sublocationIDs)
+	if err != nil {
+		gss.logger.Error("Failed to delete sublocations", map[string]any{
+			"error": err,
+			"userID": userID,
+			"sublocationIDs": sublocationIDs,
+		})
+		return response, err
 	}
 
 	// Invalidate caches
 	if err := gss.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
-		gss.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
-	}
-	if err := gss.cacheWrapper.InvalidateSublocationCache(ctx, userID, sublocationID); err != nil {
-		gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{"error": err})
-	}
-
-	// Also invalidate the parent physical location's cache
-	if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, physicalLocationID); err != nil {
-		gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{"error": err})
+		gss.logger.Error("Failed to invalidate user cache", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
 	}
 
-	// Force immediate refresh of physical location cache
-	gss.logger.Debug("Forcing refresh of physical location cache after sublocation deletion", map[string]any{
-		"userID": userID,
-		"physicalLocationID": physicalLocationID,
-	})
-
-	// Actively refresh the physical location data if service is available
-	if gss.physicalService != nil {
-		_, refreshErr := gss.physicalService.GetSinglePhysicalLocation(ctx, userID, physicalLocationID)
-		if refreshErr != nil {
-			gss.logger.Warn("Failed to refresh physical location cache after deletion", map[string]any{
-				"error": refreshErr,
-				"physicalLocationID": physicalLocationID,
-			})
-		} else {
-			gss.logger.Debug("Successfully refreshed physical location cache after deletion", map[string]any{
-				"physicalLocationID": physicalLocationID,
+	// Invalidate each sublocation's cache
+	for _, sublocationID := range sublocationIDs {
+		if err := gss.cacheWrapper.InvalidateSublocationCache(ctx, userID, sublocationID); err != nil {
+			gss.logger.Error("Failed to invalidate sublocation cache", map[string]any{
+				"error": err,
+				"sublocationID": sublocationID,
 			})
 		}
-	} else {
-		gss.logger.Warn("Physical service not available for cache refresh after deletion", nil)
+
+		// Invalidate the parent physical location's cache
+		if physicalLocationID, exists := physicalLocationIDs[sublocationID]; exists {
+			if err := gss.cacheWrapper.InvalidateLocationCache(ctx, userID, physicalLocationID); err != nil {
+				gss.logger.Error("Failed to invalidate parent physical location cache", map[string]any{
+					"error": err,
+					"physicalLocationID": physicalLocationID,
+				})
+			}
+
+			// Force immediate refresh of physical location cache
+			if gss.physicalService != nil {
+				_, refreshErr := gss.physicalService.GetSinglePhysicalLocation(ctx, userID, physicalLocationID)
+				if refreshErr != nil {
+					gss.logger.Warn("Failed to refresh physical location cache", map[string]any{
+						"error": refreshErr,
+						"physicalLocationID": physicalLocationID,
+					})
+				} else {
+					gss.logger.Debug("Successfully refreshed physical location cache", map[string]any{
+						"physicalLocationID": physicalLocationID,
+					})
+				}
+			}
+		}
 	}
 
-	return nil
+	gss.logger.Debug("DeleteSublocation completed successfully", map[string]any{
+		"userID": userID,
+		"sublocationIDs": sublocationIDs,
+		"deletedCount": response.DeletedCount,
+		"deletedGames": len(response.DeletedGames),
+	})
+
+	return response, nil
 }
 
 // MoveGame moves a game from its current sublocation to a target sublocation

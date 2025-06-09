@@ -51,7 +51,7 @@ type SublocationService interface {
 	GetSingleSublocation(ctx context.Context, userID, locationID string) (models.Sublocation, error)
 	CreateSublocation(ctx context.Context, userID string, req types.CreateSublocationRequest) (models.Sublocation, error)
 	UpdateSublocation(ctx context.Context, userID string, locationID string, req types.UpdateSublocationRequest) error
-	DeleteSublocation(ctx context.Context, userID, locationID string) error
+	DeleteSublocation(ctx context.Context, userID string, sublocationIDs []string) (types.DeleteSublocationResponse, error)
 	MoveGame(ctx context.Context, userID string, req types.MoveGameRequest) error
 	RemoveGame(ctx context.Context, userID string, req types.RemoveGameRequest) error
 }

@@ -11,4 +11,7 @@ type SublocationValidator interface {
 	ValidateGameOwnership(userID string, userGameID string) error
 	ValidateSublocationOwnership(userID string, sublocationID string) error
 	ValidateGameNotInSublocation(userGameID string, sublocationID string) error
+
+	// New method for bulk delete validation
+	ValidateDeleteSublocationRequest(userID string, sublocationIDs []string) error
 }

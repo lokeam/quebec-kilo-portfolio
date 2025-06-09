@@ -392,3 +392,60 @@ func (sv *SublocationValidator) ValidateGameNotInSublocation(userGameID string, 
 
 	return nil
 }
+
+// ValidateDeleteSublocationRequest validates a request to delete multiple sublocations
+func (sv *SublocationValidator) ValidateDeleteSublocationRequest(userID string, sublocationIDs []string) error {
+	// Sanitize and validate user ID
+	sanitizedUserID, err := sv.sanitizer.SanitizeString(userID)
+	if err != nil {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: fmt.Sprintf("invalid user_id content: %v", err),
+		}
+	}
+
+	// Validate user ID is not empty
+	if sanitizedUserID == "" {
+		return &validationErrors.ValidationError{
+			Field:   "user_id",
+			Message: "user_id cannot be empty",
+		}
+	}
+
+	// Validate sublocation IDs array
+	if len(sublocationIDs) == 0 {
+		return &validationErrors.ValidationError{
+			Field:   "sublocation_ids",
+			Message: "at least one sublocation ID is required",
+		}
+	}
+
+	// Validate each sublocation ID
+	for i, id := range sublocationIDs {
+		sanitizedID, err := sv.sanitizer.SanitizeString(id)
+		if err != nil {
+			return &validationErrors.ValidationError{
+				Field:   fmt.Sprintf("sublocation_ids[%d]", i),
+				Message: fmt.Sprintf("invalid sublocation_id content: %v", err),
+			}
+		}
+
+		if sanitizedID == "" {
+			return &validationErrors.ValidationError{
+				Field:   fmt.Sprintf("sublocation_ids[%d]", i),
+				Message: "sublocation_id cannot be empty",
+			}
+		}
+
+		// Validate UUID format
+		_, err = uuid.Parse(sanitizedID)
+		if err != nil {
+			return &validationErrors.ValidationError{
+				Field:   fmt.Sprintf("sublocation_ids[%d]", i),
+				Message: "sublocation_id must be a valid UUID",
+			}
+		}
+	}
+
+	return nil
+}

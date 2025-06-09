@@ -28,3 +28,9 @@ type RemoveGameRequest struct {
 	UserGameID string `json:"user_game_id"`
 }
 
+// DeleteSublocationRequest represents a request to delete one or more sublocations
+type DeleteSublocationRequest struct {
+	// IDs is a comma-separated list of sublocation IDs to delete
+	IDs string `json:"ids"`
+}
+

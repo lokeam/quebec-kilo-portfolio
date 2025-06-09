@@ -7,6 +7,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
+	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -159,7 +160,7 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 				UpdatedAt:         time.Now(),
 			}, nil
 		},
-		GetSublocationsFunc: func(
+		GetUserSublocationsFunc: func(
 			ctx context.Context,
 			userID string,
 		) ([]models.Sublocation, error) {
@@ -203,17 +204,48 @@ func DefaultSublocationDbAdapter() *MockSublocationDbAdapter {
 		DeleteSublocationFunc: func(
 			ctx context.Context,
 			userID string,
+			sublocationIDs []string,
+		) (types.DeleteSublocationResponse, error) {
+			return types.DeleteSublocationResponse{
+				Success:      true,
+				DeletedCount: len(sublocationIDs),
+				SublocationIDs: sublocationIDs,
+			}, nil
+		},
+		CheckGameInAnySublocationFunc: func(
+			ctx context.Context,
+			userGameID string,
+		) (bool, error) {
+			return false, nil
+		},
+		CheckGameInSublocationFunc: func(
+			ctx context.Context,
+			userGameID string,
 			sublocationID string,
+		) (bool, error) {
+			return false, nil
+		},
+		CheckGameOwnershipFunc: func(
+			ctx context.Context,
+			userID string,
+			userGameID string,
+		) (bool, error) {
+			return true, nil
+		},
+		MoveGameToSublocationFunc: func(
+			ctx context.Context,
+			userID string,
+			userGameID string,
+			targetSublocationID string,
 		) error {
 			return nil
 		},
-		CheckDuplicateSublocationFunc: func(
+		RemoveGameFromSublocationFunc: func(
 			ctx context.Context,
 			userID string,
-			physicalLocationID string,
-			name string,
-		) (bool, error) {
-			return false, nil
+			userGameID string,
+		) error {
+			return nil
 		},
 	}
 }

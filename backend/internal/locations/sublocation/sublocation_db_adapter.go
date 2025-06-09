@@ -10,13 +10,51 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/postgres"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 var ErrUnauthorizedLocation = errors.New("unauthorized: sublocation does not belong to user")
+
+const (
+	// DeleteSublocation queries
+	queryFindOrphanedGames = `
+		WITH games_in_sublocation AS (
+			SELECT DISTINCT ug.id
+			FROM user_games ug
+			JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+			WHERE pgl.sublocation_id = ANY($1)
+			AND ug.user_id = $2
+		)
+		SELECT
+			ug.id as user_game_id,
+			g.id as game_id,
+			g.name as game_name,
+			p.name as platform_name
+		FROM games_in_sublocation gis
+		JOIN user_games ug ON gis.id = ug.id
+		JOIN games g ON ug.game_id = g.id
+		JOIN platforms p ON ug.platform_id = p.id
+		LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+		LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+		WHERE pgl.id IS NULL AND dgl.id IS NULL
+	`
+
+	queryDeleteSublocations = `
+		DELETE FROM sublocations
+		WHERE id = ANY($1) AND user_id = $2
+		RETURNING id
+	`
+
+	queryDeleteOrphanedGames = `
+		DELETE FROM user_games
+		WHERE id = ANY($1)
+	`
+)
 
 type SublocationDbAdapter struct {
 	client  *postgres.PostgresClient
@@ -282,54 +320,85 @@ func (sa *SublocationDbAdapter) CreateSublocation(ctx context.Context, userID st
 }
 
 // DELETE
-func (sa *SublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationID string) error {
-	sa.logger.Debug("DeleteSublocation called", map[string]any{
-		"userID":        userID,
-		"sublocationID": sublocationID,
+func (sa *SublocationDbAdapter) DeleteSublocation(
+	ctx context.Context,
+	userID string,
+	sublocationIDs []string,
+) (types.DeleteSublocationResponse, error) {
+	response := types.DeleteSublocationResponse{
+		Success:        false,
+		DeletedCount:   0,
+		SublocationIDs: make([]string, 0),
+		DeletedGames:   make([]types.DeletedGameDetails, 0),
+	}
+
+	err := postgres.WithTransaction(ctx, sa.db, sa.logger, func(tx *sqlx.Tx) error {
+		// 1. Get games in sublocation that will be orphaned
+		var orphanedGames []types.DeletedGameDetails
+		if err := tx.SelectContext(
+			ctx,
+			&orphanedGames,
+			queryFindOrphanedGames,
+			pq.Array(sublocationIDs),
+			userID,
+		); err != nil {
+			return fmt.Errorf("error finding orphaned games: %w", err)
+		}
+
+		// 2. Delete sublocations
+		rows, err := tx.QueryContext(ctx, queryDeleteSublocations, pq.Array(sublocationIDs), userID)
+		if err != nil {
+			return fmt.Errorf("error deleting sublocations: %w", err)
+		}
+		defer rows.Close()
+
+		// Collect deleted IDs
+		for rows.Next() {
+			var id string
+			if err := rows.Scan(&id); err != nil {
+				return fmt.Errorf("error scanning deleted ID: %w", err)
+			}
+			response.SublocationIDs = append(response.SublocationIDs, id)
+		}
+
+		if err := rows.Err(); err != nil {
+			return fmt.Errorf("error iterating delete results: %w", err)
+		}
+
+		// 3. Delete orphaned games
+		if len(orphanedGames) > 0 {
+			userGameIDs := make([]int, len(orphanedGames))
+			for i, game := range orphanedGames {
+				userGameIDs[i] = game.UserGameID
+			}
+
+			if _, err := tx.ExecContext(ctx, queryDeleteOrphanedGames, pq.Array(userGameIDs)); err != nil {
+				return fmt.Errorf("error deleting orphaned games: %w", err)
+			}
+		}
+
+		// Update response
+		response.Success = true
+		response.DeletedCount = len(response.SublocationIDs)
+		response.DeletedGames = orphanedGames
+
+		// Log the deletion
+		sa.logger.Info("Successfully deleted sublocations and orphaned games", map[string]any{
+			"user_id": userID,
+			"deleted_count": response.DeletedCount,
+			"deleted_ids": response.SublocationIDs,
+			"deleted_games_count": len(response.DeletedGames),
+			"deleted_games": response.DeletedGames,
+		})
+
+		return nil
 	})
 
-	return postgres.WithTransaction(
-		ctx,
-		sa.db,
-		sa.logger,
-		func(tx *sqlx.Tx) error {
-			// Check if sublocation exists AND belongs to user
-			checkQuery := `
-				SELECT id FROM sublocations
-				WHERE id = $1 AND user_id = $2
-			`
+	if err != nil {
+		return response, err
+	}
 
-			var id string
-			err := tx.QueryRowxContext(ctx, checkQuery, sublocationID, userID).Scan(&id)
-			if err != nil {
-				if err == sql.ErrNoRows {
-					return fmt.Errorf("sublocation not found or does not belong to user")
-				}
-				return fmt.Errorf("error checking sublocation: %w", err)
-			}
-
-			// Delete the sublocation
-			deleteQuery := `
-				DELETE FROM sublocations
-				WHERE id = $1 AND user_id = $2
-			`
-
-			result, err := tx.ExecContext(ctx, deleteQuery, sublocationID, userID)
-			if err != nil {
-				return fmt.Errorf("error deleting sublocation: %w", err)
-			}
-
-			rowsAffected, err := result.RowsAffected()
-			if err != nil {
-				return fmt.Errorf("error getting rows affected: %w", err)
-			}
-
-			if rowsAffected == 0 {
-				return fmt.Errorf("sublocation not found or not deleted")
-			}
-
-			return nil
-		})
+	return response, nil
 }
 
 // Game-Sublocation relationship management

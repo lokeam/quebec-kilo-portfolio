@@ -13,6 +13,7 @@ type MockSublocationValidator struct {
 	ValidateGameOwnershipFunc func(userID string, userGameID string) error
 	ValidateSublocationOwnershipFunc func(userID string, sublocationID string) error
 	ValidateGameNotInSublocationFunc func(userGameID string, sublocationID string) error
+	ValidateDeleteSublocationRequestFunc func(userID string, sublocationIDs []string) error
 }
 
 func (m *MockSublocationValidator) ValidateSublocation(sublocation models.Sublocation) (models.Sublocation, error) {
@@ -57,6 +58,13 @@ func (m *MockSublocationValidator) ValidateGameNotInSublocation(userGameID strin
 	return nil
 }
 
+func (m *MockSublocationValidator) ValidateDeleteSublocationRequest(userID string, sublocationIDs []string) error {
+	if m.ValidateDeleteSublocationRequestFunc != nil {
+		return m.ValidateDeleteSublocationRequestFunc(userID, sublocationIDs)
+	}
+	return nil
+}
+
 type MockSublocationDbAdapter struct {
 	GetSublocationFunc func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error)
 	GetSublocationsFunc func(ctx context.Context, userID string) ([]models.Sublocation, error)
@@ -86,7 +94,7 @@ func (m *MockSublocationDbAdapter) GetSingleSublocation(ctx context.Context, use
 // POST
 func (m *MockSublocationDbAdapter) CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
 	if m.AddSublocationFunc != nil {
-		return m.AddSublocationFunc(ctx, userID, sublocation)
+	return m.AddSublocationFunc(ctx, userID, sublocation)
 	}
 	return sublocation, nil
 }
@@ -94,7 +102,7 @@ func (m *MockSublocationDbAdapter) CreateSublocation(ctx context.Context, userID
 // PUT
 func (m *MockSublocationDbAdapter) UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error {
 	if m.UpdateSublocationFunc != nil {
-		return m.UpdateSublocationFunc(ctx, userID, sublocation)
+	return m.UpdateSublocationFunc(ctx, userID, sublocation)
 	}
 	return nil
 }
@@ -102,14 +110,14 @@ func (m *MockSublocationDbAdapter) UpdateSublocation(ctx context.Context, userID
 // DELETE
 func (m *MockSublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationID string) error {
 	if m.DeleteSublocationFunc != nil {
-		return m.DeleteSublocationFunc(ctx, userID, sublocationID)
-	}
+	return m.DeleteSublocationFunc(ctx, userID, sublocationID)
+}
 	return nil
 }
 
 func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error) {
 	if m.CheckDuplicateSublocationFunc != nil {
-		return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
+	return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
 	}
 	return false, nil
 }
