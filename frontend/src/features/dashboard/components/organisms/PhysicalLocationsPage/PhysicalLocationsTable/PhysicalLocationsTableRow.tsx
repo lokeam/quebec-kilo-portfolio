@@ -17,24 +17,32 @@ import {
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
+import type { LocationsBFFSublocationResponse, LocationsBFFPhysicalLocationResponse } from '@/types/domain/physical-location';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
+// Type guard to determine if row is a physical location
+const isPhysicalLocation = (
+  row: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse
+): row is LocationsBFFPhysicalLocationResponse => {
+  return 'physicalLocationId' in row;
+};
+
 interface PhysicalLocationsTableRowComponentProps {
-  sublocation: LocationsBFFSublocationResponse;
+  row: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse;
   index: number;
   isSelected?: boolean;
   onSelectionChange?: (checked: boolean) => void;
-  onEdit?: (sublocation: LocationsBFFSublocationResponse) => void;
+  onEdit?: (location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => void;
   onDelete?: (id: string) => void;
 }
 
 function PhysicalLocationsTableRowComponent({
-  sublocation,
+  row,
   isSelected = false,
   onSelectionChange,
   onEdit,
@@ -44,12 +52,12 @@ function PhysicalLocationsTableRowComponent({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleEditService = useCallback((e: React.MouseEvent) => {
+  const handleEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
-    onEdit?.(sublocation);
-  }, [sublocation, onEdit]);
+    onEdit?.(row);
+  }, [row, onEdit]);
 
-  const handleDeleteService = useCallback((e: React.MouseEvent) => {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent row onClick from firing
     setDeleteDialogOpen(true);
     setDeleteError(null);
@@ -60,19 +68,22 @@ function PhysicalLocationsTableRowComponent({
   }, [onSelectionChange]);
 
   const handleConfirmDelete = useCallback(() => {
-    if (!sublocation.sublocationId || !onDelete) return;
+    const id = isPhysicalLocation(row) ? row.physicalLocationId : row.sublocationId;
+    if (!id || !onDelete) return;
 
     setIsDeleting(true);
     setDeleteError(null);
 
     try {
-      onDelete(sublocation.sublocationId);
+      onDelete(id);
     } catch (err) {
       setIsDeleting(false);
       setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
-      console.error("Error deleting sublocation:", err);
+      console.error("Error deleting location:", err);
     }
-  }, [sublocation.sublocationId, onDelete]);
+  }, [row, onDelete]);
+
+  const rowName = isPhysicalLocation(row) ? row.name : row.sublocationName;
 
   return (
     <>
@@ -93,20 +104,52 @@ function PhysicalLocationsTableRowComponent({
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <SublocationIcon type={sublocation.sublocationType} bgColor={sublocation.parentLocationBgColor || 'gray'} />
-            <span>{sublocation.sublocationName}</span>
+            {isPhysicalLocation(row) ? (
+              <>
+                <SublocationIcon
+                  type={row.physicalLocationType}
+                  bgColor={(row.bgColor as LocationIconBgColor) || 'gray'}
+                />
+                <span className="text-gray-500">None - Please add sublocation</span>
+              </>
+            ) : (
+              <>
+                <SublocationIcon
+                  type={row.sublocationType}
+                  bgColor={row.parentLocationBgColor || 'gray'}
+                />
+                <span>{row.sublocationName}</span>
+              </>
+            )}
           </div>
         </TableCell>
         <TableCell>
           <div className="flex items-center gap-2">
-            <PhysicalLocationIcon type={sublocation.parentLocationType} bgColor={sublocation.parentLocationBgColor || 'gray'} />
-            <span>{sublocation.parentLocationName}</span>
+            {isPhysicalLocation(row) ? (
+              <>
+                <PhysicalLocationIcon
+                  type={row.physicalLocationType}
+                  bgColor={(row.bgColor as LocationIconBgColor) || 'gray'}
+                />
+                <span>{row.name}</span>
+              </>
+            ) : (
+              <>
+                <PhysicalLocationIcon
+                  type={row.parentLocationType}
+                  bgColor={row.parentLocationBgColor || 'gray'}
+                />
+                <span>{row.parentLocationName}</span>
+              </>
+            )}
           </div>
         </TableCell>
         <TableCell>
-          {sublocation.mapCoordinates ? (
+          {isPhysicalLocation(row) ? (
+            <span className="text-gray-500">No coordinates</span>
+          ) : row.mapCoordinates ? (
             <a
-              href={sublocation.mapCoordinates.googleMapsLink}
+              href={row.mapCoordinates.googleMapsLink}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:underline"
@@ -118,7 +161,7 @@ function PhysicalLocationsTableRowComponent({
           )}
         </TableCell>
         <TableCell>
-          {sublocation.storedItems} items
+          {isPhysicalLocation(row) ? '0 items' : `${row.storedItems} items`}
         </TableCell>
 
         {/* Edit and Delete Buttons */}
@@ -132,19 +175,19 @@ function PhysicalLocationsTableRowComponent({
               variant="outline"
               size="sm"
               className="h-10 w-10 p-0"
-              onClick={handleEditService}
+              onClick={handleEdit}
             >
               <IconEdit className="h-16 w-16" />
-              <span className="sr-only">Edit {sublocation.sublocationName}</span>
+              <span className="sr-only">Edit {rowName}</span>
             </Button>
             <Button
               variant="destructive"
               size="sm"
               className="h-10 w-10 p-0"
-              onClick={handleDeleteService}
+              onClick={handleDelete}
             >
               <IconTrash className="h-16 w-16" />
-              <span className="sr-only">Delete {sublocation.sublocationName}</span>
+              <span className="sr-only">Delete {rowName}</span>
             </Button>
           </div>
         </TableCell>
@@ -153,7 +196,7 @@ function PhysicalLocationsTableRowComponent({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete {sublocation.sublocationName}</DialogTitle>
+            <DialogTitle>Delete {rowName}</DialogTitle>
             <DialogDescription asChild>
               {deleteError ? (
                 <div className="text-red-500">
@@ -161,7 +204,7 @@ function PhysicalLocationsTableRowComponent({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <p>Are you sure you want to delete this sublocation?</p>
+                  <p>Are you sure you want to delete this location?</p>
                   <p>This action cannot be undone.</p>
                 </div>
               )}
@@ -201,9 +244,11 @@ export const PhysicalLocationsTableRow = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.index === nextProps.index &&
-      prevProps.sublocation.sublocationId === nextProps.sublocation.sublocationId &&
-      prevProps.sublocation.sublocationName === nextProps.sublocation.sublocationName &&
-      prevProps.sublocation.storedItems === nextProps.sublocation.storedItems &&
+      (isPhysicalLocation(prevProps.row) && isPhysicalLocation(nextProps.row)
+        ? prevProps.row.physicalLocationId === nextProps.row.physicalLocationId
+        : !isPhysicalLocation(prevProps.row) && !isPhysicalLocation(nextProps.row)
+          ? prevProps.row.sublocationId === nextProps.row.sublocationId
+          : false) &&
       prevProps.isSelected === nextProps.isSelected
     );
   }

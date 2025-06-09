@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 // Template Components
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -23,8 +23,8 @@ import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysic
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 import { useGetPhysicalLocationsBFFResponse, useDeletePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
 
-// Skeleton Components
-const TableSkeleton = () => (
+// Loading States
+const TableLoadingState = () => (
   <div className="w-full">
     <div className="h-[72px] border rounded-md mb-2 bg-slate-100 animate-pulse" />
     <div className="space-y-2">
@@ -35,16 +35,58 @@ const TableSkeleton = () => (
   </div>
 );
 
-const CardSkeleton = () => (
+const CardLoadingState = () => (
   <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
     {[1, 2, 3].map((i) => (
       <div
         key={i}
-        className="h-[100px] border rounded-md bg-gradient-to-b from-slate-100 to-slate-200 animate-pulse"
+        className="h-[180px] border rounded-md bg-gradient-to-b from-slate-100 to-slate-200 animate-pulse"
       />
     ))}
   </div>
 );
+
+// Empty States
+const NoDataState = () => (
+  <div className="p-4 border rounded-md">
+    <p className="text-gray-500">No physical location found. Add a location to get started.</p>
+  </div>
+);
+
+const NoFilterResultsState = () => (
+  <div className="p-4 border rounded-md">
+    <p className="text-gray-500">No locations match your current filters. Try adjusting your search or filters.</p>
+  </div>
+);
+
+const NoSublocationsState = () => (
+  <div className="p-4 border rounded-md">
+    <p className="text-gray-500">No sublocations found. Add a sublocation to get started.</p>
+  </div>
+);
+
+// Error State
+const ErrorState = ({ error }: { error: unknown }) => (
+  <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+    <p className="text-red-500">
+      Error loading physical location data: {error instanceof Error ? error.message : 'An unknown error occurred'}
+    </p>
+  </div>
+);
+
+// Helper function to get physical locations without sublocations
+const getPhysicalLocationsWithoutSublocations = (
+  physicalLocations: LocationsBFFPhysicalLocationResponse[],
+  sublocations: LocationsBFFSublocationResponse[]
+) => {
+  const parentIdsWithSublocations = new Set(
+    sublocations.map(sublocation => sublocation.parentLocationId)
+  );
+
+  return physicalLocations.filter(
+    location => !parentIdsWithSublocations.has(location.physicalLocationId)
+  );
+};
 
 export function PhysicalLocationsPageContent() {
   const [addPhysicalLocationOpen, setAddPhysicalLocationOpen] = useState<boolean>(false);
@@ -55,12 +97,16 @@ export function PhysicalLocationsPageContent() {
   const [isSelectingParentLocation, setIsSelectingParentLocation] = useState<boolean>(false);
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
+  const { searchQuery, sublocationTypeFilters, parentLocationTypeFilters } = useOnlineServicesStore();
 
   // Fetch physical locations using BFF
   const { data: storageData, isLoading, error } = useGetPhysicalLocationsBFFResponse();
 
   // Get filter options from BFF data
   const filterOptions = usePhysicalLocationFilters(storageData);
+
+  // Memoize lowercase search query
+  const memoizedSearchQuery = useMemo(() => searchQuery.toLowerCase(), [searchQuery]);
 
   // Enhanced edit handlers
   const handleEditService = useCallback((location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => {
@@ -70,12 +116,6 @@ export function PhysicalLocationsPageContent() {
 
   // Sublocation creation when clicking on a SinglePhysicalLocationCard's Add Sublocation button
   const handleAddSublocation = useCallback((location: LocationsBFFPhysicalLocationResponse) => {
-    console.log('Adding sublocation to:', {
-      physicalLocationId: location.physicalLocationId,
-      name: location.name,
-      physicalLocationType: location.physicalLocationType,
-      bgColor: location.bgColor
-    });
     setSelectedParentLocation(location);
     setAddSublocationOpen(true);
   }, []);
@@ -123,33 +163,94 @@ export function PhysicalLocationsPageContent() {
     deleteMutation.mutate(locationId);
   }, [deleteMutation]);
 
+  // Memoize filter functions
+  const filterSublocation = useCallback((sublocation: LocationsBFFSublocationResponse) => {
+    const matchesSearch = sublocation.sublocationName.toLowerCase().includes(memoizedSearchQuery);
+    const matchesSublocationType = sublocationTypeFilters.length === 0 ||
+      sublocationTypeFilters.includes(sublocation.sublocationType);
+    const matchesParentType = parentLocationTypeFilters.length === 0 ||
+      parentLocationTypeFilters.includes(sublocation.parentLocationType);
+    return matchesSearch && matchesSublocationType && matchesParentType;
+  }, [memoizedSearchQuery, sublocationTypeFilters, parentLocationTypeFilters]);
+
+  const filterPhysicalLocation = useCallback((location: LocationsBFFPhysicalLocationResponse) => {
+    const matchesSearch = location.name.toLowerCase().includes(memoizedSearchQuery);
+    const matchesType = parentLocationTypeFilters.length === 0 ||
+      parentLocationTypeFilters.includes(location.physicalLocationType);
+    return matchesSearch && matchesType;
+  }, [memoizedSearchQuery, parentLocationTypeFilters]);
+
+  // Memoize filtered results
+  const filteredSublocations = useMemo(() => {
+    if (!storageData?.sublocations) return [];
+
+    // Early return if no filters are active
+    if (searchQuery === '' &&
+        sublocationTypeFilters.length === 0 &&
+        parentLocationTypeFilters.length === 0) {
+      return storageData.sublocations;
+    }
+
+    return storageData.sublocations.filter(filterSublocation);
+  }, [
+    storageData?.sublocations,
+    filterSublocation,
+    searchQuery,
+    sublocationTypeFilters.length,
+    parentLocationTypeFilters.length
+  ]);
+
+  const filteredPhysicalLocations = useMemo(() => {
+    if (!storageData?.physicalLocations) return [];
+
+    // Early return if no filters are active
+    if (searchQuery === '' && parentLocationTypeFilters.length === 0) {
+      return storageData.physicalLocations;
+    }
+
+    return storageData.physicalLocations.filter(filterPhysicalLocation);
+  }, [
+    storageData?.physicalLocations,
+    filterPhysicalLocation,
+    searchQuery,
+    parentLocationTypeFilters.length
+  ]);
+
   // Render content based on the selected view mode
   const renderContent = () => {
+    // Loading state
     if (isLoading) {
-      return viewMode === 'table' ? <TableSkeleton /> : <CardSkeleton />;
+      return viewMode === 'table' ? <TableLoadingState /> : <CardLoadingState />;
     }
 
+    // Error state
     if (error) {
-      return (
-        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-          <p className="text-red-500">Error loading physical location data</p>
-        </div>
-      );
+      return <ErrorState error={error} />;
     }
 
+    // No data state
     if (!storageData?.physicalLocations || storageData.physicalLocations.length === 0) {
-      return (
-        <div className="p-4 border rounded-md">
-          <p className="text-gray-500">No physical location found. Add a location to get started.</p>
-        </div>
-      );
+      return <NoDataState />;
+    }
+
+    // No results after filtering
+    if (filteredSublocations.length === 0 && filteredPhysicalLocations.length === 0) {
+      return <NoFilterResultsState />;
     }
 
     if (viewMode === 'table') {
+      // Get physical locations without sublocations
+      const physicalLocationsWithoutSublocations = getPhysicalLocationsWithoutSublocations(
+        filteredPhysicalLocations,
+        filteredSublocations
+      );
+
       return (
         <PhysicalLocationsTable
-          sublocationRows={storageData.sublocations}
+          sublocationRows={filteredSublocations}
+          physicalLocationRows={physicalLocationsWithoutSublocations}
           onEdit={handleEditService}
+          onDelete={handleDeleteLocation}
         />
       );
     }
@@ -159,18 +260,18 @@ export function PhysicalLocationsPageContent() {
         <div className="p-4 border rounded-md">
           <h2 className="text-lg font-semibold">Physical Locations</h2>
           <p className="text-gray-500 mb-4">{
-            storageData.physicalLocations.length === 1
+            filteredPhysicalLocations.length === 1
               ? '1 location found'
-              : `${storageData.physicalLocations.length} locations found`
+              : `${filteredPhysicalLocations.length} locations found`
           }</p>
           <div className={`grid grid-cols-1 gap-4 ${
             viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
           }`}>
-            {storageData.physicalLocations.map((location, index) => (
+            {filteredPhysicalLocations.map((location, index) => (
               <SinglePhysicalLocationCard
                 key={location.physicalLocationId}
                 location={location}
-                sublocations={storageData.sublocations}
+                sublocations={filteredSublocations}
                 onEdit={handleEditService}
                 onDelete={handleDeleteLocation}
                 onAddSublocation={handleAddSublocation}
@@ -183,21 +284,25 @@ export function PhysicalLocationsPageContent() {
         <div className="p-4 border rounded-md">
           <h2 className="text-lg font-semibold">Sublocations</h2>
           <p className="text-gray-500 mb-4">{
-            storageData.sublocations.length === 1
+            filteredSublocations.length === 1
               ? '1 sublocation found'
-              : `${storageData.sublocations.length} sublocations found`
+              : `${filteredSublocations.length} sublocations found`
           }</p>
           <div className={`grid grid-cols-1 gap-4 ${
             viewMode === 'grid' ? 'md:grid-cols-2 2xl:grid-cols-3' : ''
           }`}>
-            {storageData.sublocations.map((location, index) => (
-              <SingleSublocationCard
-                key={location.sublocationId}
-                location={location}
-                onEdit={handleEditService}
-                isWatchedByResizeObserver={index === 0}
-              />
-            ))}
+            {filteredSublocations.length === 0 ? (
+              <NoSublocationsState />
+            ) : (
+              filteredSublocations.map((location, index) => (
+                <SingleSublocationCard
+                  key={location.sublocationId}
+                  location={location}
+                  onEdit={handleEditService}
+                  isWatchedByResizeObserver={index === 0}
+                />
+              ))
+            )}
           </div>
         </div>
       </>

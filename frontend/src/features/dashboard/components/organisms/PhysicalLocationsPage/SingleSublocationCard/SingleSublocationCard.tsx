@@ -124,7 +124,7 @@ export const SingleSublocationCard = memo(({
 
           {/* Second Row - Text Content */}
           <div className="flex flex-col">
-            {/* Parent Location Name */}
+            {/* Sublocation Name */}
             <div className="flex mb-2">
               <span
                 className="font-bold text-lg text-white truncate overflow-hidden"
@@ -133,20 +133,20 @@ export const SingleSublocationCard = memo(({
                   display: 'block',
                 }}
               >
-                {location.parentLocationName}
+                {location.sublocationName}
               </span>
             </div>
 
-            {/* Sublocation Name */}
+            {/* Parent Location Name */}
             <div className="flex">
               <span
-                className="font-medium text-sm text-white truncate overflow-hidden"
+                className="font-medium text-sm text-gray-500 truncate overflow-hidden"
                 style={{
                   maxWidth: 'var(--label-max-width)',
                   display: 'block',
                 }}
               >
-                {location.sublocationName}
+                {`Parent Location: ${location.parentLocationName}`}
               </span>
             </div>
           </div>

@@ -64,23 +64,13 @@ export const SublocationFormSchema = z.object({
   locationType: z
     .enum([SublocationType.shelf, SublocationType.console, SublocationType.cabinet, SublocationType.closet, SublocationType.drawer, SublocationType.box], {
       required_error: "Please select a location type",
-    }),
-  bgColor: z
-    .string({
-      required_error: "Please select a background color",
-    }),
-  coordinates: z.object({
-    enabled: z.boolean().default(false),
-    value: z.string().optional(),
-  }).default({ enabled: false, value: undefined }),
+    }).default({ enabled: false, value: undefined }),
 });
 
 interface LocationData {
   id: string;
   name: string;
   locationType: SublocationType;
-  bgColor?: string;
-  mapCoordinates?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -100,11 +90,6 @@ export function MediaPageSublocationForm({
   defaultValues = {
     locationName: '',
     locationType: SublocationType.shelf,
-    bgColor: 'gray',
-    coordinates: {
-      enabled: false,
-      value: undefined,
-    }
   },
   buttonText = "Add Sublocation",
   sublocationData,
@@ -129,11 +114,6 @@ export function MediaPageSublocationForm({
       ? {
           locationName: sublocationData.name || "",
           locationType: sublocationData.locationType || SublocationType.shelf,
-          bgColor: sublocationData.bgColor || "#000000",
-          coordinates: {
-            enabled: !!sublocationData.mapCoordinates,
-            value: sublocationData.mapCoordinates || "",
-          },
         }
       : defaultValues,
   });
@@ -144,11 +124,6 @@ export function MediaPageSublocationForm({
       form.reset({
         locationName: sublocationData.name || '',
         locationType: sublocationData.locationType || SublocationType.shelf,
-        bgColor: sublocationData.bgColor || '#000000',
-        coordinates: {
-          enabled: !!sublocationData.mapCoordinates,
-          value: sublocationData.mapCoordinates || ''
-        }
       });
     }
   }, [form, isEditing, sublocationData]);
@@ -159,7 +134,6 @@ export function MediaPageSublocationForm({
         name: values.locationName,
         locationType: values.locationType,
         mapCoordinates: values.coordinates.enabled ? values.coordinates.value : undefined,
-        bgColor: values.bgColor,
         physicalLocationId: parentLocationId,
       };
 
@@ -270,40 +244,6 @@ export function MediaPageSublocationForm({
               </Select>
               <FormDescription>
                 What kind of furniture or storage unit is this?
-              </FormDescription>
-
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Icon BG Color */}
-        <FormField
-          control={form.control}
-          name="bgColor"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Icon Background Color</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a background color for your icon" />
-                  </SelectTrigger>
-                </FormControl>
-
-                <SelectContent>
-                  <SelectItem value="red">Red</SelectItem>
-                  <SelectItem value="blue">Blue</SelectItem>
-                  <SelectItem value="green">Green</SelectItem>
-                  <SelectItem value="gold">Gold</SelectItem>
-                  <SelectItem value="purple">Purple</SelectItem>
-                  <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="brown">Brown</SelectItem>
-                  <SelectItem value="gray">Gray</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Customize the background color of your storage unit icon.
               </FormDescription>
 
               <FormMessage />

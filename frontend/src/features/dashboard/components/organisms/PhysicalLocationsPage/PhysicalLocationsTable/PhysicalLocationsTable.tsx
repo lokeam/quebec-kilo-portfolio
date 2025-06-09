@@ -24,29 +24,31 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Types
-import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location'
+import type { LocationsBFFSublocationResponse, LocationsBFFPhysicalLocationResponse } from '@/types/domain/physical-location'
 
 interface PhysicalLocationsTableProps {
   sublocationRows: LocationsBFFSublocationResponse[]
-  onEdit?: (sublocation: LocationsBFFSublocationResponse) => void
+  physicalLocationRows: LocationsBFFPhysicalLocationResponse[]
+  onEdit?: (location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => void
   onDelete?: (id: string) => void
 }
 
 export const PhysicalLocationsTable = memo(({
   sublocationRows,
+  physicalLocationRows,
   onEdit,
   onDelete
 }: PhysicalLocationsTableProps) => {
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const handleSelectionChange = (sublocationId: string, checked: boolean) => {
+  const handleSelectionChange = (id: string, checked: boolean) => {
     setSelectedRows(prev => {
       const next = new Set(prev);
       if (checked) {
-        next.add(sublocationId);
+        next.add(id);
       } else {
-        next.delete(sublocationId);
+        next.delete(id);
       }
       return next;
     });
@@ -64,9 +66,8 @@ export const PhysicalLocationsTable = memo(({
   };
 
   // Calculate if all rows are selected
-  const allSelected = sublocationRows.length > 0 && selectedRows.size === sublocationRows.length;
-
-  console.log('Physical Locations Table, sublocationRows: ', sublocationRows);
+  const allSelected = (sublocationRows.length + physicalLocationRows.length) > 0 &&
+    selectedRows.size === (sublocationRows.length + physicalLocationRows.length);
 
   return (
     <div className="w-full">
@@ -78,7 +79,11 @@ export const PhysicalLocationsTable = memo(({
                 checked={allSelected}
                 onCheckedChange={(checked) => {
                   if (checked) {
-                    setSelectedRows(new Set(sublocationRows.map(row => row.sublocationId)));
+                    const allIds = [
+                      ...sublocationRows.map(row => row.sublocationId),
+                      ...physicalLocationRows.map(row => row.physicalLocationId)
+                    ];
+                    setSelectedRows(new Set(allIds));
                   } else {
                     setSelectedRows(new Set());
                   }
@@ -94,13 +99,27 @@ export const PhysicalLocationsTable = memo(({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {/* Render sublocation rows */}
           {sublocationRows.map((sublocation, index) => (
             <PhysicalLocationsTableRow
               key={sublocation.sublocationId}
-              sublocation={sublocation}
+              row={sublocation}
               index={index}
               isSelected={selectedRows.has(sublocation.sublocationId)}
               onSelectionChange={(checked) => handleSelectionChange(sublocation.sublocationId, checked)}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+
+          {/* Render physical location rows */}
+          {physicalLocationRows.map((location, index) => (
+            <PhysicalLocationsTableRow
+              key={location.physicalLocationId}
+              row={location}
+              index={sublocationRows.length + index}
+              isSelected={selectedRows.has(location.physicalLocationId)}
+              onSelectionChange={(checked) => handleSelectionChange(location.physicalLocationId, checked)}
               onEdit={onEdit}
               onDelete={onDelete}
             />
@@ -111,9 +130,9 @@ export const PhysicalLocationsTable = memo(({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Selected Sublocations</DialogTitle>
+            <DialogTitle>Delete Selected Locations</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedRows.size} selected sublocation{selectedRows.size > 1 ? 's' : ''}? This action cannot be undone.
+              Are you sure you want to delete {selectedRows.size} selected location{selectedRows.size > 1 ? 's' : ''}? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
