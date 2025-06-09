@@ -305,6 +305,32 @@ func CreateSublocation(
 			})
 		}
 
+		// Invalidate caches
+		cacheAdapter, ok := service.(*GameSublocationService)
+		if ok && cacheAdapter.cacheWrapper != nil {
+			// Invalidate all user caches
+			if err := cacheAdapter.cacheWrapper.InvalidateUserCache(r.Context(), userID); err != nil {
+				appCtx.Logger.Error("Failed to invalidate user cache", map[string]any{
+					"error": err,
+				})
+			}
+
+			// Force refresh of physical location cache
+			if err := cacheAdapter.cacheWrapper.InvalidateLocationCache(r.Context(), userID, req.PhysicalLocationID); err != nil {
+				appCtx.Logger.Error("Failed to invalidate physical location cache", map[string]any{
+					"error": err,
+				})
+				httputils.RespondWithError(
+					httputils.NewResponseWriterAdapter(w),
+					appCtx.Logger,
+					requestID,
+					err,
+					http.StatusInternalServerError,
+				)
+				return
+			}
+		}
+
 		// Use standard response format
 		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "sublocation" key, DO NOT use a struct{}
 		response := httputils.NewAPIResponse(r, userID, map[string]any{

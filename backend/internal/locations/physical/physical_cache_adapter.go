@@ -113,8 +113,15 @@ func (pca *PhysicalCacheAdapter) InvalidateUserCache(
 	ctx context.Context,
 	userID string,
 ) error {
+	// Invalidate regular physical locations cache
 	cacheKey := fmt.Sprintf("physical:%s", userID)
-	return pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
+	if err := pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey); err != nil {
+		return err
+	}
+
+	// Also invalidate BFF cache
+	bffCacheKey := fmt.Sprintf("physical:bff:%s", userID)
+	return pca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey)
 }
 
 func (pca *PhysicalCacheAdapter) InvalidateLocationCache(

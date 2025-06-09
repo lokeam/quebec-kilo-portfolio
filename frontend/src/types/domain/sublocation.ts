@@ -25,8 +25,8 @@ export interface Sublocation {
  */
 export interface CreateSublocationRequest {
   name: string;
-  type: SublocationType;
-  parentLocationId: string;
+  locationType: SublocationType;
+  physicalLocationId: string;
   description?: string;
   metadata?: SublocationMetadata;
 }

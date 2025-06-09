@@ -283,9 +283,18 @@ export const useCreateSublocation = () => {
   return useMutation({
     mutationFn: (data: CreateSublocationRequest) => createSublocation(data),
     onSuccess: (data) => {
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.sublocations(data.parentLocationId) });
-      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.detail(data.parentLocationId) });
+      // Invalidate all physical location queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.all });
+
+      // Specifically invalidate the BFF query that's used for the UI
+      queryClient.invalidateQueries({ queryKey: physicalLocationKeys.lists() });
+
+      // Invalidate the specific physical location's sublocations
+      queryClient.invalidateQueries({
+        queryKey: physicalLocationKeys.sublocations(data.parentLocationId)
+      });
+
+      // Invalidate analytics
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
 
       showToast({

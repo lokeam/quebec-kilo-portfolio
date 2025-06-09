@@ -34,9 +34,12 @@ import { Package } from 'lucide-react';
 // Utils
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import type { LocationIconBgColor } from '@/types/domain/location-types';
+import { useCreateSublocation } from '@/core/api/queries/physicalLocation.queries';
+import { logger } from '@/core/utils/logger/logger';
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse } from '@/types/domain/physical-location';
+import type { CreateSublocationRequest } from '@/types/domain/sublocation';
 
 // Constants
 const SublocationType = {
@@ -88,6 +91,7 @@ export function SublocationForm({
   parentLocation,
 }: SublocationFormProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { mutate: createSublocation, isPending } = useCreateSublocation();
 
   // Create form default values based on whether we're editing or creating
   const formDefaultValues = isEditing && sublocationData ? {
@@ -104,18 +108,30 @@ export function SublocationForm({
   const { handleSubmit, control } = methods;
 
   const onSubmit = useCallback((data: FormValues) => {
-    // TODO: Implement mutation logic
-    console.log('Form submitted:', {
-      ...data,
-      parentLocationId: parentLocation.physicalLocationId,
-      parentLocationName: parentLocation.name,
-      parentLocationType: parentLocation.physicalLocationType,
-      parentLocationBgColor: parentLocation.bgColor,
+    logger.debug('SublocationForm: Form submission', {
+      formData: data,
+      parentLocation,
     });
 
-    if (onClose) onClose();
-    if (onSuccess) onSuccess(data);
-  }, [parentLocation, onClose, onSuccess]);
+    const payload: CreateSublocationRequest = {
+      name: data.locationName,
+      locationType: data.locationType,
+      physicalLocationId: parentLocation.physicalLocationId,
+    };
+
+    logger.debug('SublocationForm: Mapped payload', { payload });
+
+    createSublocation(payload, {
+      onSuccess: (response) => {
+        logger.debug('SublocationForm: Creation successful', { response });
+        if (onClose) onClose();
+        if (onSuccess) onSuccess(data);
+      },
+      onError: (error) => {
+        logger.error('SublocationForm: Creation failed', { error });
+      }
+    });
+  }, [parentLocation, onClose, onSuccess, createSublocation]);
 
   const handleDelete = useCallback((id: string) => {
     if (onDelete) onDelete(id);
@@ -226,12 +242,13 @@ export function SublocationForm({
         <div className="flex justify-between w-full mt-6">
           <Button
             type="submit"
-            className={isEditing && onDelete ? "flex-1" : "w-full"}
+            className={`${isEditing && onDelete ? "flex-1" : "w-full"} mb-3`}
+            disabled={isPending}
           >
-            {isEditing ? "Update Sublocation" : buttonText}
+            {isPending ? "Creating..." : (isEditing ? "Update Sublocation" : buttonText)}
           </Button>
 
-          {isEditing && onDelete && sublocationData && (
+          {isEditing && onDelete && (
             <Button
               type="button"
               variant="destructive"
@@ -245,7 +262,7 @@ export function SublocationForm({
       </form>
 
       {/* Delete confirmation dialog */}
-      {isEditing && onDelete && sublocationData && (
+      {isEditing && onDelete && (
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -263,7 +280,7 @@ export function SublocationForm({
               </Button>
               <Button
                 variant="destructive"
-                onClick={() => handleDelete(sublocationData.id)}
+                onClick={() => handleDelete(sublocationData?.id || '')}
               >
                 Delete
               </Button>
