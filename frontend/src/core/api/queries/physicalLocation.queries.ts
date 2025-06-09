@@ -383,33 +383,53 @@ export const useUpdateSublocation = () => {
 export const useDeleteSublocation = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<DeleteSublocationResponse['sublocation'], Error, string | string[]>({
-    mutationFn: (ids: string | string[]) => deleteSublocation(ids),
+  return useMutation<DeleteSublocationResponse['sublocation'], Error, string[]>({
+    mutationFn: (ids: string[]) => deleteSublocation(ids),
     onSuccess: (response) => {
       // Log the deletion results
-      // console.log('Successfully deleted sublocations:', {
-      //   count: response.deleted_count,
-      //   ids: response.sublocation_ids
-      // });
+      logger.debug('Successfully deleted sublocations:', {
+        count: response.deleted_count,
+        ids: response.sublocation_ids
+      });
 
-      // Note: We can't invalidate specific queries here since we don't know the parent location
-      // Instead, we'll invalidate all physical location queries
+      // Invalidate all physical location queries
       queryClient.invalidateQueries({ queryKey: physicalLocationKeys.all });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
 
+      // Show success toast
       showToast({
         message: TOAST_SUCCESS_MESSAGES.SUBLOCATION.DELETE,
         variant: 'success',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
+      });
     },
-    onError: (error) => {
-      console.error('Failed to delete sublocation:', error);
+    onError: (error: Error) => {
+      const errorMessages = TOAST_ERROR_MESSAGES.SUBLOCATION.DELETE as {
+        DEFAULT: string;
+        PERMISSION: string;
+        NOT_FOUND: string;
+        SERVER: string;
+      };
+
+      let errorMessage = errorMessages.DEFAULT;
+
+      if (error instanceof AxiosError && error.response) {
+        const status = error.response.status;
+        if (status === 401 || status === 403) {
+          errorMessage = errorMessages.PERMISSION;
+        } else if (status === 404) {
+          errorMessage = errorMessages.NOT_FOUND;
+        } else if (status >= 500) {
+          errorMessage = errorMessages.SERVER;
+        }
+      }
+
+      logger.error('Failed to delete sublocation:', error);
       showToast({
-        message: TOAST_ERROR_MESSAGES.SUBLOCATION.DELETE.DEFAULT,
+        message: errorMessage,
         variant: 'error',
         duration: TOAST_DURATIONS.EXTENDED,
-      })
+      });
     }
   });
 };

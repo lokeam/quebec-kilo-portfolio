@@ -30,3 +30,14 @@ export interface CreateSublocationRequest {
   description?: string;
   metadata?: SublocationMetadata;
 }
+
+export interface DeleteSublocationRequest {
+  ids: string[];
+}
+
+export interface DeleteSublocationResponse {
+  success: boolean;
+  deleted_count: number;
+  deleted_ids: string[];
+  error?: string;
+}

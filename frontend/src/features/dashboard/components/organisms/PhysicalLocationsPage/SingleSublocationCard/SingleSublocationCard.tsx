@@ -18,6 +18,9 @@ import { IconEdit, IconTrash } from '@tabler/icons-react';
 // Types
 import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 
+// Hooks
+import { useDeleteSublocation } from '@/core/api/queries/physicalLocation.queries';
+
 // Utils
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
@@ -39,6 +42,7 @@ export const SingleSublocationCard = memo(({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteMutation = useDeleteSublocation();
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card onClick from firing
@@ -52,19 +56,18 @@ export const SingleSublocationCard = memo(({
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (!location.sublocationId || !onDelete) return;
+    if (!location.sublocationId) return;
 
-    setIsDeleting(true);
-    setDeleteError(null);
-
-    try {
-      onDelete(location.sublocationId);
-    } catch (err) {
-      setIsDeleting(false);
-      setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
-      console.error("Error deleting location:", err);
-    }
-  }, [location.sublocationId, onDelete]);
+    deleteMutation.mutate([location.sublocationId], {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+        if (onDelete) onDelete(location.sublocationId);
+      },
+      onError: (error) => {
+        setDeleteError(error instanceof Error ? error.message : 'Failed to delete sublocation');
+      }
+    });
+  }, [location.sublocationId, deleteMutation, onDelete]);
 
   return (
     <>
@@ -172,16 +175,16 @@ export const SingleSublocationCard = memo(({
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
-              disabled={isDeleting && !deleteError}
+              disabled={deleteMutation.isPending}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={isDeleting && !deleteError}
+              disabled={deleteMutation.isPending}
             >
-              {isDeleting && !deleteError ? (
+              {deleteMutation.isPending ? (
                 <>
                   <span className="animate-spin mr-2">⊚</span>
                   Deleting...
