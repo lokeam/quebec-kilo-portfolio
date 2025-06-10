@@ -7,6 +7,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/types"
+	"github.com/stretchr/testify/mock"
 )
 
 // NewMockServices creates a new app.Services instance with mocks for testing
@@ -301,7 +302,9 @@ func (m *MockSublocationService) RemoveGame(ctx context.Context, userID string, 
 }
 
 // MockLibraryService implements services.LibraryService
-type MockLibraryService struct{}
+type MockLibraryService struct {
+	mock.Mock
+}
 
 func (m *MockLibraryService) GetAllLibraryGames(ctx context.Context, userID string) (
 	[]types.LibraryGameDBResult,
@@ -335,6 +338,11 @@ func (m *MockLibraryService) GetSingleLibraryGame(ctx context.Context, userID st
 
 func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
 	return nil
+}
+
+func (m *MockLibraryService) GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponse, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(types.LibraryBFFResponse), args.Error(1)
 }
 
 // MockWishlistService implements services.WishlistService

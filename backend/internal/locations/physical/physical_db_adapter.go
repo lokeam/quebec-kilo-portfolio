@@ -55,6 +55,8 @@ func NewPhysicalDbAdapter(appContext *appcontext.AppContext) (*PhysicalDbAdapter
 	}, nil
 }
 
+
+// --- QUERIES ---
 const (
 	createPhysicalLocationQuery = `
 		INSERT INTO physical_locations (

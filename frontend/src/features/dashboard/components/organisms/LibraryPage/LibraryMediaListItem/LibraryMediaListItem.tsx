@@ -16,7 +16,7 @@ import { visibilityReducer } from '@/features/dashboard/components/organisms/Wis
 
 // Types
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
-import type { GamePlatformLocation, GameType } from '@/types/domain/library-types';
+import type { GamePlatformLocation, GamePlatformLocationResponse, GameType } from '@/types/domain/library-types';
 
 // Icons
 import {
@@ -44,7 +44,7 @@ interface LibraryMediaListItemProps {
   isInWishlist: boolean;
   gameType: GameType;
   favorite: boolean;
-  gamesByPlatformAndLocation: GamePlatformLocation[];
+  gamesByPlatformAndLocation: GamePlatformLocationResponse[];
   onFavorite?: () => void;
   onSettings?: () => void;
   onRemoveFromLibrary?: () => void;

@@ -107,13 +107,50 @@ func (lca *LibraryCacheAdapter) SetCachedGame(
 	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, item)
 }
 
+// GetCachedLibraryItemsBFF retrieves the cached BFF response for a user's library
+func (lca *LibraryCacheAdapter) GetCachedLibraryItemsBFF(
+	ctx context.Context,
+	userID string,
+) (types.LibraryBFFResponse, error) {
+	cacheKey := fmt.Sprintf("library:bff:%s", userID)
+
+	var response types.LibraryBFFResponse
+	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
+	if err != nil {
+		return types.LibraryBFFResponse{}, err
+	}
+
+	if cacheHit {
+		return response, nil
+	}
+
+	return types.LibraryBFFResponse{}, nil
+}
+
+// SetCachedLibraryItemsBFF caches the BFF response for a user's library
+func (lca *LibraryCacheAdapter) SetCachedLibraryItemsBFF(
+	ctx context.Context,
+	userID string,
+	response types.LibraryBFFResponse,
+) error {
+	cacheKey := fmt.Sprintf("library:bff:%s", userID)
+	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
+}
+
 // Invalidates all cache entries for a specific user
 func (lca *LibraryCacheAdapter) InvalidateUserCache(
 	ctx context.Context,
 	userID string,
 ) error {
+	// Invalidate regular library cache
 	cacheKey := fmt.Sprintf("library:%s", userID)
-	return lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
+	if err := lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey); err != nil {
+		return err
+	}
+
+	// Also invalidate BFF cache
+	bffCacheKey := fmt.Sprintf("library:bff:%s", userID)
+	return lca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey)
 }
 
 // Invalidates cache for a specific game

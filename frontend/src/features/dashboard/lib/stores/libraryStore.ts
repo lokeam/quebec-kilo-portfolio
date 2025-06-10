@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type LibraryGameItem } from '@/types/domain/library-types';
+import { type LibraryGameItem, type LibraryGameItemResponse } from '@/types/domain/library-types';
 import {
   featureViewModes,
   getStoredViewMode,
@@ -11,8 +11,8 @@ export type LibraryViewMode = typeof featureViewModes.library.allowed[number];
 interface LibraryState {
   platformFilter: string;
   setPlatformFilter: (filter: string) => void;
-  userGames: LibraryGameItem[];
-  setGames: (games: LibraryGameItem[]) => void;
+  userGames: LibraryGameItemResponse[];
+  setGames: (games: LibraryGameItemResponse[]) => void;
   viewMode: LibraryViewMode;
   setViewMode: (mode: LibraryViewMode) => void;
   searchQuery: string;

@@ -6,23 +6,24 @@ import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 
 // Service Layer methods
 import {
-  getAllLibraryGames,
+  //getAllLibraryGames,
   getLibraryGameById,
   createLibraryGame,
   updateLibraryGame,
   deleteLibraryGame,
+  getLibraryPageBFFResponse,
 } from '@/core/api/services/gameLibrary.service';
 
 // Utils
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Adapters
-import { adaptAddToLibraryFromToRequest } from '@/core/api/adapters/gameLibrary.adapter.ts';
+import { adaptAddToLibraryFromToRequest, adaptLibraryBFFResponse } from '@/core/api/adapters/gameLibrary.adapter';
 
 // Type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
 import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItem, LibraryItemsBFFResponse } from '@/types/domain/library-types';
 
 // Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
@@ -37,19 +38,42 @@ export const gameLibraryKeys = {
   detail: (id: string) => [...gameLibraryKeys.details(), id] as const,
 };
 
+/*
+ * Hook to fetch all library items for the BFF page
+*/
+export const useGetLibraryPageBFFResponse = () => {
+  return useAPIQuery<LibraryItemsBFFResponse>({
+    queryKey: gameLibraryKeys.lists(),
+    queryFn: async () => {
+      try {
+        const response = await getLibraryPageBFFResponse();
+
+        // Use our adapter to safely extract and validate data
+        const adaptedResponse = adaptLibraryBFFResponse(response);
+
+        return adaptedResponse;
+      } catch(error) {
+        console.error('[DEBUG] useGetLibraryPageBFFResponse: Error fetching data:', error);
+        throw error;
+      }
+    },
+    staleTime: 5000,
+    refetchOnMount: false,
+  });
+}
 
 /**
  * Hook to fetch all games in the library
  */
-export const useGetAllLibraryGames = () => {
-  return useAPIQuery<LibraryGameItem[]>({
-    queryKey: gameLibraryKeys.lists(),
-    queryFn: async () => {
-      const games = await getAllLibraryGames();
-      return games;
-    },
-  });
-};
+// export const useGetAllLibraryGames = () => {
+//   return useAPIQuery<LibraryGameItem[]>({
+//     queryKey: gameLibraryKeys.lists(),
+//     queryFn: async () => {
+//       const games = await getAllLibraryGames();
+//       return games;
+//     },
+//   });
+// };
 
 /*
  * Hook to fetch a single game from the library

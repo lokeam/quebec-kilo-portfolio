@@ -10,16 +10,17 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 // types
 import type { ApiResponse } from '@/types/api/api.types';
 import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest, LibraryGameItem } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItem, LibraryGameItemResponse, LibraryItemsBFFResponse } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
+const LIBRARY_BFF_ENDPOINT = '/v1/library/bff';
 
 interface LibraryResponseWrapper {
   library: {
     success: boolean;
-    games?: LibraryGameItem[];
-    game?: LibraryGameItem;
+    games?: LibraryGameItemResponse[];
+    game?: LibraryGameItemResponse;
   };
 }
 
@@ -36,12 +37,29 @@ interface LibraryResponseWrapper {
  * Usage:
  *   return apiRequest('getAllGames', () => axios.get(...));
  */
-export const getAllLibraryGames = (): Promise<LibraryGameItem[]> =>
-  apiRequest('getAllLibraryGames', () =>
-    axiosInstance
-      .get<LibraryResponseWrapper>(LIBRARY_ENDPOINT)
-      .then(response => response.data.library.games || [])
-  );
+
+export const getLibraryPageBFFResponse = (): Promise<LibraryItemsBFFResponse> =>
+  apiRequest('getLibraryPageBFFResponse', async () => {
+    console.log('[DEBUG] getLibraryPageBFFResponse: Making API request');
+    const response = await axiosInstance.get<{ library: LibraryItemsBFFResponse }>(LIBRARY_BFF_ENDPOINT);
+    console.log('[DEBUG] getLibraryPageBFFResponse: Raw API response:', response.data);
+
+    if (!response.data.library) {
+      console.error('[DEBUG] getLibraryPageBFFResponse: No library data in response:', response.data);
+    }
+
+    console.log('[DEBUG] getLibraryPageBFFResponse: Successfully extracted library data:', response.data.library);
+    return response.data.library;
+  });
+
+// Legacy: DO NOT USE. This was the old way of fetching all library games.
+// It was replaced with the BFF endpoint above.
+// export const getAllLibraryGames = (): Promise<LibraryGameItemResponse[]> =>
+//   apiRequest('getAllLibraryGames', () =>
+//     axiosInstance
+//       .get<LibraryResponseWrapper>(LIBRARY_ENDPOINT)
+//       .then(response => response.data.library.games || [])
+//   );
 
 /**
  * Fetches a specific game by ID
@@ -56,7 +74,7 @@ export const getAllLibraryGames = (): Promise<LibraryGameItem[]> =>
  * Usage:
  *   return apiRequest('getGameById', () => axios.get(...));
  */
-export const getLibraryGameById = (id: string): Promise<Game> =>
+export const getLibraryGameById = (id: string): Promise<LibraryGameItemResponse> =>
   apiRequest(`getGameById(${id})`, () =>
     axiosInstance
       .get<LibraryResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)

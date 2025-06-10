@@ -36,4 +36,8 @@ type LibraryCacheWrapper interface {
 
 	InvalidateUserCache(ctx context.Context, userID string) error
 	InvalidateGameCache(ctx context.Context, userID string, gameID int64) error
+
+	// BFF methods
+	GetCachedLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponse, error)
+	SetCachedLibraryItemsBFF(ctx context.Context, userID string, response types.LibraryBFFResponse) error
 }

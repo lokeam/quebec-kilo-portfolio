@@ -12,7 +12,8 @@ import { MemoizedLibraryMediaListItem } from '@/features/dashboard/components/or
 import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
 import { useLibraryTitle } from '@/features/dashboard/lib/hooks/useLibraryTitle';
 import { useFilteredLibraryItems } from '@/features/dashboard/lib/hooks/useFilteredLibraryItems';
-import { useGetAllLibraryGames } from '@/core/api/queries/gameLibrary.queries';
+import { useGetLibraryPageBFFResponse } from '@/core/api/queries/gameLibrary.queries';
+import type { LibraryGameItemResponse } from '@/types/domain/library-types';
 
 export function LibraryPageContent() {
   const { viewMode, setGames } = useLibraryStore();
@@ -20,14 +21,21 @@ export function LibraryPageContent() {
   const platformFilter = useLibraryStore((state) => state.platformFilter);
   const searchQuery = useLibraryStore((state) => state.searchQuery);
 
-  const { data: libraryGames } = useGetAllLibraryGames();
+  const {
+    data: bffResponse,
+    isLoading,
+    error
+  } = useGetLibraryPageBFFResponse();
+
+  const libraryItems = bffResponse?.libraryItems ?? [];
+  const recentlyAdded = bffResponse?.recentlyAdded ?? [];
 
   // Set games in store when page mounts
   useEffect(() => {
-    if (libraryGames) {
-      setGames(libraryGames);
+    if (libraryItems.length > 0) {
+      setGames(libraryItems);
     }
-  }, [libraryGames, setGames]);
+  }, [libraryItems, setGames]);
 
   /* Combined filtering for both platform and title search */
   const filteredServices = useFilteredLibraryItems(services, platformFilter, searchQuery);
@@ -39,8 +47,31 @@ export function LibraryPageContent() {
     platformFilter,
   });
 
-  console.log('filteredServices', filteredServices);
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <PageMain>
+        <PageHeadline>
+          <div className='flex items-center'>
+            <h1 className='text-3xl font-bold tracking-tight'>Loading...</h1>
+          </div>
+        </PageHeadline>
+      </PageMain>
+    );
+  }
 
+  // Handle error state
+  if (error) {
+    return (
+      <PageMain>
+        <PageHeadline>
+          <div className='flex items-center'>
+            <h1 className='text-3xl font-bold tracking-tight'>Error loading library</h1>
+          </div>
+        </PageHeadline>
+      </PageMain>
+    );
+  }
 
   /* Guard clause empty state - first time user zero services */
   if (services.length === 0) {
@@ -69,7 +100,7 @@ export function LibraryPageContent() {
 
     return (
       <div className="flex h-full w-full flex-wrap content-start">
-        {filteredServices.map((item, index) => (
+        {filteredServices.map((item: LibraryGameItemResponse, index) => (
           <CardComponent
             key={`${item.name}-${index}`}
             index={index}
@@ -78,7 +109,7 @@ export function LibraryPageContent() {
             coverUrl={item.coverUrl}
             firstReleaseDate={item.firstReleaseDate}
             rating={item.rating}
-            themeNames={item.themeNames}
+            themeNames={item.themeNames ?? null}
             isInLibrary={item.isInLibrary}
             isInWishlist={item.isInWishlist}
             gameType={item.gameType}

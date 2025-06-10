@@ -71,3 +71,28 @@ type LibraryGameDigitalLocationDBResponse struct {
 }
 
 // New types
+
+// LibraryGameItemResponse represents a game item in the library response
+type LibraryGameItemResponse struct {
+	ID                    int64    `json:"id"`
+	Name                  string   `json:"name"`
+	CoverURL             string   `json:"coverUrl"`
+	FirstReleaseDate     int64    `json:"firstReleaseDate"`
+	Rating               float64  `json:"rating"`
+	IsInLibrary          bool     `json:"isInLibrary"`
+	IsInWishlist         bool     `json:"isInWishlist"`
+	IsUniqueCopy         bool     `json:"isUniqueCopy"`
+	GameType             struct {
+		DisplayText    string `json:"displayText"`
+		NormalizedText string `json:"normalizedText"`
+	} `json:"gameType"`
+	Favorite             bool     `json:"favorite"`
+	ThemeNames           []string `json:"themeNames,omitempty"`
+	GamesByPlatformAndLocation []GameLocationDBResult `json:"gamesByPlatformAndLocation"`
+}
+
+// LibraryBFFResponse represents the response for the BFF endpoint
+type LibraryBFFResponse struct {
+	LibraryItems  []LibraryGameItemResponse `json:"libraryItems"`
+	RecentlyAdded []LibraryGameItemResponse `json:"recentlyAdded"`
+}

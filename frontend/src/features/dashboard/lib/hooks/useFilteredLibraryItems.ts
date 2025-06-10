@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import type { LibraryGameItem } from '@/types/domain/library-types';
+import type { LibraryGameItem, LibraryGameItemResponse } from '@/types/domain/library-types';
 
 /**
  * Interface for the transformed library item structure used in the UI
  */
-type TransformedLibraryItem = LibraryGameItem;
+type TransformedLibraryItem = LibraryGameItemResponse;
 
 /**
  * Custom hook that filters and transforms library items based on platform and search criteria
@@ -32,7 +32,7 @@ type TransformedLibraryItem = LibraryGameItem;
  * ```
  */
 export function useFilteredLibraryItems(
-  services: LibraryGameItem[],
+  services: LibraryGameItemResponse[],
   platformFilter: string | null,
   searchQuery: string | null
 ): TransformedLibraryItem[] {

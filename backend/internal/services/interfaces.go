@@ -59,6 +59,12 @@ type SublocationService interface {
 // LibraryService defines operations for managing the game library
 type LibraryService interface {
 	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+
+	GetAllLibraryItemsBFF(
+		ctx context.Context,
+		userID string,
+	) (types.LibraryBFFResponse, error)
+
 	GetAllLibraryGames(
 		ctx context.Context,
 		userID string,

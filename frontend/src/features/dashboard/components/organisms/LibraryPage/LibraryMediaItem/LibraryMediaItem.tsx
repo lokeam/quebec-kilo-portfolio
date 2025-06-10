@@ -15,7 +15,7 @@ import { IconFileFilled } from "@tabler/icons-react"
 import { LibraryItemContextMenu } from '../LibraryMediaListItem/LibraryItemContextMenu';
 
 // Types
-import type { GamePlatformLocation, GameType } from '@/types/domain/library-types';
+import type { GamePlatformLocation, GamePlatformLocationResponse, GameType } from '@/types/domain/library-types';
 
 interface LibraryMediaItemProps {
   index?: number;
@@ -30,7 +30,7 @@ interface LibraryMediaItemProps {
   isInWishlist: boolean;
   gameType: GameType;
   favorite: boolean;
-  gamesByPlatformAndLocation?: GamePlatformLocation[];
+  gamesByPlatformAndLocation?: GamePlatformLocationResponse[];
   onRemoveFromLibrary?: () => void;
 }
 

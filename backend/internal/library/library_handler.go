@@ -50,6 +50,9 @@ func RegisterLibraryRoutes(
 		r.Put("/", UpdateLibraryGame(appCtx, libraryServices, analyticsService))
 		r.Delete("/", DeleteGameFromLibrary(appCtx, libraryServices, analyticsService))
 	})
+
+	// BFF route
+	r.Get("/bff", GetAllLibraryItemsBFF(appCtx, libraryServices))
 }
 
 // helper fn to standardize error handling
@@ -68,6 +71,57 @@ func handleError(
 		statusCode,
 	)
 }
+
+// GetAllLibraryItemsBFF handles GET requests for the /library/bff page
+func GetAllLibraryItemsBFF(
+	appCtx *appcontext.AppContext,
+	libraryServices services.DomainLibraryServices,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		appCtx.Logger.Info("Logging requestID and userID for library BFF request", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		domain := httputils.GetDomainFromRequest(r, "games")
+		service, exists := libraryServices[domain]
+		if !exists {
+			handleError(w, appCtx.Logger, requestID, errors.New("domain not found in libraryServices"))
+			return
+		}
+
+		libraryItemsPayload, err := service.GetAllLibraryItemsBFF(r.Context(), userID)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"library": libraryItemsPayload,
+		})
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
 
 // GetAllLibraryGames handles GET requests for listing all library games
 func GetAllLibraryGames(

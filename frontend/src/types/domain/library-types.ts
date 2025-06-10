@@ -47,6 +47,64 @@ export interface CreateLibraryGameRequestLocationEntry {
   };
 }
 
+// THIS TYPE TO BE SINGLE POINT OF TRUTH FOR ALL LIBRARY GAME DATA
+export interface LibraryGameItemResponse {
+  id: number;
+  name: string;
+  coverUrl: string;
+  firstReleaseDate: number;
+  rating: number;
+  isInLibrary: boolean;
+  isInWishlist: boolean;
+  isUniqueCopy: boolean;
+  gameType: {
+    displayText: string;
+    normalizedText: string;
+  };
+  favorite: boolean;
+  themeNames?: string[];
+  genreNames?: string[];
+  gamesByPlatformAndLocation: Array<{
+    gameId: number;
+    platformId: number;
+    platformName: string;
+    platformCategory?: string;
+    type: 'physical' | 'digital';
+    locationId: string;
+    sublocationId?: string;
+    sublocationName?: string;
+    sublocationType?: string;
+    parentLocationId?: string;
+    parentLocationType?: string;
+    parentLocationBgColor?: string;
+    parentLocationName?: string;
+  }>;
+}
+
+export interface GamePlatformLocationResponse {
+  gameId: number;
+  platformId: number;
+  platformName: string;
+  platformCategory?: string;
+  type: 'digital' | 'physical';
+  locationId: string;
+  sublocationId?: string;
+  sublocationName?: string;
+  sublocationType?: string;
+  parentLocationId?: string;
+  parentLocationType?: string;
+  parentLocationBgColor?: string;
+  parentLocationName?: string;
+}
+
+// Library BFF Response
+export interface LibraryItemsBFFResponse {
+  libraryItems: LibraryGameItemResponse[];
+  recentlyAdded: LibraryGameItemResponse[];
+}
+
+
+
 export interface LibraryGameItem {
   id: number;
   name: string;
@@ -60,19 +118,23 @@ export interface LibraryGameItem {
     normalizedText: string;
   };
   favorite: boolean;
+  themeNames: string[] | null;
   gamesByPlatformAndLocation: Array<{
     gameId: number;
     platformId: number;
     platformName: string;
     type: 'physical' | 'digital';
     locationId: string;
-    locationName: string;
-    locationType: string;
+    locationName: string;   // LEGACY FIELD: DO NOT USE. SEE LocationsBFFSublocationResponse type
+    locationType?: string;  // LEGACY FIELD: DO NOT USE. SEE LocationsBFFSublocationResponse type
     sublocationId?: string;
     sublocationName?: string;
     sublocationType?: string;
-    sublocationBgColor?: string;
-    isActive?: boolean;
+    sublocationBgColor?: string; // LEGACY FIELD: DO NOT USE. SEE LocationsBFFSublocationResponse type
+    parentLocationType?: string;
+    parentLocationBgColor?: string;
+    parentLocationName?: string;
+    isActive?: boolean; // LEGACY FIELD: DO NOT USE. MARKED FOR DELETION.
   }>;
 }
 

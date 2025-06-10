@@ -2,6 +2,8 @@ package library
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -52,6 +54,166 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 		scanner: &postgres.GameScanner{},
 	}, nil
 }
+
+// --- QUERIES ---
+const (
+	getAllLibraryItemsAndRecentsLibraryBFFResponse = `
+	WITH base_game_data AS (
+			SELECT
+					ug.id as user_game_id,
+					g.id as game_id,
+					g.name,
+					g.cover_url,
+					g.first_release_date,
+					g.rating,
+					ug.game_type,
+					ug.favorite,
+					ug.created_at,
+					ug.is_unique_copy,
+					p.id as platform_id,
+					p.name as platform_name,
+					p.category as platform_category
+			FROM user_games ug
+			JOIN games g ON ug.game_id = g.id
+			JOIN platforms p ON ug.platform_id = p.id
+			WHERE ug.user_id = $1
+	),
+	game_themes AS (
+			SELECT
+					g.id as game_id,
+					JSON_AGG(t.name) as theme_names
+			FROM games g
+			JOIN game_themes gt ON g.id = gt.game_id
+			JOIN themes t ON gt.theme_id = t.id
+			GROUP BY g.id
+	),
+	physical_locations AS (
+			SELECT
+					pgl.user_game_id,
+					JSON_AGG(
+							JSON_BUILD_OBJECT(
+									'gameId', ug.game_id,
+									'platformId', ug.platform_id,
+									'platformName', p.name,
+									'platformCategory', p.category,
+									'type', 'physical',
+									'locationId', sl.id,
+									'sublocationId', sl.id,
+									'sublocationName', sl.name,
+									'sublocationType', sl.location_type,
+									'parentLocationId', pl.id,
+									'parentLocationType', pl.location_type,
+									'parentLocationName', pl.name
+							)
+					) as locations
+			FROM physical_game_locations pgl
+			JOIN user_games ug ON pgl.user_game_id = ug.id
+			JOIN platforms p ON ug.platform_id = p.id
+			JOIN sublocations sl ON pgl.sublocation_id = sl.id
+			JOIN physical_locations pl ON sl.physical_location_id = pl.id
+			WHERE ug.user_id = $1
+			GROUP BY pgl.user_game_id
+	),
+	digital_locations AS (
+			SELECT
+					dgl.user_game_id,
+					JSON_AGG(
+							JSON_BUILD_OBJECT(
+									'gameId', ug.game_id,
+									'platformId', ug.platform_id,
+									'platformName', p.name,
+									'platformCategory', p.category,
+									'type', 'digital',
+									'locationId', dl.id,
+									'digitalLocationId', dl.id,
+									'locationName', dl.name,
+									'isActive', dl.is_active,
+									'isSubscription', dl.is_subscription
+							)
+					) as locations
+			FROM digital_game_locations dgl
+			JOIN user_games ug ON dgl.user_game_id = ug.id
+			JOIN platforms p ON ug.platform_id = p.id
+			JOIN digital_locations dl ON dgl.digital_location_id = dl.id
+			WHERE ug.user_id = $1
+			GROUP BY dgl.user_game_id
+	),
+	combined_locations AS (
+			SELECT
+					user_game_id,
+					COALESCE(
+							JSON_AGG(location) FILTER (WHERE location IS NOT NULL),
+							'[]'::json
+					) as all_locations
+			FROM (
+					SELECT user_game_id, json_array_elements(locations) as location
+					FROM physical_locations
+					UNION ALL
+					SELECT user_game_id, json_array_elements(locations) as location
+					FROM digital_locations
+			) combined
+			GROUP BY user_game_id
+	),
+	final_game_data AS (
+			SELECT
+					bgd.*,
+					COALESCE(gt.theme_names, '[]'::json) as theme_names,
+					COALESCE(cl.all_locations, '[]'::json) as games_by_platform_and_location
+			FROM base_game_data bgd
+			LEFT JOIN game_themes gt ON bgd.game_id = gt.game_id
+			LEFT JOIN combined_locations cl ON bgd.user_game_id = cl.user_game_id
+	)
+	SELECT
+			JSON_BUILD_OBJECT(
+					'libraryItems', (
+							SELECT JSON_AGG(
+									JSON_BUILD_OBJECT(
+											'id', game_id,
+											'name', name,
+											'coverUrl', cover_url,
+											'firstReleaseDate', first_release_date,
+											'rating', rating,
+											'isInLibrary', true,
+											'isInWishlist', false,
+											'isUniqueCopy', is_unique_copy,
+											'gameType', JSON_BUILD_OBJECT(
+													'displayText', game_type,
+													'normalizedText', LOWER(game_type)
+											),
+											'favorite', favorite,
+											'themeNames', theme_names,
+											'gamesByPlatformAndLocation', games_by_platform_and_location
+									)
+							)
+							FROM final_game_data
+					),
+					'recentlyAdded', (
+							SELECT JSON_AGG(
+									JSON_BUILD_OBJECT(
+											'id', game_id,
+											'name', name,
+											'coverUrl', cover_url,
+											'firstReleaseDate', first_release_date,
+											'rating', rating,
+											'isInLibrary', true,
+											'isInWishlist', false,
+											'isUniqueCopy', is_unique_copy,
+											'gameType', JSON_BUILD_OBJECT(
+													'displayText', game_type,
+													'normalizedText', LOWER(game_type)
+											),
+											'favorite', favorite,
+											'themeNames', theme_names,
+											'gamesByPlatformAndLocation', games_by_platform_and_location
+									)
+							)
+							FROM final_game_data
+							WHERE created_at >= NOW() - INTERVAL '6 months'
+					)
+			) as response
+	`
+)
+
 
 // GET
 // GetSingleLibraryGame retrieves a game from a user's library.
@@ -116,12 +278,16 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
         ug.game_type as type,
         COALESCE(pl.id::text, dl.id::text) as location_id,
         COALESCE(pl.name, dl.name) as location_name,
-        COALESCE(pl.location_type, 'digital') as location_type,
+        CASE
+            WHEN pl.id IS NOT NULL THEN pl.location_type
+            ELSE NULL
+        END as location_type,
         sl.id::text as sublocation_id,
         sl.name as sublocation_name,
         sl.location_type as sublocation_type,
         sl.bg_color as sublocation_bg_color,
-        dl.is_active
+        dl.is_active,
+        dl.is_subscription
     FROM user_games ug
     JOIN platforms p ON ug.platform_id = p.id
     LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
@@ -221,12 +387,16 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
         ug.game_type as type,
         COALESCE(pl.id::text, dl.id::text) as location_id,
         COALESCE(pl.name, dl.name) as location_name,
-        COALESCE(pl.location_type, 'digital') as location_type,
+        CASE
+            WHEN pl.id IS NOT NULL THEN pl.location_type
+            ELSE NULL
+        END as location_type,
         sl.id::text as sublocation_id,
         sl.name as sublocation_name,
         sl.location_type as sublocation_type,
         sl.bg_color as sublocation_bg_color,
-        dl.is_active
+        dl.is_active,
+        dl.is_subscription
     FROM user_games ug
     JOIN platforms p ON ug.platform_id = p.id
     LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
@@ -660,4 +830,53 @@ func getPlatformCategory(platformName string) string {
 // Helper function to determine platform model
 func getPlatformModel(platformName string) string {
 	return platformName // For now, use the platform name as the model
+}
+
+
+// GetLibraryBFFResponse returns a BFF response containing all library items and recently added items
+func (la *LibraryDbAdapter) GetLibraryBFFResponse(
+    ctx context.Context,
+    userID string,
+) (types.LibraryBFFResponse, error) {
+    la.logger.Debug("GetLibraryBFFResponse called", map[string]any{
+        "userID": userID,
+    })
+
+    var response types.LibraryBFFResponse
+    var rawResponse struct {
+        Response json.RawMessage `json:"response"`
+    }
+
+    err := la.db.GetContext(ctx, &rawResponse, getAllLibraryItemsAndRecentsLibraryBFFResponse, userID)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            // Return empty arrays instead of null
+            return types.LibraryBFFResponse{
+                LibraryItems:  []types.LibraryGameItemResponse{},
+                RecentlyAdded: []types.LibraryGameItemResponse{},
+            }, nil
+        }
+        return types.LibraryBFFResponse{}, fmt.Errorf("error getting library BFF response: %w", err)
+    }
+
+    // Unmarshal the raw response into our structured type
+    err = json.Unmarshal(rawResponse.Response, &response)
+    if err != nil {
+        return types.LibraryBFFResponse{}, fmt.Errorf("error unmarshaling library BFF response: %w", err)
+    }
+
+    // Ensure we never return null arrays
+    if response.LibraryItems == nil {
+        response.LibraryItems = []types.LibraryGameItemResponse{}
+    }
+    if response.RecentlyAdded == nil {
+        response.RecentlyAdded = []types.LibraryGameItemResponse{}
+    }
+
+    la.logger.Debug("GetLibraryBFFResponse success", map[string]any{
+        "libraryItemsCount":  len(response.LibraryItems),
+        "recentlyAddedCount": len(response.RecentlyAdded),
+    })
+
+    return response, nil
 }
