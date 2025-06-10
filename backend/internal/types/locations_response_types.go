@@ -62,12 +62,22 @@ type LocationsBFFPhysicalLocationResponse struct {
     UpdatedAt              time.Time               `json:"updated_at"`
 }
 
+type LocationsBFFStoredGameResponse struct {
+    ID            string `json:"id"`
+    Name          string `json:"name"`
+    Platform      string `json:"platform"`
+    IsUniqueCopy  bool   `json:"is_unique_copy"`
+    HasDigitalCopy bool  `json:"has_digital_copy"`
+}
+
 type LocationsBFFSublocationResponse struct {
     // Sublocation fields
-    SublocationID         string    `json:"sublocation_id"`
-    SublocationName       string    `json:"sublocation_name"`
-    SublocationType       string    `json:"sublocation_type"`
-    StoredItems           int       `json:"stored_items"`
+    SublocationID         string                           `json:"sublocation_id"`
+    SublocationName       string                           `json:"sublocation_name"`
+    SublocationType       string                           `json:"sublocation_type"`
+    StoredItems           int                              `json:"stored_items"`
+    StoredGames           []LocationsBFFStoredGameResponse `json:"stored_games"`
+
 
     // Parent physical location fields
     ParentLocationID      string                   `json:"parent_location_id"`

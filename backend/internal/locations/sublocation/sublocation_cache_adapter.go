@@ -102,6 +102,7 @@ func (sca *SublocationCacheAdapter) InvalidateLocationCache(
 	// Delete both the specific location key and the user's locations collection
 	physicalLocationKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
 	physicalLocationsKey := fmt.Sprintf("physical:%s", userID)
+	physicalBFFKey := fmt.Sprintf("physical:bff:%s", userID)
 
 	// Delete specific location cache
 	if err := sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationKey); err != nil {
@@ -110,5 +111,10 @@ func (sca *SublocationCacheAdapter) InvalidateLocationCache(
 
 	// Also delete the collection of physical locations for this user
 	// This ensures that when GetAllPhysicalLocations is called, it will fetch fresh data
-	return sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationsKey)
+	if err := sca.cacheWrapper.DeleteCacheKey(ctx, physicalLocationsKey); err != nil {
+		return err
+	}
+
+	// Delete the BFF cache to ensure fresh data for the frontend
+	return sca.cacheWrapper.DeleteCacheKey(ctx, physicalBFFKey)
 }

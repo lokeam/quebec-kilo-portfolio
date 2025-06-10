@@ -56,6 +56,14 @@ export interface LocationsBFFPhysicalLocationResponse {
   updatedAt: string; // or Date
 }
 
+export interface LocationsBFFStoredGameResponse {
+  id: string;
+  name: string;
+  platform: string;
+  isUniqueCopy: boolean;
+  hasDigitalCopy: boolean;
+}
+
 export interface LocationsBFFSublocationResponse {
   sublocationId: string;
   sublocationName: string;
@@ -68,6 +76,7 @@ export interface LocationsBFFSublocationResponse {
   mapCoordinates: MapCoordinatesResponse;
   createdAt: string; // or Date
   updatedAt: string; // or Date
+  storedGames: LocationsBFFStoredGameResponse[];
 }
 
 export interface LocationsBFFResponse {

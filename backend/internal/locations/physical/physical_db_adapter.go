@@ -172,23 +172,55 @@ const (
 	`
 
 	getAllPhysicalLocationsBFFSublocationQuery = `
-		SELECT
-				sl.id as sublocation_id,
-				sl.name as sublocation_name,
-				sl.location_type as sublocation_type,
-				sl.stored_items,
-				pl.id as parent_location_id,
-				pl.name as parent_location_name,
-				pl.location_type as parent_location_type,
-				pl.bg_color as parent_location_bg_color,
-				pl.map_coordinates,
-				sl.created_at,
-				sl.updated_at
-		FROM sublocations sl
-		JOIN physical_locations pl ON sl.physical_location_id = pl.id
-		WHERE pl.user_id = $1
-		ORDER BY pl.name, sl.name
-	`
+    WITH sublocation_data AS (
+        -- Step 1: Get all sublocations with their parent location info
+        SELECT
+            sl.id as sublocation_id,
+            sl.name as sublocation_name,
+            sl.location_type as sublocation_type,
+            sl.stored_items,
+            pl.id as parent_location_id,
+            pl.name as parent_location_name,
+            pl.location_type as parent_location_type,
+            pl.bg_color as parent_location_bg_color,
+            pl.map_coordinates,
+            sl.created_at,
+            sl.updated_at
+        FROM sublocations sl
+        JOIN physical_locations pl ON sl.physical_location_id = pl.id
+        WHERE pl.user_id = $1
+    )
+    -- Step 2: For each sublocation, get its games
+    SELECT
+        sd.*,
+        COALESCE(
+            (
+                SELECT json_agg(
+                    json_build_object(
+                        'id', ug.id,
+                        'name', g.name,
+                        'platform', p.name,
+                        'is_unique_copy', ug.is_unique_copy,
+                        'has_digital_copy', EXISTS (
+                            SELECT 1
+                            FROM user_games ug2
+                            WHERE ug2.game_id = ug.game_id
+                            AND ug2.platform_id = ug.platform_id
+                            AND ug2.game_type = 'digital'
+                        )
+                    )
+                )
+                FROM physical_game_locations pgl
+                JOIN user_games ug ON pgl.user_game_id = ug.id
+                JOIN games g ON ug.game_id = g.id
+                JOIN platforms p ON ug.platform_id = p.id
+                WHERE pgl.sublocation_id = sd.sublocation_id
+            ),
+            '[]'::json
+        ) as stored_games
+    FROM sublocation_data sd
+    ORDER BY sd.parent_location_name, sd.sublocation_name
+`
 )
 
 // GET
@@ -360,7 +392,8 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	}
 	defer physicalLocationRows.Close()
 
-	var physicalLocations []types.LocationsBFFPhysicalLocationResponse
+	// Initialize with empty slice instead of nil
+	physicalLocations := make([]types.LocationsBFFPhysicalLocationResponse, 0)
 	for physicalLocationRows.Next() {
 		var id, name, locationType, mapCoords, bgColor string
 		var createdAt, updatedAt time.Time
@@ -398,7 +431,9 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	}
 	defer sublocationRows.Close()
 
-	var sublocations []types.LocationsBFFSublocationResponse
+	// Initialize with empty slice instead of nil
+	sublocations := make([]types.LocationsBFFSublocationResponse, 0)
+	var storedGamesJSON []byte
 	for sublocationRows.Next() {
 		var sublocationID, sublocationName, sublocationType string
 		var storedItems int
@@ -416,11 +451,19 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 			&mapCoords,
 			&createdAt,
 			&updatedAt,
+			&storedGamesJSON,
 		)
 		if err != nil {
 			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan sublocation: %w", err)
 		}
 
+		// Unmarshal stored games
+		var storedGames []types.LocationsBFFStoredGameResponse
+		if len(storedGamesJSON) > 0 {
+				if err := json.Unmarshal(storedGamesJSON, &storedGames); err != nil {
+						return types.LocationsBFFResponse{}, fmt.Errorf("failed to unmarshal stored games: %w", err)
+				}
+		}
 		// Unescape HTML entities in both sublocation and parent location names
 		unescapedSublocationName := html.UnescapeString(sublocationName)
 		unescapedParentLocationName := html.UnescapeString(parentLocationName)
@@ -430,6 +473,7 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 			SublocationName:       unescapedSublocationName,
 			SublocationType:       sublocationType,
 			StoredItems:           storedItems,
+			StoredGames:           storedGames,
 			ParentLocationID:      parentLocationID,
 			ParentLocationName:    unescapedParentLocationName,
 			ParentLocationType:    parentLocationType,

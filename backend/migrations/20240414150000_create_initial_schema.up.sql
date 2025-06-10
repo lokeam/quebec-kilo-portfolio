@@ -77,6 +77,8 @@ CREATE TABLE user_games (
     game_id BIGINT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     platform_id BIGINT NOT NULL REFERENCES platforms(id) ON DELETE CASCADE,
     game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
+    copy_number INTEGER NOT NULL DEFAULT 1,
+    is_unique_copy BOOLEAN NOT NULL DEFAULT true,
     favorite BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (user_id, game_id, platform_id)
@@ -105,7 +107,8 @@ CREATE TABLE sublocations (
     stored_items INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(physical_location_id, name)
+    UNIQUE(physical_location_id, name),
+    CONSTRAINT stored_items_non_negative CHECK (stored_items >= 0)
 );
 
 -- Create physical_game_locations table
@@ -217,3 +220,26 @@ CREATE INDEX idx_expenses_digital_location_id ON expenses(digital_location_id);
 CREATE INDEX idx_expenses_user_game_id ON expenses(user_game_id);
 CREATE INDEX idx_wishlist_user_id ON wishlist(user_id);
 CREATE INDEX idx_wishlist_game_id ON wishlist(game_id);
+
+-- Create trigger function for maintaining stored_items count
+CREATE OR REPLACE FUNCTION update_stored_items_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE sublocations
+        SET stored_items = stored_items + 1
+        WHERE id = NEW.sublocation_id;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE sublocations
+        SET stored_items = stored_items - 1
+        WHERE id = OLD.sublocation_id;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for maintaining stored_items count
+CREATE TRIGGER update_stored_items
+AFTER INSERT OR DELETE ON physical_game_locations
+FOR EACH ROW
+EXECUTE FUNCTION update_stored_items_count();

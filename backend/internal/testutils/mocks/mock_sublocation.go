@@ -65,77 +65,6 @@ func (m *MockSublocationValidator) ValidateDeleteSublocationRequest(userID strin
 	return nil
 }
 
-type MockSublocationDbAdapter struct {
-	GetSublocationFunc func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error)
-	GetSublocationsFunc func(ctx context.Context, userID string) ([]models.Sublocation, error)
-	AddSublocationFunc func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error)
-	UpdateSublocationFunc func(ctx context.Context, userID string, sublocation models.Sublocation) error
-	DeleteSublocationFunc func(ctx context.Context, userID string, sublocationID string) error
-	CheckDuplicateSublocationFunc func(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error)
-	CheckGameOwnershipFunc func(ctx context.Context, userID string, userGameID string) (bool, error)
-	CheckGameInSublocationFunc func(ctx context.Context, userGameID string, sublocationID string) (bool, error)
-}
-
-// GET
-func (m *MockSublocationDbAdapter) GetAllSublocations(ctx context.Context, userID string) ([]models.Sublocation, error) {
-	if m.GetSublocationsFunc != nil {
-		return m.GetSublocationsFunc(ctx, userID)
-	}
-	return nil, nil
-}
-
-func (m *MockSublocationDbAdapter) GetSingleSublocation(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
-	if m.GetSublocationFunc != nil {
-		return m.GetSublocationFunc(ctx, userID, sublocationID)
-	}
-	return models.Sublocation{}, nil
-}
-
-// POST
-func (m *MockSublocationDbAdapter) CreateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
-	if m.AddSublocationFunc != nil {
-	return m.AddSublocationFunc(ctx, userID, sublocation)
-	}
-	return sublocation, nil
-}
-
-// PUT
-func (m *MockSublocationDbAdapter) UpdateSublocation(ctx context.Context, userID string, sublocation models.Sublocation) error {
-	if m.UpdateSublocationFunc != nil {
-	return m.UpdateSublocationFunc(ctx, userID, sublocation)
-	}
-	return nil
-}
-
-// DELETE
-func (m *MockSublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationID string) error {
-	if m.DeleteSublocationFunc != nil {
-	return m.DeleteSublocationFunc(ctx, userID, sublocationID)
-}
-	return nil
-}
-
-func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(ctx context.Context, userID string, physicalLocationID string, name string) (bool, error) {
-	if m.CheckDuplicateSublocationFunc != nil {
-	return m.CheckDuplicateSublocationFunc(ctx, userID, physicalLocationID, name)
-	}
-	return false, nil
-}
-
-func (m *MockSublocationDbAdapter) CheckGameOwnership(ctx context.Context, userID string, userGameID string) (bool, error) {
-	if m.CheckGameOwnershipFunc != nil {
-		return m.CheckGameOwnershipFunc(ctx, userID, userGameID)
-	}
-	return true, nil
-}
-
-func (m *MockSublocationDbAdapter) CheckGameInSublocation(ctx context.Context, userGameID string, sublocationID string) (bool, error) {
-	if m.CheckGameInSublocationFunc != nil {
-		return m.CheckGameInSublocationFunc(ctx, userGameID, sublocationID)
-	}
-	return false, nil
-}
-
 type MockSublocationCacheWrapper struct {
 	GetCachedSublocationsFunc           func(ctx context.Context, userID string) ([]models.Sublocation, error)
 	SetCachedSublocationsFunc           func(ctx context.Context, userID string, locations []models.Sublocation) error
@@ -200,8 +129,5 @@ func (m *MockSublocationCacheWrapper) InvalidateLocationCache(
 	userID,
 	locationID string,
 ) error {
-	if m.InvalidateLocationCacheFunc != nil {
-		return m.InvalidateLocationCacheFunc(ctx, userID, locationID)
-	}
-	return nil
+	return m.InvalidateLocationCacheFunc(ctx, userID, locationID)
 }

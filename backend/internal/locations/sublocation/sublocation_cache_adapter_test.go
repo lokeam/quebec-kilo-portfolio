@@ -88,6 +88,11 @@ func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error
 	return args.Error(0)
 }
 
+func (m *MockCacheWrapper) InvalidateCache(ctx context.Context, pattern string) error {
+	args := m.Called(ctx, pattern)
+	return args.Error(0)
+}
+
 func TestSublocationCacheAdapter(t *testing.T) {
 	// Setup test data
 	testSublocationID := "test-sublocation-id"
@@ -367,6 +372,37 @@ func TestSublocationCacheAdapter(t *testing.T) {
 			t.Errorf("Expected error %v but instead got %v", errTest, err)
 		}
 		mockCache.AssertExpectations(t)
+	})
+
+	/*
+	   GIVEN a sublocation with a different user ID than the one provided
+	   WHEN SetSingleCachedSublocation is called
+	   THEN it should return an error
+	*/
+	t.Run(`SetSingleCachedSublocation - User ID Mismatch`, func(t *testing.T) {
+		// GIVEN
+		mockCache := new(MockCacheWrapper)
+		wrongUserSublocation := models.Sublocation{
+			ID:              testSublocationID,
+			UserID:          "wrong-user-id",
+			Name:            "Test Sublocation",
+			LocationType:    "shelf",
+			StoredItems:     20,
+		}
+
+		adapter := createAdapter(mockCache)
+
+		// WHEN
+		err := adapter.SetSingleCachedSublocation(context.Background(), testUserID, wrongUserSublocation)
+
+		// THEN
+		if err == nil {
+			t.Error("Expected error for user ID mismatch, got nil")
+		}
+		if err.Error() != "sublocation does not belong to user" {
+			t.Errorf("Expected error message 'sublocation does not belong to user', got '%v'", err)
+		}
+		mockCache.AssertNotCalled(t, "SetCachedResults")
 	})
 
 	// ----------- InvalidateUserCache -----------

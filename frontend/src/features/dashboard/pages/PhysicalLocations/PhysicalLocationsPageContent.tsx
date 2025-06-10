@@ -71,6 +71,11 @@ const ErrorState = ({ error }: { error: unknown }) => (
     <p className="text-red-500">
       Error loading physical location data: {error instanceof Error ? error.message : 'An unknown error occurred'}
     </p>
+    {/*
+    <p className="text-red-500">
+      Error loading physical location data: {error instanceof Error ? error.message : 'An unknown error occurred'}
+    </p>
+    */}
   </div>
 );
 
