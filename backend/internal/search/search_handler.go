@@ -4,39 +4,51 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Use DomainSearchServices from services package
-type DomainSearchServices = services.DomainSearchServices
+type SearchHandler struct {
+	appContext *appcontext.AppContext
+	searchService services.SearchService
+	libraryService services.LibraryService
+	wishlistService services.WishlistService
+}
 
 type SearchRequestBody struct {
 	Query string `json:"query"`
 	Limit int    `json:"limit,omitempty"`
 }
 
+// RegisterSearchRoutes registers all search routes
+func RegisterSearchRoutes(
+	r chi.Router,
+	appCtx *appcontext.AppContext,
+	searchService services.SearchService,
+	libraryService services.LibraryService,
+	wishlistService services.WishlistService,
+) {
+	r.Post("/", NewSearchHandler(appCtx, searchService, libraryService, wishlistService))
+	r.Get("/bff", GetGameStorageLocationsBFF(appCtx, searchService))
+}
+
 // NewSearchHandler returns an http.HandlerFunc which handles search requests.
 func NewSearchHandler(
 	appCtx *appcontext.AppContext,
-	searchServices services.DomainSearchServices,
+	searchService services.SearchService,
 	libraryService services.LibraryService,
 	wishlistService services.WishlistService,
 ) http.HandlerFunc {
-	// Instantiate the concrete search service.
-	appCtx.Logger.Info("NewSearchHandler created, initializing game search service", map[string]any{
-		"appContext": appCtx,
-		"availableDomains": getKeysFromMap(searchServices),
-	})
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		appCtx.Logger.Info("SearchHandler ServeHTTP called", map[string]any{
@@ -106,7 +118,6 @@ func NewSearchHandler(
 			return
 		}
 
-
 		// 6. Retrieve the IGDB access token key.
 		twitchAccessTokenKey, err := appCtx.Config.IGDB.GetAccessTokenKey()
 		if err != nil || twitchAccessTokenKey == "" {
@@ -148,25 +159,8 @@ func NewSearchHandler(
 		req := searchdef.SearchRequest{Query: query, Limit: limit}
 		var result *searchdef.SearchResult
 
-		// 9. Dispatch to the appropriate service.
-		service, exists := searchServices[domain]
-		if !exists {
-			domainErr := &types.DomainError{
-				Domain: domain,
-				Err:    fmt.Errorf("unsupported domain: %s", domain),
-			}
 
-			httputils.RespondWithError(
-				httputils.NewResponseWriterAdapter(w),
-				appCtx.Logger,
-				requestID,
-				domainErr,
-				http.StatusBadRequest,
-			)
-			return
-		}
-
-		result, err = service.Search(r.Context(), req)
+		result, err = searchService.Search(r.Context(), req)
 		if err != nil {
 			httputils.RespondWithError(
 				httputils.NewResponseWriterAdapter(w),
@@ -229,6 +223,49 @@ func NewSearchHandler(
 	}
 }
 
+
+func GetGameStorageLocationsBFF(
+	appCtx *appcontext.AppContext,
+	searchService services.SearchService,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		requestID := httputils.GetRequestID(r)
+
+		userID := httputils.GetUserID(r)
+		if userID == "" {
+			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
+				"request_id": requestID,
+			})
+			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
+			return
+		}
+
+		appCtx.Logger.Info("Logging requestID and userID for storage locations BFF request", map[string]any{
+			"requestID": requestID,
+			"userID":    userID,
+		})
+
+		locations, err := searchService.GetAllGameStorageLocationsBFF(r.Context(), userID)
+		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+	}
+
+		// Use standard response format
+		// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "physical" key, DO NOT use a struct{}
+		response := httputils.NewAPIResponse(r, userID, map[string]any{
+			"storage_locations": locations,
+		})
+
+		httputils.RespondWithJSON(
+			httputils.NewResponseWriterAdapter(w),
+			appCtx.Logger,
+			http.StatusOK,
+			response,
+		)
+	}
+}
+
 // Helper function to check if a game is in a list
 func containsGame(games []models.LibraryGame, gameID int64) bool {
 	for _, game := range games {
@@ -247,4 +284,16 @@ func getKeysFromMap(m map[string]services.SearchService) []string {
 	}
 
 	return keys
+}
+
+// handleError is a helper function to standardize error handling
+func handleError(w http.ResponseWriter, logger interfaces.Logger, requestID string, err error) {
+	statusCode := GetStatusCodeForError(err)
+	httputils.RespondWithError(
+		httputils.NewResponseWriterAdapter(w),
+		logger,
+		requestID,
+		err,
+		statusCode,
+	)
 }

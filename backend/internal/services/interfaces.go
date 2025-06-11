@@ -86,6 +86,7 @@ type LibraryService interface {
 	)
 	UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
+	InvalidateUserCache(ctx context.Context, userID string) error
 }
 
 // WishlistService defines operations for managing the wishlist
@@ -96,15 +97,13 @@ type WishlistService interface {
 // SearchService defines operations for searching
 type SearchService interface {
 	Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error)
+	GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error)
 }
 
 // SearchServiceFactory defines operations for creating search services
 type SearchServiceFactory interface {
 	GetService(domain string) (SearchService, error)
 }
-
-// DomainLibraryServices is a map of domain-specific library services
-type DomainLibraryServices map[string]LibraryService
 
 // DomainSearchServices is a map of domain-specific search services
 type DomainSearchServices map[string]SearchService

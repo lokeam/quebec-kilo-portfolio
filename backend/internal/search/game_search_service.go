@@ -19,12 +19,13 @@ import (
 // GameSearchService processes search requests by validating and sanitizing the query,
 // then delegating the retrieval to the IGDBCacheWrapper.
 type GameSearchService struct {
-	adapter         interfaces.IGDBAdapter       // Retrieves data directly from IGDB.
+	adapter         interfaces.IGDBAdapter                // Retrieves data directly from IGDB.
+	dbAdapter       interfaces.SearchAddGameFormDbAdapter // Gets physical and digital locations for a user
 	config          *config.Config
 	logger          interfaces.Logger
 	validator       interfaces.SearchValidator
 	sanitizer       interfaces.Sanitizer
-	cacheWrapper    interfaces.IGDBCacheWrapper  // Only handles caching.
+	cacheWrapper    interfaces.IGDBCacheWrapper
 	appContext      *appcontext.AppContext
 }
 
@@ -36,6 +37,12 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 		"appContext": appContext,
 	})
 	adapter, err := NewIGDBAdapter(appContext)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a db adapter
+	dbAdapter, err := NewSearchAddGameFormDBAdapter(appContext)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +77,7 @@ func NewGameSearchService(appContext *appcontext.AppContext) (*GameSearchService
 
 	return &GameSearchService{
 		adapter:      adapter,
+		dbAdapter:    dbAdapter,
 		config:       appContext.Config,
 		logger:       appContext.Logger,
 		validator:    validator,
@@ -144,6 +152,19 @@ func (s *GameSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 
 	return result, nil
 }
+
+// GetAllGameStorageLocations grabs all physical and digital locations for a user
+func (s *GameSearchService) GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error) {
+	// No cache, no validation, no sanitization
+	gameStorageLocations, err := s.dbAdapter.GetAllGameStorageLocationsBFF(ctx, userID)
+	if err != nil {
+		return types.AddGameFormStorageLocationsResponse{}, err
+	}
+
+	// Just grab physical, sublocation and digital locations and return
+	return gameStorageLocations, nil
+}
+
 
 func convertIGDBGame(g models.Game) models.Game {
 	return models.Game{

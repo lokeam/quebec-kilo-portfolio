@@ -13,9 +13,6 @@ import (
 // NewMockServices creates a new app.Services instance with mocks for testing
 func NewMockServices() *MockServices {
 	// Create mock services
-	libraryMap := make(services.DomainLibraryServices)
-	libraryMap["games"] = &MockLibraryService{}
-
 	searchMap := make(services.DomainSearchServices)
 	searchMap["games"] = &MockSearchService{}
 
@@ -24,7 +21,6 @@ func NewMockServices() *MockServices {
 		Physical:      &MockPhysicalService{},
 		Sublocation:   &MockSublocationService{},
 		Library:       &MockLibraryService{},
-		LibraryMap:    libraryMap,
 		Wishlist:      &MockWishlistService{},
 		SearchFactory: &MockSearchServiceFactory{},
 		SearchMap:     searchMap,
@@ -37,7 +33,6 @@ type MockServices struct {
 	Physical      services.PhysicalService
 	Sublocation   services.SublocationService
 	Library       services.LibraryService
-	LibraryMap    services.DomainLibraryServices
 	Wishlist      services.WishlistService
 	SearchFactory services.SearchServiceFactory
 	SearchMap     services.DomainSearchServices
@@ -345,6 +340,12 @@ func (m *MockLibraryService) GetAllLibraryItemsBFF(ctx context.Context, userID s
 	return args.Get(0).(types.LibraryBFFResponse), args.Error(1)
 }
 
+// InvalidateUserCache mocks the InvalidateUserCache method
+func (m *MockLibraryService) InvalidateUserCache(ctx context.Context, userID string) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
 // MockWishlistService implements services.WishlistService
 type MockWishlistService struct{}
 
@@ -353,7 +354,9 @@ func (m *MockWishlistService) GetWishlistItems(ctx context.Context, userID strin
 }
 
 // MockSearchService implements services.SearchService
-type MockSearchService struct{}
+type MockSearchService struct {
+	mock.Mock
+}
 
 func (m *MockSearchService) Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error) {
 	// Return empty search result
@@ -365,6 +368,15 @@ func (m *MockSearchService) Search(ctx context.Context, req searchdef.SearchRequ
 			ResultsPerPage: 20,
 		},
 	}, nil
+}
+
+// GetAllGameStorageLocationsBFF mocks the GetAllGameStorageLocationsBFF method
+func (m *MockSearchService) GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error) {
+	args := m.Called(ctx, userID)
+	if args.Get(0) == nil {
+		return types.AddGameFormStorageLocationsResponse{}, args.Error(1)
+	}
+	return args.Get(0).(types.AddGameFormStorageLocationsResponse), args.Error(1)
 }
 
 // MockSearchServiceFactory implements services.SearchServiceFactory

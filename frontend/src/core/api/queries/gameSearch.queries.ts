@@ -10,7 +10,7 @@ import { keepPreviousData } from '@tanstack/react-query';
 import { logger } from '@/core/utils/logger/logger';
 
 // services
-import { searchGames } from '@/core/api/services/gameSearch.service';
+import { searchGames, getAddGameFormStorageLocationsBFF } from '@/core/api/services/gameSearch.service';
 
 // base query hook
 import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
@@ -19,7 +19,12 @@ import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 import { gameSearchResultAdapter } from '@/core/api/adapters/gameSearchResult.adapter';
 
 // types
-import type { SearchCriteria, SearchResult, SearchMetadata } from '@/types/domain/search';
+import type {
+  SearchCriteria,
+  SearchResult,
+  SearchMetadata,
+  AddGameFormStorageLocationsResponse
+} from '@/types/domain/search';
 
 // constants
 import { QUERY_GARBAGE_COLLECTION_TIME, QUERY_STALE_TIME } from '@/core/api/config';
@@ -31,6 +36,7 @@ export const gameSearchKeys = {
   all: ['game-search'] as const,
   lists: () => [...gameSearchKeys.all, 'list'] as const,
   list: (criteria: SearchCriteria) => [...gameSearchKeys.lists(), criteria] as const,
+  storageLocations: () => [...gameSearchKeys.all, 'storage-locations'] as const,
 };
 
 /**
@@ -108,3 +114,66 @@ export function useGameSearch(criteria: SearchCriteria) {
     gcTime: QUERY_GARBAGE_COLLECTION_TIME,
   });
 }
+
+/**
+ * Hook to fetch storage locations for the add game form
+ *
+ * Optimized for fresh data while preventing unnecessary API calls:
+ * - Data is immediately considered stale (staleTime: 0)
+ * - Refetches on mount, window focus, and network reconnection
+ * - Deduplicates requests across components
+ * - Includes comprehensive error handling and logging
+ *
+ * @returns UseQueryResult<AddGameFormStorageLocationsResponse>
+ *
+ * @example
+ * ```tsx
+ * function AddGameForm() {
+ *   const { data, isLoading, error } = useGetAddGameFormStorageLocationsBFF();
+ *
+ *   if (isLoading) return <div>Loading...</div>;
+ *   if (error) return <div>Error: {error.message}</div>;
+ *
+ *   return (
+ *     <div>
+ *       {data.physicalLocations.map(location => (
+ *         <LocationCard key={location.id} location={location} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export const useGetAddGameFormStorageLocationsBFF = () => {
+  return useAPIQuery<AddGameFormStorageLocationsResponse>({
+    queryKey: gameSearchKeys.storageLocations(),
+    queryFn: async () => {
+      try {
+        logger.debug('Fetching add game form storage locations');
+        const response = await getAddGameFormStorageLocationsBFF();
+
+        if (!response) {
+          logger.error('No data received from server');
+          throw new Error('No data received from server');
+        }
+
+        logger.debug('Successfully fetched storage locations', {
+          physicalLocationsCount: response.physicalLocations.length,
+          digitalLocationsCount: response.digitalLocations.length
+        });
+
+        return response;
+      } catch (error) {
+        logger.error('Failed to fetch storage locations', { error });
+        throw error;
+      }
+    },
+    // Optimize for fresh data
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+  });
+};

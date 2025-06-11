@@ -48,6 +48,9 @@ type LibraryService interface {
 
 	// GetAllLibraryItemsBFF returns a BFF response containing all library items and recently added items
 	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponse, error)
+
+	// InvalidateUserCache invalidates all cache entries for a specific user
+	InvalidateUserCache(ctx context.Context, userID string) error
 }
 
 // Constructor that properly initializes the adapter
@@ -340,4 +343,9 @@ func (ls *GameLibraryService) GetAllLibraryItemsBFF(
 	})
 
 	return response, nil
+}
+
+// InvalidateUserCache invalidates all cache entries for a specific user
+func (ls *GameLibraryService) InvalidateUserCache(ctx context.Context, userID string) error {
+	return ls.cacheWrapper.InvalidateUserCache(ctx, userID)
 }

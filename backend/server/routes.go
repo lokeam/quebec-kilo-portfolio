@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -51,7 +50,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			Physical:      mockSvc.Physical,
 			Sublocation:   mockSvc.Sublocation,
 			Library:       mockSvc.Library,
-			LibraryMap:    mockSvc.LibraryMap,
 			Wishlist:      mockSvc.Wishlist,
 			SearchFactory: mockSvc.SearchFactory,
 			SearchMap:     mockSvc.SearchMap,
@@ -98,32 +96,12 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 	healthHandler := health.NewHealthHandler(s.Config, s.Logger)
 
 	// Create search handler
-	searchHandler := search.NewSearchHandler(
-		appContext,
-		svc.SearchMap,
-		svc.Library,
-		svc.Wishlist,
-	)
-
-	// Debug logging for searchHandler
-	if searchHandler == nil {
-		appContext.Logger.Error("searchHandler is nil", map[string]any{
-			"appContext": appContext,
-		})
-	} else {
-		appContext.Logger.Info("searchHandler initialized successfully", map[string]any{
-			"appContext": appContext,
-		})
-	}
-
-	if reflect.TypeOf(searchHandler) != reflect.TypeOf(http.HandlerFunc(nil)) {
-		appContext.Logger.Error("searchHandler is not of type http.HandlerFunc", map[string]any{
-			"appContext": appContext,
-		})
-	} else {
-		appContext.Logger.Info("searchHandler is of type http.HandlerFunc", map[string]any{
-			"appContext": appContext,
-		})
+	gameSearchService, err := search.NewGameSearchService(appContext)
+	if err != nil {
+			appContext.Logger.Error("Failed to create game search service", map[string]any{
+					"error": err,
+			})
+			// Handle error appropriately
 	}
 
 	// Log route setup
@@ -140,7 +118,19 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		r.Get("/health", healthHandler)
 
 		// Search
-		r.Post("/search", searchHandler)
+		r.Route("/search", func(r chi.Router) {
+			appContext.Logger.Info("Registering search routes", map[string]any{
+				"path": "/api/v1/search",
+			})
+
+			search.RegisterSearchRoutes(
+				r,
+				appContext,
+				gameSearchService,
+				svc.Library,
+				svc.Wishlist,
+		)
+		})
 
 		// Library
 		r.Route("/library", func(r chi.Router) {
@@ -149,7 +139,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			})
 
 			// Register routes using the new pattern
-			library.RegisterLibraryRoutes(r, appContext, svc.LibraryMap, svc.Analytics)
+			library.RegisterLibraryRoutes(r, appContext, svc.Library, svc.Analytics)
 		})
 
 		// Physical Locations

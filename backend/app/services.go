@@ -21,7 +21,6 @@ type Services struct {
 	Physical      services.PhysicalService
 	Sublocation   services.SublocationService
 	Library       services.LibraryService
-	LibraryMap    services.DomainLibraryServices
 	Wishlist      services.WishlistService
 	SearchFactory services.SearchServiceFactory
 	SearchMap     services.DomainSearchServices
@@ -61,10 +60,6 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing library service: %w", err)
 	}
 	servicesObj.Library = libraryService
-
-	// Create library services map
-	servicesObj.LibraryMap = make(services.DomainLibraryServices)
-	servicesObj.LibraryMap["games"] = libraryService
 
 	// Initialize wishlist service
 	wishlistService, err := wishlist.NewGameWishlistService(appCtx)
