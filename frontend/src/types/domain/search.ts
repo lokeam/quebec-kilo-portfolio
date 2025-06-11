@@ -42,3 +42,28 @@ export interface SearchMetadata {
   executionTime: number;   // Search execution time in milliseconds
   timestamp: string;       // When the search was performed (ISO string)
 }
+
+/**
+ * Storage location types for the add game form
+ */
+export interface AddGameFormStorageLocationsResponse {
+  physicalLocations: AddGameFormPhysicalLocationsResponse[];
+  digitalLocations: AddGameFormDigitalLocationsResponse[];
+}
+
+export interface AddGameFormPhysicalLocationsResponse {
+  parentLocationId: string;
+  parentLocationName: string;
+  parentLocationType: string;
+  parentLocationBgColor: string;
+  sublocationId: string;
+  sublocationName: string;
+  sublocationType: string;
+}
+
+export interface AddGameFormDigitalLocationsResponse {
+  digitalLocationId: string;
+  digitalLocationName: string;
+  isSubscription: boolean;
+  isActive: boolean;
+}

@@ -57,8 +57,9 @@ export const useGetLibraryPageBFFResponse = () => {
         throw error;
       }
     },
-    staleTime: 5000,
-    refetchOnMount: false,
+    staleTime: 0, // Consider data stale immediately
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
@@ -101,7 +102,11 @@ export const useCreateLibraryGame = () => {
       return createLibraryGame(apiRequest);
     },
     onSuccess: (data) => {
-      console.log('❔🔎 useCreateLibraryGame query onSuccess, data - ', data);
+      console.log('🔍 DEBUG: useCreateLibraryGame onSuccess:', {
+        data,
+        queryKey: gameLibraryKeys.lists(),
+        currentCache: queryClient.getQueryData(gameLibraryKeys.lists())
+      });
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
 
       showToast({
@@ -109,6 +114,21 @@ export const useCreateLibraryGame = () => {
         variant: 'success',
         duration: TOAST_DURATIONS.EXTENDED,
       });
+    },
+    onMutate: async (newGame) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: gameLibraryKeys.lists() });
+
+      // Snapshot the previous value
+      const previousGames = queryClient.getQueryData(gameLibraryKeys.lists());
+
+      // Optimistically update the cache
+      queryClient.setQueryData(gameLibraryKeys.lists(), (old: any) => ({
+        ...old,
+        libraryItems: [...(old?.libraryItems || []), newGame]
+      }));
+
+      return { previousGames };
     },
 
     onError: (error) => {
@@ -119,6 +139,10 @@ export const useCreateLibraryGame = () => {
         duration: TOAST_DURATIONS.EXTENDED,
       });
     },
+    onSettled: () => {
+      // Always refetch after error or success
+      queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
+    }
   });
 };
 

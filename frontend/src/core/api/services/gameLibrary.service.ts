@@ -8,21 +8,57 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // types
-import type { ApiResponse } from '@/types/api/api.types';
-import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest, LibraryGameItem, LibraryGameItemResponse, LibraryItemsBFFResponse } from '@/types/domain/library-types';
+// import type { ApiResponse } from '@/types/api/api.types';
+import type { CreateLibraryGameRequest, LibraryGameItemResponse } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
 const LIBRARY_BFF_ENDPOINT = '/v1/library/bff';
 
-interface LibraryResponseWrapper {
+interface LibraryOperationResponseWrapper {
+  success: boolean;
   library: {
-    success: boolean;
-    games?: LibraryGameItemResponse[];
-    game?: LibraryGameItemResponse;
+    id: number;
+    message: string;
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
   };
 }
+
+interface LibraryGameResponseWrapper {
+  success: boolean;
+  library: {
+    game: LibraryGameItemResponse;
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+
+type LibraryOperationResponse = {
+  id: number;
+  message: string;
+};
+
+interface LibraryBFFResponseWrapper {
+  success: boolean;
+  library: {
+    libraryItems: LibraryGameItemResponse[];
+    recentlyAdded: LibraryGameItemResponse[];
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+
+type LibraryBFFResponse = {
+  libraryItems: LibraryGameItemResponse[];
+  recentlyAdded: LibraryGameItemResponse[];
+};
 
 /**
  * Fetches all games for the current user.
@@ -38,10 +74,10 @@ interface LibraryResponseWrapper {
  *   return apiRequest('getAllGames', () => axios.get(...));
  */
 
-export const getLibraryPageBFFResponse = (): Promise<LibraryItemsBFFResponse> =>
+export const getLibraryPageBFFResponse = (): Promise<LibraryBFFResponse> =>
   apiRequest('getLibraryPageBFFResponse', async () => {
     console.log('[DEBUG] getLibraryPageBFFResponse: Making API request');
-    const response = await axiosInstance.get<{ library: LibraryItemsBFFResponse }>(LIBRARY_BFF_ENDPOINT);
+    const response = await axiosInstance.get<LibraryBFFResponseWrapper>(LIBRARY_BFF_ENDPOINT);
     console.log('[DEBUG] getLibraryPageBFFResponse: Raw API response:', response.data);
 
     if (!response.data.library) {
@@ -77,7 +113,7 @@ export const getLibraryPageBFFResponse = (): Promise<LibraryItemsBFFResponse> =>
 export const getLibraryGameById = (id: string): Promise<LibraryGameItemResponse> =>
   apiRequest(`getGameById(${id})`, () =>
     axiosInstance
-      .get<LibraryResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)
+      .get<LibraryGameResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)
       .then(response => {
         const game = response.data.library.game;
         if (!game) {
@@ -101,12 +137,12 @@ export const getLibraryGameById = (id: string): Promise<LibraryGameItemResponse>
  * Usage:
  *   return apiRequest('createGame', () => axios.post(...));
  */
-export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<Game> =>
+export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<LibraryOperationResponse> =>
   apiRequest('createGame', () =>
     axiosInstance
-      .post<LibraryResponseWrapper>(LIBRARY_ENDPOINT, data)
+      .post<LibraryOperationResponseWrapper>(LIBRARY_ENDPOINT, data)
       .then(response => {
-        const game = response.data.library.game;
+        const game = response.data.library;
         if (!game) {
           throw new Error('Failed to create game');
         }
@@ -128,12 +164,12 @@ export const createLibraryGame = (data: CreateLibraryGameRequest): Promise<Game>
  * Usage:
  *   return apiRequest('updateGame', () => axios.put(...));
  */
-export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameRequest>): Promise<Game> =>
+export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameRequest>): Promise<LibraryOperationResponse> =>
   apiRequest(`updateGame(${id})`, () =>
     axiosInstance
-      .put<LibraryResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`, data)
+      .put<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`, data)
       .then(response => {
-        const game = response.data.library.game;
+        const game = response.data.library;
         if (!game) {
           throw new Error(`Failed to update game with id ${id}`);
         }
@@ -155,9 +191,9 @@ export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameReq
  * Usage:
  *   return apiRequest('deleteGame', () => axios.put(...));
  */
-export const deleteLibraryGame = (id: string): Promise<void> =>
+export const deleteLibraryGame = (id: string): Promise<LibraryOperationResponse> =>
   apiRequest(`deleteGame(${id})`, () =>
     axiosInstance
-      .delete<ApiResponse<void>>(`${LIBRARY_ENDPOINT}/${id}`)
-      .then(response => response.data.data)
+      .delete<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)
+      .then(response => response.data.library)
 );

@@ -144,7 +144,7 @@ export function useGameSearch(criteria: SearchCriteria) {
  * }
  * ```
  */
-export const useGetAddGameFormStorageLocationsBFF = () => {
+export const useGetAddGameFormStorageLocationsBFF = (options?: { enabled?: boolean }) => {
   return useAPIQuery<AddGameFormStorageLocationsResponse>({
     queryKey: gameSearchKeys.storageLocations(),
     queryFn: async () => {
@@ -175,5 +175,6 @@ export const useGetAddGameFormStorageLocationsBFF = () => {
     refetchOnReconnect: true,
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    enabled: options?.enabled,
   });
 };

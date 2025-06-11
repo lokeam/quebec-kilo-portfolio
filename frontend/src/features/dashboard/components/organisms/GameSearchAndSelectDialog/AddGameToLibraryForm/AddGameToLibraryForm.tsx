@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
@@ -60,14 +60,12 @@ export interface AddToLibraryFormPayload {
   gameRating: number;
 }
 
-
 // Zod
 import { z } from 'zod';
 
 // Types
 import type { Game } from '@/types/domain/game';
-import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { DigitalLocation } from '@/types/domain/digital-location';
+import type { AddGameFormPhysicalLocationsResponse, AddGameFormDigitalLocationsResponse } from '@/types/domain/search';
 import { BoxIcon, CheckCircle2 } from 'lucide-react';
 import { IconCloudDataConnection } from '@tabler/icons-react';
 
@@ -115,8 +113,8 @@ const storageOptions: AddToLibraryFormStorageOption[] = [
 
 interface AddGameToLibraryFormProps {
   selectedGame: Game;
-  physicalLocations: PhysicalLocation[];
-  digitalLocations: DigitalLocation[];
+  physicalLocations: AddGameFormPhysicalLocationsResponse[];
+  digitalLocations: AddGameFormDigitalLocationsResponse[];
   onClose?: () => void;
 }
 
@@ -128,28 +126,20 @@ export function AddGameToLibraryForm({
 }: AddGameToLibraryFormProps) {
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
 
-  // Add detailed debug logging without stringifying
-  // console.log('AddGameToLibraryForm - Raw Props:', {
-  //   selectedGame,
-  //   physicalLocations,
-  //   digitalLocations,
-  // });
-
-  // Type check the physical locations
-  // console.log('Physical Locations Type Check:', {
-  //   isArray: Array.isArray(physicalLocations),
-  //   length: physicalLocations?.length,
-  //   firstLocation: physicalLocations?.[0],
-  //   firstLocationSublocations: physicalLocations?.[0]?.sublocations,
-  // });
+  // Determine form type at component start
+  const formType = useMemo(() => {
+    if (physicalLocations.length > 0 && digitalLocations.length === 0) return 'physical';
+    if (physicalLocations.length === 0 && digitalLocations.length > 0) return 'digital';
+    return 'both';
+  }, [physicalLocations.length, digitalLocations.length]);
 
   const form = useForm<z.infer<typeof AddGameToLibraryFormSchema>>({
     resolver: zodResolver(AddGameToLibraryFormSchema),
     defaultValues: {
-      storageType: undefined,
-      gameLocations: {},
-      selectedLocations: {}
-    },
+      storageType: formType === 'both' ? undefined : formType,
+      selectedLocations: {},
+      gameLocations: {}
+    }
   });
 
   const selectedStorageType = form.watch('storageType');
@@ -192,15 +182,15 @@ export function AddGameToLibraryForm({
 
       // Transform data to an efficient payload
       const gamesByPlatformAndLocation = Object.entries(gameLocations).flatMap(([locationId, platforms]) => {
-        const isDigital = digitalLocations.some(loc => loc.id === locationId);
+        const isDigital = digitalLocations.some(loc => loc.digitalLocationId === locationId);
 
         // Log each location transformation
         console.log('🔍 DEBUG: Transforming location:', {
           locationId,
           platforms,
           isDigital,
-          physicalLocation: physicalLocations.find(loc => loc.sublocations?.some(sub => sub.id === locationId)),
-          digitalLocation: digitalLocations.find(loc => loc.id === locationId),
+          physicalLocation: physicalLocations.find(loc => loc.sublocationId === locationId),
+          digitalLocation: digitalLocations.find(loc => loc.digitalLocationId === locationId),
         });
 
         return platforms.map((platform): AddToLibraryFormLocationEntry => ({
@@ -248,18 +238,12 @@ export function AddGameToLibraryForm({
   return (
     <ErrorBoundary FallbackComponent={FormErrorFallback}>
       <FormContainer form={form} onSubmit={onSubmit}>
-        {/* Storage Type Selection */}
-        <FormField
-          control={form.control}
-          name="storageType"
-          render={({ field }) => {
-            // Log the field state
-            // console.log('Storage type field:', {
-            //   value: field.value,
-            //   onChange: field.onChange,
-            // });
-
-            return (
+        {/* Storage Type Selection - Only show if both types are available */}
+        {formType === 'both' && (
+          <FormField
+            control={form.control}
+            name="storageType"
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Where will you store this game?</FormLabel>
                 <RadioGroup.Root
@@ -270,142 +254,110 @@ export function AddGameToLibraryForm({
                   value={field.value}
                   className="flex flex-col gap-4"
                 >
-                  {storageOptions.map((option) => (
-                    <FormControl key={option.value}>
-                      <RadioGroup.Item
-                        value={option.value}
-                        className={cn(
-                          "relative flex items-center gap-4 p-4 rounded-lg border",
-                          "data-[state=checked]:border-primary data-[state=checked]:bg-primary/5"
-                        )}
-                      >
-                        <div className="flex items-center gap-4 w-full">
-                          {option.icon && (
-                            <div className="flex-shrink-0">{option.icon}</div>
+                  {storageOptions
+                    .filter((option: AddToLibraryFormStorageOption) => {
+                      if (option.value === 'physical') return physicalLocations.length > 0;
+                      if (option.value === 'digital') return digitalLocations.length > 0;
+                      if (option.value === 'both') return physicalLocations.length > 0 && digitalLocations.length > 0;
+                      return false;
+                    })
+                    .map((option) => (
+                      <FormControl key={option.value}>
+                        <RadioGroup.Item
+                          value={option.value}
+                          className={cn(
+                            "relative flex items-center gap-4 p-4 rounded-lg border",
+                            "data-[state=checked]:border-primary data-[state=checked]:bg-primary/5"
                           )}
-                          <span className="font-medium">{option.label}</span>
-                          <RadioGroup.Indicator className="absolute right-4 top-4 flex h-4 w-4 items-center justify-center">
-                            <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-                          </RadioGroup.Indicator>
-                        </div>
-                      </RadioGroup.Item>
-                    </FormControl>
-                  ))}
+                        >
+                          <div className="flex items-center gap-4 w-full">
+                            {option.icon && (
+                              <div className="flex-shrink-0">{option.icon}</div>
+                            )}
+                            <span className="font-medium">{option.label}</span>
+                            <RadioGroup.Indicator className="absolute right-4 top-4 flex h-4 w-4 items-center justify-center">
+                              <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                            </RadioGroup.Indicator>
+                          </div>
+                        </RadioGroup.Item>
+                      </FormControl>
+                    ))}
                 </RadioGroup.Root>
                 <FormMessage />
               </FormItem>
-            );
-          }}
-        />
+            )}
+          />
+        )}
 
         {/* Location Selection */}
-        {selectedStorageType && (
+        {(formType === 'both' ? selectedStorageType : formType) && (
           <>
             <FormField
               control={form.control}
               name="selectedLocations"
-              render={({ field }) => {
-                // Add debug logging for field render
-                // console.log('selectedLocations field:', {
-                //   value: field.value,
-                //   onChange: field.onChange,
-                // });
-
-                return (
-                  <FormItem>
-                    <FormLabel>Please tell us which version(s) of the game you have and where they are kept</FormLabel>
-                    <FormControl>
-                      <div className="space-y-4">
-                        {selectedStorageType !== 'physical' && digitalLocations.length > 0 && (
-                          <div className="space-y-4">
-                            <div className="font-bold">Digital Locations</div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {digitalLocations.map((digiLocation) => {
-                                // Add debug logging for digital locations
-                                console.log('Rendering digital location:', digiLocation);
-                                return (
-                                  <CheckboxPrimitive.Root
-                                    key={digiLocation.id}
-                                    checked={field.value[digiLocation.id] || false}
-                                    onCheckedChange={(checked) => {
-                                      field.onChange({
-                                        ...field.value,
-                                        [digiLocation.id]: checked
-                                      });
-                                    }}
-                                    className="relative ring-[1px] ring-border rounded-lg px-4 py-3 text-start text-muted-foreground data-[state=checked]:ring-2 data-[state=checked]:ring-primary data-[state=checked]:text-primary"
-                                  >
-                                    <IconCloudDataConnection className="mb-3" />
-                                    <span className="font-medium tracking-tight">Add game to {digiLocation.name}</span>
-                                    <CheckboxPrimitive.Indicator className="absolute top-2 right-2">
-                                      <CheckCircle2 className="fill-primary text-primary-foreground" />
-                                    </CheckboxPrimitive.Indicator>
-                                  </CheckboxPrimitive.Root>
-                                );
-                              })}
-                            </div>
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className='mb-2'>Storage location and game platform:</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      {(formType === 'both' ? selectedStorageType !== 'physical' : formType === 'digital') && digitalLocations.length > 0 && (
+                        <div className="space-y-4">
+                          <div className="font-bold">Digital Locations</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {digitalLocations.map((digiLocation) => (
+                              <CheckboxPrimitive.Root
+                                key={digiLocation.digitalLocationId}
+                                checked={field.value[digiLocation.digitalLocationId] || false}
+                                onCheckedChange={(checked) => {
+                                  field.onChange({
+                                    ...field.value,
+                                    [digiLocation.digitalLocationId]: checked
+                                  });
+                                }}
+                                className="relative ring-[1px] ring-border rounded-lg px-4 py-3 text-start text-muted-foreground data-[state=checked]:ring-2 data-[state=checked]:ring-primary data-[state=checked]:text-primary"
+                              >
+                                <IconCloudDataConnection className="mb-3" />
+                                <span className="font-medium tracking-tight">Add game to {digiLocation.digitalLocationName}</span>
+                                <CheckboxPrimitive.Indicator className="absolute top-2 right-2">
+                                  <CheckCircle2 className="fill-primary text-primary-foreground" />
+                                </CheckboxPrimitive.Indicator>
+                              </CheckboxPrimitive.Root>
+                            ))}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {selectedStorageType !== 'digital' && (
-                          <div className="space-y-4">
-                            <div className="font-bold">Physical Locations</div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {Array.isArray(physicalLocations) && physicalLocations.map((location) => {
-                                // Add detailed debug logging for physical locations
-                                // console.log('Rendering physical location:', {
-                                //   locationId: location.id,
-                                //   locationName: location.name,
-                                //   sublocations: location.sublocations,
-                                //   sublocationsLength: location.sublocations?.length,
-                                //   sublocationsType: typeof location.sublocations,
-                                //   isArray: Array.isArray(location.sublocations),
-                                // });
-
-                                return Array.isArray(location.sublocations) && location.sublocations.map((sublocation) => {
-                                  // Add detailed debug logging for sublocations
-                                  // console.log('Rendering sublocation:', {
-                                  //   sublocationId: sublocation.id,
-                                  //   sublocationName: sublocation.name,
-                                  //   sublocationType: sublocation.type,
-                                  //   parentLocation: location.name,
-                                  // });
-
-                                  return (
-                                    <CheckboxPrimitive.Root
-                                      key={sublocation.id}
-                                      checked={field.value[sublocation.id] || false}
-                                      onCheckedChange={(checked) => {
-                                        // console.log('Checkbox changed:', {
-                                        //   sublocationId: sublocation.id,
-                                        //   checked,
-                                        //   currentValue: field.value,
-                                        // });
-                                        field.onChange({
-                                          ...field.value,
-                                          [sublocation.id]: checked
-                                        });
-                                      }}
-                                      className="relative ring-[1px] ring-border rounded-lg px-4 py-3 text-start text-muted-foreground data-[state=checked]:ring-2 data-[state=checked]:ring-primary data-[state=checked]:text-primary"
-                                    >
-                                      <BoxIcon className="mb-3" />
-                                      <span className="font-medium tracking-tight">Add game to {sublocation.name}</span>
-                                      <CheckboxPrimitive.Indicator className="absolute top-2 right-2">
-                                        <CheckCircle2 className="fill-primary text-primary-foreground" />
-                                      </CheckboxPrimitive.Indicator>
-                                    </CheckboxPrimitive.Root>
-                                  );
-                                });
-                              })}
-                            </div>
+                      {(formType === 'both' ? selectedStorageType !== 'digital' : formType === 'physical') && (
+                        <div className="space-y-4">
+                          <div className="font-bold">Physical Locations</div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {physicalLocations.map((location) => (
+                              <CheckboxPrimitive.Root
+                                key={location.sublocationId}
+                                checked={field.value[location.sublocationId] || false}
+                                onCheckedChange={(checked) => {
+                                  field.onChange({
+                                    ...field.value,
+                                    [location.sublocationId]: checked
+                                  });
+                                }}
+                                className="relative ring-[1px] ring-border rounded-lg px-4 py-3 text-start text-muted-foreground data-[state=checked]:ring-2 data-[state=checked]:ring-primary data-[state=checked]:text-primary"
+                              >
+                                <BoxIcon className="mb-3" />
+                                <span className="font-medium tracking-tight">Add game to {location.sublocationName}</span>
+                                <CheckboxPrimitive.Indicator className="absolute top-2 right-2">
+                                  <CheckCircle2 className="fill-primary text-primary-foreground" />
+                                </CheckboxPrimitive.Indicator>
+                              </CheckboxPrimitive.Root>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
+                        </div>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <FormField
@@ -415,22 +367,22 @@ export function AddGameToLibraryForm({
                 <FormItem>
                   <FormControl>
                     <div className="space-y-4">
-                      {selectedStorageType !== 'physical' && digitalLocations.length > 0 && (
+                      {(formType === 'both' ? selectedStorageType !== 'physical' : formType === 'digital') && digitalLocations.length > 0 && (
                         <div className="space-y-4">
                           {digitalLocations.map((digiLocation) => (
-                            selectedLocations[digiLocation.id] && (
-                              <div key={digiLocation.id} className="space-y-2">
-                                <div className="font-bold">{digiLocation.name}</div>
+                            selectedLocations[digiLocation.digitalLocationId] && (
+                              <div key={digiLocation.digitalLocationId} className="space-y-2">
+                                <div className="font-bold">{digiLocation.digitalLocationName}</div>
                                 <MultiSelect
-                                  value={field.value[digiLocation.id] || []}
+                                  value={field.value[digiLocation.digitalLocationId] || []}
                                   onChange={(value) => {
                                     field.onChange({
                                       ...field.value,
-                                      [digiLocation.id]: value
+                                      [digiLocation.digitalLocationId]: value
                                     });
                                   }}
                                   onBlur={field.onBlur}
-                                  name={`gameLocations.${digiLocation.id}`}
+                                  name={`gameLocations.${digiLocation.digitalLocationId}`}
                                   mainPlaceholder="Which game version are you adding?"
                                   secondaryPlaceholder="Available platforms"
                                   platforms={selectedGame.platforms || []}
@@ -441,30 +393,28 @@ export function AddGameToLibraryForm({
                         </div>
                       )}
 
-                      {selectedStorageType !== 'digital' && (
+                      {(formType === 'both' ? selectedStorageType !== 'digital' : formType === 'physical') && (
                         <div className="space-y-4">
                           {physicalLocations.map((location) => (
-                            location.sublocations?.map((sublocation) => (
-                              selectedLocations[sublocation.id] && (
-                                <div key={sublocation.id} className="space-y-2">
-                                  <div className="font-bold">{sublocation.name} | {location.name}</div>
-                                  <MultiSelect
-                                    value={field.value[sublocation.id] || []}
-                                    onChange={(value) => {
-                                      field.onChange({
-                                        ...field.value,
-                                        [sublocation.id]: value
-                                      });
-                                    }}
-                                    onBlur={field.onBlur}
-                                    name={`gameLocations.${sublocation.id}`}
-                                    mainPlaceholder="Which game version are you adding?"
-                                    secondaryPlaceholder="Available platforms"
-                                    platforms={selectedGame.platforms || []}
-                                  />
-                                </div>
-                              )
-                            ))
+                            selectedLocations[location.sublocationId] && (
+                              <div key={location.sublocationId} className="space-y-2">
+                                <div className="font-bold">{location.sublocationName} | {location.parentLocationName}</div>
+                                <MultiSelect
+                                  value={field.value[location.sublocationId] || []}
+                                  onChange={(value) => {
+                                    field.onChange({
+                                      ...field.value,
+                                      [location.sublocationId]: value
+                                    });
+                                  }}
+                                  onBlur={field.onBlur}
+                                  name={`gameLocations.${location.sublocationId}`}
+                                  mainPlaceholder="Which game version are you adding?"
+                                  secondaryPlaceholder="Available platforms"
+                                  platforms={selectedGame.platforms || []}
+                                />
+                              </div>
+                            )
                           ))}
                         </div>
                       )}
@@ -482,7 +432,7 @@ export function AddGameToLibraryForm({
           <Button
             type="submit"
             className="w-full"
-            disabled={!form.formState.isValid || !selectedStorageType || isFormSubmitting || createMutation.isPending}
+            disabled={!form.formState.isValid || (formType === 'both' ? !selectedStorageType : false) || isFormSubmitting || createMutation.isPending}
           >
             {isFormSubmitting || createMutation.isPending
               ? 'Adding to Library...'

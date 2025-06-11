@@ -32,10 +32,23 @@ export function LibraryPageContent() {
 
   // Set games in store when page mounts
   useEffect(() => {
+    console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
+      libraryItemsLength: libraryItems.length,
+      storeGamesLength: services.length
+    });
+
     if (libraryItems.length > 0) {
       setGames(libraryItems);
     }
   }, [libraryItems, setGames]);
+
+  useEffect(() => {
+    console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
+      libraryItemsLength: libraryItems.length,
+      storeGamesLength: services.length,
+      bffResponse
+    });
+  }, [libraryItems, services, bffResponse]);
 
   /* Combined filtering for both platform and title search */
   const filteredServices = useFilteredLibraryItems(services, platformFilter, searchQuery);
@@ -90,6 +103,13 @@ export function LibraryPageContent() {
 
   /* Render content based on view mode */
   const renderContent = () => {
+
+    console.log('🔍 DEBUG: LibraryPageContent render:', {
+      filteredServicesLength: filteredServices.length,
+      viewMode
+    });
+
+
     if (services.length === 0) {
       return <NoResultsFound />;
     }

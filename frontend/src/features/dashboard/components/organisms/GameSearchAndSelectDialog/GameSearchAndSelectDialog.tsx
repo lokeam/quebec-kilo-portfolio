@@ -12,19 +12,18 @@ import { Loading } from '@/shared/components/ui/loading/Loading';
 
 // Hooks
 import { useDebounce } from '@/shared/hooks/useDebounce';
-import { useGameSearch } from '@/core/api/queries/gameSearch.queries';
+import { useGameSearch, useGetAddGameFormStorageLocationsBFF } from '@/core/api/queries/gameSearch.queries';
 
 // Icons
 import { SearchIcon } from 'lucide-react';
-import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 
 export function GameSearchAndSelectDialog() {
-  const { data: storageData, isLoading: isStorageDataLoading, error: storageDataError } = useStorageAnalytics({ enabled: true});
-
-  //console.log('storageData from analytics', storageData);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const { data: storageLocations, isLoading: isStorageLocationsLoading, error: storageLocationsError } = useGetAddGameFormStorageLocationsBFF({
+    enabled: isOpen
+  });
 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set());
 
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
@@ -64,8 +63,8 @@ export function GameSearchAndSelectDialog() {
     setIsOpen(false);
   }, []);
 
-  if (isStorageDataLoading) return <Loading />;
-  if (storageDataError) return <div>Error loading storage data</div>;
+  if (isStorageLocationsLoading) return <Loading />;
+  if (storageLocationsError) return <div>Error loading storage locations</div>;
 
   return (
     <SearchDialog
@@ -102,8 +101,8 @@ export function GameSearchAndSelectDialog() {
               isLoading={isLoading}
               error={error instanceof Error ? error : null}
               onSelect={handleGameSelect}
-              physicalLocations={storageData?.physicalLocations}
-              digitalLocations={storageData?.digitalLocations}
+              physicalLocations={storageLocations?.physicalLocations}
+              digitalLocations={storageLocations?.digitalLocations}
             />
             <ActionsSection
               selectedGames={selectedGames}

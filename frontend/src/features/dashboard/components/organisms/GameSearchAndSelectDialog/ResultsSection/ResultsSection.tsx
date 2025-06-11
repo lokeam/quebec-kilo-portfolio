@@ -8,16 +8,15 @@ import { AddGameToLibraryForm } from '@/features/dashboard/components/organisms/
 // Types
 import type { SearchResult as SearchResultType } from '@/types/domain/search';
 import type { Game } from '@/types/domain/game';
-import type { PhysicalLocation } from '@/types/domain/physical-location';
-import type { DigitalLocation } from '@/types/domain/digital-location';
+import type { AddGameFormPhysicalLocationsResponse, AddGameFormDigitalLocationsResponse } from '@/types/domain/search';
 
 interface ResultsSectionProps {
   results?: SearchResultType[];
   isLoading: boolean;
   error: Error | null;
   onSelect: (gameId: string) => void;
-  physicalLocations?: PhysicalLocation[];
-  digitalLocations?: DigitalLocation[];
+  physicalLocations?: AddGameFormPhysicalLocationsResponse[];
+  digitalLocations?: AddGameFormDigitalLocationsResponse[];
 }
 
 export function ResultsSection({
@@ -33,6 +32,7 @@ export function ResultsSection({
   const handleAddGameToLibrary = (game: Game) => setSelectedGameWithDrawerOpen(game);
   const handleCloseDrawer = () => setSelectedGameWithDrawerOpen(null);
 
+  console.log('�� DEBUG: handleCloseDrawer called');
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -71,6 +71,11 @@ export function ResultsSection({
         open={!!selectedGameWithDrawerOpen}
         onOpenChange={open => {
           console.log('Drawer onOpenChanged called with: ', open);
+          console.log('🔍 DEBUG: Drawer onOpenChange:', {
+            open,
+            selectedGameWithDrawerOpen,
+            hasOnClose: !!handleCloseDrawer
+          });
           if (!open) handleCloseDrawer();
         }}
         title=""
@@ -82,10 +87,10 @@ export function ResultsSection({
               selectedGame={selectedGameWithDrawerOpen}
               physicalLocations={physicalLocations ?? []}
               digitalLocations={digitalLocations ?? []}
+              onClose={handleCloseDrawer}
             />
           )
         }
-
       </DrawerContainer>
     </div>
   );

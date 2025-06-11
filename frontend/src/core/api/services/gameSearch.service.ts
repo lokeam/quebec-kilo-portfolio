@@ -8,7 +8,25 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 import type { SearchResponse } from '@/types/api/search';
-import type { SearchCriteria } from '@/types/domain/search';
+import type { SearchCriteria, AddGameFormStorageLocationsResponse, AddGameFormDigitalLocationsResponse, AddGameFormPhysicalLocationsResponse } from '@/types/domain/search';
+
+// Constants
+const SEARCH_ENDPOINT = '/v1/search';
+const SEARCH_BFF_ENDPOINT = '/v1/search/bff';
+
+// Response wrapper for BFF endpoint
+interface AddGameFormBFFResponseWrapper {
+  storageLocations: {
+    success: boolean;
+    physicalLocations: AddGameFormPhysicalLocationsResponse[];
+    digitalLocations: AddGameFormDigitalLocationsResponse[];
+  };
+
+  metadata: {
+    timestamp: string;
+    requestId: string;
+  };
+}
 
 /**
  * Searches for games based on the provided criteria
@@ -26,7 +44,7 @@ import type { SearchCriteria } from '@/types/domain/search';
 export const searchGames = (criteria: SearchCriteria): Promise<SearchResponse> =>
   apiRequest('searchGames', () =>
     axiosInstance
-      .post<SearchResponse>('/v1/search',
+      .post<SearchResponse>(SEARCH_ENDPOINT,
         {
           query: criteria.query,
           filters: criteria.filters,
@@ -36,4 +54,22 @@ export const searchGames = (criteria: SearchCriteria): Promise<SearchResponse> =
         }
       )
       .then(response => response.data)
+  );
+
+/**
+ * Fetches all storage locations (physical and digital) for the add game form
+ *
+ * @returns Promise<AddGameFormStorageLocationsResponse>
+ * @throws Error if the request fails or response is invalid
+ */
+export const getAddGameFormStorageLocationsBFF = (): Promise<AddGameFormStorageLocationsResponse> =>
+  apiRequest('getAddGameFormStorageLocationsBFF', () =>
+    axiosInstance
+      .get<AddGameFormBFFResponseWrapper>(SEARCH_BFF_ENDPOINT)
+      .then(response => {
+        if (!response.data.storageLocations) {
+          throw new Error('Invalid response structure from server');
+        }
+        return response.data.storageLocations;
+      })
   );
