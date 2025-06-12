@@ -57,7 +57,7 @@ export interface LocationsBFFPhysicalLocationResponse {
 }
 
 export interface LocationsBFFStoredGameResponse {
-  id: string;
+  id: number;
   name: string;
   platform: string;
   isUniqueCopy: boolean;

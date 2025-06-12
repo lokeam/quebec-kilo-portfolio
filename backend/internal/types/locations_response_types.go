@@ -63,11 +63,11 @@ type LocationsBFFPhysicalLocationResponse struct {
 }
 
 type LocationsBFFStoredGameResponse struct {
-    ID            string `json:"id"`
-    Name          string `json:"name"`
-    Platform      string `json:"platform"`
-    IsUniqueCopy  bool   `json:"is_unique_copy"`
-    HasDigitalCopy bool  `json:"has_digital_copy"`
+    ID               int64  `json:"id"`
+    Name             string `json:"name"`
+    Platform         string `json:"platform"`
+    IsUniqueCopy     bool   `json:"is_unique_copy"`
+    HasDigitalCopy   bool   `json:"has_digital_copy"`
 }
 
 type LocationsBFFSublocationResponse struct {
