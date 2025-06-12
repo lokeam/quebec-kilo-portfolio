@@ -109,6 +109,7 @@ export const PhysicalLocationsTable = memo(({
               onSelectionChange={(checked) => handleSelectionChange(sublocation.sublocationId, checked)}
               onEdit={onEdit}
               onDelete={onDelete}
+              sublocations={sublocationRows}
             />
           ))}
 
@@ -122,6 +123,7 @@ export const PhysicalLocationsTable = memo(({
               onSelectionChange={(checked) => handleSelectionChange(location.physicalLocationId, checked)}
               onEdit={onEdit}
               onDelete={onDelete}
+              sublocations={sublocationRows}
             />
           ))}
         </TableBody>

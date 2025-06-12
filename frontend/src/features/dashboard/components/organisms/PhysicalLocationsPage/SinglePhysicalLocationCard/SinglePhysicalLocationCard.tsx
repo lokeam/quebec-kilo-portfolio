@@ -24,6 +24,9 @@ import type { LocationIconBgColor } from '@/types/domain/location-types';
 import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 
+// Components
+import { PhysicalLocationDeleteWarning } from '../DeleteWarningContent/PhysicalLocationDeleteWarning';
+
 interface SinglePhysicalLocationCardProps {
   location: LocationsBFFPhysicalLocationResponse;
   sublocations: LocationsBFFSublocationResponse[];
@@ -48,12 +51,7 @@ export const SinglePhysicalLocationCard = memo(({
   isSelected = false
 }: SinglePhysicalLocationCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const associatedSublocations = sublocations.filter(sublocation => {
-    return sublocation.parentLocationId === location.physicalLocationId;
-  });
 
   const handleEditLocation = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,13 +72,11 @@ export const SinglePhysicalLocationCard = memo(({
   const handleConfirmDelete = useCallback(() => {
     if (!location.physicalLocationId || !onDelete) return;
 
-    setIsDeleting(true);
     setDeleteError(null);
 
     try {
       onDelete(location.physicalLocationId);
     } catch (err) {
-      setIsDeleting(false);
       setDeleteError("Something went wrong. We can't complete this operation now, please try again later.");
       console.error("Error deleting location:", err);
     }
@@ -173,28 +169,16 @@ export const SinglePhysicalLocationCard = memo(({
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Delete {location.name}</DialogTitle>
-              <DialogDescription asChild>
+              <DialogDescription>
                 {deleteError ? (
                   <div className="text-red-500">
                     {deleteError}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <p>Are you sure you want to delete this physical location?</p>
-                    {associatedSublocations.length > 0 && (
-                      <>
-                        <p>You will also delete all associated sublocations:</p>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {associatedSublocations.map((sublocation) => (
-                            <li key={sublocation.sublocationId}>
-                              {sublocation.sublocationName}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                    <p>This action cannot be undone.</p>
-                  </div>
+                  <PhysicalLocationDeleteWarning
+                    location={location}
+                    associatedItems={sublocations}
+                  />
                 )}
               </DialogDescription>
             </DialogHeader>
@@ -202,23 +186,16 @@ export const SinglePhysicalLocationCard = memo(({
               <Button
                 variant="outline"
                 onClick={() => setDeleteDialogOpen(false)}
-                disabled={isDeleting && !deleteError}
+                disabled={deleteError !== null}
               >
                 Cancel
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleConfirmDelete}
-                disabled={isDeleting && !deleteError}
+                disabled={deleteError !== null}
               >
-                {isDeleting && !deleteError ? (
-                  <>
-                    <span className="animate-spin mr-2">⊚</span>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete"
-                )}
+                Delete
               </Button>
             </DialogFooter>
           </DialogContent>

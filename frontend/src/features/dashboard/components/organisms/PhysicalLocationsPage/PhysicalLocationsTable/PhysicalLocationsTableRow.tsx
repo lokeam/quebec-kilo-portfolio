@@ -25,6 +25,10 @@ import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
+// Components
+import { SublocationDeleteWarning } from '../DeleteWarningContent/SublocationDeleteWarning';
+import { PhysicalLocationDeleteWarning } from '../DeleteWarningContent/PhysicalLocationDeleteWarning';
+
 // Type guard to determine if row is a physical location
 const isPhysicalLocation = (
   row: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse
@@ -39,6 +43,7 @@ interface PhysicalLocationsTableRowComponentProps {
   onSelectionChange?: (checked: boolean) => void;
   onEdit?: (location: LocationsBFFPhysicalLocationResponse | LocationsBFFSublocationResponse) => void;
   onDelete?: (id: string) => void;
+  sublocations: LocationsBFFSublocationResponse[];
 }
 
 function PhysicalLocationsTableRowComponent({
@@ -46,7 +51,8 @@ function PhysicalLocationsTableRowComponent({
   isSelected = false,
   onSelectionChange,
   onEdit,
-  onDelete
+  onDelete,
+  sublocations
 }: PhysicalLocationsTableRowComponentProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -197,16 +203,18 @@ function PhysicalLocationsTableRowComponent({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete {rowName}</DialogTitle>
-            <DialogDescription asChild>
+            <DialogDescription>
               {deleteError ? (
                 <div className="text-red-500">
                   {deleteError}
                 </div>
+              ) : isPhysicalLocation(row) ? (
+                <PhysicalLocationDeleteWarning
+                  location={row}
+                  associatedItems={sublocations}
+                />
               ) : (
-                <div className="space-y-4">
-                  <p>Are you sure you want to delete this location?</p>
-                  <p>This action cannot be undone.</p>
-                </div>
+                <SublocationDeleteWarning location={row} />
               )}
             </DialogDescription>
           </DialogHeader>

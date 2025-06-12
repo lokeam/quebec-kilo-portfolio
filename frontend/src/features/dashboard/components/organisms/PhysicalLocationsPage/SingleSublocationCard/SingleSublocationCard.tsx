@@ -26,6 +26,9 @@ import { cn } from '@/shared/components/ui/utils';
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';
 import { SublocationIcon } from '@/features/dashboard/lib/utils/getSublocationIcon';
 
+// Components
+import { SublocationDeleteWarning } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/DeleteWarningContent/SublocationDeleteWarning';
+
 interface SingleSublocationCardProps {
   location: LocationsBFFSublocationResponse;
   onDelete?: (id: string) => void;
@@ -40,7 +43,6 @@ export const SingleSublocationCard = memo(({
   isWatchedByResizeObserver
 }: SingleSublocationCardProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteMutation = useDeleteSublocation();
 
@@ -167,7 +169,7 @@ export const SingleSublocationCard = memo(({
                   {deleteError}
                 </div>
               ) : (
-                "Are you sure you want to delete this location? This action cannot be undone."
+                <SublocationDeleteWarning location={location} />
               )}
             </DialogDescription>
           </DialogHeader>
