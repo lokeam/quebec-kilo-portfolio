@@ -36,6 +36,11 @@ func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error
 	return args.Error(0)
 }
 
+func (m *MockCacheWrapper) InvalidateCache(ctx context.Context, key string) error {
+	args := m.Called(ctx, key)
+	return args.Error(0)
+}
+
 
 
 func TestIGDBCacheAdapter(t *testing.T) {

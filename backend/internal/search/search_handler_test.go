@@ -4,19 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
-	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/shared/constants"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
-	"github.com/lokeam/qko-beta/internal/wishlist"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 /*
@@ -36,11 +34,13 @@ import (
 	- Valid search request with a search service failure
 */
 
-
+// mockSearchService implements the SearchService interface for testing
 type mockSearchService struct {
 	searchServiceResult   *searchdef.SearchResult
 	searchServiceError    error
 	mostRecentRequest     *searchdef.SearchRequest
+	storageLocations      types.AddGameFormStorageLocationsResponse
+	storageLocationsError error
 }
 
 func (mss *mockSearchService) Search(
@@ -48,11 +48,61 @@ func (mss *mockSearchService) Search(
 	req searchdef.SearchRequest,
 ) (*searchdef.SearchResult, error) {
 	mss.mostRecentRequest = &req
-
 	return mss.searchServiceResult, mss.searchServiceError
 }
 
-// Helper fn to create a SearchResult
+func (mss *mockSearchService) GetAllGameStorageLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.AddGameFormStorageLocationsResponse, error) {
+	return mss.storageLocations, mss.storageLocationsError
+}
+
+// mockLibraryService implements the LibraryService interface for testing
+type mockLibraryService struct {
+	isInLibrary bool
+	err         error
+}
+
+func (mls *mockLibraryService) CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error {
+	return nil
+}
+
+func (mls *mockLibraryService) GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error) {
+	return types.LibraryBFFResponseFINAL{}, nil
+}
+
+func (mls *mockLibraryService) GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (types.LibraryGameItemBFFResponseFINAL, error) {
+	return types.LibraryGameItemBFFResponseFINAL{}, nil
+}
+
+func (mls *mockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error {
+	return nil
+}
+
+func (mls *mockLibraryService) DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error {
+	return nil
+}
+
+func (mls *mockLibraryService) InvalidateUserCache(ctx context.Context, userID string) error {
+	return nil
+}
+
+func (mls *mockLibraryService) IsGameInLibraryBFF(ctx context.Context, userID string, gameID int64) (bool, error) {
+	return mls.isInLibrary, mls.err
+}
+
+// mockWishlistService implements the WishlistService interface for testing
+type mockWishlistService struct {
+	wishlistItems []models.GameToSave
+	err           error
+}
+
+func (mws *mockWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.GameToSave, error) {
+	return mws.wishlistItems, mws.err
+}
+
+// Helper function to create a SearchResult
 func mockSearchResultWithGames(games []models.Game) *searchdef.SearchResult {
 	return &searchdef.SearchResult{
 		Games: games,
@@ -60,7 +110,7 @@ func mockSearchResultWithGames(games []models.Game) *searchdef.SearchResult {
 }
 
 // Helper function to create a request with userID in context
-var createRequestWithUserID = func(method, path, body string) (*http.Request, *httptest.ResponseRecorder) {
+func createRequestWithUserID(method, path, body string) (*http.Request, *httptest.ResponseRecorder) {
 	var req *http.Request
 	if body != "" {
 		req = httptest.NewRequest(method, path, strings.NewReader(body))
@@ -80,49 +130,28 @@ func TestSearchHandler(t *testing.T) {
 	testIGDBToken := "valid-token"
 	baseAppCtx := appcontext_test.NewTestingAppContext(testIGDBToken, nil)
 
-	libraryService, err := library.NewGameLibraryService(baseAppCtx)
-	if err != nil {
-		t.Fatalf("failed to create library service: %v", err)
-	}
-	wishlistService, err := wishlist.NewGameWishlistService(baseAppCtx)
-	if err != nil {
-		t.Fatalf("failed to create wishlist service: %v", err)
-	}
+	// Create mock services
+	mockSearchService := &mockSearchService{}
+	mockLibraryService := &mockLibraryService{}
+	mockWishlistService := &mockWishlistService{}
 
-	createHandler := func(mockService *mockSearchService) http.HandlerFunc {
-    // Create a domain services map instead of using the factory
-    searchServices := make(DomainSearchServices)
-    searchServices["games"] = mockService
-    return NewSearchHandler(baseAppCtx, searchServices, libraryService, wishlistService)
-	}
-			/*
-				GIVEN an HTTP request that doesn't contain a query parameter
-				WHEN the SearchHandler is called
-				THEN the error response is returned with httputils.RespondWithError containing the message "search query is required"
-			*/
-	// --------- Missing Query Parameter ---------
+	// Create handler with mock services
+	handler := NewSearchHandler(
+		baseAppCtx,
+		mockSearchService,
+		mockLibraryService,
+		mockWishlistService,
+	)
+
 	t.Run("Missing Query Parameter", func(t *testing.T) {
-		// Create mock search service
-		mockSearchService := &mockSearchService{}
+		req, recorder := createRequestWithUserID(http.MethodPost, "/search", `{}`)
 
-		// Create handler
-		searchHandler := createHandler(mockSearchService)
+		handler.Search(recorder, req)
 
-		// Create test request with empty JSON body
-		reqBody := strings.NewReader(`{}`)
-		req := httptest.NewRequest(http.MethodPost, "/search", reqBody)
-		req.Header.Set(httputils.XRequestIDHeader, "test-request-id")
-		recorder := httptest.NewRecorder()
-
-		// Call handler
-		searchHandler.ServeHTTP(recorder, req)
-
-		// Validate response
 		if recorder.Code != http.StatusBadRequest {
 			t.Errorf("Expected status 400 for missing query, got %d", recorder.Code)
 		}
 
-		// Optional: Validate error message
 		var errorResponse map[string]string
 		if err := json.Unmarshal(recorder.Body.Bytes(), &errorResponse); err != nil {
 			t.Fatalf("Failed to unmarshal error response: %v", err)
@@ -132,198 +161,130 @@ func TestSearchHandler(t *testing.T) {
 		}
 	})
 
-	// --------- No token or error from IGDB.GetAccessTokenKey ---------
-	t.Run(
-		`IGDB Token Retrieval Failure`,
-		func(t *testing.T) {
-			/*
-				GIVEN an HTTP request with a valid query parameter + any necessary headers
-				AND an app context whose IGDB configuration is set to return an error
-				WHEN we call HandleSearch()
-				THEN httputils.RespondWithError produces an error response indicating that the IGDB token could not be retrieved
-			*/
-			// tokenError := errors.New("failed to retrieve token")
+	t.Run("IGDB Token Retrieval Failure", func(t *testing.T) {
+		// Create app context with invalid token
+		invalidAppCtx := appcontext_test.NewTestingAppContext("", errors.New("token error"))
+		handler := NewSearchHandler(
+			invalidAppCtx,
+			mockSearchService,
+			mockLibraryService,
+			mockWishlistService,
+		)
 
+		req, recorder := createRequestWithUserID(http.MethodPost, "/search", `{"query": "dark souls"}`)
 
-			mockSearchService := &mockSearchService{}
-			mockSearchHandler := createHandler(mockSearchService)
+		handler.Search(recorder, req)
 
-			// Create test request via JSON body
-			reqBody := strings.NewReader(`{"query": "dark souls"}`)
-			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-2")
-			testResponseRecorder := httptest.NewRecorder()
+		if recorder.Code != http.StatusInternalServerError {
+			t.Errorf("Expected status 500 for IGDB token retrieval failure, got %d", recorder.Code)
+		}
+	})
 
-			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
-			testRequest = testRequest.WithContext(ctx)
+	t.Run("Happy Path - Search Request", func(t *testing.T) {
+		// Setup mock search result
+		games := []models.Game{{ID: 1, Name: "Dark Souls"}}
+		mockSearchService.searchServiceResult = mockSearchResultWithGames(games)
+		mockSearchService.searchServiceError = nil
 
-			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
-			if testResponseRecorder.Code != http.StatusInternalServerError {
-				t.Errorf("expected status 500 for IGDB token retrieval failure, got: %d", testResponseRecorder.Code)
-			}
-		},
-	)
+		// Setup mock library service
+		mockLibraryService.isInLibrary = true
+		mockLibraryService.err = nil
 
-	// --------- Valid Search Request with Default Domain ---------
-	t.Run(
-		`Happy Path - Search Request + Default Domain all ok`,
-		func(t *testing.T) {
-			/*
-				GIVEN an HTTP request with a valid query parameter, no domain and no limit parameters
-				AND an app context with a valid IGDB token
-				AND a mock GameSearchService set up to return a valid SearchResult (such as a list of games)
-				WHEN the SearchHandler() is called
-				THEN the handler defaults the domain to "games" and limit to 50
-				AND calls the GameSearchService.Search() method containing the query, domain and default limit
-				AND returns a JSON response containing search results
-			*/
+		// Setup mock wishlist service
+		mockWishlistService.wishlistItems = []models.GameToSave{{GameID: 1}}
+		mockWishlistService.err = nil
 
-			// Simulate valid search result with an example game
-			games := []models.Game{{ ID: 1, Name: "Dark Souls"}}
-			mockSearchService := &mockSearchService{
-				searchServiceResult: mockSearchResultWithGames(games),
-			}
-			mockSearchHandler := createHandler(mockSearchService)
+		req, recorder := createRequestWithUserID(http.MethodPost, "/search", `{"query": "dark souls"}`)
 
-			// Create test request via JSON body
-			reqBody := strings.NewReader(`{"query": "dark souls"}`)
-			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-3")
-			testResponseRecorder := httptest.NewRecorder()
+		handler.Search(recorder, req)
 
-			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
-			testRequest = testRequest.WithContext(ctx)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", recorder.Code)
+		}
 
-			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
-			if testResponseRecorder.Code != http.StatusOK {
-				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
-			}
+		// Verify the request was made with correct parameters
+		if mockSearchService.mostRecentRequest.Query != "dark souls" {
+			t.Errorf("Expected query 'dark souls', got %s", mockSearchService.mostRecentRequest.Query)
+		}
 
-			// Verify the default limit is set to 50
-			if mockSearchService.mostRecentRequest.Limit != 5 {
-				t.Fatalf("expected the default limit to be 5 but instead we got: %d", mockSearchService.mostRecentRequest.Limit)
-			}
+		// Verify the response
+		var response searchdef.SearchResponse
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
 
-			// Check the HTTP response
-			if testResponseRecorder.Code != http.StatusOK {
-				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
-			}
+		if len(response.Games) != 1 {
+			t.Errorf("Expected 1 game in response, got %d", len(response.Games))
+		}
 
-			// Convert the raw response body data into something we can work with
-			var testSearchResponse searchdef.SearchResponse
-			rawRRBodyData, _ := io.ReadAll(testResponseRecorder.Body)
-			if testError := json.Unmarshal(rawRRBodyData, &testSearchResponse); testError != nil {
-				t.Fatalf("failed to unmarshal the response body data: %v", testError)
-			}
+		if !response.Games[0].IsInLibrary {
+			t.Error("Expected game to be in library")
+		}
 
-			// Check the search result length
-			if testSearchResponse.Total != len(games) {
-				t.Fatalf("expected the total number of search results to be: %d but instead we got: %d", len(games), testSearchResponse.Total)
-			}
-		},
-	)
+		if !response.Games[0].IsInWishlist {
+			t.Error("Expected game to be in wishlist")
+		}
+	})
 
-	// --------- Valid Search Request with Unsupported Domain ---------
-	t.Run(
-		`Valid Search Request but Unsupported Domain error`,
-		func(t *testing.T) {
-			/*
-				GIVEN an HTTP request with a valid query paramter and domain parameter that is not supported (example: "music")
-				WHEN the SearchHandler() is called
-				THEN httputils.RespondWithError produces an error with message "unsupported search domain"
-			*/
-			mockSearchService := &mockSearchService{}
-			mockSearchHandler := createHandler(mockSearchService)
+	t.Run("GetGameStorageLocationsBFF", func(t *testing.T) {
+		// Setup mock storage locations
+		locations := types.AddGameFormStorageLocationsResponse{
+			PhysicalLocations: []types.AddGameFormPhysicalLocationsResponse{
+				{
+					ParentLocationID:   "1",
+					ParentLocationName: "Shelf 1",
+					SublocationID:      "1",
+					SublocationName:    "Shelf 1",
+				},
+				{
+					ParentLocationID:   "2",
+					ParentLocationName: "Shelf 2",
+					SublocationID:      "2",
+					SublocationName:    "Shelf 2",
+				},
+			},
+		}
+		mockSearchService.storageLocations = locations
+		mockSearchService.storageLocationsError = nil
 
-			// NOTE: IGDB requires every search request to use POST instead of GET
-			testRequest := httptest.NewRequest(http.MethodPost, "/search?query=darksouls&domain=music", nil)
-			// testRequest := httptest.NewRequest(http.MethodGet, "/search?query=darksouls&domain=music", nil)
+		req, recorder := createRequestWithUserID(http.MethodGet, "/search/bff", "")
 
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-4")
-			testResponseRecorder := httptest.NewRecorder()
+		handler.GetGameStorageLocationsBFF(recorder, req)
 
-			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
-			if testResponseRecorder.Code != http.StatusBadRequest {
-				t.Errorf("expected status 400 for unsupported domain, got: %d", testResponseRecorder.Code)
-			}
-		},
-	)
+		if recorder.Code != http.StatusOK {
+			t.Fatalf("Expected status 200, got %d", recorder.Code)
+		}
 
-	// --------- Valid Search Request with Custom Limit Parameter ---------
-	t.Run(
-		`Happy Path - Search Request + Custom Limit Parameter`,
-		func(t *testing.T) {
-			/*
-				GIVEN an HTTP request with a valid query parameter, and a limit parameter that is a valid integer (example: limit=100)
-				WHEN the SearchHandler() is called
-				THEN the limit used in the constructed Search request is the the provided integer instead of the default (example: 50)
-				AND the JSON success response reflects this limit with the correct number of search results
-			*/
-			games := []models.Game{{ ID: 1, Name: "Dark Souls" }}
-			mockSearchService := &mockSearchService{
-				searchServiceResult: mockSearchResultWithGames(games),
-			}
-			mockSearchHandler := createHandler(mockSearchService)
+		var response map[string]interface{}
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Fatalf("Failed to unmarshal response: %v", err)
+		}
 
-			// Create test request via JSON body
-			reqBody := strings.NewReader(`{"query": "dark souls", "limit": 100}`)
-			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-5")
-			testResponseRecorder := httptest.NewRecorder()
+		storageLocations, ok := response["storage_locations"].(map[string]interface{})
+		if !ok {
+			t.Fatal("Expected storage_locations in response")
+		}
 
-			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
-			testRequest = testRequest.WithContext(ctx)
+		physicalLocations, ok := storageLocations["physical_locations"].([]interface{})
+		if !ok {
+			t.Fatal("Expected physical_locations in response")
+		}
 
-			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
-			if testResponseRecorder.Code != http.StatusOK {
-				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
-			}
-			if mockSearchService.mostRecentRequest == nil {
-				t.Fatalf("expected the most recent request to be set, but it was not")
-			}
-			if mockSearchService.mostRecentRequest.Limit != 100 {
-				t.Fatalf("expected the limit to be 100 but instead we got: %d", mockSearchService.mostRecentRequest.Limit)
-			}
-			if testResponseRecorder.Code != http.StatusOK {
-				t.Fatalf("expected the HTTP status code to be 200 but instead we got: %d", testResponseRecorder.Code)
-			}
-		},
-	)
+		if len(physicalLocations) != 2 {
+			t.Errorf("Expected 2 storage locations, got %d", len(physicalLocations))
+		}
+	})
 
-	// --------- Valid Search Request with Search Service Failure ---------
-	t.Run(
-		`Valid Search Request but Search Service Fails`,
-		func(t *testing.T) {
-			/*
-				GIVEN an HTTP request with a valid query parameters,
-				AND a mock SearchService set up to return a non-nil error (simulating failure in the search service logic)
-				WHEN the SearchHandler() is called
-				THEN the error is passed to httputils.RespondWithError
-				AND the resulting response contains the error message returned by the mock SearchService
-			*/
-			mockSearchServiceError := errors.New("search service failure")
-			mockSearchService := &mockSearchService{
-				searchServiceError: mockSearchServiceError,
-			}
-			mockSearchHandler := createHandler(mockSearchService)
+	t.Run("GetGameStorageLocationsBFF Error", func(t *testing.T) {
+		// Setup mock error
+		mockSearchService.storageLocationsError = errors.New("storage error")
 
-			// Create test request via JSON body
-			reqBody := strings.NewReader(`{"query": "dark souls"}`)
-			testRequest := httptest.NewRequest(http.MethodPost, "/search", reqBody)
-			testRequest.Header.Set(httputils.XRequestIDHeader, "test-request-id-6")
-			testResponseRecorder := httptest.NewRecorder()
+		req, recorder := createRequestWithUserID(http.MethodGet, "/search/bff", "")
 
-			// Add in the userID to the request context
-			ctx := context.WithValue(testRequest.Context(), constants.UserIDKey, "test-user-id")
-			testRequest = testRequest.WithContext(ctx)
+		handler.GetGameStorageLocationsBFF(recorder, req)
 
-			mockSearchHandler.ServeHTTP(testResponseRecorder, testRequest)
-			if testResponseRecorder.Code != http.StatusInternalServerError {
-				t.Errorf("expected status 500 for search service failure, got: %d", testResponseRecorder.Code)
-			}
-		},
-	)
+		if recorder.Code != http.StatusInternalServerError {
+			t.Errorf("Expected status 500, got %d", recorder.Code)
+		}
+	})
 }

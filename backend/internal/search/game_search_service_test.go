@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
+	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/testutils"
@@ -215,26 +215,40 @@ func TestGameSearchService(t *testing.T) {
         THEN the service should return an appropriate error
         */
         testLogger := testutils.NewTestLogger()
-        testSearchService := newMockGameSearchServiceWithDefaults(testLogger)
+        mockConfig := mocks.NewMockConfig()
+        mockTokenRetriever := &mocks.MockTwitchTokenRetriever{}
 
-        // Set up adapter to simulate a 401 error
-        testSearchService.adapter = &mocks.MockIGDBAdapter{
-            SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
-                return nil, errors.New("401 Unauthorized: Invalid token")
-            },
+        // Create mock app context
+        mockAppContext := &appcontext.AppContext{
+            Config:              mockConfig,
+            Logger:              testLogger,
+            TwitchTokenRetriever: mockTokenRetriever,
         }
 
-        // Execute the search with a short timeout to prevent hanging
-        ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-        defer cancel()
+        testSearchService := &GameSearchService{
+            adapter: &mocks.MockIGDBAdapter{
+                SearchGamesFunc: func(ctx context.Context, query string, limit int) ([]*models.Game, error) {
+                    return nil, errors.New("401 Unauthorized: Invalid token")
+                },
+                UpdateTokenFunc: func(token string) error {
+                    return errors.New("token refresh failed")
+                },
+            },
+            appContext: mockAppContext,
+            logger:     testLogger,
+        }
 
+        // Execute the search
         _, err := testSearchService.Search(ctx, searchdef.SearchRequest{
             Query: "Dark Souls",
         })
 
-        // Verify we got an error (either timeout or auth error)
+        // Verify we got an error
         if err == nil {
             t.Error("Expected error when adapter returns 401, got nil")
+        }
+        if err.Error() != "token refresh failed" {
+            t.Errorf("Expected token refresh error, got: %v", err)
         }
     },
 	)

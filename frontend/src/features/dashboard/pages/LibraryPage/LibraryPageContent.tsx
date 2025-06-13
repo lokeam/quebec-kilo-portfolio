@@ -30,13 +30,14 @@ export function LibraryPageContent() {
   const libraryItems = bffResponse?.libraryItems ?? [];
   const recentlyAdded = bffResponse?.recentlyAdded ?? [];
 
-  // Set games in store when page mounts
+  // Set games in store when page mounts or when library items change
   useEffect(() => {
     console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
       libraryItemsLength: libraryItems.length,
       storeGamesLength: services.length
     });
 
+    // Only update if we have new library items
     if (libraryItems.length > 0) {
       setGames(libraryItems);
     }
