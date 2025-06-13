@@ -87,11 +87,3 @@ type SearchService interface {
 	Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error)
 	GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error)
 }
-
-// SearchServiceFactory defines operations for creating search services
-type SearchServiceFactory interface {
-	GetService(domain string) (SearchService, error)
-}
-
-// DomainSearchServices is a map of domain-specific search services
-type DomainSearchServices map[string]SearchService

@@ -51,10 +51,9 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			Sublocation:   mockSvc.Sublocation,
 			Library:       mockSvc.Library,
 			Wishlist:      mockSvc.Wishlist,
-			SearchFactory: mockSvc.SearchFactory,
-			SearchMap:     mockSvc.SearchMap,
+			Search:        mockSvc.Search,
 		}
-	}
+		}
 
 	// Create Router
 	mux := chi.NewRouter()

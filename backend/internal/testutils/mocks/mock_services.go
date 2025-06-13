@@ -13,17 +13,13 @@ import (
 // NewMockServices creates a new app.Services instance with mocks for testing
 func NewMockServices() *MockServices {
 	// Create mock services
-	searchMap := make(services.DomainSearchServices)
-	searchMap["games"] = &MockSearchService{}
-
 	return &MockServices{
 		Digital:       &MockDigitalService{},
 		Physical:      &MockPhysicalService{},
 		Sublocation:   &MockSublocationService{},
 		Library:       &MockLibraryService{},
 		Wishlist:      &MockWishlistService{},
-		SearchFactory: &MockSearchServiceFactory{},
-		SearchMap:     searchMap,
+		Search:        &MockSearchService{},
 	}
 }
 
@@ -34,8 +30,7 @@ type MockServices struct {
 	Sublocation   services.SublocationService
 	Library       services.LibraryService
 	Wishlist      services.WishlistService
-	SearchFactory services.SearchServiceFactory
-	SearchMap     services.DomainSearchServices
+	Search        services.SearchService
 }
 
 // Mocks for each service type
@@ -365,13 +360,6 @@ func (m *MockSearchService) GetAllGameStorageLocationsBFF(ctx context.Context, u
 		return types.AddGameFormStorageLocationsResponse{}, args.Error(1)
 	}
 	return args.Get(0).(types.AddGameFormStorageLocationsResponse), args.Error(1)
-}
-
-// MockSearchServiceFactory implements services.SearchServiceFactory
-type MockSearchServiceFactory struct{}
-
-func (m *MockSearchServiceFactory) GetService(domain string) (services.SearchService, error) {
-	return &MockSearchService{}, nil
 }
 
 type MockSublocationDbAdapter struct {

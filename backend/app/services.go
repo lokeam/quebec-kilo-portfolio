@@ -23,8 +23,7 @@ type Services struct {
 	Sublocation   services.SublocationService
 	Library       services.LibraryService
 	Wishlist      services.WishlistService
-	SearchFactory services.SearchServiceFactory
-	SearchMap     services.DomainSearchServices
+	Search        services.SearchService
 	Analytics     analytics.Service
 	MediaStorage  media_storage.MediaStorageService
 }
@@ -94,18 +93,11 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 	servicesObj.Wishlist = wishlistService
 
 	// Initialize search services
-	searchFactory := search.NewSearchServiceFactory(appCtx)
-	servicesObj.SearchFactory = searchFactory
-	servicesObj.SearchMap = make(services.DomainSearchServices)
-
-	gameSearchService, err := searchFactory.GetService("games")
-	if err == nil {
-		servicesObj.SearchMap["games"] = gameSearchService
-	} else {
-		appCtx.Logger.Warn("Game search service not available", map[string]any{
-			"error": err,
-		})
+	gameSearchService, err := search.NewGameSearchService(appCtx)
+	if err != nil {
+			return nil, fmt.Errorf("initializing game search service: %w", err)
 	}
+	servicesObj.Search = gameSearchService
 
 	// Initialize analytics service
 	analyticsService, err := analytics.NewAnalyticsService(appCtx)
