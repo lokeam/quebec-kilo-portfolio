@@ -159,6 +159,7 @@ const (
 		RETURNING id, user_id, name, label, location_type, map_coordinates, bg_color, created_at, updated_at
 	`
 
+	// BFF Queries
 	getAllPhysicalLocationsBFFPhysicalQuery = `
 		SELECT
 				id,
@@ -223,6 +224,33 @@ const (
     FROM sublocation_data sd
     ORDER BY sd.parent_location_name, sd.sublocation_name
 `
+
+	// Cascading delete queries
+	getSublocationsForPhysicalLocationsQuery = `
+		SELECT id FROM sublocations
+		WHERE physical_location_id = ANY($1)
+	`
+
+	getGamesInSublocationQuery = `
+		SELECT pgl.user_game_id
+    FROM physical_game_locations pgl
+    WHERE pgl.sublocation_id = $1
+	`
+
+	checkGameExistsInOtherLocationsQuery = `
+		SELECT EXISTS (
+			SELECT 1 FROM physical_game_locations pgl
+			WHERE pgl.user_game_id = $1 AND pgl.sublocation_id != $2
+			UNION
+			SELECT 1 FROM digital_game_locations dgl
+			WHERE dgl.user_game_id = $1
+		)
+	`
+
+	deleteOrphanedGameQuery = `
+		DELETE FROM user_games
+    WHERE id = $1
+	`
 )
 
 // GET
@@ -466,7 +494,7 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 						return types.LocationsBFFResponse{}, fmt.Errorf("failed to unmarshal stored games: %w", err)
 				}
 		}
-		// Unescape HTML entities in both sublocation and parent location names
+		// Unescape
 		unescapedSublocationName := html.UnescapeString(sublocationName)
 		unescapedParentLocationName := html.UnescapeString(parentLocationName)
 
@@ -677,26 +705,79 @@ func (pa *PhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID 
 		pa.db,
 		pa.logger,
 		func(tx *sqlx.Tx) error {
-			// First verify all locations belong to the user
+			// 1. First verify all locations belong to the user (keep existing verification)
 			var count int
-			err := tx.QueryRowxContext(ctx, `
-				SELECT COUNT(*) FROM physical_locations
-				WHERE id = ANY($1) AND user_id = $2
-			`, pq.Array(locationIDs), userID).Scan(&count)
+			err := tx.QueryRowxContext(ctx,
+				`SELECT COUNT(*) FROM physical_locations
+					WHERE id = ANY($1) AND user_id = $2`,
+					pq.Array(locationIDs),
+					userID,
+			).Scan(&count)
 
 			if err != nil {
 				return fmt.Errorf("error verifying physical locations: %w", err)
 			}
 
 			if count != len(locationIDs) {
-				return ErrLocationNotFound
+					return ErrLocationNotFound
 			}
 
-			// Delete the locations (sublocations will be deleted automatically via ON DELETE CASCADE)
-			result, err := tx.ExecContext(ctx, `
-				DELETE FROM physical_locations
-				WHERE id = ANY($1) AND user_id = $2
-			`, pq.Array(locationIDs), userID)
+			// 2. Get all sublocations that will be deleted
+			var sublocationIDs []string
+			err = tx.SelectContext(
+				ctx,
+				&sublocationIDs,
+				getSublocationsForPhysicalLocationsQuery,
+				pq.Array(locationIDs),
+			)
+			if err != nil {
+					return fmt.Errorf("error getting sublocations: %w", err)
+			}
+
+			// 3. For each sublocation, check if games exist in other locations
+			for _, sublocationID := range sublocationIDs {
+				// Get all user_game_ids in this sublocation
+				var userGameIDs []int
+				err := tx.SelectContext(ctx, &userGameIDs, getGamesInSublocationQuery, sublocationID)
+				if err != nil {
+						return fmt.Errorf("error getting user games: %w", err)
+				}
+
+				// For each user_game, check if it exists in other locations
+				for _, userGameID := range userGameIDs {
+					var gameExistsInOtherLocations bool
+					err := tx.QueryRowContext(
+						ctx,
+						checkGameExistsInOtherLocationsQuery,
+						userGameID,
+						sublocationID,
+					).Scan(&gameExistsInOtherLocations)
+					if err != nil {
+						return fmt.Errorf("error checking other locations: %w", err)
+					}
+
+					// If game doesn't exist in other locations, delete it from user_games
+					if !gameExistsInOtherLocations {
+						_, err = tx.ExecContext(
+							ctx,
+							deleteOrphanedGameQuery,
+							userGameID,
+						)
+						if err != nil {
+								return fmt.Errorf("error deleting user game: %w", err)
+						}
+					}
+				}
+			}
+
+			// 4. Delete the locations (sublocations will be deleted automatically via ON DELETE CASCADE)
+			result, err := tx.ExecContext(
+				ctx,
+				`DELETE FROM physical_locations
+					WHERE id = ANY($1) AND user_id = $2`,
+				pq.Array(locationIDs),
+				userID,
+			)
 			if err != nil {
 				return fmt.Errorf("error deleting physical locations: %w", err)
 			}
@@ -720,5 +801,3 @@ func (pa *PhysicalDbAdapter) DeletePhysicalLocation(ctx context.Context, userID 
 
 	return rowsAffected, nil
 }
-
-// Helpers

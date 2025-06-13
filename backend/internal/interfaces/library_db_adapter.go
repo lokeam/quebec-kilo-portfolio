@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type LibraryDbAdapter interface {
@@ -14,4 +15,5 @@ type LibraryDbAdapter interface {
 	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 	IsGameInLibrary(ctx context.Context, userID string, gameID int64) (bool, error)
+	GetLibraryBFFResponse(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error)
 }

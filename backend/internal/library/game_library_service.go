@@ -2,7 +2,8 @@ package library
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log"
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -47,7 +48,7 @@ type LibraryService interface {
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 
 	// GetAllLibraryItemsBFF returns a BFF response containing all library items and recently added items
-	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponse, error)
+	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error)
 
 	// InvalidateUserCache invalidates all cache entries for a specific user
 	InvalidateUserCache(ctx context.Context, userID string) error
@@ -297,50 +298,32 @@ func (ls *GameLibraryService) UpdateLibraryGame(
 	return nil
 }
 
-// GetAllLibraryItemsBFF returns a BFF response containing all library items and recently added items
+// GetAllLibraryItemsBFF retrieves all library items for a user in BFF format
 func (ls *GameLibraryService) GetAllLibraryItemsBFF(
 	ctx context.Context,
 	userID string,
-) (types.LibraryBFFResponse, error) {
-	ls.logger.Debug("GetAllLibraryItemsBFF called", map[string]any{
-		"userID": userID,
-	})
+) (types.LibraryBFFResponseFINAL, error) {
+	if userID == "" {
+		return types.LibraryBFFResponseFINAL{}, errors.New("user ID is required")
+}
 
 	// Try to get from cache first
-	response, err := ls.cacheWrapper.GetCachedLibraryItemsBFF(ctx, userID)
-	if err == nil {
-		ls.logger.Debug("Cache hit for library items BFF", map[string]any{
-			"userID": userID,
-			"libraryItemsCount": len(response.LibraryItems),
-			"recentlyAddedCount": len(response.RecentlyAdded),
-		})
-		return response, nil
+	cachedResponse, err := ls.cacheWrapper.GetCachedLibraryItemsBFF(ctx, userID)
+	if err == nil && len(cachedResponse.LibraryItems) > 0 {
+		return cachedResponse, nil
 	}
 
-	// Cache miss or error, get from dbAdapter
-	response, err = ls.dbAdapter.GetLibraryBFFResponse(ctx, userID)
+	// If not in cache, get from database
+	response, err := ls.dbAdapter.GetLibraryBFFResponse(ctx, userID)
 	if err != nil {
-		ls.logger.Error("Error getting library items BFF from dbAdapter", map[string]any{
-			"error": err,
-			"userID": userID,
-		})
-		return types.LibraryBFFResponse{}, fmt.Errorf("error getting library items BFF from dbAdapter: %w", err)
+		return types.LibraryBFFResponseFINAL{}, err
 	}
 
 	// Cache the response
 	if err := ls.cacheWrapper.SetCachedLibraryItemsBFF(ctx, userID, response); err != nil {
-		ls.logger.Error("Error caching library items BFF", map[string]any{
-			"error": err,
-			"userID": userID,
-		})
-		// Don't return error here, just log it
+		// Log the error but don't fail the request
+		log.Printf("Failed to cache library BFF response: %v", err)
 	}
-
-	ls.logger.Debug("GetAllLibraryItemsBFF success", map[string]any{
-		"userID": userID,
-		"libraryItemsCount": len(response.LibraryItems),
-		"recentlyAddedCount": len(response.RecentlyAdded),
-	})
 
 	return response, nil
 }

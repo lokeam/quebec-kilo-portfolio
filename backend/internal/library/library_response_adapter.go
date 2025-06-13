@@ -24,8 +24,8 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 	// Group all locations by game ID
 	for i := 0; i < len(physicalLocations); i++ {
 		loc := physicalLocations[i]
-		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
-			GameID: loc.GameID,
+		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
+			ID: loc.ID,
 			PlatformID: loc.PlatformID,
 			Type: "physical",
 			LocationID: loc.LocationID,
@@ -40,8 +40,8 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 	}
 	for i := 0; i < len(digitalLocations); i++ {
 		loc := digitalLocations[i]
-		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
-			GameID: loc.GameID,
+		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
+			ID: loc.ID,
 			PlatformID: loc.PlatformID,
 			Type: "digital",
 			LocationID: loc.LocationID,
@@ -94,8 +94,8 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 	// Group all locations by game ID
 	for i := 0; i < len(physicalLocations); i++ {
 		loc := physicalLocations[i]
-		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
-			GameID: loc.GameID,
+		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
+			ID: loc.ID,
 			PlatformID: loc.PlatformID,
 			Type: "physical",
 			LocationID: loc.LocationID,
@@ -110,8 +110,8 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 	}
 	for i := 0; i < len(digitalLocations); i++ {
 		loc := digitalLocations[i]
-		locationsByGame[loc.GameID] = append(locationsByGame[loc.GameID], types.GameLocationDBResult{
-			GameID: loc.GameID,
+		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
+			ID: loc.ID,
 			PlatformID: loc.PlatformID,
 			Type: "digital",
 			LocationID: loc.LocationID,

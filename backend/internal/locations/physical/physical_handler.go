@@ -160,7 +160,7 @@ func GetAllPhysicalLocationsBFF(appCtx *appcontext.AppContext, service services.
 			return
 		}
 
-		appCtx.Logger.Info("Listing physical locations", map[string]any{
+		appCtx.Logger.Info("Logging requestID and userID for physical locations BFF request", map[string]any{
 			"requestID": requestID,
 			"userID":    userID,
 		})

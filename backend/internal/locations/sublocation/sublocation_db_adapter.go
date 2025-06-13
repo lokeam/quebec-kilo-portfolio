@@ -21,7 +21,19 @@ import (
 var ErrUnauthorizedLocation = errors.New("unauthorized: sublocation does not belong to user")
 
 const (
-	// DeleteSublocation queries
+	// Cascading delete queries
+	checkGameExistsInOtherLocationsQuery = `
+		SELECT EXISTS (
+			SELECT 1 FROM physical_game_locations pgl
+			WHERE pgl.user_game_id = $1 AND pgl.sublocation_id != $2
+			UNION
+			SELECT 1 FROM digital_game_locations dgl
+			WHERE dgl.user_game_id = $1
+		)
+	`
+
+
+	// LEGACY QUERY - DO NOT USE
 	queryFindOrphanedGames = `
 		WITH games_in_sublocation AS (
 			SELECT DISTINCT ug.id
@@ -44,13 +56,7 @@ const (
 		WHERE pgl.id IS NULL AND dgl.id IS NULL
 	`
 
-	queryDeleteSublocations = `
-		DELETE FROM sublocations
-		WHERE id = ANY($1) AND user_id = $2
-		RETURNING id
-	`
-
-	queryDeleteOrphanedGames = `
+	deleteOrphanedGameQuery = `
 		DELETE FROM user_games
 		WHERE id = ANY($1)
 	`
@@ -320,82 +326,110 @@ func (sa *SublocationDbAdapter) CreateSublocation(ctx context.Context, userID st
 }
 
 // DELETE
-func (sa *SublocationDbAdapter) DeleteSublocation(
-	ctx context.Context,
-	userID string,
-	sublocationIDs []string,
-) (types.DeleteSublocationResponse, error) {
+func (sa *SublocationDbAdapter) DeleteSublocation(ctx context.Context, userID string, sublocationIDs []string) (types.DeleteSublocationResponse, error) {
 	response := types.DeleteSublocationResponse{
-		Success:        false,
-		DeletedCount:   0,
-		SublocationIDs: make([]string, 0),
-		DeletedGames:   make([]types.DeletedGameDetails, 0),
+			Success:        false,
+			DeletedCount:   0,
+			SublocationIDs: make([]string, 0),
+			DeletedGames:   make([]types.DeletedGameDetails, 0),
 	}
 
 	err := postgres.WithTransaction(ctx, sa.db, sa.logger, func(tx *sqlx.Tx) error {
-		// 1. Get games in sublocation that will be orphaned
-		var orphanedGames []types.DeletedGameDetails
-		if err := tx.SelectContext(
-			ctx,
-			&orphanedGames,
-			queryFindOrphanedGames,
-			pq.Array(sublocationIDs),
-			userID,
-		); err != nil {
-			return fmt.Errorf("error finding orphaned games: %w", err)
-		}
+			// 1. For each sublocation, check if games exist in other locations
+			for _, sublocationID := range sublocationIDs {
+					// Get all user_game_ids in this sublocation
+					var userGameIDs []int
+					err := tx.SelectContext(ctx, &userGameIDs, `
+							SELECT pgl.user_game_id
+							FROM physical_game_locations pgl
+							WHERE pgl.sublocation_id = $1
+					`, sublocationID)
+					if err != nil {
+							return fmt.Errorf("error getting user games: %w", err)
+					}
 
-		// 2. Delete sublocations
-		rows, err := tx.QueryContext(ctx, queryDeleteSublocations, pq.Array(sublocationIDs), userID)
-		if err != nil {
-			return fmt.Errorf("error deleting sublocations: %w", err)
-		}
-		defer rows.Close()
+					// For each user_game, check if it exists in other locations
+					for _, userGameID := range userGameIDs {
+							var gameExistsInOtherLocations bool
+							err := tx.QueryRowContext(
+								ctx,
+								checkGameExistsInOtherLocationsQuery,
+								userGameID,
+								sublocationID,
+							).Scan(&gameExistsInOtherLocations)
+							if err != nil {
+								return fmt.Errorf("error checking other locations: %w", err)
+							}
 
-		// Collect deleted IDs
-		for rows.Next() {
-			var id string
-			if err := rows.Scan(&id); err != nil {
-				return fmt.Errorf("error scanning deleted ID: %w", err)
+							// If game doesn't exist in other locations, delete it from user_games
+							if !gameExistsInOtherLocations {
+								// Get game details before deletion for response
+								var gameDetails types.DeletedGameDetails
+								err := tx.QueryRowContext(ctx, `
+										SELECT
+												ug.id as user_game_id,
+												g.id as game_id,
+												g.name as game_name,
+												p.name as platform_name
+										FROM user_games ug
+										JOIN games g ON ug.game_id = g.id
+										JOIN platforms p ON ug.platform_id = p.id
+										WHERE ug.id = $1
+								`, userGameID).Scan(
+										&gameDetails.UserGameID,
+										&gameDetails.GameID,
+										&gameDetails.GameName,
+										&gameDetails.PlatformName,
+								)
+								if err != nil {
+										return fmt.Errorf("error getting game details: %w", err)
+								}
+
+								// Delete the game
+								_, err = tx.ExecContext(
+									ctx,
+									deleteOrphanedGameQuery,
+									userGameID,
+								)
+								if err != nil {
+										return fmt.Errorf("error deleting user game: %w", err)
+								}
+
+								// Add to deleted games list
+								response.DeletedGames = append(response.DeletedGames, gameDetails)
+							}
+					}
 			}
-			response.SublocationIDs = append(response.SublocationIDs, id)
-		}
 
-		if err := rows.Err(); err != nil {
-			return fmt.Errorf("error iterating delete results: %w", err)
-		}
-
-		// 3. Delete orphaned games
-		if len(orphanedGames) > 0 {
-			userGameIDs := make([]int, len(orphanedGames))
-			for i, game := range orphanedGames {
-				userGameIDs[i] = game.UserGameID
+			// 2. Delete the sublocations
+			result, err := tx.ExecContext(ctx, `
+					DELETE FROM sublocations
+					WHERE id = ANY($1) AND user_id = $2
+			`, pq.Array(sublocationIDs), userID)
+			if err != nil {
+					return fmt.Errorf("error deleting sublocations: %w", err)
 			}
 
-			if _, err := tx.ExecContext(ctx, queryDeleteOrphanedGames, pq.Array(userGameIDs)); err != nil {
-				return fmt.Errorf("error deleting orphaned games: %w", err)
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+					return fmt.Errorf("error getting rows affected: %w", err)
 			}
-		}
 
-		// Update response
-		response.Success = true
-		response.DeletedCount = len(response.SublocationIDs)
-		response.DeletedGames = orphanedGames
+			sa.logger.Debug("DeleteSublocation success", map[string]any{
+				"rowsAffected": rowsAffected,
+				"sublocationIDs": sublocationIDs,
+			})
 
-		// Log the deletion
-		sa.logger.Info("Successfully deleted sublocations and orphaned games", map[string]any{
-			"user_id": userID,
-			"deleted_count": response.DeletedCount,
-			"deleted_ids": response.SublocationIDs,
-			"deleted_games_count": len(response.DeletedGames),
-			"deleted_games": response.DeletedGames,
-		})
+			// Update response
+			response.Success = true
+			response.SublocationIDs = sublocationIDs
+			response.DeletedCount = len(sublocationIDs)
 
-		return nil
+			return nil
 	})
 
 	if err != nil {
-		return response, err
+			return response, err
 	}
 
 	return response, nil

@@ -335,9 +335,9 @@ func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID strin
 	return nil
 }
 
-func (m *MockLibraryService) GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponse, error) {
+func (m *MockLibraryService) GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error) {
 	args := m.Called(ctx, userID)
-	return args.Get(0).(types.LibraryBFFResponse), args.Error(1)
+	return args.Get(0).(types.LibraryBFFResponseFINAL), args.Error(1)
 }
 
 // InvalidateUserCache mocks the InvalidateUserCache method

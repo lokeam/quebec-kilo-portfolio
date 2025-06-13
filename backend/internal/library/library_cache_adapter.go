@@ -111,27 +111,27 @@ func (lca *LibraryCacheAdapter) SetCachedGame(
 func (lca *LibraryCacheAdapter) GetCachedLibraryItemsBFF(
 	ctx context.Context,
 	userID string,
-) (types.LibraryBFFResponse, error) {
+) (types.LibraryBFFResponseFINAL, error) {
 	cacheKey := fmt.Sprintf("library:bff:%s", userID)
 
-	var response types.LibraryBFFResponse
+	var response types.LibraryBFFResponseFINAL
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
 	if err != nil {
-		return types.LibraryBFFResponse{}, err
+		return types.LibraryBFFResponseFINAL{}, err
 	}
 
 	if cacheHit {
 		return response, nil
 	}
 
-	return types.LibraryBFFResponse{}, nil
+	return types.LibraryBFFResponseFINAL{}, nil
 }
 
 // SetCachedLibraryItemsBFF caches the BFF response for a user's library
 func (lca *LibraryCacheAdapter) SetCachedLibraryItemsBFF(
 	ctx context.Context,
 	userID string,
-	response types.LibraryBFFResponse,
+	response types.LibraryBFFResponseFINAL,
 ) error {
 	cacheKey := fmt.Sprintf("library:bff:%s", userID)
 	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)

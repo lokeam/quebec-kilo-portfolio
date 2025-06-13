@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"html"
 	"strings"
@@ -104,22 +105,27 @@ func (a *SearchAddGameFormDbAdapter) GetAllGameStorageLocationsBFF(ctx context.C
 
 	for physicalRows.Next() {
 			var loc types.AddGameFormPhysicalLocationsResponse
+			var sublocationID, sublocationName, sublocationType sql.NullString
 			err := physicalRows.Scan(
 					&loc.ParentLocationID,
 					&loc.ParentLocationName,
 					&loc.ParentLocationType,
 					&loc.ParentLocationBgColor,
-					&loc.SublocationID,
-					&loc.SublocationName,
-					&loc.SublocationType,
+					&sublocationID,
+					&sublocationName,
+					&sublocationType,
 			)
 			if err != nil {
-					return types.AddGameFormStorageLocationsResponse{}, fmt.Errorf("failed to scan physical location: %w", err)
+					return types.AddGameFormStorageLocationsResponse{}, fmt.Errorf("failed to scan physical location for search add game form bff response: %w", err)
 			}
 
-			// Unescape HTML entities in the names
+			// Conditially assign values based on NULL checks
+			loc.SublocationID = sublocationID.String
+			loc.SublocationName = html.UnescapeString(sublocationName.String)
+			loc.SublocationType = sublocationType.String
+
+			// Unescape HTML entities in the parent name
 			loc.ParentLocationName = html.UnescapeString(loc.ParentLocationName)
-			loc.SublocationName = html.UnescapeString(loc.SublocationName)
 
 			response.PhysicalLocations = append(response.PhysicalLocations, loc)
 	}

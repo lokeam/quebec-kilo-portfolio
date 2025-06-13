@@ -63,7 +63,7 @@ type LibraryService interface {
 	GetAllLibraryItemsBFF(
 		ctx context.Context,
 		userID string,
-	) (types.LibraryBFFResponse, error)
+	) (types.LibraryBFFResponseFINAL, error)
 
 	GetAllLibraryGames(
 		ctx context.Context,

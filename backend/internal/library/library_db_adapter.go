@@ -3,7 +3,6 @@ package library
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -61,7 +60,7 @@ const (
 	WITH base_game_data AS (
 			SELECT
 					ug.id as user_game_id,
-					g.id as game_id,
+					g.id,
 					g.name,
 					g.cover_url,
 					g.first_release_date,
@@ -80,7 +79,7 @@ const (
 	),
 	game_themes AS (
 			SELECT
-					g.id as game_id,
+					g.id,
 					JSON_AGG(t.name) as theme_names
 			FROM games g
 			JOIN game_themes gt ON g.id = gt.game_id
@@ -212,6 +211,44 @@ const (
 					)
 			) as response
 	`
+
+	getLibraryGamesBFFQuery = `
+    SELECT DISTINCT ON (g.id)
+        g.id as "ID",
+        g.name as "Name",
+        g.cover_url as "CoverURL",
+        ug.game_type as "GameTypeDisplayText",
+        LOWER(ug.game_type) as "GameTypeNormalizedText",
+        ug.favorite as "IsFavorite",
+        ug.created_at as "CreatedAt"
+    FROM games g
+    JOIN user_games ug ON g.id = ug.game_id
+    WHERE ug.user_id = $1
+    ORDER BY g.id, ug.id
+	`
+
+	getLibraryLocationsQuery = `
+		SELECT
+			ug.game_id as "game_id",
+			p.id as "platform_id",
+			p.name as "platform_name",
+			p.category = 'pc' as "is_pc",
+			p.category = 'mobile' as "is_mobile",
+			EXTRACT(EPOCH FROM ug.created_at)::bigint as "date_added",
+			pl.id as "parent_location_id",
+			pl.name as "parent_location_name",
+			pl.location_type as "parent_location_type",
+			pl.bg_color as "parent_location_bg_color",
+			sl.id as "sublocation_id",
+			sl.name as "sublocation_name",
+			sl.location_type as "sublocation_type"
+		FROM user_games ug
+		JOIN platforms p ON ug.platform_id = p.id
+		LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+		LEFT JOIN sublocations sl ON pgl.sublocation_id = sl.id
+		LEFT JOIN physical_locations pl ON sl.physical_location_id = pl.id
+		WHERE ug.user_id = $1
+	`
 )
 
 
@@ -310,7 +347,7 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 			loc := locations[i]
 			if loc.Type == "physical" {
 				physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
-					GameID:            loc.GameID,
+					ID:                loc.ID,
 					PlatformID:        loc.PlatformID,
 					PlatformName:      loc.PlatformName,
 					LocationID:        loc.LocationID,
@@ -324,7 +361,7 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 				physicalLocations = append(physicalLocations, physicalLoc)
 			} else {
 					digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
-						GameID: loc.GameID,
+						ID: loc.ID,
 						PlatformID: loc.PlatformID,
 						PlatformName: loc.PlatformName,
 						LocationID: loc.LocationID,
@@ -421,7 +458,7 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
 		loc := locations[i]
 		if loc.Type == "physical" {
 			physicalLoc := types.LibraryGamePhysicalLocationDBResponse{
-				GameID:            loc.GameID,
+				ID:                loc.ID,
 				PlatformID:        loc.PlatformID,
 				PlatformName:      loc.PlatformName,
 				LocationID:        loc.LocationID,
@@ -435,7 +472,7 @@ func (la *LibraryDbAdapter) GetAllLibraryGames(
 			physicalLocations = append(physicalLocations, physicalLoc)
 		} else {
 			digitalLocations = append(digitalLocations, types.LibraryGameDigitalLocationDBResponse{
-				GameID:       loc.GameID,
+				ID:           loc.ID,
 				PlatformID:   loc.PlatformID,
 				PlatformName: loc.PlatformName,
 				LocationID:   loc.LocationID,
@@ -834,49 +871,149 @@ func getPlatformModel(platformName string) string {
 
 
 // GetLibraryBFFResponse returns a BFF response containing all library items and recently added items
+// func (la *LibraryDbAdapteGetLibraryBFFResponseLegacyr) (
+//     ctx context.Context,
+//     userID string,
+// ) (types.LibraryBFFResponse, error) {
+//     la.logger.Debug("GetLibraryBFFResponse called", map[string]any{
+//         "userID": userID,
+//     })
+
+//     var response types.LibraryBFFResponse
+//     var rawResponse struct {
+//         Response json.RawMessage `json:"response"`
+//     }
+
+//     err := la.db.GetContext(ctx, &rawResponse, getAllLibraryItemsAndRecentsLibraryBFFResponse, userID)
+//     if err != nil {
+//         if err == sql.ErrNoRows {
+//             // Return empty arrays instead of null
+//             return types.LibraryBFFResponse{
+//                 LibraryItems:  []types.LibraryGameItemResponse{},
+//                 RecentlyAdded: []types.LibraryGameItemResponse{},
+//             }, nil
+//         }
+//         return types.LibraryBFFResponse{}, fmt.Errorf("error getting library BFF response: %w", err)
+//     }
+
+//     // Unmarshal the raw response into our structured type
+//     err = json.Unmarshal(rawResponse.Response, &response)
+//     if err != nil {
+//         return types.LibraryBFFResponse{}, fmt.Errorf("error unmarshaling library BFF response: %w", err)
+//     }
+
+//     // Ensure we never return null arrays
+//     if response.LibraryItems == nil {
+//         response.LibraryItems = []types.LibraryGameItemResponse{}
+//     }
+//     if response.RecentlyAdded == nil {
+//         response.RecentlyAdded = []types.LibraryGameItemResponse{}
+//     }
+
+//     la.logger.Debug("GetLibraryBFFResponse success", map[string]any{
+//         "libraryItemsCount":  len(response.LibraryItems),
+//         "recentlyAddedCount": len(response.RecentlyAdded),
+//     })
+
+//     return response, nil
+// }
+
 func (la *LibraryDbAdapter) GetLibraryBFFResponse(
-    ctx context.Context,
-    userID string,
-) (types.LibraryBFFResponse, error) {
-    la.logger.Debug("GetLibraryBFFResponse called", map[string]any{
-        "userID": userID,
-    })
+	ctx context.Context,
+	userID string,
+) (types.LibraryBFFResponseFINAL, error) {
+	la.logger.Debug("GetLibraryBFFResponse called", map[string]any{
+		"userID": userID,
+	})
 
-    var response types.LibraryBFFResponse
-    var rawResponse struct {
-        Response json.RawMessage `json:"response"`
-    }
+	// Get games data
+	var games []types.LibraryGameItemBFFResponseFINAL
+	la.logger.Debug("Executing games query", map[string]any{
+		"query": getLibraryGamesBFFQuery,
+		"userID": userID,
+	})
 
-    err := la.db.GetContext(ctx, &rawResponse, getAllLibraryItemsAndRecentsLibraryBFFResponse, userID)
-    if err != nil {
-        if err == sql.ErrNoRows {
-            // Return empty arrays instead of null
-            return types.LibraryBFFResponse{
-                LibraryItems:  []types.LibraryGameItemResponse{},
-                RecentlyAdded: []types.LibraryGameItemResponse{},
-            }, nil
-        }
-        return types.LibraryBFFResponse{}, fmt.Errorf("error getting library BFF response: %w", err)
-    }
+	if err := la.db.SelectContext(
+		ctx,
+		&games,
+		getLibraryGamesBFFQuery,
+		userID,
+	); err != nil {
+		la.logger.Error("Failed to query games", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
+		if err == sql.ErrNoRows {
+			return types.LibraryBFFResponseFINAL{
+				LibraryItems:  []types.LibraryGameItemBFFResponseFINAL{},
+				RecentlyAdded: []types.LibraryGameItemBFFResponseFINAL{},
+			}, nil
+		}
+		return types.LibraryBFFResponseFINAL{}, fmt.Errorf("error querying user library games: %w", err)
+	}
 
-    // Unmarshal the raw response into our structured type
-    err = json.Unmarshal(rawResponse.Response, &response)
-    if err != nil {
-        return types.LibraryBFFResponse{}, fmt.Errorf("error unmarshaling library BFF response: %w", err)
-    }
+	la.logger.Debug("Successfully queried games", map[string]any{
+		"count": len(games),
+	})
 
-    // Ensure we never return null arrays
-    if response.LibraryItems == nil {
-        response.LibraryItems = []types.LibraryGameItemResponse{}
-    }
-    if response.RecentlyAdded == nil {
-        response.RecentlyAdded = []types.LibraryGameItemResponse{}
-    }
+	// Get locations data
+	var locations []types.LibraryGamesByPlatformAndLocationItemFINAL
+	if err := la.db.SelectContext(
+		ctx,
+		&locations,
+		getLibraryLocationsQuery,
+		userID,
+	); err != nil {
+		return types.LibraryBFFResponseFINAL{}, fmt.Errorf("error querying game locations: %w", err)
+	}
 
-    la.logger.Debug("GetLibraryBFFResponse success", map[string]any{
-        "libraryItemsCount":  len(response.LibraryItems),
-        "recentlyAddedCount": len(response.RecentlyAdded),
-    })
+	// Process locations into a map
+	locationsByGame := make(map[int64][]types.LibraryGamesByPlatformAndLocationItemFINAL)
+	for i := 0; i < len(locations); i++ {
+		loc := locations[i]
+		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], loc)
+	}
 
-    return response, nil
+	// Create response
+	response := types.LibraryBFFResponseFINAL{
+		LibraryItems:  make([]types.LibraryGameItemBFFResponseFINAL, 0, len(games)),
+		RecentlyAdded: make([]types.LibraryGameItemBFFResponseFINAL, 0),
+	}
+
+	// Calculate 6-month cutoff
+	sixMonthsAgo := time.Now().AddDate(0, -6, 0)
+
+	// Process games
+	for i := 0; i < len(games); i++ {
+		game := games[i]
+		gameItem := types.LibraryGameItemBFFResponseFINAL{
+			ID:       game.ID,
+			Name:     game.Name,
+			CoverURL: game.CoverURL,
+			GameTypeDisplayText:    game.GameTypeDisplayText,
+			GameTypeNormalizedText: game.GameTypeNormalizedText,
+			IsFavorite:                 game.IsFavorite,
+			GamesByPlatformAndLocation: locationsByGame[game.ID],
+		}
+
+		response.LibraryItems = append(response.LibraryItems, gameItem)
+		isRecentlyAdded := false
+		for j := 0; j < len(locationsByGame[game.ID]); j++ {
+			location := locationsByGame[game.ID][j]
+			if location.DateAdded > sixMonthsAgo.Unix() {
+				isRecentlyAdded = true
+				break
+			}
+		}
+		if isRecentlyAdded {
+			response.RecentlyAdded = append(response.RecentlyAdded, gameItem)
+		}
+	}
+
+	la.logger.Debug("GetLibraryBFFResponse success", map[string]any{
+		"libraryItemsCount":  len(response.LibraryItems),
+		"recentlyAddedCount": len(response.RecentlyAdded),
+	})
+
+	return response, nil
 }
