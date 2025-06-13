@@ -37,9 +37,6 @@ import (
 */
 
 type MockLibraryService struct {
-	GetAllLibraryGamesResult     []models.Game
-	GetAllLibraryGamesError      error
-
 	CreateLibraryGameError        error
 	MostRecentlyAddedGame        *models.Game
 
@@ -53,10 +50,6 @@ type MockLibraryService struct {
 }
 
 // Mock library service methods
-func (m *MockLibraryService) GetAllLibraryGames(ctx context.Context, userID string) ([]models.Game, error) {
-	return m.GetAllLibraryGamesResult, m.GetAllLibraryGamesError
-}
-
 func (m *MockLibraryService) GetGameByID(ctx context.Context, userID string, gameID int64) (models.Game, error) {
 	return m.GetGameByIDResult, m.GetGameByIDError
 }
@@ -160,61 +153,9 @@ func TestLibraryHandler(t *testing.T) {
 		WHEN the LibraryHandler is called
 		THEN the library service's GetAllLibraryGames method is called
 		AND a JSON response with the library items is returned
+
+		NOTE: REPLACE THIS WITH BFF TESTS
 	*/
-	t.Run(`GET - Library Items Successfully`, func(t *testing.T) {
-		// Create mock service w/ sample result
-		games := []models.Game{
-			{ ID: 1, Name: "Game 1" },
-			{ ID: 2, Name: "Game 2" },
-		}
-		mockService := &MockLibraryService{
-			GetAllLibraryGamesResult: games,
-		}
-
-		// Create handler
-		testLibraryHandler := createHandler(mockService)
-
-		// Create request
-		req, testRecorder := createRequestWithUserID(http.MethodGet, "/library", "")
-
-		// Call handler
-		testLibraryHandler.ServeHTTP(testRecorder, req)
-
-		// Validate response
-		if testRecorder.Code != http.StatusOK {
-			t.Errorf("Expected status 200 OK for a successful GET request but instead got %d", testRecorder.Code)
-		}
-
-		// Validate response body
-		var response struct {
-			Success bool `json:"success"`
-			Games   []struct {
-				ID    int64  `json:"id"`
-				Name  string `json:"name"`
-			} `json:"games"`
-		}
-
-		if err := json.Unmarshal(testRecorder.Body.Bytes(), &response); err != nil {
-			t.Fatalf("Failed to unmarshal response %v", err)
-		}
-
-		if !response.Success {
-			t.Errorf("Expected success to be true but instead got %v", response.Success)
-		}
-
-		if len(response.Games) != len(games) {
-			t.Errorf("Expected %d games in response but instead got %d", len(games), len(response.Games))
-		}
-
-		for i, game := range response.Games {
-			if game.ID != games[i].ID {
-				t.Errorf("Expected game ID to be %d but instead got %d", games[i].ID, game.ID)
-			}
-			if game.Name != games[i].Name {
-				t.Errorf("Expected game name to be %s but instead got %s", games[i].Name, game.Name)
-			}
-		}
-	})
 
 	/*
 		GIVEN an HTTP POST request with a valid game in the body

@@ -5,6 +5,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/locations/digital"
 	"github.com/lokeam/qko-beta/internal/locations/physical"
@@ -55,7 +56,31 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 	servicesObj.Sublocation = sublocationService
 
 	// Initialize library service
-	libraryService, err := library.NewGameLibraryService(appCtx)
+	// Create cache wrapper
+	cacheWrapper, err := cache.NewCacheWrapper(
+		appCtx.RedisClient,
+		appCtx.Config.Redis.RedisTTL,
+		appCtx.Config.Redis.RedisTimeout,
+		appCtx.Logger,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("initializing cache wrapper: %w", err)
+	}
+
+	// Create library cache adapter
+	libraryCacheAdapter, err := library.NewLibraryCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("initializing library cache adapter: %w", err)
+	}
+
+	// Create library db adapter
+	libraryDbAdapter, err := library.NewLibraryDbAdapter(appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("initializing library db adapter: %w", err)
+	}
+
+	// Initialize library service with dependencies
+	libraryService, err := library.NewGameLibraryService(appCtx, libraryDbAdapter, libraryCacheAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("initializing library service: %w", err)
 	}

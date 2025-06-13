@@ -13,13 +13,13 @@ func NewLibraryRequestAdapter() *LibraryRequestAdapter {
 
 func (a *LibraryRequestAdapter) AdaptCreateRequestToLibraryGameModel(
 	req types.CreateLibraryGameRequest,
-	) models.LibraryGame {
-	return models.LibraryGame{
+	) models.GameToSave {
+	return models.GameToSave{
 		GameID:               req.GameID,
 		GameName:             req.GameName,
 		GameCoverURL:         req.GameCoverURL,
 		GameFirstReleaseDate: req.GameFirstReleaseDate,
-		GameType:             models.LibraryGameType{
+		GameType:             models.GameToSaveIGDBType{
 			DisplayText:        req.GameType.DisplayText,
 			NormalizedText:     req.GameType.NormalizedText,
 		},
@@ -30,23 +30,23 @@ func (a *LibraryRequestAdapter) AdaptCreateRequestToLibraryGameModel(
 
 func (a *LibraryRequestAdapter) AdaptUpdateRequestToLibraryGameModel(
 	req types.UpdateLibraryGameRequest,
-) models.LibraryGame {
-	return models.LibraryGame{
+) models.GameToSave {
+	return models.GameToSave{
 		PlatformLocations: a.transformPlatformLocations(req.GamesByPlatformAndLocation),
 	}
 }
 
 func (a *LibraryRequestAdapter) transformPlatformLocations(
 	locations []types.LibraryRequestGameLocation,
-) []models.CreateLibraryGameLocation {
-	platformLocations := make([]models.CreateLibraryGameLocation, len(locations))
+) []models.GameToSaveLocation {
+	platformLocations := make([]models.GameToSaveLocation, len(locations))
 
 	for i := 0; i < len(locations); i++ {
-		platformLocations[i] = models.CreateLibraryGameLocation{
+		platformLocations[i] = models.GameToSaveLocation{
 			PlatformID:   locations[i].PlatformID,
 			PlatformName: locations[i].PlatformName,
 			Type:         locations[i].Type,
-			Location: models.LibraryGameLocation{
+			Location: models.GameToSaveLocationDetails{
 				SublocationID:     locations[i].Location.SublocationID,
 				DigitalLocationID: locations[i].Location.DigitalLocationID,
 			},

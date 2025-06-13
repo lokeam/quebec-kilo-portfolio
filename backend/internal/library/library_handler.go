@@ -38,7 +38,6 @@ func RegisterLibraryRoutes(
 	analyticsService analytics.Service,
 ) {
 	// Base routes
-	r.Get("/", GetAllLibraryGames(appCtx, libraryService))
 	r.Post("/", CreateLibraryGame(appCtx, libraryService, analyticsService))
 
 	// Nested routes with ID
@@ -99,59 +98,6 @@ func GetAllLibraryItemsBFF(
 		// Use standard response format
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
 			"library": libraryItemsPayload,
-		})
-
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			http.StatusOK,
-			response,
-		)
-	}
-}
-
-// GetAllLibraryGames handles GET requests for listing all library games
-func GetAllLibraryGames(
-	appCtx *appcontext.AppContext,
-	libraryService services.LibraryService,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		requestID := httputils.GetRequestID(r)
-		userID := httputils.GetUserID(r)
-
-		if userID == "" {
-			appCtx.Logger.Error("userID NOT FOUND in request context", map[string]any{
-				"request_id": requestID,
-			})
-			handleError(w, appCtx.Logger, requestID, errors.New("userID not found in request context"))
-			return
-		}
-
-		appCtx.Logger.Info("Listing all library games", map[string]any{
-			"requestID": requestID,
-			"userID":    userID,
-		})
-
-		games, physicalLocations, digitalLocations, err := libraryService.GetAllLibraryGames(r.Context(), userID)
-		if err != nil {
-			handleError(w, appCtx.Logger, requestID, err)
-			return
-		}
-
-		responseAdapter := NewLibraryResponseAdapter()
-		adaptedResponse := responseAdapter.AdaptToLibraryResponse(
-			games,
-			physicalLocations,
-			digitalLocations,
-		)
-
-		response := httputils.NewAPIResponse(r, userID, map[string]any{
-			"library": adaptedResponse,
-		})
-
-		jsonBytes, _ := json.Marshal(response)
-		appCtx.Logger.Info("GetAllLibraryGamesResponse:", map[string]any{
-			"response": string(jsonBytes),
 		})
 
 		httputils.RespondWithJSON(
@@ -301,12 +247,19 @@ func UpdateLibraryGame(
 		libraryGame := requestAdapter.AdaptUpdateRequestToLibraryGameModel(tempPutGameRequest)
 		libraryGame.GameID = gameIDint64
 
-		game, physicalLocations, digitalLocations, err := libraryService.GetSingleLibraryGame(
+		// Get the current game state
+		game, err := libraryService.GetSingleLibraryGame(
 			r.Context(),
 			userID,
 			gameIDint64,
 		)
 		if err != nil {
+			handleError(w, appCtx.Logger, requestID, err)
+			return
+		}
+
+		// Update the game
+		if err := libraryService.UpdateLibraryGame(r.Context(), userID, libraryGame); err != nil {
 			handleError(w, appCtx.Logger, requestID, err)
 			return
 		}
@@ -320,15 +273,10 @@ func UpdateLibraryGame(
 			})
 		}
 
-		responseAdapter := NewLibraryResponseAdapter()
-		adaptedResponse := responseAdapter.AdaptToSingleGameResponse(
-			game,
-			physicalLocations,
-			digitalLocations,
-		)
-
 		response := httputils.NewAPIResponse(r, userID, map[string]any{
-			"library": adaptedResponse,
+			"library": map[string]any{
+				"game": game,
+			},
 		})
 
 		httputils.RespondWithJSON(

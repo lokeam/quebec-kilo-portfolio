@@ -58,40 +58,28 @@ type SublocationService interface {
 
 // LibraryService defines operations for managing the game library
 type LibraryService interface {
-	CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 
 	GetAllLibraryItemsBFF(
 		ctx context.Context,
 		userID string,
 	) (types.LibraryBFFResponseFINAL, error)
 
-	GetAllLibraryGames(
-		ctx context.Context,
-		userID string,
-	) (
-		[]types.LibraryGameDBResult,
-		[]types.LibraryGamePhysicalLocationDBResponse,
-		[]types.LibraryGameDigitalLocationDBResponse,
-		error,
-	)
 	GetSingleLibraryGame(
 		ctx context.Context,
 		userID string,
 		gameID int64,
-	) (
-		types.LibraryGameDBResult,
-		[]types.LibraryGamePhysicalLocationDBResponse,
-		[]types.LibraryGameDigitalLocationDBResponse,
-		error,
-	)
-	UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error
+	) (types.LibraryGameItemBFFResponseFINAL, error)
+
+	UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 	InvalidateUserCache(ctx context.Context, userID string) error
+	IsGameInLibraryBFF(ctx context.Context, userID string, gameID int64) (bool, error)
 }
 
 // WishlistService defines operations for managing the wishlist
 type WishlistService interface {
-	GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error)
+	GetWishlistItems(ctx context.Context, userID string) ([]models.GameToSave, error)
 }
 
 // SearchService defines operations for searching

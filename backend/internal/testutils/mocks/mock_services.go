@@ -301,18 +301,7 @@ type MockLibraryService struct {
 	mock.Mock
 }
 
-func (m *MockLibraryService) GetAllLibraryGames(ctx context.Context, userID string) (
-	[]types.LibraryGameDBResult,
-	[]types.LibraryGamePhysicalLocationDBResponse,
-	[]types.LibraryGameDigitalLocationDBResponse,
-    error) {
-	return []types.LibraryGameDBResult{},
-	       []types.LibraryGamePhysicalLocationDBResponse{},
-		     []types.LibraryGameDigitalLocationDBResponse{},
-		     nil
-}
-
-func (m *MockLibraryService) CreateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
+func (m *MockLibraryService) CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error {
 	return nil
 }
 
@@ -320,18 +309,12 @@ func (m *MockLibraryService) DeleteLibraryGame(ctx context.Context, userID strin
 	return nil
 }
 
-func (m *MockLibraryService) GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (
-	types.LibraryGameDBResult,
-	[]types.LibraryGamePhysicalLocationDBResponse,
-	[]types.LibraryGameDigitalLocationDBResponse,
-	error) {
-	return types.LibraryGameDBResult{},
-	       []types.LibraryGamePhysicalLocationDBResponse{},
-		     []types.LibraryGameDigitalLocationDBResponse{},
-		     nil
+func (m *MockLibraryService) GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (types.LibraryGameItemBFFResponseFINAL, error) {
+	args := m.Called(ctx, userID, gameID)
+	return args.Get(0).(types.LibraryGameItemBFFResponseFINAL), args.Error(1)
 }
 
-func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.LibraryGame) error {
+func (m *MockLibraryService) UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error {
 	return nil
 }
 
@@ -346,11 +329,16 @@ func (m *MockLibraryService) InvalidateUserCache(ctx context.Context, userID str
 	return args.Error(0)
 }
 
+func (m *MockLibraryService) IsGameInLibraryBFF(ctx context.Context, userID string, gameID int64) (bool, error) {
+	args := m.Called(ctx, userID, gameID)
+	return args.Bool(0), args.Error(1)
+}
+
 // MockWishlistService implements services.WishlistService
 type MockWishlistService struct{}
 
-func (m *MockWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.LibraryGame, error) {
-	return []models.LibraryGame{}, nil
+func (m *MockWishlistService) GetWishlistItems(ctx context.Context, userID string) ([]models.GameToSave, error) {
+	return []models.GameToSave{}, nil
 }
 
 // MockSearchService implements services.SearchService

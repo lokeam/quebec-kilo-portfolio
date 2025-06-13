@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/search"
 	"github.com/lokeam/qko-beta/internal/services"
@@ -34,31 +35,51 @@ func NewRegistry(appCtx *appcontext.AppContext) *Registry {
 }
 
 // Register all services
-func (r *Registry) registerServices() {
+func (r *Registry) registerServices() error {
     // Register search services
-		gameSearchService, err := search.NewGameSearchService(r.appCtx)
-		if err != nil {
-			r.appCtx.Logger.Error("Failed to register game search service", map[string]any{
-				"error": err.Error(),
-			})
-		}
-		r.searchServices["games"] = gameSearchService
+    gameSearchService, err := search.NewGameSearchService(r.appCtx)
+    if err != nil {
+        return fmt.Errorf("failed to register game search service: %w", err)
+    }
+    r.searchServices["games"] = gameSearchService
 
-		gameLibraryService, err := library.NewGameLibraryService(r.appCtx)
-		if err != nil {
-			r.appCtx.Logger.Error("Failed to register game library service", map[string]any{
-				"error": err.Error(),
-			})
-		}
-		r.libraryServices["games"] = gameLibraryService
+    // Create cache wrapper
+    cacheWrapper, err := cache.NewCacheWrapper(
+        r.appCtx.RedisClient,
+        r.appCtx.Config.Redis.RedisTTL,
+        r.appCtx.Config.Redis.RedisTimeout,
+        r.appCtx.Logger,
+    )
+    if err != nil {
+        return fmt.Errorf("failed to create cache wrapper: %w", err)
+    }
 
-		gameWishlistService, err := wishlist.NewGameWishlistService(r.appCtx)
-		if err != nil {
-			r.appCtx.Logger.Error("Failed to register game wishlist service", map[string]any{
-				"error": err.Error(),
-			})
-		}
-		r.wishlistServices["games"] = gameWishlistService
+    // Create library cache adapter
+    libraryCacheAdapter, err := library.NewLibraryCacheAdapter(cacheWrapper)
+    if err != nil {
+        return fmt.Errorf("failed to create library cache adapter: %w", err)
+    }
+
+    // Create library db adapter
+    libraryDbAdapter, err := library.NewLibraryDbAdapter(r.appCtx)
+    if err != nil {
+        return fmt.Errorf("failed to create library db adapter: %w", err)
+    }
+
+    // Create game library service with dependencies
+    gameLibraryService, err := library.NewGameLibraryService(r.appCtx, libraryDbAdapter, libraryCacheAdapter)
+    if err != nil {
+        return fmt.Errorf("failed to register game library service: %w", err)
+    }
+    r.libraryServices["games"] = gameLibraryService
+
+    gameWishlistService, err := wishlist.NewGameWishlistService(r.appCtx)
+    if err != nil {
+        return fmt.Errorf("failed to register game wishlist service: %w", err)
+    }
+    r.wishlistServices["games"] = gameWishlistService
+
+    return nil
 }
 
 // GetSearchService returns a specific search service

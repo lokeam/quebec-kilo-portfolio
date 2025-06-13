@@ -64,44 +64,38 @@ func (lca *LibraryCacheAdapter) SetCachedLibraryItems(
 }
 
 type cachedGame struct {
-	Game             types.LibraryGameDBResult
-	PhysicalLocations []types.LibraryGamePhysicalLocationDBResponse
-	DigitalLocations  []types.LibraryGameDigitalLocationDBResponse
+	Game types.LibraryGameItemBFFResponseFINAL
 }
 
 func (lca *LibraryCacheAdapter) GetCachedGame(
 	ctx context.Context,
 	userID string,
 	gameID int64,
-) (types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, bool, error) {
+) (types.LibraryGameItemBFFResponseFINAL, bool, error) {
 	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
 
 	var item cachedGame
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &item)
 	if err != nil {
-		return types.LibraryGameDBResult{}, nil, nil, false, err
+		return types.LibraryGameItemBFFResponseFINAL{}, false, err
 	}
 
 	if cacheHit {
-		return item.Game, item.PhysicalLocations, item.DigitalLocations, true, nil
+		return item.Game, true, nil
 	}
 
-	return types.LibraryGameDBResult{}, nil, nil, false, nil
+	return types.LibraryGameItemBFFResponseFINAL{}, false, nil
 }
 
 func (lca *LibraryCacheAdapter) SetCachedGame(
 	ctx context.Context,
 	userID string,
-	game types.LibraryGameDBResult,
-	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
-	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
+	game types.LibraryGameItemBFFResponseFINAL,
 ) error {
 	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, game.ID)
 
 	item := cachedGame{
-		Game:             game,
-		PhysicalLocations: physicalLocations,
-		DigitalLocations:  digitalLocations,
+		Game: game,
 	}
 
 	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, item)

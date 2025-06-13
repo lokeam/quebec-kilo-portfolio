@@ -24,14 +24,12 @@ type LibraryCacheWrapper interface {
 		ctx context.Context,
 		userID string,
 		gameID int64,
-	) (types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, bool, error)
+	) (types.LibraryGameItemBFFResponseFINAL, bool, error)
 
 	SetCachedGame(
 		ctx context.Context,
 		userID string,
-		game types.LibraryGameDBResult,
-		physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
-		digitalLocations []types.LibraryGameDigitalLocationDBResponse,
+		game types.LibraryGameItemBFFResponseFINAL,
 	) error
 
 	InvalidateUserCache(ctx context.Context, userID string) error

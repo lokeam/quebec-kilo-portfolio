@@ -19,13 +19,14 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) types.LibraryResponse {
 	// Create map for quick lookups
-	locationsByGame := make(map[int64][]types.GameLocationDBResult)
+	locationsByGame := make(map[int64][]types.GameLocationDBResponse)
 
 	// Group all locations by game ID
 	for i := 0; i < len(physicalLocations); i++ {
 		loc := physicalLocations[i]
-		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
-			ID: loc.ID,
+		gameID := loc.ID
+		locationsByGame[gameID] = append(locationsByGame[gameID], types.GameLocationDBResponse{
+			ID: gameID,
 			PlatformID: loc.PlatformID,
 			Type: "physical",
 			LocationID: loc.LocationID,
@@ -40,8 +41,9 @@ func (a *LibraryResponseAdapter) AdaptToLibraryResponse(
 	}
 	for i := 0; i < len(digitalLocations); i++ {
 		loc := digitalLocations[i]
-		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
-			ID: loc.ID,
+		gameID := loc.ID
+		locationsByGame[gameID] = append(locationsByGame[gameID], types.GameLocationDBResponse{
+			ID: gameID,
 			PlatformID: loc.PlatformID,
 			Type: "digital",
 			LocationID: loc.LocationID,
@@ -89,13 +91,14 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) types.SingleGameResponse {
 	// Create map for quick lookups
-	locationsByGame := make(map[int64][]types.GameLocationDBResult)
+	locationsByGame := make(map[int64][]types.GameLocationDBResponse)
 
 	// Group all locations by game ID
 	for i := 0; i < len(physicalLocations); i++ {
 		loc := physicalLocations[i]
-		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
-			ID: loc.ID,
+		gameID := loc.ID
+		locationsByGame[gameID] = append(locationsByGame[gameID], types.GameLocationDBResponse{
+			ID: gameID,
 			PlatformID: loc.PlatformID,
 			Type: "physical",
 			LocationID: loc.LocationID,
@@ -110,8 +113,9 @@ func (a *LibraryResponseAdapter) AdaptToSingleGameResponse(
 	}
 	for i := 0; i < len(digitalLocations); i++ {
 		loc := digitalLocations[i]
-		locationsByGame[loc.ID] = append(locationsByGame[loc.ID], types.GameLocationDBResult{
-			ID: loc.ID,
+		gameID := loc.ID
+		locationsByGame[gameID] = append(locationsByGame[gameID], types.GameLocationDBResponse{
+			ID: gameID,
 			PlatformID: loc.PlatformID,
 			Type: "digital",
 			LocationID: loc.LocationID,

@@ -2,8 +2,6 @@ package library
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -25,10 +23,8 @@ import (
 	- Handling database transactions
 
 	Scenarios:
-	- GetSingleLibraryGame successfully retrieves a game
 	- GetSingleLibraryGame returns false when game not found
 	- GetSingleLibraryGame handles database errors
-	- GetAllLibraryGames successfully retrieves all games
 	- GetLibraryItems handles database errors
 	- CreateLibraryGame successfully adds a new game
 	- CreateLibraryGame handles existing games
@@ -171,91 +167,6 @@ func TestLibraryDbAdapter(t *testing.T) {
         t.Errorf("Unfulfilled expectations: %v", err)
     }
 })
-
-
-	/*
-		GIVEN a request to get all games from a user's library
-		WHEN the database query is successful
-		THEN the adapter returns all games
-	*/
-	t.Run(`GetAllLibraryGames - Successfully retrieves all games`, func(t *testing.T) {
-		// Setup
-		adapter, mock, err := setupMockDB()
-		if err != nil {
-			t.Fatalf("Failed to setup mock DB: %v", err)
-		}
-		defer adapter.db.Close()
-
-		userID := "test-user-id"
-		expectedGames := []models.Game{
-			{ ID: 123, Name: "Game 1" },
-			{ ID: 456, Name: "Game 2" },
-		}
-
-		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "name", "summary", "cover_url", "first_release_date", "rating", "platform_names", "genre_names", "theme_names"})
-		mock.ExpectQuery("SELECT (.+) FROM user_library ul").
-			WithArgs(userID).
-			WillReturnRows(rows)
-
-		// Set up mock scanner
-		adapter.scanner = &MockGameScanner{
-			ScanGamesFunc: func(rows *sqlx.Rows) ([]models.Game, error) {
-				return expectedGames, nil
-			},
-		}
-
-		// Execute
-		games, err := adapter.GetAllLibraryGames(context.Background(), userID)
-
-		// Verify
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if len(games) != len(expectedGames) {
-			t.Errorf("Expected %d games, got %d", len(expectedGames), len(games))
-		}
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("Unfulfilled expectations: %v", err)
-		}
-	})
-
-	/*
-		GIVEN a request to get all games from a user's library
-		WHEN the database returns an error
-		THEN the adapter returns the error
-	*/
-	t.Run("GetAllLibraryGames handles database errors", func(t *testing.T) {
-		// Setup
-		adapter, mock, err := setupMockDB()
-		if err != nil {
-			t.Fatalf("Error setting up mock DB: %v", err)
-		}
-		defer adapter.db.Close()
-
-		userID := "test-user-id"
-		dbError := ErrDatabaseConnection
-
-		// Setup mock expectations
-		mock.ExpectQuery("SELECT (.+) FROM user_library ul").
-			WithArgs(userID).
-			WillReturnError(dbError)
-
-		// Execute
-		_, err = adapter.GetAllLibraryGames(context.Background(), userID)
-
-		// Verify
-		if err == nil {
-			t.Errorf("Expected an error, got nil")
-		}
-		if !errors.Is(err, dbError) && !strings.Contains(err.Error(), dbError.Error()) {
-			t.Errorf("Expected error to contain %v, got %v", dbError, err)
-		}
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("Unfulfilled expectations: %v", err)
-		}
-	})
-
 
 	/*
 		GIVEN a request to add a game to a user's library

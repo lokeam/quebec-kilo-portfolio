@@ -178,20 +178,18 @@ func NewSearchHandler(
 		}
 
 		// 11. Check if the current search response contains items in a user's library or wishlist
-		libraryGames, _, _, err := libraryService.GetAllLibraryGames(r.Context(), userID)
-		if err != nil {
-			appCtx.Logger.Error("Failed to fetch items in user's library", map[string]any{
-				"request_id": requestID,
-				"error":      err,
-			})
-		}
-
-		// Convert library games to the format expected by containsGame
-		library := make([]models.LibraryGame, len(libraryGames))
-		for i, game := range libraryGames {
-			library[i] = models.LibraryGame{
-				GameID: game.ID,
+		for i := 0; i < len(response.Games); i++ {
+			game := response.Games[i]
+			// Check if game is in library
+			isInLibrary, err := libraryService.IsGameInLibraryBFF(r.Context(), userID, game.ID)
+			if err != nil {
+				appCtx.Logger.Error("Failed to check if game is in library", map[string]any{
+					"request_id": requestID,
+					"game_id":    game.ID,
+					"error":      err,
+				})
 			}
+			response.Games[i].IsInLibrary = isInLibrary
 		}
 
 		wishlist, err := wishlistService.GetWishlistItems(r.Context(), userID)
@@ -203,7 +201,6 @@ func NewSearchHandler(
 		}
 
 		for i, game := range response.Games {
-			response.Games[i].IsInLibrary = containsGame(library, game.ID)
 			response.Games[i].IsInWishlist = containsGame(wishlist, game.ID)
 		}
 
@@ -267,7 +264,7 @@ func GetGameStorageLocationsBFF(
 }
 
 // Helper function to check if a game is in a list
-func containsGame(games []models.LibraryGame, gameID int64) bool {
+func containsGame(games []models.GameToSave, gameID int64) bool {
 	for _, game := range games {
 		if game.GameID == gameID {
 			return true
