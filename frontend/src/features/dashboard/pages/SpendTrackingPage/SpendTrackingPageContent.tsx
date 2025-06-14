@@ -1,4 +1,3 @@
-
 // Template
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -10,13 +9,13 @@ import { MonthlySpendingAccordion } from '@/features/dashboard/components/organi
 import { TotalMonthlySpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalMonthlySpendingCard/TotalMonthlySpendingCard.tsx';
 import { TotalAnnualSpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalAnnualSpendingCard/TotalAnnualSpendingCard.tsx';
 
-// Mock Data
-import { spendTrackingPageMockData } from './SpendTrackingPage.mockdata.ts';
+import { spendTrackingPageMockData } from './SpendTrackingPage.mockdata';
 
+
+// Mock data for the page
 
 export function SpendTrackingPageContent() {
   console.log(`SpendTrackingPageContent: `, spendTrackingPageMockData);
-
 
   return (
     <PageMain>
@@ -27,14 +26,13 @@ export function SpendTrackingPageContent() {
       </PageHeadline>
 
       <PageGrid>
-        <TotalMonthlySpendingCard />
-        <TotalAnnualSpendingCard />
+        <TotalMonthlySpendingCard totalMonthlySpending={spendTrackingPageMockData.totalMonthlySpending} />
+        <TotalAnnualSpendingCard totalAnnualSpending={spendTrackingPageMockData.totalAnnualSpending} />
         <MonthlySpendingAccordion
           thisMonth={spendTrackingPageMockData.currentTotalThisMonth}
           future={spendTrackingPageMockData.recurringNextMonth}
           oneTimeTotal={spendTrackingPageMockData.yearlyTotals?.oneTimeTotal}
         />
-
       </PageGrid>
     </PageMain>
   );

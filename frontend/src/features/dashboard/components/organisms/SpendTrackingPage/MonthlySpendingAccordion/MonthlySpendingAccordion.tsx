@@ -3,7 +3,7 @@ import { useState } from 'react';
 // Components
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 import { MonthlySpendingItemDetails } from './MonthlySpendingItemDetails';
-import { MemoizedMonthlySpendingAccordionItem } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordionItem';
+import { MemoizedMonthlySpendingAccordionItem } from './MonthlySpendingAccordionItem';
 
 // Shadcn UI Components
 import {
@@ -14,11 +14,44 @@ import {
 } from '@/shared/components/ui/accordion';
 import { Separator } from '@/shared/components/ui/separator';
 
-// Types
-import type { SubscriptionSpend } from '@/features/dashboard/lib/types/spend-tracking/subscription';
-import type { OneTimeSpend } from '@/features/dashboard/lib/types/spend-tracking/purchases';
-import type { YearlySpending } from '@/features/dashboard/lib/types/spend-tracking/base';
+// Local Type Definitions
+interface BaseSpendItem {
+  id: string;
+  title: string;
+  amount: number;
+  spendTransactionType: 'subscription' | 'one-time';
+  paymentMethod: string;
+  mediaType: string;
+  serviceName?: {
+    id: string;
+    displayName: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+  isActive: boolean;
+}
 
+interface SubscriptionSpend extends BaseSpendItem {
+  spendTransactionType: 'subscription';
+  billingCycle: string;
+  nextBillingDate: number;
+  yearlySpending: Array<{
+    year: number;
+    amount: number;
+  }>;
+}
+
+interface OneTimeSpend extends BaseSpendItem {
+  spendTransactionType: 'one-time';
+  isDigital: boolean;
+  isWishlisted: boolean;
+  purchaseDate: number;
+}
+
+interface YearlySpending {
+  year: number;
+  amount: number;
+}
 
 interface MonthlySpendingAccordionProps {
   thisMonth: (SubscriptionSpend | OneTimeSpend)[];
@@ -79,9 +112,8 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
         <DrawerContainer
           open={isDrawerOpen}
           onOpenChange={setIsDrawerOpen}
-          title={""}
-          description={""}
-          triggerTextAdd=""  // Empty because we're controlling open state externally
+          title={selectedItem.title}
+          description=""
         >
           <MonthlySpendingItemDetails
             item={selectedItem}
@@ -90,5 +122,5 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
         </DrawerContainer>
       )}
     </>
-  )
+  );
 }

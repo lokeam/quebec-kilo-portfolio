@@ -1,18 +1,32 @@
 import { useMemo } from 'react';
-import { formatDate } from '@/features/dashboard/lib/utils/formatDate';
-import  {
-  type PurchasedMediaCategory,
-  PURCHASED_MEDIA_CATEGORIES
-} from "@/features/dashboard/lib/types/spend-tracking/media";
-import type { ISO8601Date } from "@/shared/types/types";
+//import { formatDate } from '@/features/dashboard/lib/utils/formatDate';
+import { TransactionType } from '@/types/domain/spend-tracking';
+// import type { ISO8601Date } from "@/shared/types/types";
+import { format } from 'date-fns';
+
+interface BaseSpendItem {
+  id: string;
+  title: string;
+  amount: number;
+  spendTransactionType: 'subscription' | 'one-time';
+  paymentMethod: string;
+  mediaType: string;
+  serviceName?: {
+    id: string;
+    displayName: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+  isActive: boolean;
+}
 
 export function useFormattedDate(
-  spendTransactionType: PurchasedMediaCategory,
-  nextBillingDate: ISO8601Date,
-  purchaseDate: ISO8601Date,
+  spendTransactionType: 'subscription' | 'one-time',
+  nextBillingDate: number | undefined,
+  purchaseDate: number | undefined,
 ) {
   const dateString = useMemo(
-    () => spendTransactionType === PURCHASED_MEDIA_CATEGORIES.SUBSCRIPTION
+    () => spendTransactionType === TransactionType.SUBSCRIPTION
       ? nextBillingDate
       : purchaseDate,
     [spendTransactionType, nextBillingDate, purchaseDate]
@@ -28,4 +42,23 @@ export function useFormattedDate(
   );
 
   return dateDisplay;
+}
+
+export function formatDate(timestamp: number | undefined): { dayStr: string; monthStr: string } {
+  if (!timestamp) {
+    return { dayStr: '--', monthStr: '---' };
+  }
+
+  try {
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) {
+      return { dayStr: '--', monthStr: '---' };
+    }
+    return {
+      dayStr: format(date, 'd'),
+      monthStr: format(date, 'MMM')
+    };
+  } catch {
+    return { dayStr: '--', monthStr: '---' };
+  }
 }

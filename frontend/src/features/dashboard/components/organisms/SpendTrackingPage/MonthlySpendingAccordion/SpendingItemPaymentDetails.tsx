@@ -2,7 +2,7 @@ import { memo } from "react";
 
 // Type safety improvements
 interface SpendingItemPaymentDetailsProps {
-  amount: string;
+  amount: number;
   date: string;
   isSubscription?: boolean;
 }

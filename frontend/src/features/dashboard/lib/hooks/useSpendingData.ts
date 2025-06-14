@@ -1,14 +1,54 @@
 import { useMemo } from 'react';
-import type { SubscriptionSpend } from '@/features/dashboard/lib/types/spend-tracking/subscription';
-import type { OneTimeSpend } from '@/features/dashboard/lib/types/spend-tracking/purchases';
-import type { YearlySpending } from '@/features/dashboard/lib/types/spend-tracking/base';
-import { isSubscriptionSpend } from '@/features/dashboard/lib/types/spend-tracking/guards';
+
+// Local Type Definitions
+interface BaseSpendItem {
+  id: string;
+  title: string;
+  amount: number;
+  spendTransactionType: 'subscription' | 'one-time';
+  paymentMethod: string;
+  mediaType: string;
+  serviceName?: {
+    id: string;
+    displayName: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+  isActive: boolean;
+}
+
+interface SubscriptionSpend extends BaseSpendItem {
+  spendTransactionType: 'subscription';
+  billingCycle: string;
+  nextBillingDate: number;
+  yearlySpending: Array<{
+    year: number;
+    amount: number;
+  }>;
+}
+
+interface OneTimeSpend extends BaseSpendItem {
+  spendTransactionType: 'one-time';
+  isDigital: boolean;
+  isWishlisted: boolean;
+  purchaseDate: number;
+}
+
+interface YearlySpending {
+  year: number;
+  amount: number;
+}
 
 interface SpendingData {
   spendingData: YearlySpending[];
   title: string;
   isSubscription: boolean;
 }
+
+// Type Guard
+const isSubscriptionSpend = (item: SubscriptionSpend | OneTimeSpend): item is SubscriptionSpend => {
+  return item.spendTransactionType === 'subscription';
+};
 
 export function useSpendingData(
   item: SubscriptionSpend | OneTimeSpend,
@@ -20,8 +60,8 @@ export function useSpendingData(
   return useMemo(() => ({
     spendingData: yearlySpending?.sort((a, b) => b.year - a.year) ?? [],
     title: isSubscription
-      ? `Total spent per year on ${item.provider?.id ?? 'subscription'}`
+      ? `Total spent per year on ${item.serviceName?.id ?? 'subscription'}`
       : 'Total spent per year on one-time purchases',
     isSubscription
-  }), [yearlySpending, isSubscription, item.provider?.id]);
+  }), [yearlySpending, isSubscription, item.serviceName?.id]);
 }

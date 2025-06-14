@@ -1,8 +1,12 @@
 import { Fragment, memo } from 'react';
-import type { YearlySpending } from '@/features/dashboard/lib/types/spend-tracking/base';
+
+interface YearlySpendingData {
+  year: number;
+  amount: number;
+}
 
 interface SpendingItemYearGridProps {
-  data: YearlySpending[];
+  data: YearlySpendingData[];
   className?: string;
 }
 
