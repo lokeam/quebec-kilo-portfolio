@@ -40,6 +40,7 @@ export const DIGITAL_LOCATION_LOGO_KEYS = {
 
   // Mobile/Arcade
   'apple arcade': 'apple',
+  'apple': 'apple',
   'google play pass': 'playpass',
   'play pass': 'playpass',
   'meta quest': 'meta',

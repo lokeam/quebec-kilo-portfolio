@@ -9,61 +9,22 @@ import { SpendingItemPaymentDetails } from './SpendingItemPaymentDetails';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 
 // Hooks + Utils
-import { LogoOrIcon } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/LogoOrIcon';
 import { useFormattedDate } from '@/features/dashboard/lib/hooks/useFormattedDate';
 import { useSpendingData } from '@/features/dashboard/lib/hooks/useSpendingData';
+import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+
+// Types
+import type { SpendingItem, YearlySpending } from '@/types/domain/spend-tracking';
+import { MediaCategory } from '@/types/domain/spend-tracking';
 
 // Icons
 import { CreditCard } from 'lucide-react';
 
-// Local Type Definitions
-interface BaseSpendItem {
-  id: string;
-  title: string;
-  amount: number;
-  spendTransactionType: 'subscription' | 'one-time';
-  paymentMethod: string;
-  mediaType: string;
-  serviceName?: {
-    id: string;
-    displayName: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-  isActive: boolean;
-}
-
-interface SubscriptionSpend extends BaseSpendItem {
-  spendTransactionType: 'subscription';
-  billingCycle: string;
-  nextBillingDate: number;
-  yearlySpending: Array<{
-    year: number;
-    amount: number;
-  }>;
-}
-
-interface OneTimeSpend extends BaseSpendItem {
-  spendTransactionType: 'one-time';
-  isDigital: boolean;
-  isWishlisted: boolean;
-  purchaseDate: number;
-}
-
-interface YearlySpending {
-  year: number;
-  amount: number;
-}
-
 interface MonthlySpendingItemDetailsProps {
-  item: SubscriptionSpend | OneTimeSpend;
+  item: SpendingItem;
   oneTimeTotal: YearlySpending[];
 }
-
-// Type Guards
-const isSubscriptionSpend = (item: SubscriptionSpend | OneTimeSpend): item is SubscriptionSpend => {
-  return item.spendTransactionType === 'subscription';
-};
 
 export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetails({
   item,
@@ -73,9 +34,29 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
 
   const dateDisplay = useFormattedDate(
     item.spendTransactionType,
-    isSubscriptionSpend(item) ? item.nextBillingDate : undefined,
-    !isSubscriptionSpend(item) ? item.purchaseDate : undefined
+    item.nextBillingDate,
+    item.purchaseDate
   );
+
+  const renderIcon = () => {
+    // For subscriptions, use the digital location icon
+    if (item.mediaType === MediaCategory.SUBSCRIPTION) {
+      return (
+        <DigitalLocationIcon
+          name={item.provider}
+          className="h-14 w-14"
+        />
+      );
+    }
+
+    // For other media types, use the media icon
+    return (
+      <MediaIcon
+        mediaType={item.mediaType}
+        className="h-14 w-14"
+      />
+    );
+  };
 
   return (
     <Card className="bg-[#0A0A0A] text-white border-none mb-4">
@@ -94,7 +75,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
 
             {/* Provider Logo / Item Icon*/}
             <div className="h-14 w-14 flex items-center justify-center my-2">
-              <LogoOrIcon name={item.serviceName?.id ?? ''} mediaType={item.mediaType as 'subscription' | 'dlc' | 'inGamePurchase' | 'disc' | 'hardware'} />
+              {renderIcon()}
             </div>
             <h2 className="text-xl font-semibold">{item.title}</h2>
           </div>
@@ -107,7 +88,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
         </div>
       </CardHeader>
       <CardContent className="space-y-8">
-        {isSubscription && (
+        {isSubscription && item.billingCycle && (
           <div>
             <h3 className="text-lg font-semibold mb-4">Subscription details</h3>
             <div className="flex xs:flex-col flex-row gap-4">
@@ -115,7 +96,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
                 variant="outline"
                 className="bg-blue-900/50 text-blue-300 border-blue-700"
               >
-                {(item as SubscriptionSpend).billingCycle}
+                {item.billingCycle}
               </MemoizedDashboardBadge>
               <MemoizedDashboardBadge
                 variant="outline"

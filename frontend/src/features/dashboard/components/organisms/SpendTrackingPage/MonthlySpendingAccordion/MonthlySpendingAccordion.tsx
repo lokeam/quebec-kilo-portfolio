@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 // Components
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
-import { MonthlySpendingItemDetails } from './MonthlySpendingItemDetails';
-import { MemoizedMonthlySpendingAccordionItem } from './MonthlySpendingAccordionItem';
+import { MonthlySpendingItemDetails } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingItemDetails';
+import { MemoizedMonthlySpendingAccordionItem } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordionItem';
 
 // Shadcn UI Components
 import {
@@ -14,56 +14,20 @@ import {
 } from '@/shared/components/ui/accordion';
 import { Separator } from '@/shared/components/ui/separator';
 
-// Local Type Definitions
-interface BaseSpendItem {
-  id: string;
-  title: string;
-  amount: number;
-  spendTransactionType: 'subscription' | 'one-time';
-  paymentMethod: string;
-  mediaType: string;
-  serviceName?: {
-    id: string;
-    displayName: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-  isActive: boolean;
-}
-
-interface SubscriptionSpend extends BaseSpendItem {
-  spendTransactionType: 'subscription';
-  billingCycle: string;
-  nextBillingDate: number;
-  yearlySpending: Array<{
-    year: number;
-    amount: number;
-  }>;
-}
-
-interface OneTimeSpend extends BaseSpendItem {
-  spendTransactionType: 'one-time';
-  isDigital: boolean;
-  isWishlisted: boolean;
-  purchaseDate: number;
-}
-
-interface YearlySpending {
-  year: number;
-  amount: number;
-}
+// Types
+import type { SpendItem, YearlySpending } from '@/types/domain/spend-tracking';
 
 interface MonthlySpendingAccordionProps {
-  thisMonth: (SubscriptionSpend | OneTimeSpend)[];
-  future: (SubscriptionSpend | OneTimeSpend)[];
+  thisMonth: SpendItem[];
+  future: SpendItem[];
   oneTimeTotal: YearlySpending[];
 }
 
 export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: MonthlySpendingAccordionProps) {
-  const [selectedItem, setSelectedItem] = useState<SubscriptionSpend | OneTimeSpend | null>(null);
+  const [selectedItem, setSelectedItem] = useState<SpendItem | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const handleItemClick = (item: SubscriptionSpend | OneTimeSpend) => {
+  const handleItemClick = (item: SpendItem) => {
     setSelectedItem(item);
     setIsDrawerOpen(true);
   };

@@ -4,22 +4,6 @@ import { TransactionType } from '@/types/domain/spend-tracking';
 // import type { ISO8601Date } from "@/shared/types/types";
 import { format } from 'date-fns';
 
-interface BaseSpendItem {
-  id: string;
-  title: string;
-  amount: number;
-  spendTransactionType: 'subscription' | 'one-time';
-  paymentMethod: string;
-  mediaType: string;
-  serviceName?: {
-    id: string;
-    displayName: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-  isActive: boolean;
-}
-
 export function useFormattedDate(
   spendTransactionType: 'subscription' | 'one-time',
   nextBillingDate: number | undefined,

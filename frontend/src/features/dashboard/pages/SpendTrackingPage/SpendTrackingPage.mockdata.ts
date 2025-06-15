@@ -1,8 +1,12 @@
 import {
   MediaCategory,
+  TransactionType,
 } from '@/types/domain/spend-tracking';
 
-type TransactionType = 'subscription' | 'one-time';
+import type {
+  SpendingItem,
+  YearlySpending
+} from '@/types/domain/spend-tracking';
 
 interface BaseSpendItem {
   id: string;
@@ -10,7 +14,7 @@ interface BaseSpendItem {
   amount: number;
   spendTransactionType: TransactionType;
   paymentMethod: string;
-  mediaType: string;
+  mediaType: MediaCategory;
   provider: string;
   createdAt: number;
   updatedAt: number;
@@ -18,29 +22,26 @@ interface BaseSpendItem {
 }
 
 interface SubscriptionSpend extends BaseSpendItem {
-  spendTransactionType: 'subscription';
+  spendTransactionType: TransactionType.SUBSCRIPTION;
   billingCycle: string;
   nextBillingDate: number;
-  yearlySpending: Array<{
-    year: number;
-    amount: number;
-  }>;
+  yearlySpending: YearlySpending[];
 }
 
 interface OneTimeSpend extends BaseSpendItem {
-  spendTransactionType: 'one-time';
+  spendTransactionType: TransactionType.ONE_TIME;
   isDigital: boolean;
   isWishlisted: boolean;
   purchaseDate: number;
 }
 
 export const BASE_MEDIA_CATEGORIES = {
-  HARDWARE: 'hardware',
-  DLC: 'dlc',
-  IN_GAME_PURCHASE: 'inGamePurchase',
-  SUBSCRIPTION: 'subscription',
-  PHYSICAL: 'physical',
-  DISC: 'disc'
+  HARDWARE: MediaCategory.HARDWARE,
+  DLC: MediaCategory.DLC,
+  IN_GAME_PURCHASE: MediaCategory.IN_GAME_PURCHASE,
+  SUBSCRIPTION: MediaCategory.SUBSCRIPTION,
+  PHYSICAL: MediaCategory.PHYSICAL,
+  DISC: MediaCategory.DISC
 } as const;
 
 export const spendTrackingPageMockData = {
@@ -81,10 +82,10 @@ export const spendTrackingPageMockData = {
       id: 'sub-001',
       title: 'Playstation Plus',
       amount: 6.66,
-      spendTransactionType: 'subscription',
+      spendTransactionType: TransactionType.SUBSCRIPTION,
       paymentMethod: 'Visa',
-      mediaType: 'subscription',
-      provider: 'sony',
+      mediaType: MediaCategory.SUBSCRIPTION,
+      provider: 'playstation',
       createdAt: 1704067200000,
       updatedAt: 1704067200000,
       billingCycle: 'quarterly',
@@ -100,10 +101,10 @@ export const spendTrackingPageMockData = {
       id: 'sub-002',
       title: 'Xbox Game Pass Ultimate',
       amount: 14.99,
-      spendTransactionType: 'subscription' as const,
+      spendTransactionType: TransactionType.SUBSCRIPTION,
       paymentMethod: 'Mastercard',
-      mediaType: 'subscription',
-      provider: 'microsoft',
+      mediaType: MediaCategory.SUBSCRIPTION,
+      provider: 'xbox',
       createdAt: 1704067200000,
       updatedAt: 1704067200000,
       billingCycle: 'monthly',
@@ -119,9 +120,9 @@ export const spendTrackingPageMockData = {
       id: 'sub-003',
       title: 'Nintendo Switch Online',
       amount: 3.99,
-      spendTransactionType: 'subscription' as const,
+      spendTransactionType: TransactionType.SUBSCRIPTION,
       paymentMethod: 'Visa',
-      mediaType: 'subscription',
+      mediaType: MediaCategory.SUBSCRIPTION,
       provider: 'nintendo',
       createdAt: 1704067200000,
       updatedAt: 1704067200000,
@@ -138,9 +139,9 @@ export const spendTrackingPageMockData = {
       id: 'sub-004',
       title: 'Apple Arcade',
       amount: 6.99,
-      spendTransactionType: 'subscription' as TransactionType,
+      spendTransactionType: TransactionType.SUBSCRIPTION,
       paymentMethod: 'Mastercard',
-      mediaType: 'subscription',
+      mediaType: MediaCategory.SUBSCRIPTION,
       provider: 'apple',
       createdAt: 1704067200000,
       updatedAt: 1704067200000,
@@ -157,9 +158,9 @@ export const spendTrackingPageMockData = {
       id: 'one-005',
       title: 'Helldivers 2',
       amount: 10.99,
-      spendTransactionType: 'one-time',
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'PayPal',
-      mediaType: 'inGamePurchase',
+      mediaType: MediaCategory.IN_GAME_PURCHASE,
       provider: 'steam',
       createdAt: 1733529600000,
       updatedAt: 1733529600000,
@@ -172,14 +173,14 @@ export const spendTrackingPageMockData = {
       id: 'one-006',
       title: 'Path of Exile 2',
       amount: 20.00,
-      spendTransactionType: 'one-time' as const,
+      spendTransactionType: TransactionType.ONE_TIME,
       createdAt: 1704844800000,
       updatedAt: 1704844800000,
       paymentMethod: 'PayPal',
       provider: 'steam',
       isActive: true,
       isDigital: true,
-      mediaType: 'inGamePurchase',
+      mediaType: MediaCategory.IN_GAME_PURCHASE,
       isWishlisted: true,
       purchaseDate: 1733616000000,
     } as OneTimeSpend,
@@ -187,14 +188,14 @@ export const spendTrackingPageMockData = {
       id: 'one-007',
       title: 'Sid Meier\'s Civilization VI',
       amount: 19.99,
-      spendTransactionType: 'one-time' as const,
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'PayPal',
       provider: 'steam',
       createdAt: 1733702400000,
       updatedAt: 1733702400000,
       isActive: true,
       isDigital: true,
-      mediaType: 'dlc',
+      mediaType: MediaCategory.DLC,
       isWishlisted: true,
       purchaseDate: 1733702400000,
     } as OneTimeSpend,
@@ -202,14 +203,14 @@ export const spendTrackingPageMockData = {
       id: 'one-008',
       title: 'ELDEN RING Shadow of the Erdtree',
       amount: 39.99,
-      spendTransactionType: 'one-time' as const,
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'PayPal',
       provider: 'steam',
       createdAt: 1733270400000,
       updatedAt: 1733270400000,
       isActive: true,
       isDigital: true,
-      mediaType: 'dlc',
+      mediaType: MediaCategory.DLC,
       isWishlisted: true,
       purchaseDate: 1733270400000,
     } as OneTimeSpend,
@@ -217,12 +218,12 @@ export const spendTrackingPageMockData = {
       id: 'one-009',
       title: 'The Legend of Zelda: Breath of the Wild',
       amount: 29.99,
-      spendTransactionType: 'one-time' as const,
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'Visa',
       isActive: true,
       isDigital: false,
       isWishlisted: true,
-      mediaType: 'disc',
+      mediaType: MediaCategory.DISC,
       createdAt: 1733788800000,
       updatedAt: 1733788800000,
       purchaseDate: 1733788800000,
@@ -231,11 +232,11 @@ export const spendTrackingPageMockData = {
       id: 'one-010',
       title: 'Gradius V',
       amount: 59.99,
-      spendTransactionType: 'one-time' as TransactionType,
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'Visa',
       isDigital: false,
       isWishlisted: true,
-      mediaType: 'disc',
+      mediaType: MediaCategory.DISC,
       createdAt: 1734393600000,
       updatedAt: 1734393600000,
       purchaseDate: 1734393600000,
@@ -244,17 +245,17 @@ export const spendTrackingPageMockData = {
       id: 'one-011',
       title: 'G.Skill Trident Z5 Neo RGB DDR5-6000',
       amount: 219.98,
-      spendTransactionType: 'one-time' as const,
+      spendTransactionType: TransactionType.ONE_TIME,
       paymentMethod: 'Visa',
       isDigital: false,
       isWishlisted: true,
-      mediaType: 'hardware',
+      mediaType: MediaCategory.HARDWARE,
       createdAt: 1734393600000,
       updatedAt: 1734393600000,
       purchaseDate: 1734393600000,
     } as OneTimeSpend
-  ] as (SubscriptionSpend | OneTimeSpend)[],
-  oneTimeThisMonth: [] as OneTimeSpend[],
+  ] as SpendingItem[],
+  oneTimeThisMonth: [] as SpendingItem[],
   recurringNextMonth: [
     {
       id: 'sub-012',
@@ -262,20 +263,20 @@ export const spendTrackingPageMockData = {
       provider: 'google',
       amount: 5.99,
       billingCycle: 'monthly',
-      spendTransactionType: 'subscription',
+      spendTransactionType: TransactionType.SUBSCRIPTION,
       paymentMethod: 'Mastercard',
       isActive: true,
       createdAt: 1733270400000,
       updatedAt: 1733270400000,
       nextBillingDate: 1735948800000,
-      mediaType: 'subscription',
+      mediaType: MediaCategory.SUBSCRIPTION,
       yearlySpending: [
         { year: 2022, amount: 71.88 },
         { year: 2023, amount: 71.88 },
         { year: 2024, amount: 71.88 }
       ]
     } as SubscriptionSpend
-  ] as SubscriptionSpend[],
+  ] as SpendingItem[],
   yearlyTotals: {
     subscriptionTotal: [
       { year: 2022, amount: 399.88 },

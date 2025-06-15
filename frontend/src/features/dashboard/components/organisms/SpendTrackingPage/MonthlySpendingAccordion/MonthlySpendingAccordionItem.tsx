@@ -4,8 +4,13 @@ import { memo } from 'react';
 import { MemoizedDashboardBadge } from '@/features/dashboard/components/molecules/DashboardBadge/DashboardBadge';
 
 // Hooks + Utils
-import { LogoOrIcon } from '@/features/dashboard/components/organisms/MediaStoragePage/MediaStoragePageAccordion/LogoOrIcon';
 import { useFormattedDate } from '@/features/dashboard/lib/hooks/useFormattedDate';
+import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+
+// Types
+import type { SpendItem } from '@/types/domain/spend-tracking';
+import { MediaCategory } from '@/types/domain/spend-tracking';
 
 const getMediaTypeStyle = (type: string) => {
   switch(type) {
@@ -27,66 +32,47 @@ const getTransactionTypeStyle = (type: string) => {
   }
 }
 
-// Local Type Definitions
-interface BaseSpendItem {
-  id: string;
-  title: string;
-  amount: number;
-  spendTransactionType: 'subscription' | 'one-time';
-  paymentMethod: string;
-  mediaType: string;
-  serviceName?: {
-    id: string;
-    displayName: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-  isActive: boolean;
-}
-
-interface SubscriptionSpend extends BaseSpendItem {
-  spendTransactionType: 'subscription';
-  billingCycle: string;
-  nextBillingDate: number;
-  yearlySpending: Array<{
-    year: number;
-    amount: number;
-  }>;
-}
-
-interface OneTimeSpend extends BaseSpendItem {
-  spendTransactionType: 'one-time';
-  isDigital: boolean;
-  isWishlisted: boolean;
-  purchaseDate: number;
-}
-
 interface MonthlySpendingAccordionItemProps {
-  item: SubscriptionSpend | OneTimeSpend;
+  item: SpendItem;
   onClick?: () => void;
 }
-
-// Type Guards
-const isSubscriptionSpend = (item: SubscriptionSpend | OneTimeSpend): item is SubscriptionSpend => {
-  return item.spendTransactionType === 'subscription';
-};
 
 export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendingAccordionItem({
   item,
   onClick,
 }: MonthlySpendingAccordionItemProps) {
   const { spendTransactionType } = item;
-  const nextBillingDate = isSubscriptionSpend(item) ? item.nextBillingDate : undefined;
-  const purchaseDate = !isSubscriptionSpend(item) ? item.purchaseDate : undefined;
   const dateDisplay = useFormattedDate(
     spendTransactionType,
-    nextBillingDate,
-    purchaseDate
+    item.nextBillingDate,
+    item.purchaseDate
   );
 
   const handleClick = () => {
     console.log(`Clicked on ${item.title} payment`);
     onClick?.();
+  };
+
+  const renderIcon = () => {
+    // For subscriptions, use the digital location icon
+    if (item.mediaType === MediaCategory.SUBSCRIPTION) {
+      console.log(`renderIcon, subscription,: `, item);
+
+      return (
+        <DigitalLocationIcon
+          name={item?.provider ?? ''}
+          className="h-6 w-6"
+        />
+      );
+    }
+
+    // For other media types, use the media icon
+    return (
+      <MediaIcon
+        mediaType={item.mediaType}
+        className="h-6 w-6"
+      />
+    );
   };
 
   return (
@@ -100,10 +86,7 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
         </span>
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 flex items-center justify-center">
-            <LogoOrIcon
-              name={item.serviceName?.id ?? ''}
-              mediaType={item.mediaType as 'subscription' | 'dlc' | 'inGamePurchase' | 'disc' | 'hardware'}
-            />
+            {renderIcon()}
           </div>
           <div className="flex flex-col">
             <span
@@ -114,7 +97,7 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
       </div>
 
       <div className="flex items-center gap-4">
-        {isSubscriptionSpend(item) && (
+        {spendTransactionType === 'subscription' && item.billingCycle && (
             <MemoizedDashboardBadge className={getMediaTypeStyle('subscription')}>
               {item.billingCycle}
             </MemoizedDashboardBadge>
@@ -125,7 +108,7 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
           {spendTransactionType}
         </MemoizedDashboardBadge>
 
-        {isSubscriptionSpend(item) && (
+        {spendTransactionType === 'subscription' && (
           <MemoizedDashboardBadge className={getMediaTypeStyle(item.mediaType)}>
             {item.mediaType}
           </MemoizedDashboardBadge>

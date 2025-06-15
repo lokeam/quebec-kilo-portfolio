@@ -9,13 +9,11 @@ import { MonthlySpendingAccordion } from '@/features/dashboard/components/organi
 import { TotalMonthlySpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalMonthlySpendingCard/TotalMonthlySpendingCard.tsx';
 import { TotalAnnualSpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalAnnualSpendingCard/TotalAnnualSpendingCard.tsx';
 
+// Mock data for the page
 import { spendTrackingPageMockData } from './SpendTrackingPage.mockdata';
 
 
-// Mock data for the page
-
 export function SpendTrackingPageContent() {
-  console.log(`SpendTrackingPageContent: `, spendTrackingPageMockData);
 
   return (
     <PageMain>
