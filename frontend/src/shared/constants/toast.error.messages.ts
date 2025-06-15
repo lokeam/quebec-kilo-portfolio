@@ -66,6 +66,26 @@ export const TOAST_ERROR_MESSAGES = {
       EXISTS: 'Game already exists in your library',
       SERVER: 'Server error occurred while adding game',
     }
+  },
+  SPEND_TRACKING: {
+    ADD_ITEM: {
+      DEFAULT: 'Failed to add spend item',
+      PERMISSION: 'You don\'t have permission to add spend items',
+      EXISTS: 'A spend item with these details already exists',
+      SERVER: 'Server error occurred while adding spend item',
+    },
+    UPDATE_ITEM: {
+      DEFAULT: 'Failed to update spend item',
+      PERMISSION: 'You don\'t have permission to update this spend item',
+      NOT_FOUND: 'The spend item you\'re trying to update doesn\'t exist',
+      SERVER: 'Server error occurred while updating spend item',
+    },
+    DELETE_ITEM: {
+      DEFAULT: 'Failed to delete spend item',
+      PERMISSION: 'You don\'t have permission to delete this spend item',
+      NOT_FOUND: 'The spend item you\'re trying to delete doesn\'t exist',
+      SERVER: 'Server error occurred while deleting spend item',
+    }
   }
 } as const;
 

@@ -18,6 +18,11 @@ export const TOAST_SUCCESS_MESSAGES = {
     ADD_TO_LIBRARY: 'Game added to your library',
     REMOVE_FROM_LIBRARY: 'Game removed from your library',
     UPDATE: 'Game details updated'
+  },
+  SPEND_TRACKING: {
+    ADD_ITEM: 'Spend item added successfully',
+    UPDATE_ITEM: 'Spend item updated successfully',
+    DELETE_ITEM: 'Spend item deleted successfully'
   }
 } as const;
 

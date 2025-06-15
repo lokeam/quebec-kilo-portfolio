@@ -47,7 +47,7 @@ export function TotalMonthlySpendingCard({
   };
 
   return (
-    <Card className="col-span-full lg:col-span-2 w-full max-w-2xl bg-[#0B0F13] border-[#1D2127] text-white">
+    <Card className="col-span-full lg:col-span-2 bg-[#0B0F13] border-[#1D2127] text-white">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-xl font-bold text-[#c0c4cf]">Net this month</CardTitle>
         <button className="inline-flex items-center text-xs text-[#8B949E] hover:text-white">
