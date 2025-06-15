@@ -183,6 +183,58 @@ CREATE TABLE expenses (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create spending_categories table
+CREATE TABLE spending_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create one_time_purchases table
+CREATE TABLE one_time_purchases (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+    purchase_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('alipay', 'amex', 'diners', 'discover', 'elo', 'generic', 'hiper', 'hipercard', 'jcb', 'maestro', 'mastercard', 'mir', 'paypal', 'unionpay', 'visa')),
+    spending_category_id INTEGER REFERENCES spending_categories(id),
+    digital_location_id UUID REFERENCES digital_locations(id),
+    is_digital BOOLEAN NOT NULL DEFAULT false,
+    is_wishlisted BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create monthly_spending_aggregates table
+CREATE TABLE monthly_spending_aggregates (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    year INTEGER NOT NULL CHECK (year > 1900 AND year < 2100),
+    month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
+    total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
+    subscription_amount DECIMAL(10,2) NOT NULL CHECK (subscription_amount >= 0),
+    one_time_amount DECIMAL(10,2) NOT NULL CHECK (one_time_amount >= 0),
+    category_amounts JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, year, month)
+);
+
+-- Create yearly_spending_aggregates table
+CREATE TABLE yearly_spending_aggregates (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    year INTEGER NOT NULL CHECK (year > 1900 AND year < 2100),
+    total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
+    subscription_amount DECIMAL(10,2) NOT NULL CHECK (subscription_amount >= 0),
+    one_time_amount DECIMAL(10,2) NOT NULL CHECK (one_time_amount >= 0)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, year)
+);
+
 -- Create wishlist table
 CREATE TABLE wishlist (
     id SERIAL PRIMARY KEY,
@@ -220,6 +272,13 @@ CREATE INDEX idx_expenses_digital_location_id ON expenses(digital_location_id);
 CREATE INDEX idx_expenses_user_game_id ON expenses(user_game_id);
 CREATE INDEX idx_wishlist_user_id ON wishlist(user_id);
 CREATE INDEX idx_wishlist_game_id ON wishlist(game_id);
+
+-- Create indexes for efficient querying
+CREATE INDEX idx_one_time_purchases_user_date ON one_time_purchases(user_id, purchase_date);
+CREATE INDEX idx_one_time_purchases_digital_location ON one_time_purchases(digital_location_id);
+CREATE INDEX idx_one_time_purchases_category ON one_time_purchases(spending_category_id);
+CREATE INDEX idx_monthly_aggregates_user_year_month ON monthly_spending_aggregates(user_id, year, month);
+CREATE INDEX idx_yearly_aggregates_user_year ON yearly_spending_aggregates(user_id, year);
 
 -- Create trigger function for maintaining stored_items count
 CREATE OR REPLACE FUNCTION update_stored_items_count()

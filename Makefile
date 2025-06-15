@@ -60,7 +60,7 @@
 #
 # ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -534,6 +534,8 @@ help:
 	@echo " make migrate-down       - Roll back database migrations"
 	@echo " make check-db           - Check database status"
 	@echo " make list-backups       - List available database backups"
+	@echo " make spend-tracking-db-seed - Seed spend tracking data"
+	@echo " make spend-tracking-db-seed-down - Remove spend tracking seed data"
 
 # ---------------------------------------------------------------------------
 # Restore: Restore database from backup
@@ -569,8 +571,17 @@ migrate-down:
 	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150000_create_initial_schema.down.sql
 	@echo "$(GREEN)Migrations rolled back successfully$(RESET)"
 
+spend-tracking-db-seed:
+	@echo "$(BLUE)Seeding spend tracking data...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150001_seed_spend_tracking_data.up.sql
+	@echo "$(GREEN)Spend tracking data seeded successfully$(RESET)"
+
+spend-tracking-db-seed-down:
+	@echo "$(BLUE)Removing spend tracking seed data...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150001_seed_spend_tracking_data.down.sql
+	@echo "$(GREEN)Spend tracking seed data removed successfully$(RESET)"
+
 # Recreate: Forcefully stop everything, remove all containers, networks, and volumes, and start fresh
-# Usage: make recreate
 recreate:
 	@echo "$(BLUE)Forcefully stopping everything...$(RESET)"
 	docker compose --env-file .env.dev down -v
