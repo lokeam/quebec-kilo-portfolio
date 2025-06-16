@@ -87,3 +87,8 @@ type SearchService interface {
 	Search(ctx context.Context, req searchdef.SearchRequest) (*searchdef.SearchResult, error)
 	GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error)
 }
+
+// SpendTrackingService defines operations for managing spend tracking
+type SpendTrackingService interface {
+	GetSpendTrackingBFFResponse(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
+}

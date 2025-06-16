@@ -13,6 +13,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/media_storage"
 	"github.com/lokeam/qko-beta/internal/search"
 	"github.com/lokeam/qko-beta/internal/services"
+	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/wishlist"
 )
 
@@ -24,6 +25,7 @@ type Services struct {
 	Library       services.LibraryService
 	Wishlist      services.WishlistService
 	Search        services.SearchService
+	SpendTracking services.SpendTrackingService
 	Analytics     analytics.Service
 	MediaStorage  media_storage.MediaStorageService
 }
@@ -84,6 +86,26 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing library service: %w", err)
 	}
 	servicesObj.Library = libraryService
+
+	// Initialize spend tracking service
+
+	// Create spend tracking cache adapter
+	spendTrackingCacheAdapter, err := spend_tracking.NewSpendTrackingCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("initializing spend tracking cache adapter: %w", err)
+	}
+
+	// Create spend tracking db adapter
+	spendTrackingDbAdapter, err := spend_tracking.NewSpendTrackingDbAdapter(appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("initializing spend tracking db adapter: %w", err)
+	}
+
+	spendTrackingService, err := spend_tracking.NewSpendTrackingService(appCtx, spendTrackingDbAdapter, spendTrackingCacheAdapter)
+	if err != nil {
+		return nil, fmt.Errorf("initializing spend tracking service: %w", err)
+	}
+	servicesObj.SpendTracking = spendTrackingService
 
 	// Initialize wishlist service
 	wishlistService, err := wishlist.NewGameWishlistService(appCtx)
