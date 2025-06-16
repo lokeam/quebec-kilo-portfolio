@@ -4,8 +4,8 @@ import {
 } from '@/types/domain/spend-tracking';
 
 import type {
-  SpendingItem,
-  YearlySpending
+  SpendingItemBFFResponse,
+  SingleYearlyTotalBFFResponse
 } from '@/types/domain/spend-tracking';
 
 interface BaseSpendItem {
@@ -25,7 +25,7 @@ interface SubscriptionSpend extends BaseSpendItem {
   spendTransactionType: TransactionType.SUBSCRIPTION;
   billingCycle: string;
   nextBillingDate: number;
-  yearlySpending: YearlySpending[];
+  yearlySpending: SingleYearlyTotalBFFResponse[];
 }
 
 interface OneTimeSpend extends BaseSpendItem {
@@ -254,8 +254,8 @@ export const spendTrackingPageMockData = {
       updatedAt: 1734393600000,
       purchaseDate: 1734393600000,
     } as OneTimeSpend
-  ] as SpendingItem[],
-  oneTimeThisMonth: [] as SpendingItem[],
+  ] as SpendingItemBFFResponse[],
+  oneTimeThisMonth: [] as SpendingItemBFFResponse[],
   recurringNextMonth: [
     {
       id: 'sub-012',
@@ -276,7 +276,7 @@ export const spendTrackingPageMockData = {
         { year: 2024, amount: 71.88 }
       ]
     } as SubscriptionSpend
-  ] as SpendingItem[],
+  ] as SpendingItemBFFResponse[],
   yearlyTotals: {
     subscriptionTotal: [
       { year: 2022, amount: 399.88 },

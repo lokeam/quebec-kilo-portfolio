@@ -30,7 +30,8 @@ export enum BillingCycle {
 }
 
 // Core Types
-export interface SpendingItem {
+// original name: SpendingItem
+export interface SpendingItemBFFResponse {
   id: string;
   title: string;
   amount: number;
@@ -52,30 +53,69 @@ export interface SpendingItem {
   purchaseDate?: number;
   isDigital?: boolean;
   isWishlisted?: boolean;
-  yearlySpending?: YearlySpending[];
+  yearlySpending?: SingleYearlyTotalBFFResponse[];
 }
 
-export interface YearlySpending {
+// original name: YearlySpending
+// Linked to SingleYearlyTotalBFFResponse in spend_tracking_response_types.go
+export interface SingleYearlyTotalBFFResponse {
   year: number;
   amount: number;
 }
 
-export interface SpendingCategory {
+// original name: SpendingCategory
+// Linked to SpendingCategoryBFFResponseFINAL in spend_tracking_response_types.go
+export interface SpendingCategoryBFFResponse {
   name: string;
   value: number;
 }
 
-export interface MonthlyExpenditure {
+// original name: MonthlyExpenditure
+// Linked to MonthlyExpenditureBFFResponseFINAL in spend_tracking_response_types.go
+export interface SingleMonthlyExpenditureBFFResponse {
   month: string;
   expenditure: number;
 }
 
+// Linked to MonthlySpendingBFFResponseFINAL in spend_tracking_response_types.go
+export interface MonthlySpendingBFFResponse {
+  currentMonthTotal: number;
+  lastMonthTotal: number;
+  percentageChange: number;
+  comparisonDateRange: string;
+  spendingCategories: SpendingCategoryBFFResponse[];
+}
+
+// Linked to AnnualSpendingBFFResponseFINAL in spend_tracking_response_types.go
+export interface AnnualSpendingBFFResponse {
+  dateRange: string;
+  monthlyExpenditures: SingleMonthlyExpenditureBFFResponse[];
+  medianMonthlyCost: number;
+}
+
+// Linked to AllYearlyTotalsBFFResponseFINAL in spend_tracking_response_types.go
+export interface AllYearlyTotalsBFFResponse {
+  subscriptionTotal: SingleYearlyTotalBFFResponse[];
+  oneTimeTotal: SingleYearlyTotalBFFResponse[];
+  combinedTotal: SingleYearlyTotalBFFResponse[];
+}
+
+export interface SpendTrackingBFFResponse {
+  totalMonthlySpending: MonthlySpendingBFFResponse;
+  totalAnnualSpending: AnnualSpendingBFFResponse;
+  currentTotalThisMonth: SpendingItemBFFResponse[];
+  oneTimeThisMonth: SpendingItemBFFResponse[];
+  recurringNextMonth: SpendingItemBFFResponse[];
+  yearlyTotals: AllYearlyTotalsBFFResponse;
+};
+
+
 // Type Guards
-export function isSubscriptionSpend(item: SpendingItem): boolean {
+export function isSubscriptionSpend(item: SpendingItemBFFResponse): boolean {
   return item.spendTransactionType === TransactionType.SUBSCRIPTION;
 }
 
-export function isOneTimeSpend(item: SpendingItem): boolean {
+export function isOneTimeSpend(item: SpendingItemBFFResponse): boolean {
   return item.spendTransactionType === TransactionType.ONE_TIME;
 }
 
@@ -84,6 +124,6 @@ export type Money = number;
 export type ISO8601Date = string;
 
 // Type aliases for backward compatibility
-export type SpendItem = SpendingItem;
+export type SpendItem = SpendingItemBFFResponse;
 export type MediaType = MediaCategory;
 export type SpendTransactionType = TransactionType;

@@ -17,7 +17,7 @@ import {
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Types
-import type { SpendItem, YearlySpending } from '@/types/domain/spend-tracking';
+import type { SpendItem, SingleYearlyTotalBFFResponse, SpendTrackingBFFResponse } from '@/types/domain/spend-tracking';
 
 // Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
@@ -35,14 +35,14 @@ export const spendTrackingKeys = {
 interface SpendTrackingPageData {
   currentMonthItems: SpendItem[];
   nextMonthItems: SpendItem[];
-  yearlyTotals: YearlySpending[];
+  yearlyTotals: SingleYearlyTotalBFFResponse[];
 }
 
 /**
  * Hook to fetch all spend tracking data for the BFF page
  */
 export const useGetSpendTrackingPageBFFResponse = () => {
-  return useAPIQuery<SpendTrackingPageData>({
+  return useAPIQuery<SpendTrackingBFFResponse>({
     queryKey: spendTrackingKeys.lists(),
     queryFn: async () => {
       try {

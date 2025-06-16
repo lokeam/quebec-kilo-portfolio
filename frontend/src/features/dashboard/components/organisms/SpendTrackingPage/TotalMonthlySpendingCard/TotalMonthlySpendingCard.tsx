@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 // Types
-import type { SpendingCategory } from '@/types/domain/spend-tracking';
+import type { SpendingCategoryBFFResponse } from '@/types/domain/spend-tracking';
 import { MediaCategory } from '@/types/domain/spend-tracking';
 
 // TODO: Sync all this hardcoded data with mockdata file
@@ -28,7 +28,7 @@ export function TotalMonthlySpendingCard({
     lastMonthTotal: number;
     percentageChange: number;
     comparisonDateRange: string;
-    spendingCategories: SpendingCategory[];
+    spendingCategories: SpendingCategoryBFFResponse[];
   }
 }) {
   const {

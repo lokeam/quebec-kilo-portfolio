@@ -15,12 +15,12 @@ import {
 import { Separator } from '@/shared/components/ui/separator';
 
 // Types
-import type { SpendItem, YearlySpending } from '@/types/domain/spend-tracking';
+import type { SpendItem, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
 
 interface MonthlySpendingAccordionProps {
   thisMonth: SpendItem[];
   future: SpendItem[];
-  oneTimeTotal: YearlySpending[];
+  oneTimeTotal: SingleYearlyTotalBFFResponse[];
 }
 
 export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: MonthlySpendingAccordionProps) {

@@ -52,7 +52,7 @@ type SpendingItemBFFResponseFINAL struct {
     CreatedAt             int64                                 `json:"createdAt"`
     UpdatedAt             int64                                 `json:"updatedAt"`
     IsActive              bool                                  `json:"isActive"`
-		Provider              string                                `json:"provider,omitempty"`
+	Provider              string                                `json:"provider,omitempty"`
 
 		// Subscription specific fields
     BillingCycle          string                                `json:"billingCycle,omitempty"`

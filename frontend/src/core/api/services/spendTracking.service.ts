@@ -8,10 +8,19 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // Types
-import type { SpendItem, YearlySpending } from '@/types/domain/spend-tracking';
+import type {
+  SpendingItemBFFResponse,
+  SpendTrackingBFFResponse
+} from '@/types/domain/spend-tracking';
 
 const SPEND_TRACKING_ENDPOINT = '/v1/spend-tracking';
 const SPEND_TRACKING_BFF_ENDPOINT = '/v1/spend-tracking/bff';
+
+// Used for CRUD ops where we don't need a full response
+type SpendTrackingOperationResponse = {
+  id: number;
+  message: string;
+};
 
 interface SpendTrackingOperationResponseWrapper {
   success: boolean;
@@ -28,7 +37,7 @@ interface SpendTrackingOperationResponseWrapper {
 interface SpendTrackingItemResponseWrapper {
   success: boolean;
   spendTracking: {
-    item: SpendItem;
+    item: SpendingItemBFFResponse;
   };
   metadata: {
     timestamp: string;
@@ -38,27 +47,12 @@ interface SpendTrackingItemResponseWrapper {
 
 interface SpendTrackingBFFResponseWrapper {
   success: boolean;
-  spendTracking: {
-    currentMonthItems: SpendItem[];
-    nextMonthItems: SpendItem[];
-    yearlyTotals: YearlySpending[];
-  };
+  spendTracking: SpendTrackingBFFResponse;
   metadata: {
     timestamp: string;
     request_id: string;
   };
 }
-
-type SpendTrackingOperationResponse = {
-  id: number;
-  message: string;
-};
-
-type SpendTrackingBFFResponse = {
-  currentMonthItems: SpendItem[];
-  nextMonthItems: SpendItem[];
-  yearlyTotals: YearlySpending[];
-};
 
 /**
  * Fetches all spend tracking data for the BFF page.
@@ -87,7 +81,7 @@ export const getSpendTrackingPageBFFResponse = (): Promise<SpendTrackingBFFRespo
 /**
  * Fetches a specific spend item by ID
  */
-export const getSpendTrackingItemById = (id: string): Promise<SpendItem> =>
+export const getSpendTrackingItemById = (id: string): Promise<SpendingItemBFFResponse> =>
   apiRequest(`getSpendItemById(${id})`, () =>
     axiosInstance
       .get<SpendTrackingItemResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`)
@@ -103,7 +97,7 @@ export const getSpendTrackingItemById = (id: string): Promise<SpendItem> =>
 /**
  * Creates a new spend item
  */
-export const createSpendTrackingItem = (data: Omit<SpendItem, 'id'>): Promise<SpendTrackingOperationResponse> =>
+export const createSpendTrackingItem = (data: Omit<SpendingItemBFFResponse, 'id'>): Promise<SpendTrackingOperationResponse> =>
   apiRequest('createSpendItem', () =>
     axiosInstance
       .post<SpendTrackingOperationResponseWrapper>(SPEND_TRACKING_ENDPOINT, data)
@@ -119,7 +113,7 @@ export const createSpendTrackingItem = (data: Omit<SpendItem, 'id'>): Promise<Sp
 /**
  * Updates an existing spend item
  */
-export const updateSpendTrackingItem = (id: string, data: Partial<SpendItem>): Promise<SpendTrackingOperationResponse> =>
+export const updateSpendTrackingItem = (id: string, data: Partial<SpendingItemBFFResponse>): Promise<SpendTrackingOperationResponse> =>
   apiRequest(`updateSpendItem(${id})`, () =>
     axiosInstance
       .put<SpendTrackingOperationResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`, data)

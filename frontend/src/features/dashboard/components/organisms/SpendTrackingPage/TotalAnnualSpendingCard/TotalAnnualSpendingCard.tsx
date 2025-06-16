@@ -7,7 +7,7 @@ import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from 'recharts';
 import { ArrowUpRight, TrendingUp } from 'lucide-react';
 
 // Types
-import type { MonthlyExpenditure } from '@/types/domain/spend-tracking';
+import type { SingleMonthlyExpenditureBFFResponse } from '@/types/domain/spend-tracking';
 
 const chartConfig = {
   expenditure: {
@@ -22,7 +22,7 @@ export function TotalAnnualSpendingCard({
 }: {
   totalAnnualSpending: {
     dateRange: string;
-    monthlyExpenditures: MonthlyExpenditure[];
+    monthlyExpenditures: SingleMonthlyExpenditureBFFResponse[];
     medianMonthlyCost: number;
   }
 }) {

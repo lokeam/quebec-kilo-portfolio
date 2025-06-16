@@ -15,15 +15,15 @@ import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
 // Types
-import type { SpendingItem, YearlySpending } from '@/types/domain/spend-tracking';
+import type { SpendingItemBFFResponse, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
 import { MediaCategory } from '@/types/domain/spend-tracking';
 
 // Icons
 import { CreditCard } from 'lucide-react';
 
 interface MonthlySpendingItemDetailsProps {
-  item: SpendingItem;
-  oneTimeTotal: YearlySpending[];
+  item: SpendingItemBFFResponse;
+  oneTimeTotal: SingleYearlyTotalBFFResponse[];
 }
 
 export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetails({

@@ -103,8 +103,6 @@ export interface LibraryItemsBFFResponse {
   recentlyAdded: LibraryGameItemResponse[];
 }
 
-
-
 export interface LibraryGameItem {
   id: number;
   name: string;

@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
 
 // Types
-import type { SpendingItem, YearlySpending } from '@/types/domain/spend-tracking';
+import type { SpendingItemBFFResponse, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
 
 interface SpendingData {
-  spendingData: YearlySpending[];
+  spendingData: SingleYearlyTotalBFFResponse[];
   title: string;
   isSubscription: boolean;
 }
 
 export function useSpendingData(
-  item: SpendingItem,
-  oneTimeTotal: YearlySpending[]
+  item: SpendingItemBFFResponse,
+  oneTimeTotal: SingleYearlyTotalBFFResponse[]
 ): SpendingData {
   const isSubscription = item.spendTransactionType === 'subscription';
   const yearlySpending = isSubscription ? item.yearlySpending : oneTimeTotal;
