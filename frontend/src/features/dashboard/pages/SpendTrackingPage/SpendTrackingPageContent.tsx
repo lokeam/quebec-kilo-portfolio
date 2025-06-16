@@ -9,11 +9,21 @@ import { MonthlySpendingAccordion } from '@/features/dashboard/components/organi
 import { TotalMonthlySpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalMonthlySpendingCard/TotalMonthlySpendingCard.tsx';
 import { TotalAnnualSpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalAnnualSpendingCard/TotalAnnualSpendingCard.tsx';
 
+import { useGetSpendTrackingPageBFFResponse } from '@/core/api/queries/spendTracking.queries';
+
 // Mock data for the page
 import { spendTrackingPageMockData } from './SpendTrackingPage.mockdata';
 
-
 export function SpendTrackingPageContent() {
+
+  const {
+    data: bffResponse,
+    isLoading,
+    error
+  } = useGetSpendTrackingPageBFFResponse();
+
+  console.log('🔍 DEBUG: SpendTrackingPage -  bffResponse', bffResponse);
+
 
   return (
     <PageMain>

@@ -20,6 +20,7 @@ func NewMockServices() *MockServices {
 		Library:       &MockLibraryService{},
 		Wishlist:      &MockWishlistService{},
 		Search:        &MockSearchService{},
+		SpendTracking: &MockSpendTrackingService{},
 	}
 }
 
@@ -31,6 +32,7 @@ type MockServices struct {
 	Library       services.LibraryService
 	Wishlist      services.WishlistService
 	Search        services.SearchService
+	SpendTracking services.SpendTrackingService
 }
 
 // Mocks for each service type
@@ -447,4 +449,15 @@ func (m *MockSublocationDbAdapter) DeleteSublocation(ctx context.Context, userID
 		DeletedCount: len(sublocationIDs),
 		SublocationIDs: sublocationIDs,
 	}, nil
+}
+
+type MockSpendTrackingService struct {
+	GetSpendTrackingBFFResponseFunc func(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
+}
+
+func (m *MockSpendTrackingService) GetSpendTrackingBFFResponse(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error) {
+	if m.GetSpendTrackingBFFResponseFunc != nil {
+		return m.GetSpendTrackingBFFResponseFunc(ctx, userID)
+	}
+	return types.SpendTrackingBFFResponseFINAL{}, nil
 }

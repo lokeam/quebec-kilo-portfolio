@@ -187,7 +187,7 @@ CREATE TABLE expenses (
 CREATE TABLE spending_categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
-    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc'))
+    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -229,7 +229,7 @@ CREATE TABLE yearly_spending_aggregates (
     year INTEGER NOT NULL CHECK (year > 1900 AND year < 2100),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
     subscription_amount DECIMAL(10,2) NOT NULL CHECK (subscription_amount >= 0),
-    one_time_amount DECIMAL(10,2) NOT NULL CHECK (one_time_amount >= 0)
+    one_time_amount DECIMAL(10,2) NOT NULL CHECK (one_time_amount >= 0),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, year)

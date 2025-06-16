@@ -14,6 +14,7 @@ type SpendTrackingCategoryDB struct {
 // SpendTrackingOneTimePurchaseDB represents a one-time purchase in the database
 type SpendTrackingOneTimePurchaseDB struct {
 	ID                int       `db:"id"`
+	DigitalLocationID *string    `db:"digital_location_id"`
 	UserID            string    `db:"user_id"`
 	Title             string    `db:"title"`
 	Amount            float64   `db:"amount"`

@@ -21,6 +21,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/search"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
+	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
 	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -52,6 +53,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			Library:       mockSvc.Library,
 			Wishlist:      mockSvc.Wishlist,
 			Search:        mockSvc.Search,
+			SpendTracking: mockSvc.SpendTracking,
 		}
 		}
 
@@ -176,6 +178,17 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			r.Get("/services/catalog", digitalServicesCatalogHandler)
 		})
 
+		// Spend Tracking
+		r.Route("/spend-tracking", func(r chi.Router) {
+			appContext.Logger.Info("Registering spend tracking routes", map[string]any{
+				"path": "/api/v1/spend-tracking",
+			})
+
+			// Register routes using new pattern
+			spend_tracking.RegisterSpendTrackingRoutes(r, appContext, svc.SpendTracking)
+		})
+
+
 		// Media Storage
 		r.Route("/media-storage", func(r chi.Router) {
 			appContext.Logger.Info("Registering media storage routes", map[string]any{
@@ -203,6 +216,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			"physical":       "/api/v1/locations/physical",
 			"sublocations":   "/api/v1/locations/sublocations",
 			"digital":        "/api/v1/locations/digital",
+			"spend-tracking": "/api/v1/spend-tracking",
 			"analytics":      "/api/v1/analytics",
 			"media-storage":  "/api/v1/media-storage",
 		})

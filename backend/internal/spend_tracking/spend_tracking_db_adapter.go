@@ -68,8 +68,9 @@ const (
     ORDER BY year DESC, month DESC
 	`
 
+	// SELECT year, month, total_amount <-- removed command from last edit
 	getMonthlySpendingAggregatesQuery = `
-    SELECT year, month, total_amount
+    SELECT id, user_id, year, month, total_amount, subscription_amount, one_time_amount, category_amounts, created_at, updated_at
     FROM monthly_spending_aggregates
     WHERE user_id = $1
     ORDER BY year, month
@@ -83,7 +84,7 @@ const (
 	`
 
 	getCurrentMonthOneTimePurchasesQuery = `
-		SELECT otp.*, sc.name as category_name, sc.media_type as media_type
+		SELECT otp.*, sc.media_type as media_type
 		FROM one_time_purchases otp
 		LEFT JOIN spending_categories sc ON otp.spending_category_id = sc.id
 		WHERE otp.user_id = $1
@@ -118,10 +119,16 @@ const (
 )
 
 // --- TRANSFORMATION LOGIC ---
-func transformMonthlySpendingDBToResponse(
+func (sta *SpendTrackingDbAdapter) transformMonthlySpendingDBToResponse(
 	currentMonth models.SpendTrackingMonthlyAggregateDB,
 	previousMonth models.SpendTrackingMonthlyAggregateDB,
 ) types.MonthlySpendingBFFResponseFINAL {
+	// Log function call
+	sta.logger.Debug("transformMonthlySpendingDBToResponse called", map[string]any{
+		"currentMonth": currentMonth,
+		"previousMonth": previousMonth,
+	})
+
 	// Calc percentage change
 	percentageChange := 0.0
 	if previousMonth.TotalAmount > 0 {
@@ -130,14 +137,29 @@ func transformMonthlySpendingDBToResponse(
 
 	// Parse category amounts from JSONB
 	var categoryAmounts map[string]float64
+	sta.logger.Debug("Attempting to unmarshal category_amounts", map[string]any{
+		"categoryAmounts": string(currentMonth.CategoryAmounts),
+	})
+
 	if err := json.Unmarshal(currentMonth.CategoryAmounts, &categoryAmounts); err != nil {
-		// Log error but continue
+		sta.logger.Error("Failed to unmarshal category_amounts", map[string]any{
+			"error": err,
+			"categoryAmounts": string(currentMonth.CategoryAmounts),
+		})
 		categoryAmounts = make(map[string]float64)
+	} else {
+		sta.logger.Debug("Successfully unmarshaled category_amounts", map[string]any{
+			"categoryAmounts": categoryAmounts,
+		})
 	}
 
 	// Transform category amounts to response format
 	spendingCategories := make([]types.SpendingCategoryBFFResponseFINAL, 0, len(categoryAmounts))
 	for name, value := range categoryAmounts {
+		sta.logger.Debug("Processing category", map[string]any{
+			"name": name,
+			"value": value,
+		})
 		spendingCategories = append(spendingCategories, types.SpendingCategoryBFFResponseFINAL{
 			Name:  name,
 			Value: value,
@@ -152,13 +174,19 @@ func transformMonthlySpendingDBToResponse(
 		currentDate.Format("Jan 2, 2006"),
 	)
 
-	return types.MonthlySpendingBFFResponseFINAL{
+	response := types.MonthlySpendingBFFResponseFINAL{
 		CurrentMonthTotal:    currentMonth.TotalAmount,
 		LastMonthTotal:      previousMonth.TotalAmount,
 		PercentageChange:    percentageChange,
 		ComparisonDateRange: dateRange,
 		SpendingCategories:  spendingCategories,
 	}
+
+	sta.logger.Debug("Returning monthly spending response", map[string]any{
+		"response": response,
+	})
+
+	return response
 }
 
 func tranformYearlySpendingDBToResponse(
@@ -174,16 +202,24 @@ func tranformYearlySpendingDBToResponse(
 		}
 	}
 
+	// Get current year and month for proper data filtering
+	now := time.Now()
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
 	// Populate monthly expenditures with actual data
-	currentYear := time.Now().Year()
 	for _, agg := range monthlySpendingAggregates {
-		if agg.Year == currentYear {
-			monthIndex := int(agg.Month) - 1 // Convert to 0-based index
-			if monthIndex >= 0 && monthIndex < 12 {
-				monthlyExpenditures[monthIndex].Expenditure = agg.TotalAmount
-			}
+		// Only process data for the current year
+		if agg.Year == currentYear && int(agg.Month) <= currentMonth {
+				monthIndex := int(agg.Month) - 1 // Convert to 0-based index
+				if monthIndex >= 0 && monthIndex < 12 {
+						// Only update if we have data for this month
+						if agg.TotalAmount > 0 {
+								monthlyExpenditures[monthIndex].Expenditure = agg.TotalAmount
+						}
+				}
 		}
-	}
+}
 
 	// Calculate median monthly cost from yearly aggregates
 	var monthlyCosts []float64
@@ -301,6 +337,12 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error querying monthly spending: %w", err)
 	}
 
+	// Log the raw data from the database
+	sta.logger.Debug("Raw monthly spending data from database", map[string]any{
+		"count": len(monthlySpendingAggregates),
+		"data": monthlySpendingAggregates,
+	})
+
 	// Get yearly spending data
 	var yearlySpendingAggregates []models.SpendTrackingYearlyAggregateDB
 	if err := tx.SelectContext(
@@ -339,7 +381,32 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	}
 
 	// Transform monthly and annual spending data
-	monthlySpendingResponse := transformMonthlySpendingDBToResponse(monthlySpendingAggregates[0], monthlySpendingAggregates[1])
+	var monthlySpendingResponse types.MonthlySpendingBFFResponseFINAL
+	if len(monthlySpendingAggregates) >= 2 {
+		sta.logger.Debug("Transforming monthly spending data", map[string]any{
+			"currentMonth": monthlySpendingAggregates[0],
+			"previousMonth": monthlySpendingAggregates[1],
+		})
+		monthlySpendingResponse = sta.transformMonthlySpendingDBToResponse(monthlySpendingAggregates[1], monthlySpendingAggregates[0])
+	} else {
+		sta.logger.Debug("Insufficient monthly spending data, using empty state", map[string]any{
+			"count": len(monthlySpendingAggregates),
+		})
+		// Empty state matching mock data structure
+		monthlySpendingResponse = types.MonthlySpendingBFFResponseFINAL{
+			CurrentMonthTotal:    0,
+			LastMonthTotal:      0,
+			PercentageChange:    0,
+			ComparisonDateRange: "No data available",
+			SpendingCategories:  []types.SpendingCategoryBFFResponseFINAL{},
+		}
+	}
+
+	// Log the transformed response
+	sta.logger.Debug("Transformed monthly spending response", map[string]any{
+		"response": monthlySpendingResponse,
+	})
+
 	annualSpendingResponse := tranformYearlySpendingDBToResponse(yearlySpendingAggregates, monthlySpendingAggregates)
 
 	// Transform one-time purchases
@@ -370,25 +437,28 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 		CombinedTotal:     make([]types.SingleYearlyTotalBFFResponseFINAL, 0, len(yearlySpendingAggregates)),
 	}
 
-	// Sort yearly aggregates by year
-	sort.Slice(yearlySpendingAggregates, func(i, j int) bool {
-		return yearlySpendingAggregates[i].Year < yearlySpendingAggregates[j].Year
-	})
+	// Only process yearly totals if we have data
+	if len(yearlySpendingAggregates) > 0 {
+		// Sort yearly aggregates by year
+		sort.Slice(yearlySpendingAggregates, func(i, j int) bool {
+			return yearlySpendingAggregates[i].Year < yearlySpendingAggregates[j].Year
+		})
 
-	// Construct yearly totals
-	for _, agg := range yearlySpendingAggregates {
-		yearlyTotals.SubscriptionTotal = append(yearlyTotals.SubscriptionTotal, types.SingleYearlyTotalBFFResponseFINAL{
-			Year:   agg.Year,
-			Amount: agg.SubscriptionAmount,
-		})
-		yearlyTotals.OneTimeTotal = append(yearlyTotals.OneTimeTotal, types.SingleYearlyTotalBFFResponseFINAL{
-			Year:   agg.Year,
-			Amount: agg.OneTimeAmount,
-		})
-		yearlyTotals.CombinedTotal = append(yearlyTotals.CombinedTotal, types.SingleYearlyTotalBFFResponseFINAL{
-			Year:   agg.Year,
-			Amount: agg.TotalAmount,
-		})
+		// Construct yearly totals
+		for _, agg := range yearlySpendingAggregates {
+			yearlyTotals.SubscriptionTotal = append(yearlyTotals.SubscriptionTotal, types.SingleYearlyTotalBFFResponseFINAL{
+				Year:   agg.Year,
+				Amount: agg.SubscriptionAmount,
+			})
+			yearlyTotals.OneTimeTotal = append(yearlyTotals.OneTimeTotal, types.SingleYearlyTotalBFFResponseFINAL{
+				Year:   agg.Year,
+				Amount: agg.OneTimeAmount,
+			})
+			yearlyTotals.CombinedTotal = append(yearlyTotals.CombinedTotal, types.SingleYearlyTotalBFFResponseFINAL{
+				Year:   agg.Year,
+				Amount: agg.TotalAmount,
+			})
+		}
 	}
 
 	// Return
