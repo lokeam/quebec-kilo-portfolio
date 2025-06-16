@@ -187,7 +187,7 @@ CREATE TABLE expenses (
 CREATE TABLE spending_categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
-    type VARCHAR(20) NOT NULL CHECK (type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc')),
+    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc'))
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
