@@ -1,12 +1,12 @@
-export default function MetaLogo() {
+export default function MetaLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="100px"
       height="100px"
       viewBox="-100 -100 1148 391"
+      className={className}
     >
-    <desc>Logo of Meta Platforms -- Graphic created by Detmar Owen</desc>
     <defs>
     <linearGradient id="Grad_Logo1" x1="61" y1="117" x2="259" y2="127" gradientUnits="userSpaceOnUse">
       <stop stopColor="#0064e1" offset="0"/>

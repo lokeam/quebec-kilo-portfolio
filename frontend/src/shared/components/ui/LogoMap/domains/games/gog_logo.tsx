@@ -1,9 +1,10 @@
-export default function GogLogo() {
+export default function GogLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       xmlnsXlink="http://www.w3.org/1999/xlink"
       viewBox="0 0 57 69"
+      className={className}
     >
       <defs>
         <path id="a" d="M0 .012h56.539v53.802H0z"/>

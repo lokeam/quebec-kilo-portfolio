@@ -1,10 +1,10 @@
-export default function NintendoLogo() {
+export default function NintendoLogo({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg"
       version="1.0"
       viewBox="-80 -50 1000 1000"
       preserveAspectRatio="xMidYMid meet"
-      className="rounded-lg bg-[#e60012]"
+      className={`rounded-lg bg-[#e60012] ${className}`}
     >
       <g transform="translate(0.000000,900.000000) scale(0.100000,-0.100000)" fill="#000000" stroke="none">
         <path fill="#107c10" d="M0 0h120v120H0z" />

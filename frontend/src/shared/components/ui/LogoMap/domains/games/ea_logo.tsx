@@ -1,4 +1,4 @@
-export default function EALogo() {
+export default function EALogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -6,6 +6,7 @@ export default function EALogo() {
       width="100px"
       height="100px"
       viewBox="-200 -200 1400 1400" /* Added padding around the original 1000x1000 viewBox */
+      className={className}
     >
       <path
         fill="#ff4747"

@@ -1,10 +1,11 @@
-export default function PlayPassLogo() {
+export default function PlayPassLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="100px"
       height="100px"
       viewBox="-50 -50 612 612"
+      className={className}
     >
       <g transform="scale(0.55) translate(220, 100)">
         <path fill="#ff3a44" d="M365.875.002a109.874 109.557 0 0 1-109.873 109.555A109.874 109.557 0 0 1 146.135.006l-73 .002C32.74.008 0 32.744 0 73.138l.002 585.147c0 40.394 32.74 73.135 73.135 73.135h72.992a109.874 109.557 0 0 1 109.873-109.555 109.874 109.557 0 0 1 109.875 109.559h72.992c40.394 0 73.131-32.739 73.131-73.133V73.135C512 32.74 479.26 0 438.865 0Z"/>

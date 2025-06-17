@@ -1,10 +1,10 @@
-export default function XboxLogo() {
+export default function XboxLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       data-name="Layer 1"
       viewBox="0 0 120 120"
-      className="rounded-lg"
+      className={className}
     >
       <path fill="#107c10" d="M0 0h120v120H0z" />
       <g className="cls-3" data-name="Xbox 2020 Sphere">
