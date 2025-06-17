@@ -27,8 +27,6 @@ export const DigitalLocationIcon = memo(function DigitalLocationIcon({
   const normalizedName = name ? normalizeDigitalLocationName(name) : undefined;
   const LogoComponent = normalizedName ? games[normalizedName] : null;
 
-  console.log(`DigitalLocationIcon, name: `, name);
-
   return LogoComponent ? (
     <LogoComponent className={className} />
   ) : (

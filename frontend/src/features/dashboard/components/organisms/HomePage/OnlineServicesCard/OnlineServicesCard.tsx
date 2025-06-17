@@ -8,32 +8,38 @@ import {
   PaginationPrevious,
 } from "@/shared/components/ui/pagination"
 import { ServiceList } from './OnlineServicesList';
-import type { OnlineService } from './onlineServicesCard.types';
 import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
 
 type OnlineServicesCardProps = {
-  totalAnnual: string;
-  renewsThisMonth: string[];
-  totalServices: number;
-  services: OnlineService[];
+  subscriptionTotal: number;
+  subscriptionRecurringNextMonth: number;
+  digitalLocations: {
+    logo: string;
+    name: string;
+    url: string;
+    billingCycle: string;
+    monthlyFee: number;
+    storedItems: number;
+  }[];
 };
 
 export function OnlineServicesCard({
-  totalAnnual,
-  renewsThisMonth,
-  totalServices,
-  services,
+  subscriptionTotal,
+  subscriptionRecurringNextMonth,
+  digitalLocations,
 }: OnlineServicesCardProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(services.length / ITEMS_PER_PAGE);
-  const showShowPagination = services.length > ITEMS_PER_PAGE;
+  const totalPages = Math.ceil(digitalLocations.length / ITEMS_PER_PAGE);
+  const showShowPagination = digitalLocations.length > ITEMS_PER_PAGE;
+
+  const totaldigitalLocations = digitalLocations.length;
 
   const paginatedServices = useMemo(() =>
-    services.slice(
+    digitalLocations.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     ),
-    [currentPage, services]
+    [currentPage, digitalLocations]
   );
 
   return (
@@ -41,12 +47,12 @@ export function OnlineServicesCard({
       <CardHeader>
         <CardTitle>Online Gaming Services</CardTitle>
         <CardDescription>
-          {totalAnnual} total annual fees | {totalServices} total services | {renewsThisMonth.length} renews this month
+          {subscriptionTotal} total annual fees | {totaldigitalLocations} total services | {subscriptionRecurringNextMonth} renews this month
         </CardDescription>
       </CardHeader>
 
       <CardContent className="flex-1 overflow-auto">
-        <ServiceList services={paginatedServices} />
+        <ServiceList digitalLocations={paginatedServices} />
       </CardContent>
 
       { showShowPagination && (

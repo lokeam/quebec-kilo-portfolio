@@ -24,5 +24,12 @@ export interface OnlineServicesData {
 };
 
 export interface ServiceListProps {
-  services: OnlineService[];
+  digitalLocations: {
+    logo: string;
+    name: string;
+    url: string;
+    billingCycle: string;
+    monthlyFee: number;
+    storedItems: number;
+  }[];
 };
