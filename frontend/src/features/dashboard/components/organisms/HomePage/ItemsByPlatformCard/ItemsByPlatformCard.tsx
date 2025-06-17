@@ -19,26 +19,27 @@ import {
 } from "@/shared/components/ui/chart"
 
 type ItemsByPlatformCardProps = {
-  domain: string;
   totalItemCount: number;
   platformList: PlatformItem[];
-  newItemCount: number;
+  newItemsThisMonth: number;
 };
 
 export function ItemsByPlatformCard({
-  domain,
   totalItemCount,
   platformList,
-  newItemCount,
+  newItemsThisMonth,
 }: ItemsByPlatformCardProps) {
 
-  console.log(platformList)
-  const capitalizedDomain = domain.charAt(0).toUpperCase() + domain.slice(1);
+  // Add fill colors to platform data using chartConfig
+  const platformDataWithColors = platformList.map(item => ({
+    ...item,
+    fill: (chartConfig[item.platform as keyof typeof chartConfig]?.color) || 'hsl(var(--chart-pc))'
+  }));
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
-        <CardTitle>{`${capitalizedDomain} by Platform`}</CardTitle>
+        <CardTitle>Games by Platform</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -51,7 +52,7 @@ export function ItemsByPlatformCard({
               content={<ChartTooltipContent hideLabel />}
             />
             <Pie
-              data={platformList}
+              data={platformDataWithColors}
               dataKey="itemCount"
               nameKey="platform"
               innerRadius={60}
@@ -96,7 +97,7 @@ export function ItemsByPlatformCard({
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 font-medium leading-none">
-          {newItemCount} new titles this month <TrendingUp className="h-4 w-4" />
+          {newItemsThisMonth} new titles this month <TrendingUp className="h-4 w-4" />
         </div>
         <div className="leading-none text-muted-foreground">
           Showing total <span className="font-bold text-white">{totalItemCount}</span> titles across <span className="font-bold text-white">{platformList.length}</span> platforms

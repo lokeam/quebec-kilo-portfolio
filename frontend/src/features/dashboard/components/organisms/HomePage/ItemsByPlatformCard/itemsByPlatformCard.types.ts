@@ -7,5 +7,4 @@ export interface PlatformData {
 export type PlatformItem = {
   platform: string;
   itemCount: number;
-  fill: string;
 };
