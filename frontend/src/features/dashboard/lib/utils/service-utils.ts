@@ -60,7 +60,10 @@ export function getLogo(serviceName: string): string | undefined {
     'luna': 'luna',
     'meta quest': 'meta',
     'meta': 'meta',
+    'google': 'playpass',
+    'google play': 'playpass',
     'google play pass': 'playpass',
+    'playpass': 'playpass',
     'play pass': 'playpass',
   };
 

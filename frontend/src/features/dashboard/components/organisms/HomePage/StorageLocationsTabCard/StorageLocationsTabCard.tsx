@@ -8,28 +8,49 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/shared/components/ui/pagination"
-import type { DigitalStorageService, PhysicalStorageLocation } from './storageLocationsTabCard.mockdata';
+//import type { DigitalStorageService, PhysicalStorageLocation } from './storageLocationsTabCard.mockdata';
 import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
 import { StorageLocationList } from './StorageLocationList';
+import type { LocationIconBgColor } from '@/types/domain/location-types';
+
+// Types needed for StorageLocationList component
+export type StorageLocationTabCardPhysicalItem = {
+  sublocationId: string;
+  sublocationName: string;
+  sublocationType: string;
+  storedItems: number;
+  parentLocationId: string;
+  parentLocationName: string;
+  parentLocationType: string;
+  parentLocationBgColor?: LocationIconBgColor;
+};
+
+export type StorageLocationTabCardDigitalItem = {
+  logo: string;
+  name: string;
+  url: string;
+  billingCycle: string;
+  monthlyFee: number;
+  storedItems: number;
+}
 
 
 type StorageLocationsTabCardProps = {
-  totalDigitalLocations: string;
-  totalPhysicalLocations: string;
-  digitalStorageServices: DigitalStorageService[];
-  physicalStorageLocations: PhysicalStorageLocation[];
+  digitalLocations: StorageLocationTabCardDigitalItem[];
+  sublocations: StorageLocationTabCardPhysicalItem[];
 }
 
 export function StorageLocationsTabCard({
-  totalDigitalLocations,
-  totalPhysicalLocations,
-  digitalStorageServices,
-  physicalStorageLocations,
+  digitalLocations,
+  sublocations,
 }: StorageLocationsTabCardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeTab, setActiveTab] = useState<'physical' | 'digital'>('physical');
 
-  const services = activeTab === 'physical' ? physicalStorageLocations : digitalStorageServices;
+  const services = useMemo(() =>
+    activeTab === 'physical' ? (sublocations || []) : (digitalLocations || []),
+    [activeTab, sublocations, digitalLocations]
+  );
   const totalPages = Math.ceil(services.length / ITEMS_PER_PAGE);
   const shouldShowPagination = services.length > ITEMS_PER_PAGE;
 
@@ -40,6 +61,9 @@ export function StorageLocationsTabCard({
     ),
     [currentPage, services]
   );
+
+  const totalPhysicalLocations = sublocations.length;
+  const totalDigitalLocations = digitalLocations.length;
 
   return (
     <Card className="col-span-full lg:col-span-2">
@@ -63,20 +87,23 @@ export function StorageLocationsTabCard({
           <TabsTrigger value="digital">Online Storage</TabsTrigger>
         </TabsList>
 
+          {/* Physical Storage */}
           <TabsContent
             value="physical"
             className="flex-grow flex flex-col data-[state=inactive]:hidden"
           >
             <CardContent className="flex-grow overflow-auto pt-4">
-              <StorageLocationList services={paginatedServices} />
+              <StorageLocationList services={paginatedServices} isPhysical={true} />
             </CardContent>
           </TabsContent>
+
+          {/* Digital Storage */}
           <TabsContent
             value="digital"
             className="flex-grow flex flex-col data-[state=inactive]:hidden"
           >
             <CardContent className="flex-grow overflow-auto pt-4">
-              <StorageLocationList services={paginatedServices} />
+              <StorageLocationList services={paginatedServices} isPhysical={false} />
             </CardContent>
           </TabsContent>
 

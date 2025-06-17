@@ -14,13 +14,26 @@ import { WishListDealsCard } from '@/features/dashboard/components/organisms/Hom
 import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/MonthlySpendingCard';
 
 // Mock Data
-import { onlineServicesData } from '@/features/dashboard/components/organisms/HomePage/OnlineServicesCard/onlineServicesCard.mockdata';
-import { storageLocationsData } from '@/features/dashboard/components/organisms/HomePage/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
-import { itemsByPlatformData } from '@/features/dashboard/components/organisms/HomePage/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
+//import { onlineServicesData } from '@/features/dashboard/components/organisms/HomePage/OnlineServicesCard/onlineServicesCard.mockdata';
+//import { storageLocationsData } from '@/features/dashboard/components/organisms/HomePage/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
+//import { itemsByPlatformData } from '@/features/dashboard/components/organisms/HomePage/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
 import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/wishlistDealsCard.mockdata';
-import { monthlySpendingData } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/monthlySpendingCard.mockdata';
+//import { monthlySpendingData } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/monthlySpendingCard.mockdata';
+
+// Skeleton UI
+import { HomePageSkeleton } from './HomePageSkeleton';
+
+// Page mock data
+import { homePageMockData } from './Homepage.mockdata';
 
 export function HomePageContent() {
+  // Replace with query hook
+  const isLoading = false;
+
+  if (isLoading) {
+    return <HomePageSkeleton />;
+  }
+
   return (
     <PageMain>
       <PageHeadline>
@@ -34,54 +47,34 @@ export function HomePageContent() {
 
         {/* Statistics Cards */}
         <SingleStatisticsCard
-          title="Games"
-          value={72}
-          lastUpdated="six months ago"
-          icon="games"
-          size="sm"
+          stats={homePageMockData.gameStats}
         />
         <SingleStatisticsCard
-          title="Monthly Online Services Costs"
-          value={120}
-          lastUpdated="last month"
-          icon="coin"
-          size="sm"
+          stats={homePageMockData.subscriptionStats}
         />
         <SingleStatisticsCard
-          title="Digital Storage Locations"
-          value={3}
-          lastUpdated="last month"
-          icon="onlineServices"
-          size="sm"
+          stats={homePageMockData.digitalLocationStats}
         />
         <SingleStatisticsCard
-          title="Physical Storage Locations"
-          value={5}
-          lastUpdated="three months ago"
-          icon="package"
-          size="sm"
+          stats={homePageMockData.physicalLocationStats}
         />
 
         {/* Larger Cards */}
         <OnlineServicesCard
-          totalAnnual={onlineServicesData.totalAnnual}
-          renewsThisMonth={onlineServicesData.renewsThisMonth}
-          totalServices={onlineServicesData.totalServices}
-          services={onlineServicesData.services}
+          subscriptionTotal={homePageMockData.subscriptionTotal}
+          subscriptionRecurringNextMonth={homePageMockData.subscriptionRecurringNextMonth}
+          digitalLocations={homePageMockData.digitalLocations}
         />
 
         <StorageLocationsTabCard
-          totalDigitalLocations={storageLocationsData.totalDigitalLocations}
-          totalPhysicalLocations={storageLocationsData.totalPhysicalLocations}
-          digitalStorageServices={storageLocationsData.digitalStorage}
-          physicalStorageLocations={storageLocationsData.physicalStorage}
+          digitalLocations={homePageMockData.digitalLocations}
+          sublocations={homePageMockData.sublocations}
         />
 
         <ItemsByPlatformCard
-          domain={itemsByPlatformData.domain}
-          totalItemCount={itemsByPlatformData.totalItemCount}
-          platformList={itemsByPlatformData.platformList}
-          newItemCount={itemsByPlatformData.newItemCount}
+          totalItemCount={homePageMockData.totalGames}
+          platformList={homePageMockData.platformList}
+          newItemsThisMonth={homePageMockData.newItemsThisMonth}
         />
 
         <WishListDealsCard
@@ -92,8 +85,8 @@ export function HomePageContent() {
         />
 
         <MonthlySpendingCard
-          domains={monthlySpendingData.domains}
-          spendingByMonth={monthlySpendingData.spendingByMonth}
+          mediaTypeDomains={homePageMockData.mediaTypeDomains}
+          monthlyExpenditures={homePageMockData.monthlyExpenditures}
         />
       </PageGrid>
     </PageMain>

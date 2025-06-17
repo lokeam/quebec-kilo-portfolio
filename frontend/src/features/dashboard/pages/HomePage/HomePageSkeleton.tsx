@@ -7,7 +7,7 @@ export function HomePageSkeleton() {
   return (
     <PageMain>
       <PageHeadline>
-        <Skeleton className="h-8 w-[250px]" />
+        <Skeleton className="h-10 w-[320px]" />
         <div className="flex items-center space-x-2">
           <Skeleton className="h-10 w-[200px]" />
         </div>
@@ -16,14 +16,38 @@ export function HomePageSkeleton() {
       <PageGrid>
         {/* Statistics Cards Skeletons */}
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-[120px] w-full" />
+          <div key={i} className="md:col-span-1">
+            <Skeleton className="h-[120px] w-full" />
+          </div>
         ))}
 
-        {/* Larger Card Skeletons */}
-        <Skeleton className="h-[300px] w-full" /> {/* OnlineServices */}
-        <Skeleton className="h-[400px] w-full" /> {/* StorageLocations */}
-        <Skeleton className="h-[400px] w-full" /> {/* ItemsByPlatform */}
-        <Skeleton className="h-[400px] w-full" /> {/* MonthlySpending */}
+        {/* OnlineServicesCard Skeleton */}
+        <div className="col-span-full lg:col-span-2">
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+
+        {/* StorageLocationsTabCard Skeleton */}
+        <div className="col-span-full lg:col-span-2">
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+
+        {/* ItemsByPlatformCard Skeleton */}
+        <div className="flex flex-col">
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+
+        {/* WishlistDealsCard Skeleton */}
+        <div className="flex flex-col gap-6 min-h-[300px] h-full">
+          <div className="flex flex-col gap-6 min-h-[300px] h-full">
+            <Skeleton className="flex-1 w-full" />
+            <Skeleton className="flex-1 w-full" />
+          </div>
+        </div>
+
+        {/* MonthlySpendingCard Skeleton */}
+        <div className="col-span-full lg:col-span-2">
+          <Skeleton className="h-[400px] w-full" />
+        </div>
       </PageGrid>
     </PageMain>
   );
