@@ -17,9 +17,9 @@ export function WishListDealsCard({
   cheapestSaleItemPercentage,
 }: WishListDealsCardProps) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 min-h-[300px] h-full">
       {/* Total Wishlist Items Card */}
-      <Card className="bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800">
+      <Card className="bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 flex-1">
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="h-12 w-12 rounded-full bg-violet-500/20 flex items-center justify-center">
@@ -43,7 +43,7 @@ export function WishListDealsCard({
       </Card>
 
       {/* Deals Card */}
-      <Card className="bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800">
+      <Card className="bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 flex-1">
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-4">
             <div className="h-12 w-12 rounded-full bg-violet-500/20 flex items-center justify-center">
