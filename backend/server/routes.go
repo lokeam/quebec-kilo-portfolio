@@ -54,6 +54,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			Wishlist:      mockSvc.Wishlist,
 			Search:        mockSvc.Search,
 			SpendTracking: mockSvc.SpendTracking,
+			Dashboard:     mockSvc.Dashboard,
 		}
 		}
 

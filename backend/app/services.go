@@ -5,6 +5,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/dashboard"
 	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/locations/digital"
@@ -26,6 +27,7 @@ type Services struct {
 	Wishlist      services.WishlistService
 	Search        services.SearchService
 	SpendTracking services.SpendTrackingService
+	Dashboard     services.DashboardService
 	Analytics     analytics.Service
 	MediaStorage  media_storage.MediaStorageService
 }
@@ -134,6 +136,23 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing media storage service: %w", err)
 	}
 	servicesObj.MediaStorage = mediaStorageService
+
+	// Initialize dashboard service
+	dashboardDbAdapter, err := dashboard.NewDashboardDbAdapter(appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("initializing dashboard db adapter: %w", err)
+	}
+
+	dashboardCacheAdapter, err := dashboard.NewDashboardCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("initializing dashboard cache adapter: %w", err)
+	}
+
+	dashboardService, err := dashboard.NewDashboardService(appCtx, dashboardDbAdapter, dashboardCacheAdapter)
+	if err != nil {
+		return nil, fmt.Errorf("initializing dashboard service: %w", err)
+	}
+	servicesObj.Dashboard = dashboardService
 
 	return servicesObj, nil
 }

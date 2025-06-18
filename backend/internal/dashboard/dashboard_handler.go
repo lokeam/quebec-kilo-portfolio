@@ -1,4 +1,4 @@
-package spend_tracking
+package dashboard
 
 import (
 	"errors"
@@ -10,62 +10,68 @@ import (
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
 )
 
-type SpendTrackingHandler struct {
+type DashboardHandler struct {
 	appContext *appcontext.AppContext
-	spendTrackingService services.SpendTrackingService
+	dashboardService services.DashboardService
 }
 
-type SpendTrackingRequestBody struct {
+// NOTE: not sure if this is needed
+type DashboardRequestBody struct {
 	Query string `json:"query"`
 	Limit int    `json:"limit,omitempty"`
 }
 
-func NewSpendTrackingHandler(
+func NewDashboardHandler(
 	appCtx *appcontext.AppContext,
-	spendTrackingService services.SpendTrackingService,
-) *SpendTrackingHandler {
-	return &SpendTrackingHandler{
+	dashboardService services.DashboardService,
+) *DashboardHandler {
+	return &DashboardHandler{
 		appContext: appCtx,
-		spendTrackingService: spendTrackingService,
+		dashboardService: dashboardService,
 	}
 }
 
-func RegisterSpendTrackingRoutes(
+func RegisterDashboardRoutes(
 	r chi.Router,
 	appCtx *appcontext.AppContext,
-	spendTrackingService services.SpendTrackingService,
+	dashboardService services.DashboardService,
 ) {
-	handler := NewSpendTrackingHandler(appCtx, spendTrackingService)
-	// BFF route
-	r.Get("/bff", handler.GetAllSpendTrackingItemsBFF)
+	handler := NewDashboardHandler(appCtx, dashboardService)
+	// BFF route - NOTE: DOUBLE CHECK THIS AGAINST dashboard.service.ts BFF CONSTANT
+	r.Get("/bff", handler.GetAllDashboardItemsBFF)
 }
 
-func (h *SpendTrackingHandler) GetAllSpendTrackingItemsBFF(w http.ResponseWriter, r *http.Request) {
+func (h *DashboardHandler) GetAllDashboardItemsBFF(w http.ResponseWriter, r *http.Request) {
+	// Get request ID
 	requestID := httputils.GetRequestID(r)
 
+	// Get userID
 	userID := httputils.GetUserID(r)
 	if userID == "" {
 		h.appContext.Logger.Error("userID not found in request context", map[string]any{
 			"requestID": requestID,
 		})
 		h.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
-		return
 	}
 
-	h.appContext.Logger.Info("Getting all spend tracking items", map[string]any{
+	// Log request
+	h.appContext.Logger.Info("Getting all dashboard data", map[string]any{
 		"requestID": requestID,
 	})
 
-	spendTrackingItems, err := h.spendTrackingService.GetSpendTrackingBFFResponse(r.Context(), userID)
+	// Call service
+	dashboardItems, err := h.dashboardService.GetDashboardBFFResponse(r.Context(), userID)
 	if err != nil {
 		h.handleError(w, requestID, err, http.StatusInternalServerError)
 		return
 	}
 
+	// Build response from service output
+
 	// Use standard response format
-	// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "spend_tracking" key, DO NOT use a struct{}
+	// IMPORTANT: All responses MUST be wrapped in map[string]any{} along with a "dashboard" key, DO NOT use a struct{}
 	response := httputils.NewAPIResponse(r, userID, map[string]any{
-		"spend_tracking": spendTrackingItems,
+		"dashboard": dashboardItems,
 	})
 
 	httputils.RespondWithJSON(
@@ -76,8 +82,7 @@ func (h *SpendTrackingHandler) GetAllSpendTrackingItemsBFF(w http.ResponseWriter
 	)
 }
 
-// helper fn to standardize error handling
-func (h *SpendTrackingHandler) handleError(
+func (h *DashboardHandler) handleError(
 	w http.ResponseWriter,
 	requestID string,
 	err error,
@@ -91,4 +96,3 @@ func (h *SpendTrackingHandler) handleError(
 		statusCode,
 	)
 }
-

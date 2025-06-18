@@ -21,6 +21,7 @@ func NewMockServices() *MockServices {
 		Wishlist:      &MockWishlistService{},
 		Search:        &MockSearchService{},
 		SpendTracking: &MockSpendTrackingService{},
+		Dashboard:     &MockDashboardService{},
 	}
 }
 
@@ -33,6 +34,7 @@ type MockServices struct {
 	Wishlist      services.WishlistService
 	Search        services.SearchService
 	SpendTracking services.SpendTrackingService
+	Dashboard     services.DashboardService
 }
 
 // Mocks for each service type
@@ -460,4 +462,15 @@ func (m *MockSpendTrackingService) GetSpendTrackingBFFResponse(ctx context.Conte
 		return m.GetSpendTrackingBFFResponseFunc(ctx, userID)
 	}
 	return types.SpendTrackingBFFResponseFINAL{}, nil
+}
+
+type MockDashboardService struct {
+	GetDashboardBFFResponseFunc func(ctx context.Context, userID string) (types.DashboardBFFResponse, error)
+}
+
+func (m *MockDashboardService) GetDashboardBFFResponse(ctx context.Context, userID string) (types.DashboardBFFResponse, error) {
+	if m.GetDashboardBFFResponseFunc != nil {
+		return m.GetDashboardBFFResponseFunc(ctx, userID)
+	}
+	return types.DashboardBFFResponse{}, nil
 }

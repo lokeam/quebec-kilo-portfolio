@@ -92,3 +92,7 @@ type SearchService interface {
 type SpendTrackingService interface {
 	GetSpendTrackingBFFResponse(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
 }
+
+type DashboardService interface {
+	GetDashboardBFFResponse(ctx context.Context, userID string) (types.DashboardBFFResponse, error)
+}
