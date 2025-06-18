@@ -32,6 +32,7 @@ export interface DigitalLocation {
   billingCycle: string;
   monthlyFee: number;
   storedItems: number;
+  renewsNextMonth: boolean;
 }
 
 export interface Sublocation {
@@ -68,7 +69,6 @@ export interface DashboardResponse {
 
   // Digital Locations
   subscriptionTotal: number;
-  subscriptionRecurringNextMonth: number;
   digitalLocations: DigitalLocation[];
 
   // Storage Locations

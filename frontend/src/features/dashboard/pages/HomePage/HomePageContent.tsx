@@ -62,7 +62,6 @@ export function HomePageContent() {
         {/* Larger Cards */}
         <OnlineServicesCard
           subscriptionTotal={homePageMockData.subscriptionTotal}
-          subscriptionRecurringNextMonth={homePageMockData.subscriptionRecurringNextMonth}
           digitalLocations={homePageMockData.digitalLocations}
         />
 

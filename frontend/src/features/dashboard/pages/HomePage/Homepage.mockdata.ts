@@ -33,7 +33,6 @@ export const homePageMockData = {
   },
   // Online Gaming Services Card
   subscriptionTotal: 380.04,
-  subscriptionRecurringNextMonth: 2,
   digitalLocations: [
     {
       logo: 'steam',
@@ -42,6 +41,7 @@ export const homePageMockData = {
       billingCycle: '',
       monthlyFee: 0,
       storedItems: 35,
+      renewsNextMonth: false,
     },
     {
       logo: 'gog',
@@ -50,6 +50,7 @@ export const homePageMockData = {
       billingCycle: '',
       monthlyFee: 0,
       storedItems: 5,
+      renewsNextMonth: false,
     },
     {
       logo: 'playstation',
@@ -58,6 +59,7 @@ export const homePageMockData = {
       billingCycle: '1 month',
       monthlyFee: 15.00,
       storedItems: 5,
+      renewsNextMonth: true,
     },
     {
       logo: 'nintendo',
@@ -66,6 +68,7 @@ export const homePageMockData = {
       billingCycle: '1 month',
       monthlyFee: 3.99,
       storedItems: 12,
+      renewsNextMonth: true,
     },
     {
       logo: 'apple',
@@ -74,6 +77,7 @@ export const homePageMockData = {
       billingCycle: '1 month',
       monthlyFee: 6.99,
       storedItems: 10,
+      renewsNextMonth: true,
     },
     {
       logo: 'xbox',
@@ -82,6 +86,7 @@ export const homePageMockData = {
       billingCycle: '12 months',
       monthlyFee: 6.24,
       storedItems: 10,
+      renewsNextMonth: true,
     },
     {
       logo: 'playpass',
@@ -90,6 +95,7 @@ export const homePageMockData = {
       billingCycle: '1 month',
       monthlyFee: 4.99,
       storedItems: 10,
+      renewsNextMonth: true,
     },
   ],
   // Storage Locations Tab Card

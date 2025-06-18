@@ -12,7 +12,6 @@ import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.con
 
 type OnlineServicesCardProps = {
   subscriptionTotal: number;
-  subscriptionRecurringNextMonth: number;
   digitalLocations: {
     logo: string;
     name: string;
@@ -20,12 +19,12 @@ type OnlineServicesCardProps = {
     billingCycle: string;
     monthlyFee: number;
     storedItems: number;
+    renewsNextMonth: boolean; // NOTE IMPLEMENT FEATURE TO SHOW BADGE IF NOT MONTHLY BILLING CYCLE AND RENEWS NEXT MONTH
   }[];
 };
 
 export function OnlineServicesCard({
   subscriptionTotal,
-  subscriptionRecurringNextMonth,
   digitalLocations,
 }: OnlineServicesCardProps) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,6 +32,7 @@ export function OnlineServicesCard({
   const showShowPagination = digitalLocations.length > ITEMS_PER_PAGE;
 
   const totaldigitalLocations = digitalLocations.length;
+  const subscriptionRecurringNextMonth = digitalLocations.filter(location => location.renewsNextMonth).length;
 
   const paginatedServices = useMemo(() =>
     digitalLocations.slice(
