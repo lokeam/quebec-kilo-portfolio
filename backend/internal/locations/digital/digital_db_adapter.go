@@ -33,6 +33,83 @@ type DeletionResult struct {
 	Error        error
 }
 
+// --- QUERIES ---
+const (
+	getLocationsWithSubscriptionDataQuery = `
+		SELECT
+			dl.*,
+			'[]'::json as items,
+			dls.id as sub_id,
+			dls.billing_cycle,
+			dls.cost_per_cycle,
+			dls.anchor_date,
+			dls.last_payment_date,
+			dls.next_payment_date,
+			dls.payment_method,
+			dls.created_at as sub_created_at,
+			dls.updated_at as sub_updated_at
+		FROM digital_locations dl
+		LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
+		WHERE dl.user_id = $1
+		ORDER BY dl.created_at
+	`
+
+	getSubscriptionByLocationIDQuery =  `
+		SELECT id, digital_location_id, billing_cycle, cost_per_cycle,
+		  anchor_date, last_payment_date, next_payment_date, payment_method, created_at, updated_at
+		FROM digital_location_subscriptions
+		WHERE digital_location_id = $1
+	`
+
+	getAllGamesInDigitalLocationQuery = `
+		SELECT g.*
+		FROM games g
+		JOIN user_games ug ON ug.game_id = g.id
+		JOIN digital_game_locations dgl ON dgl.user_game_id = ug.id
+		WHERE dgl.digital_location_id = $1 AND ug.user_id = $2
+	`
+
+	//retrieves a specific payment by ID
+	getSinglePaymentQuery = `
+		SELECT id, digital_location_id, amount, payment_date,
+			payment_method, transaction_id, created_at
+		FROM digital_location_payments
+		WHERE id = $1
+	`
+
+	recordPaymentQuery = `
+		INSERT INTO digital_location_payments
+			(digital_location_id, amount, payment_date, payment_method, transaction_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+
+	updateSubscriptionQuery = `
+		UPDATE digital_location_subscriptions
+		SET billing_cycle = $1,
+			cost_per_cycle = $2,
+			anchor_date = $3,
+			payment_method = $4,
+			updated_at = $5
+		WHERE digital_location_id = $6
+	`
+
+	updateSubscriptionLastPaymentDateQuery = `
+		UPDATE digital_location_subscriptions
+      SET last_payment_date = $1, updated_at = $2
+    WHERE digital_location_id = $3
+	`
+
+	subscriptionAnchorDateQuery = `
+		INSERT INTO digital_location_subscriptions
+			(digital_location_id, billing_cycle, cost_per_cycle,
+			 anchor_date, payment_method, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, digital_location_id, billing_cycle, cost_per_cycle,
+		  anchor_date, last_payment_date, next_payment_date, payment_method, created_at, updated_at
+	`
+)
+
+
 func NewDigitalDbAdapter(appContext *appcontext.AppContext) (*DigitalDbAdapter, error) {
 	appContext.Logger.Debug("Creating DigitalDbAdapter", map[string]any{"appContext": appContext})
 
@@ -110,38 +187,27 @@ func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID
 func (da *DigitalDbAdapter) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
 	// Define the DigitalLocationJoin struct
 	type DigitalLocationJoin struct {
-			models.DigitalLocation
-			ItemsJSON     []byte    `db:"items"`
-			SubID         *int64    `db:"sub_id"`
-			BillingCycle  *string   `db:"billing_cycle"`
-			CostPerCycle  *float64  `db:"cost_per_cycle"`
-			NextPaymentDate *time.Time `db:"next_payment_date"`
-			PaymentMethod *string   `db:"payment_method"`
-			SubCreatedAt  *time.Time `db:"sub_created_at"`
-			SubUpdatedAt  *time.Time `db:"sub_updated_at"`
+		models.DigitalLocation
+		ItemsJSON     []byte    `db:"items"`
+		SubID         *int64    `db:"sub_id"`
+		BillingCycle  *string   `db:"billing_cycle"`
+		CostPerCycle  *float64  `db:"cost_per_cycle"`
+		AnchorDate    *time.Time `db:"anchor_date"`
+		LastPaymentDate *time.Time `db:"last_payment_date"`
+		NextPaymentDate *time.Time `db:"next_payment_date"`
+		PaymentMethod *string   `db:"payment_method"`
+		SubCreatedAt  *time.Time `db:"sub_created_at"`
+		SubUpdatedAt  *time.Time `db:"sub_updated_at"`
 	}
-
-	// Simple query to get locations with their subscription data
-	query := `
-			SELECT
-					dl.*,
-					'[]'::json as items,
-					dls.id as sub_id,
-					dls.billing_cycle,
-					dls.cost_per_cycle,
-					dls.next_payment_date,
-					dls.payment_method,
-					dls.created_at as sub_created_at,
-					dls.updated_at as sub_updated_at
-			FROM digital_locations dl
-			LEFT JOIN digital_location_subscriptions dls ON dls.digital_location_id = dl.id
-			WHERE dl.user_id = $1
-			ORDER BY dl.created_at
-	`
 
 	// Execute the query to get raw data
 	var locationsJoin []DigitalLocationJoin
-	err := da.db.SelectContext(ctx, &locationsJoin, query, userID)
+	err := da.db.SelectContext(
+		ctx,
+		&locationsJoin,
+		getLocationsWithSubscriptionDataQuery,
+		userID,
+	)
 	if err != nil {
 			da.logger.Error("Failed to get user digital locations", map[string]any{"error": err})
 			return nil, fmt.Errorf("error getting user digital locations: %w", err)
@@ -189,14 +255,16 @@ func (da *DigitalDbAdapter) GetAllDigitalLocations(ctx context.Context, userID s
 					})
 
 					baseLocation.Subscription = &models.Subscription{
-							ID:              *source.SubID,
-							LocationID:      source.ID,
-							BillingCycle:    *source.BillingCycle,
-							CostPerCycle:    *source.CostPerCycle,
-							NextPaymentDate: *source.NextPaymentDate,
-							PaymentMethod:   *source.PaymentMethod,
-							CreatedAt:       *source.SubCreatedAt,
-							UpdatedAt:       *source.SubUpdatedAt,
+							ID:                *source.SubID,
+							LocationID:        source.ID,
+							BillingCycle:      *source.BillingCycle,
+							CostPerCycle:      *source.CostPerCycle,
+							AnchorDate:        *source.AnchorDate,
+							NextPaymentDate:   *source.NextPaymentDate,
+							LastPaymentDate:   source.LastPaymentDate,
+							PaymentMethod:     *source.PaymentMethod,
+							CreatedAt:         *source.SubCreatedAt,
+							UpdatedAt:         *source.SubUpdatedAt,
 					}
 			}
 
@@ -561,15 +629,13 @@ func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID stri
 		"locationID": locationID,
 	})
 
-	query := `
-		SELECT id, digital_location_id, billing_cycle, cost_per_cycle,
-		       next_payment_date, payment_method, created_at, updated_at
-		FROM digital_location_subscriptions
-		WHERE digital_location_id = $1
-	`
-
 	var subscription models.Subscription
-	err := da.db.GetContext(ctx, &subscription, query, locationID)
+	err := da.db.GetContext(
+		ctx,
+		&subscription,
+		getSubscriptionByLocationIDQuery,
+		locationID,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil // No subscription found is not an error
@@ -581,7 +647,10 @@ func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID stri
 }
 
 // CreateSubscription creates a new subscription for a digital location
-func (da *DigitalDbAdapter) CreateSubscription(ctx context.Context, subscription models.Subscription) (*models.Subscription, error) {
+func (da *DigitalDbAdapter) CreateSubscription(
+	ctx context.Context,
+	subscription models.Subscription,
+) (*models.Subscription, error) {
 	da.logger.Debug("CreateSubscription called", map[string]any{
 		"subscription": subscription,
 	})
@@ -594,14 +663,10 @@ func (da *DigitalDbAdapter) CreateSubscription(ctx context.Context, subscription
 		return nil, fmt.Errorf("invalid billing cycle: %s. Must be one of: 1 month, 3 month, 6 month, 12 month", subscription.BillingCycle)
 	}
 
-	query := `
-		INSERT INTO digital_location_subscriptions
-			(digital_location_id, billing_cycle, cost_per_cycle,
-			 next_payment_date, payment_method, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, digital_location_id, billing_cycle, cost_per_cycle,
-		          next_payment_date, payment_method, created_at, updated_at
-	`
+	// Validate anchor date is provided
+	if subscription.AnchorDate.IsZero() {
+		return nil, fmt.Errorf("anchor_date is required for subscription creation")
+	}
 
 	now := time.Now()
 	subscription.CreatedAt = now
@@ -609,11 +674,11 @@ func (da *DigitalDbAdapter) CreateSubscription(ctx context.Context, subscription
 
 	err := da.db.QueryRowxContext(
 		ctx,
-		query,
+		subscriptionAnchorDateQuery,
 		subscription.LocationID,
 		subscription.BillingCycle,
 		subscription.CostPerCycle,
-		subscription.NextPaymentDate,
+		subscription.AnchorDate,
 		subscription.PaymentMethod,
 		subscription.CreatedAt,
 		subscription.UpdatedAt,
@@ -640,20 +705,15 @@ func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription
 		return fmt.Errorf("invalid billing cycle: %s. Must be one of: 1 month, 3 month, 6 month, 12 month", subscription.BillingCycle)
 	}
 
-	query := `
-		UPDATE digital_location_subscriptions
-		SET billing_cycle = $1,
-			cost_per_cycle = $2,
-			next_payment_date = $3,
-			payment_method = $4,
-			updated_at = $5
-		WHERE digital_location_id = $6
-	`
+	// Validate anchor date is provided
+	if subscription.AnchorDate.IsZero() {
+		return fmt.Errorf("anchor_date is required for subscription updates")
+	}
 
 	subscription.UpdatedAt = time.Now()
 	result, err := da.db.ExecContext(
 		ctx,
-		query,
+		updateSubscriptionQuery,
 		subscription.BillingCycle,
 		subscription.CostPerCycle,
 		subscription.NextPaymentDate,
@@ -770,15 +830,13 @@ func (da *DigitalDbAdapter) GetSinglePayment(ctx context.Context, paymentID int6
 		"paymentID": paymentID,
 	})
 
-	query := `
-		SELECT id, digital_location_id, amount, payment_date,
-		       payment_method, transaction_id, created_at
-		FROM digital_location_payments
-		WHERE id = $1
-	`
-
 	var payment models.Payment
-	err := da.db.GetContext(ctx, &payment, query, paymentID)
+	err := da.db.GetContext(
+		ctx,
+		&payment,
+		getSinglePaymentQuery,
+		paymentID,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("payment not found")
@@ -874,16 +932,14 @@ func (da *DigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, use
 		"locationID": locationID,
 	})
 
-	query := `
-		SELECT g.*
-		FROM games g
-		JOIN user_games ug ON ug.game_id = g.id
-		JOIN digital_game_locations dgl ON dgl.user_game_id = ug.id
-		WHERE dgl.digital_location_id = $1 AND ug.user_id = $2
-	`
-
 	var games []models.Game
-	err := da.db.SelectContext(ctx, &games, query, locationID, userID)
+	err := da.db.SelectContext(
+		ctx,
+		&games,
+		getAllGamesInDigitalLocationQuery,
+		locationID,
+		userID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting games for digital location: %w", err)
 	}
@@ -903,4 +959,53 @@ func (da *DigitalDbAdapter) ValidateSubscriptionExists(ctx context.Context, loca
 	}
 
 	return existingSub, nil
+}
+
+func (da *DigitalDbAdapter) RecordPayment(
+	ctx context.Context,
+	payment models.Payment,
+) error {
+		return postgres.WithTransaction(
+			ctx,
+			da.db,
+			da.logger,
+			func(tx *sqlx.Tx) error {
+				// 1. Record the payment
+				_, err := tx.ExecContext(
+					ctx,
+					recordPaymentQuery,
+					payment.LocationID,
+					payment.Amount,
+					payment.PaymentDate,
+					payment.PaymentMethod,
+					payment.TransactionID,
+					time.Now(),
+				)
+				if err != nil {
+					return fmt.Errorf("error recording payment: %w", err)
+				}
+
+				// 2. Update the subscription's last payment date
+				result, err := tx.ExecContext(
+					ctx,
+					updateSubscriptionLastPaymentDateQuery,
+					payment.PaymentDate,
+					time.Now(),
+					payment.LocationID,
+				)
+				if err != nil {
+					return fmt.Errorf("error updating subscription last payment date: %w", err)
+				}
+
+				rowsAffected, err := result.RowsAffected()
+				if err != nil {
+					return fmt.Errorf("error getting rows affected: %w", err)
+				}
+
+				if rowsAffected == 0 {
+					return fmt.Errorf("subscription not found for location: %s", payment.LocationID)
+				}
+
+				return nil
+			})
 }

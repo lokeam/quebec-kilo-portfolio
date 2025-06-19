@@ -37,7 +37,7 @@ func RegisterDashboardRoutes(
 	dashboardService services.DashboardService,
 ) {
 	handler := NewDashboardHandler(appCtx, dashboardService)
-	// BFF route - NOTE: DOUBLE CHECK THIS AGAINST dashboard.service.ts BFF CONSTANT
+	// BFF route
 	r.Get("/bff", handler.GetAllDashboardItemsBFF)
 }
 

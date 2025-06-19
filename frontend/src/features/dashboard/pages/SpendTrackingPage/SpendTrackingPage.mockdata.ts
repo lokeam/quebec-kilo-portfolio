@@ -44,6 +44,15 @@ export const BASE_MEDIA_CATEGORIES = {
   DISC: MediaCategory.DISC
 } as const;
 
+/**
+ * NOTE:
+ * Subscription dates follow the Anchor Date Pattern:
+ * - createdAt: Represents the anchor_date (first payment date)
+ * - nextBillingDate: Computed date based on anchor_date + billing_cycle
+ * - Example: anchor_date = Jan 5, 2025, billing_cycle = '3 month' → nextBillingDate = Apr 5, 2025
+ */
+
+
 export const spendTrackingPageMockData = {
   totalMonthlySpending: {
     currentMonthTotal: 1784.04,
@@ -145,7 +154,7 @@ export const spendTrackingPageMockData = {
       provider: 'apple',
       createdAt: 1749441600000,
       updatedAt: 1749441600000,
-      billingCycle: 'monthly',
+      billingCycle: '1 month',
       nextBillingDate: 1752033600000,
       isActive: true,
       yearlySpending: [

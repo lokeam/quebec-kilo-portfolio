@@ -61,7 +61,7 @@ export type FormValues = {
   url: string;
   billingCycle: string;
   costPerCycle: number;
-  nextPaymentDate: Date;
+  anchorDate: Date;
   paymentMethod: string;
   isSubscriptionService: boolean;
 };
@@ -82,7 +82,7 @@ export const OnlineServiceFormSchema = z.discriminatedUnion('isSubscriptionServi
     isActive: z.boolean(),
     billingCycle: z.string().min(1, "Billing cycle is required"),
     costPerCycle: z.number().min(0, "Cost must be greater than 0"),
-    nextPaymentDate: z.date(),
+    anchorDate: z.date(),
     paymentMethod: z.string().min(1, "Payment method is required"),
   })
 ]);
@@ -128,7 +128,7 @@ export function OnlineServiceForm({
             subscription: {
               billing_cycle: data.billingCycle,
               cost_per_cycle: data.costPerCycle,
-              next_payment_date: data.nextPaymentDate.toISOString(),
+              anchor_date: data.anchorDate.toISOString(),
               payment_method: paymentMethod
             }
           }
@@ -290,15 +290,15 @@ export function OnlineServiceForm({
               )}
             />
 
-            {/* Next Payment Date */}
+            {/* Anchor Date */}
             <FormField
               control={form.control}
-              name="nextPaymentDate"
+              name="anchorDate"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Next payment date <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>First payment date <span className="text-red-500">*</span></FormLabel>
                   <FormDescription>
-                    When is your next payment due?
+                    Approximately when did you first sign up for this service? This will be used to calculate future payment dates.
                   </FormDescription>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -331,7 +331,7 @@ export function OnlineServiceForm({
                       />
                     </PopoverContent>
                   </Popover>
-                  <FormMessage>{errors.nextPaymentDate?.message}</FormMessage>
+                  <FormMessage>{errors.anchorDate?.message}</FormMessage>
                 </FormItem>
               )}
             />

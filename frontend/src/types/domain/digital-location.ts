@@ -91,7 +91,7 @@ export interface CreateDigitalLocationRequest {
   subscription?: {
     billing_cycle: string;
     cost_per_cycle: number;
-    next_payment_date: string;
+    anchor_date: string;
     payment_method: string;
   };
 }

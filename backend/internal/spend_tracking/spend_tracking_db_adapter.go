@@ -68,7 +68,7 @@ const (
     ORDER BY year DESC, month DESC
 	`
 
-	// SELECT year, month, total_amount <-- removed command from last edit
+	// SELECT year, month, total_amount
 	getMonthlySpendingAggregatesQuery = `
     SELECT id, user_id, year, month, total_amount, subscription_amount, one_time_amount, category_amounts, created_at, updated_at
     FROM monthly_spending_aggregates
@@ -105,6 +105,8 @@ const (
 				dl.updated_at,
 				dls.billing_cycle,
 				dls.cost_per_cycle,
+				dls.anchor_date,
+				dls.last_payment_date,
 				dls.next_payment_date,
 				dls.payment_method as subscription_payment_method
 		FROM digital_locations dl
@@ -112,7 +114,7 @@ const (
 		WHERE dl.user_id = $1
 		AND dl.is_subscription = true
 		AND dl.is_active = true
-		ORDER BY dls.next_payment_date ASC
+	ORDER BY dls.next_payment_date ASC
 	`
 
 
@@ -423,6 +425,8 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 			LocationID:      subscriptions[i].ID,
 			BillingCycle:    subscriptions[i].BillingCycle,
 			CostPerCycle:    subscriptions[i].CostPerCycle,
+			AnchorDate:      subscriptions[i].AnchorDate,
+			LastPaymentDate: subscriptions[i].LastPaymentDate,
 			NextPaymentDate: subscriptions[i].NextPaymentDate,
 			PaymentMethod:   subscriptions[i].SubscriptionPaymentMethod,
 			CreatedAt:       subscriptions[i].CreatedAt,

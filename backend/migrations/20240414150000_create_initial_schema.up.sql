@@ -143,7 +143,20 @@ CREATE TABLE digital_location_subscriptions (
     digital_location_id UUID NOT NULL REFERENCES digital_locations(id) ON DELETE CASCADE,
     billing_cycle VARCHAR(50) NOT NULL CHECK (billing_cycle IN ('1 month', '3 month', '6 month', '12 month')),
     cost_per_cycle DECIMAL(10,2) NOT NULL CHECK (cost_per_cycle > 0),
-    next_payment_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    anchor_date DATE NOT NULL,
+    last_payment_date DATE,
+    next_payment_date DATE GENERATED ALWAYS AS (
+        CASE
+            WHEN billing_cycle = '1 month' THEN
+                COALESCE(last_payment_date, anchor_date) + INTERVAL '1 month'
+            WHEN billing_cycle = '3 month' THEN
+                COALESCE(last_payment_date, anchor_date) + INTERVAL '3 months'
+            WHEN billing_cycle = '6 month' THEN
+                COALESCE(last_payment_date, anchor_date) + INTERVAL '6 months'
+            WHEN billing_cycle = '12 month' THEN
+                COALESCE(last_payment_date, anchor_date) + INTERVAL '12 months'
+        END
+    ) STORED,
     payment_method VARCHAR(50) NOT NULL CHECK (payment_method IN ('alipay', 'amex', 'diners', 'discover', 'elo', 'generic', 'hiper', 'hipercard', 'jcb', 'maestro', 'mastercard', 'mir', 'paypal', 'unionpay', 'visa')),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -262,7 +275,9 @@ CREATE INDEX idx_physical_game_locations_user_game_id ON physical_game_locations
 CREATE INDEX idx_physical_game_locations_sublocation_id ON physical_game_locations(sublocation_id);
 CREATE INDEX idx_digital_locations_user_id ON digital_locations(user_id);
 CREATE INDEX idx_digital_locations_is_subscription ON digital_locations(is_subscription);
-CREATE INDEX idx_digital_location_subscriptions_next_payment ON digital_location_subscriptions(next_payment_date);
+CREATE INDEX idx_digital_location_subscriptions_anchor_date ON digital_location_subscriptions(anchor_date);
+CREATE INDEX idx_digital_location_subscriptions_last_payment_date ON digital_location_subscriptions(last_payment_date);
+CREATE INDEX idx_digital_location_subscriptions_next_payment_date ON digital_location_subscriptions(next_payment_date);
 CREATE INDEX idx_digital_location_payments_digital_location_id ON digital_location_payments(digital_location_id);
 CREATE INDEX idx_digital_location_payments_payment_date ON digital_location_payments(payment_date);
 CREATE INDEX idx_digital_game_locations_user_game_id ON digital_game_locations(user_game_id);

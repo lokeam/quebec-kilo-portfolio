@@ -12,6 +12,7 @@ import (
 	"github.com/lokeam/qko-beta/app"
 	"github.com/lokeam/qko-beta/internal/analytics"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/dashboard"
 	"github.com/lokeam/qko-beta/internal/health"
 	"github.com/lokeam/qko-beta/internal/library"
 	"github.com/lokeam/qko-beta/internal/locations/digital"
@@ -189,6 +190,15 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			spend_tracking.RegisterSpendTrackingRoutes(r, appContext, svc.SpendTracking)
 		})
 
+		// Dashboard
+		r.Route("/dashboard", func(r chi.Router) {
+			appContext.Logger.Info("Registering dashboard routes", map[string]any{
+				"path": "/api/v1/dashboard",
+			})
+
+			dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
+		})
+
 
 		// Media Storage
 		r.Route("/media-storage", func(r chi.Router) {
@@ -218,6 +228,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			"sublocations":   "/api/v1/locations/sublocations",
 			"digital":        "/api/v1/locations/digital",
 			"spend-tracking": "/api/v1/spend-tracking",
+			"dashboard":      "/api/v1/dashboard",
 			"analytics":      "/api/v1/analytics",
 			"media-storage":  "/api/v1/media-storage",
 		})

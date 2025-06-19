@@ -17,8 +17,8 @@ type DigitalLocation struct {
 	UpdatedAt        time.Time         `json:"updated_at" db:"updated_at"`
 	Items            []Game            `json:"items" db:"items"`
 	Subscription     *Subscription     `json:"subscription,omitempty"`
-	DiskSizeValue    *float64           `json:"disk_size_value" db:"disk_size_value"`
-	DiskSizeUnit     *string            `json:"disk_size_unit" db:"disk_size_unit"`
+	DiskSizeValue    *float64          `json:"disk_size_value" db:"disk_size_value"`
+	DiskSizeUnit     *string           `json:"disk_size_unit" db:"disk_size_unit"`
 }
 
 // Payment model
@@ -52,14 +52,16 @@ func (dl DigitalLocation) MarshalJSON() ([]byte, error) {
 
 // Subscription model
 type Subscription struct {
-	ID              int64     `json:"id" db:"id"`
-	LocationID      string    `json:"location_id" db:"digital_location_id"`
-	BillingCycle    string    `json:"billing_cycle" db:"billing_cycle"`
-	CostPerCycle    float64     `json:"cost_per_cycle" db:"cost_per_cycle"`
-	NextPaymentDate time.Time `json:"next_payment_date" db:"next_payment_date"`
-	PaymentMethod   string    `json:"payment_method" db:"payment_method"`
-	CreatedAt       time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
+	ID               int64       `json:"id" db:"id"`
+	LocationID       string      `json:"location_id" db:"digital_location_id"`
+	BillingCycle     string      `json:"billing_cycle" db:"billing_cycle"`
+	CostPerCycle     float64     `json:"cost_per_cycle" db:"cost_per_cycle"`
+	AnchorDate       time.Time   `json:"anchor_date" db:"anchor_date"`
+	LastPaymentDate  *time.Time  `json:"last_payment_date,omitempty" db:"last_payment_date"`
+	NextPaymentDate  time.Time   `json:"next_payment_date" db:"next_payment_date"` // Computed
+	PaymentMethod    string      `json:"payment_method" db:"payment_method"`
+	CreatedAt        time.Time   `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time   `json:"updated_at" db:"updated_at"`
 }
 
 // UnmarshalJSON implements json.Unmarshaler for Subscription
@@ -67,6 +69,8 @@ func (s *Subscription) UnmarshalJSON(data []byte) error {
 	type Alias Subscription
 	aux := &struct {
 		NextPaymentDate string `json:"next_payment_date"`
+		AnchorDate      string `json:"anchor_date"`
+		LastPaymentDate string `json:"last_payment_date"`
 		*Alias
 	}{
 		Alias: (*Alias)(s),
@@ -74,6 +78,8 @@ func (s *Subscription) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
+
+	// Parse NextPaymentDate
 	if aux.NextPaymentDate != "" {
 		t, err := time.Parse("2006-01-02T15:04:05Z", aux.NextPaymentDate)
 		if err != nil {
@@ -81,5 +87,24 @@ func (s *Subscription) UnmarshalJSON(data []byte) error {
 		}
 		s.NextPaymentDate = t
 	}
+
+	// Parse AnchorDate
+	if aux.AnchorDate != "" {
+		t, err := time.Parse("2006-01-02T15:04:05Z", aux.AnchorDate)
+		if err != nil {
+			return err
+		}
+		s.AnchorDate = t
+	}
+
+	// Parse LastPaymentDate (nullable)
+	if aux.LastPaymentDate != "" {
+		t, err := time.Parse("2006-01-02T15:04:05Z", aux.LastPaymentDate)
+		if err != nil {
+			return err
+		}
+		s.LastPaymentDate = &t
+	}
+
 	return nil
 }
