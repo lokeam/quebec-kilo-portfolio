@@ -2,9 +2,7 @@ package spend_tracking
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -18,9 +16,10 @@ import (
 
 
 type SpendTrackingDbAdapter struct {
-	client  *postgres.PostgresClient
-	db      *sqlx.DB
-	logger  interfaces.Logger
+	calculator  *SpendTrackingCalculator
+	client      *postgres.PostgresClient
+	db          *sqlx.DB
+	logger      interfaces.Logger
 }
 
 func NewSpendTrackingDbAdapter(
@@ -41,6 +40,12 @@ func NewSpendTrackingDbAdapter(
 		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
 	}
 
+	// Create the spend tracking calculator to fetch data and calculate business intelligence
+	calculator, err := NewSpendTrackingCalculator(appContext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create spend tracking calculator: %w", err)
+	}
+
 	// Register custom types? Not sure if needed
 	db.MapperFunc(strings.ToLower)
 	db.SetMaxOpenConns(25)
@@ -51,432 +56,345 @@ func NewSpendTrackingDbAdapter(
 		client:  client,
 		db:      db,
 		logger:  appContext.Logger,
+		calculator: calculator,
 	}, nil
 }
 
+// --- HELPER METHODS ---
+func (sta *SpendTrackingDbAdapter) isDateInMonth(date, targetMonth time.Time) bool {
+	return date.Year() == targetMonth.Year() && date.Month() == targetMonth.Month()
+}
 
-// --- QUERIES ---
-const (
-	getCurrentAndPreviousMonthSpendingQuery = `
-    SELECT * FROM monthly_spending_aggregates
-    WHERE user_id = $1
-    AND (year, month) IN (
-        (EXTRACT(YEAR FROM CURRENT_DATE)::int, EXTRACT(MONTH FROM CURRENT_DATE)::int),
-        (EXTRACT(YEAR FROM CURRENT_DATE - INTERVAL '1 month')::int,
-         EXTRACT(MONTH FROM CURRENT_DATE - INTERVAL '1 month')::int)
-    )
-    ORDER BY year DESC, month DESC
-	`
+func (sta *SpendTrackingDbAdapter) calculateYearlySpendingForSubscription(
+	subscription models.SpendTrackingLocationDB,
+) []types.SingleYearlyTotalBFFResponseFINAL {
+	currentYear := time.Now().Year()
 
-	// SELECT year, month, total_amount
-	getMonthlySpendingAggregatesQuery = `
-    SELECT id, user_id, year, month, total_amount, subscription_amount, one_time_amount, category_amounts, created_at, updated_at
-    FROM monthly_spending_aggregates
-    WHERE user_id = $1
-    ORDER BY year, month
-	`
+	// Calculate annual amount based on billing cycle
+	annualAmount := subscription.CostPerCycle
+	switch subscription.BillingCycle {
+	case "1 month":
+			annualAmount = subscription.CostPerCycle * 12
+	case "3 month":
+			annualAmount = subscription.CostPerCycle * 4
+	case "6 month":
+			annualAmount = subscription.CostPerCycle * 2
+	case "12 month":
+			annualAmount = subscription.CostPerCycle
+	}
 
-	getYearlySpendingQuery = `
-		SELECT * FROM yearly_spending_aggregates
-		WHERE user_id = $1
-		AND year >= EXTRACT(YEAR FROM CURRENT_DATE)::int - 2
-		ORDER BY year DESC
-	`
-
-	getCurrentMonthOneTimePurchasesQuery = `
-		SELECT otp.*, sc.media_type as media_type
-		FROM one_time_purchases otp
-		LEFT JOIN spending_categories sc ON otp.spending_category_id = sc.id
-		WHERE otp.user_id = $1
-		AND EXTRACT(YEAR FROM purchase_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-		AND EXTRACT(MONTH FROM purchase_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-		ORDER BY purchase_date DESC
-	`
-
-	getActiveSubscriptionsQuery = `
-		SELECT
-				dl.id,
-				dl.user_id,
-				dl.name,
-				dl.is_subscription,
-				dl.is_active,
-				dl.payment_method,
-				dl.created_at,
-				dl.updated_at,
-				dls.billing_cycle,
-				dls.cost_per_cycle,
-				dls.anchor_date,
-				dls.last_payment_date,
-				dls.next_payment_date,
-				dls.payment_method as subscription_payment_method
-		FROM digital_locations dl
-		LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
-		WHERE dl.user_id = $1
-		AND dl.is_subscription = true
-		AND dl.is_active = true
-	ORDER BY dls.next_payment_date ASC
-	`
-
-
-)
+	return []types.SingleYearlyTotalBFFResponseFINAL{
+			{Year: currentYear - 2, Amount: annualAmount},
+			{Year: currentYear - 1, Amount: annualAmount},
+			{Year: currentYear, Amount: annualAmount},
+	}
+}
 
 // --- TRANSFORMATION LOGIC ---
-func (sta *SpendTrackingDbAdapter) transformMonthlySpendingDBToResponse(
-	currentMonth models.SpendTrackingMonthlyAggregateDB,
-	previousMonth models.SpendTrackingMonthlyAggregateDB,
-) types.MonthlySpendingBFFResponseFINAL {
-	// Log function call
-	sta.logger.Debug("transformMonthlySpendingDBToResponse called", map[string]any{
-		"currentMonth": currentMonth,
-		"previousMonth": previousMonth,
+func (sta *SpendTrackingDbAdapter) transformCalculatorCategoriesToBFFResponse(
+	calculatorCategories []types.SpendTrackingCalculatorSpendingCategory,
+) []types.SpendingCategoryBFFResponseFINAL {
+	bffCategories := make([]types.SpendingCategoryBFFResponseFINAL,len(calculatorCategories))
+	for i, category := range calculatorCategories {
+		bffCategories[i] = types.SpendingCategoryBFFResponseFINAL{
+			Name:  category.SpendingCategoryName,
+			Value: category.SpendingCategoryValue,
+		}
+	}
+	return bffCategories
+}
+
+func (sta *SpendTrackingDbAdapter) transformThreeYearTotalsToBFFResponse(
+	threeYearTotals map[int]float64,
+) types.AllYearlyTotalsBFFResponseFINAL {
+	currentYear := time.Now().Year()
+
+    subscriptionTotal := make([]types.SingleYearlyTotalBFFResponseFINAL, 0, 3)
+    oneTimeTotal := make([]types.SingleYearlyTotalBFFResponseFINAL, 0, 3)
+    combinedTotal := make([]types.SingleYearlyTotalBFFResponseFINAL, 0, 3)
+
+    for year := currentYear - 2; year <= currentYear; year++ {
+        subscriptionAmount := threeYearTotals[year]
+
+        subscriptionTotal = append(subscriptionTotal, types.SingleYearlyTotalBFFResponseFINAL{
+            Year:   year,
+            Amount: subscriptionAmount,
+        })
+
+        // For now, one-time total is 0 (we can enhance this later)
+        oneTimeTotal = append(oneTimeTotal, types.SingleYearlyTotalBFFResponseFINAL{
+            Year:   year,
+            Amount: 0.0,
+        })
+
+        combinedTotal = append(combinedTotal, types.SingleYearlyTotalBFFResponseFINAL{
+            Year:   year,
+            Amount: subscriptionAmount,
+        })
+    }
+
+    return types.AllYearlyTotalsBFFResponseFINAL{
+        SubscriptionTotal: subscriptionTotal,
+        OneTimeTotal:      oneTimeTotal,
+        CombinedTotal:     combinedTotal,
+    }
+}
+
+func (sta *SpendTrackingDbAdapter) buildTransactionArraysFromDatabaseRecords(
+	oneTimePurchases []models.SpendTrackingOneTimePurchaseDB,
+	subscriptions []models.SpendTrackingLocationDB,
+	currentMonth time.Time,
+) ([]types.SpendingItemBFFResponseFINAL, []types.SpendingItemBFFResponseFINAL, []types.SpendingItemBFFResponseFINAL) {
+	sta.logger.Debug("transformDetailedTransactionsToBFF called", map[string]any{
+			"oneTimePurchaseCount": len(oneTimePurchases),
+			"subscriptionCount":    len(subscriptions),
+			"currentMonth":         currentMonth,
 	})
 
-	// Calc percentage change
-	percentageChange := 0.0
-	if previousMonth.TotalAmount > 0 {
-		percentageChange = ((currentMonth.TotalAmount - previousMonth.TotalAmount) / previousMonth.TotalAmount) * 100
+	var currentTotalThisMonth []types.SpendingItemBFFResponseFINAL
+	var oneTimeThisMonth []types.SpendingItemBFFResponseFINAL
+	var recurringNextMonth []types.SpendingItemBFFResponseFINAL
+
+	// Transform one-time purchases with real transaction data
+	for _, purchase := range oneTimePurchases {
+			// Check if purchase made in current month
+			if sta.isDateInMonth(purchase.PurchaseDate, currentMonth) {
+					transaction := types.SpendingItemBFFResponseFINAL{
+							ID:                   fmt.Sprintf("one-%d", purchase.ID),
+							Title:                purchase.Title,
+							Amount:               purchase.Amount,
+							SpendTransactionType: "ONE_TIME",
+							PaymentMethod:        purchase.PaymentMethod,
+							MediaType:            purchase.MediaType,
+							CreatedAt:            purchase.CreatedAt.Unix(),
+							UpdatedAt:            purchase.UpdatedAt.Unix(),
+							IsActive:             true,
+							IsDigital:            purchase.IsDigital,
+							IsWishlisted:         purchase.IsWishlisted,
+							PurchaseDate:         purchase.PurchaseDate.Unix(),
+					}
+
+					// Add to current month total (filtered transactions)
+					currentTotalThisMonth = append(currentTotalThisMonth, transaction)
+
+					// Add to one-time purchases array
+					oneTimeThisMonth = append(oneTimeThisMonth, transaction)
+
+					sta.logger.Debug("Added one-time purchase to detailed transactions", map[string]any{
+							"purchaseID":    purchase.ID,
+							"title":         purchase.Title,
+							"amount":        purchase.Amount,
+							"paymentMethod": purchase.PaymentMethod,
+					})
+			}
 	}
 
-	// Parse category amounts from JSONB
-	var categoryAmounts map[string]float64
-	sta.logger.Debug("Attempting to unmarshal category_amounts", map[string]any{
-		"categoryAmounts": string(currentMonth.CategoryAmounts),
+	// Transform subscriptions with real transaction data
+	for _, subscription := range subscriptions {
+			// ✅ LEVERAGE CALCULATOR LOGIC DIRECTLY
+			subscriptionDB := models.SpendTrackingSubscriptionDB{
+					ID:               0,
+					LocationID:       subscription.ID,
+					BillingCycle:     subscription.BillingCycle,
+					CostPerCycle:     subscription.CostPerCycle,
+					AnchorDate:       subscription.AnchorDate,
+					LastPaymentDate:  subscription.LastPaymentDate,
+					NextPaymentDate:  subscription.NextPaymentDate,
+					PaymentMethod:    subscription.SubscriptionPaymentMethod,
+					CreatedAt:        subscription.CreatedAt,
+					UpdatedAt:        subscription.UpdatedAt,
+			}
+
+			// ✅ USE CALCULATOR'S METHOD DIRECTLY
+			isDue, err := sta.calculator.IsSubscriptionDueInMonth(subscriptionDB, currentMonth)
+			if err != nil {
+					sta.logger.Error("Failed to check if subscription is due", map[string]any{
+							"error":         err,
+							"subscriptionID": subscription.ID,
+							"currentMonth":   currentMonth,
+					})
+					continue // Skip this subscription if calculation fails
+			}
+
+			if isDue {
+					transaction := types.SpendingItemBFFResponseFINAL{
+							ID:                   fmt.Sprintf("sub-%s", subscription.ID),
+							Title:                subscription.Name,
+							Amount:               subscription.CostPerCycle,
+							SpendTransactionType: "SUBSCRIPTION",
+							PaymentMethod:        subscription.SubscriptionPaymentMethod,
+							MediaType:            "SUBSCRIPTION",
+							Provider:             strings.ToLower(subscription.Name),
+							CreatedAt:            subscription.CreatedAt.Unix(),
+							UpdatedAt:            subscription.UpdatedAt.Unix(),
+							IsActive:             subscription.IsActive,
+							BillingCycle:         subscription.BillingCycle,
+							NextBillingDate:      subscription.NextPaymentDate.Unix(),
+							YearlySpending:       sta.calculateYearlySpendingForSubscription(subscription),
+					}
+
+					// Add to current month total (filtered transactions)
+					currentTotalThisMonth = append(currentTotalThisMonth, transaction)
+
+					// Add to recurring subscriptions array
+					recurringNextMonth = append(recurringNextMonth, transaction)
+
+					sta.logger.Debug("Added subscription to detailed transactions", map[string]any{
+							"subscriptionID": subscription.ID,
+							"title":          subscription.Name,
+							"amount":         subscription.CostPerCycle,
+							"paymentMethod":  subscription.SubscriptionPaymentMethod,
+					})
+			}
+	}
+
+	sta.logger.Debug("transformDetailedTransactionsToBFF completed", map[string]any{
+			"currentTotalCount": len(currentTotalThisMonth),
+			"oneTimeCount":      len(oneTimeThisMonth),
+			"recurringCount":    len(recurringNextMonth),
 	})
 
-	if err := json.Unmarshal(currentMonth.CategoryAmounts, &categoryAmounts); err != nil {
-		sta.logger.Error("Failed to unmarshal category_amounts", map[string]any{
-			"error": err,
-			"categoryAmounts": string(currentMonth.CategoryAmounts),
-		})
-		categoryAmounts = make(map[string]float64)
-	} else {
-		sta.logger.Debug("Successfully unmarshaled category_amounts", map[string]any{
-			"categoryAmounts": categoryAmounts,
-		})
-	}
-
-	// Transform category amounts to response format
-	spendingCategories := make([]types.SpendingCategoryBFFResponseFINAL, 0, len(categoryAmounts))
-	for name, value := range categoryAmounts {
-		sta.logger.Debug("Processing category", map[string]any{
-			"name": name,
-			"value": value,
-		})
-		spendingCategories = append(spendingCategories, types.SpendingCategoryBFFResponseFINAL{
-			Name:  name,
-			Value: value,
-		})
-	}
-
-	// Format the date range in response
-	currentDate := time.Date(currentMonth.Year, time.Month(currentMonth.Month), 1, 0, 0, 0, 0, time.UTC)
-	previousDate := time.Date(previousMonth.Year, time.Month(previousMonth.Month), 1, 0, 0, 0, 0, time.UTC)
-	dateRange := fmt.Sprintf("%s - %s",
-		previousDate.Format("Jan 2"),
-		currentDate.Format("Jan 2, 2006"),
-	)
-
-	response := types.MonthlySpendingBFFResponseFINAL{
-		CurrentMonthTotal:    currentMonth.TotalAmount,
-		LastMonthTotal:      previousMonth.TotalAmount,
-		PercentageChange:    percentageChange,
-		ComparisonDateRange: dateRange,
-		SpendingCategories:  spendingCategories,
-	}
-
-	sta.logger.Debug("Returning monthly spending response", map[string]any{
-		"response": response,
-	})
-
-	return response
-}
-
-func tranformYearlySpendingDBToResponse(
-	yearlySpendingAggregates []models.SpendTrackingYearlyAggregateDB,
-	monthlySpendingAggregates []models.SpendTrackingMonthlyAggregateDB,
-) types.AnnualSpendingBFFResponseFINAL {
-	// Initialize monthly expenditures array
-	monthlyExpenditures := make([]types.MonthlyExpenditureBFFResponseFINAL, 12)
-	for i := range monthlyExpenditures {
-		monthlyExpenditures[i] = types.MonthlyExpenditureBFFResponseFINAL{
-			Month:       time.Month(i + 1).String()[:3],
-			Expenditure: 0,
-		}
-	}
-
-	// Get current year and month for proper data filtering
-	now := time.Now()
-	currentYear := now.Year()
-	currentMonth := int(now.Month())
-
-	// Populate monthly expenditures with actual data
-	for _, agg := range monthlySpendingAggregates {
-		// Only process data for the current year
-		if agg.Year == currentYear && int(agg.Month) <= currentMonth {
-				monthIndex := int(agg.Month) - 1 // Convert to 0-based index
-				if monthIndex >= 0 && monthIndex < 12 {
-						// Only update if we have data for this month
-						if agg.TotalAmount > 0 {
-								monthlyExpenditures[monthIndex].Expenditure = agg.TotalAmount
-						}
-				}
-		}
-}
-
-	// Calculate median monthly cost from yearly aggregates
-	var monthlyCosts []float64
-	for _, agg := range yearlySpendingAggregates {
-		if agg.Year == currentYear {
-			monthlyCosts = append(monthlyCosts, agg.TotalAmount/12)
-		}
-	}
-	sort.Float64s(monthlyCosts)
-	medianMonthlyCost := 0.0
-	if len(monthlyCosts) > 0 {
-		if len(monthlyCosts)%2 == 0 {
-			medianMonthlyCost = (monthlyCosts[len(monthlyCosts)/2-1] + monthlyCosts[len(monthlyCosts)/2]) / 2
-		} else {
-			medianMonthlyCost = monthlyCosts[len(monthlyCosts)/2]
-		}
-	}
-
-	// Format date range
-	dateRange := fmt.Sprintf("January %d - January %d", currentYear, currentYear+1)
-
-	return types.AnnualSpendingBFFResponseFINAL{
-		DateRange:          dateRange,
-		MonthlyExpenditures: monthlyExpenditures,
-		MedianMonthlyCost:  medianMonthlyCost,
-	}
-}
-
-func transformOneTimePurchasesDBToResponse(
-	oneTimePurchase models.SpendTrackingOneTimePurchaseDB,
-) types.SpendingItemBFFResponseFINAL{
-	return types.SpendingItemBFFResponseFINAL{
-		ID:                fmt.Sprintf("one-%d", oneTimePurchase.ID),
-        Title:            oneTimePurchase.Title,
-        Amount:           oneTimePurchase.Amount,
-        SpendTransactionType: "ONE_TIME",
-        PaymentMethod:    oneTimePurchase.PaymentMethod,
-        MediaType:        oneTimePurchase.MediaType,
-        CreatedAt:        oneTimePurchase.CreatedAt.Unix(),
-        UpdatedAt:        oneTimePurchase.UpdatedAt.Unix(),
-        IsActive:         true,
-        IsDigital:        oneTimePurchase.IsDigital,
-        IsWishlisted:     oneTimePurchase.IsWishlisted,
-        PurchaseDate:     oneTimePurchase.PurchaseDate.Unix(),
-	}
-}
-
-func transformSubscriptionsDBToResponse(
-	digitalLocation models.SpendTrackingLocationDB,
-	subscriptionDetails models.SpendTrackingSubscriptionDB,
-) types.SpendingItemBFFResponseFINAL{
-	// Calc yearly spending
-	annualAmount:= subscriptionDetails.CostPerCycle
-	switch subscriptionDetails.BillingCycle {
-	case "1 month":
-		annualAmount = subscriptionDetails.CostPerCycle * 12
-	case "3 month":
-		annualAmount = subscriptionDetails.CostPerCycle * 4
-	case "6 month":
-		annualAmount = subscriptionDetails.CostPerCycle * 2
-	case "12 month":
-		annualAmount = subscriptionDetails.CostPerCycle
-	}
-
-	yearlySpending := []types.SingleYearlyTotalBFFResponseFINAL{
-		{Year: time.Now().Year() - 2, Amount: annualAmount},
-		{Year: time.Now().Year() - 1, Amount: annualAmount},
-		{Year: time.Now().Year(), Amount: annualAmount},
-	}
-
-	return types.SpendingItemBFFResponseFINAL{
-		ID:                     fmt.Sprintf("sub-%d", subscriptionDetails.ID),
-		Title:                  digitalLocation.Name,
-		Amount:                 subscriptionDetails.CostPerCycle,
-		SpendTransactionType:   "SUBSCRIPTION",
-		PaymentMethod:          subscriptionDetails.PaymentMethod,
-		MediaType:              "SUBSCRIPTION",
-		Provider:               strings.ToLower(digitalLocation.Name),
-		CreatedAt:              digitalLocation.CreatedAt.Unix(),
-		UpdatedAt:              digitalLocation.UpdatedAt.Unix(),
-		IsActive:               digitalLocation.IsActive,
-		BillingCycle:           subscriptionDetails.BillingCycle,
-		NextBillingDate:        subscriptionDetails.NextPaymentDate.Unix(),
-		YearlySpending:         yearlySpending,
-}
+	return currentTotalThisMonth, oneTimeThisMonth, recurringNextMonth
 }
 
 
 
-// GET
+// MAIN RESPONSE LOGIC -- GET
 func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	ctx context.Context,
 	userID string,
 ) (types.SpendTrackingBFFResponseFINAL, error) {
-	// Log function call
 	sta.logger.Debug("GetSpendTrackingBFFResponse called", map[string]any{
 		"userID": userID,
 	})
 
-	// Start transaction
-	tx, err := sta.db.BeginTxx(ctx, nil)
+	// Calculate Total Monthly Spending
+	currentMonth := time.Now()
+	currentMonthTotal, err := sta.calculator.CalculateMonthlyMinimumSpending(userID, currentMonth)
 	if err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("failed to start transaction for GetSpendTrackingBFFResponse: %w", err)
-	}
-	defer tx.Rollback()
-
-	// Get monthly spending data
-	var monthlySpendingAggregates []models.SpendTrackingMonthlyAggregateDB
-	if err := tx.SelectContext(
-		ctx,
-		&monthlySpendingAggregates,
-		getMonthlySpendingAggregatesQuery,
-		userID,
-	); err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error querying monthly spending: %w", err)
+			sta.logger.Error("Failed to calculate current month total", map[string]any{
+					"error":  err,
+					"userID": userID,
+			})
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating current month total: %w", err)
 	}
 
-	// Log the raw data from the database
-	sta.logger.Debug("Raw monthly spending data from database", map[string]any{
-		"count": len(monthlySpendingAggregates),
-		"data": monthlySpendingAggregates,
-	})
-
-	// Get yearly spending data
-	var yearlySpendingAggregates []models.SpendTrackingYearlyAggregateDB
-	if err := tx.SelectContext(
-		ctx, &yearlySpendingAggregates,
-		getYearlySpendingQuery,
-		userID,
-	); err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error querying yearly spending: %w", err)
+	lastMonth := currentMonth.AddDate(0, -1, 0)
+	lastMonthTotal, err := sta.calculator.CalculateMonthlyMinimumSpending(userID, lastMonth)
+	if err != nil {
+			sta.logger.Error("Failed to calculate previous month total", map[string]any{
+					"error":  err,
+					"userID": userID,
+			})
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating previous month total: %w", err)
 	}
 
-	// Get one-time purchases
+	percentageChange, err := sta.calculator.CalculatePercentageChange(userID, currentMonth)
+	if err != nil {
+			sta.logger.Error("Failed to calculate percentage change", map[string]any{
+					"error":  err,
+					"userID": userID,
+			})
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating percentage change: %w", err)
+	}
+
+	// Calculate Total Annual Spending with dynamic forecasts
+	annualSpendingForecast, err := sta.calculator.CalculateAnnualSpendingForecast(userID, currentMonth)
+	if err != nil {
+		sta.logger.Error("Failed to calculate annual spending forecast", map[string]any{
+				"error":  err,
+				"userID": userID,
+		})
+		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating annual spending forecast: %w", err)
+	}
+
+	// Calculate CurrentTotalThisMonth with dynamic data aggregation
+	currentMonthAggregation, err := sta.calculator.CalculateCurrentMonthAggregation(userID, currentMonth)
+	if err != nil {
+			sta.logger.Error("Failed to calculate current month aggregation", map[string]any{
+					"error":  err,
+					"userID": userID,
+			})
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating current month aggregation: %w", err)
+	}
+
+	// Calculate YearlyTotals with dynamic subscription costs
+	threeYearSubscriptionTotals, err := sta.calculator.CalculateThreeYearSubscriptionCosts(userID, currentMonth)
+	if err != nil {
+		sta.logger.Error("Failed to calculate three year subscription costs", map[string]any{
+			"error":  err,
+			"userID": userID,
+		})
+		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error calculating three year subscription costs: %w", err)
+	}
+
+	// Get detailed db records for frontend (purchase type and payment method)
 	var oneTimePurchases []models.SpendTrackingOneTimePurchaseDB
-	if err := tx.SelectContext(
+	if err := sta.db.SelectContext(
 		ctx,
 		&oneTimePurchases,
-		getCurrentMonthOneTimePurchasesQuery,
+		GetCurrentMonthOneTimePurchasesQuery,
 		userID,
+		currentMonth,
 	); err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error querying one-time purchases: %w", err)
+			sta.logger.Error("Failed to get one-time purchases", map[string]any{
+					"error":  err,
+					"userID": userID,
+			})
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error getting one-time purchases: %w", err)
 	}
 
-	// Get subscriptions
 	var subscriptions []models.SpendTrackingLocationDB
-	if err := tx.SelectContext(
-		ctx,
-		&subscriptions,
-		getActiveSubscriptionsQuery,
-		userID,
+	if err := sta.db.SelectContext(
+			ctx,
+			&subscriptions,
+			GetActiveSubscriptionsQuery,
+			userID,
 	); err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error querying subscriptions: %w", err)
-	}
-
-	// Commit transaction
-	if err := tx.Commit(); err != nil {
-		return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("failed to commit transaction for GetSpendTrackingBFFResponse: %w", err)
-	}
-
-	// Transform monthly and annual spending data
-	var monthlySpendingResponse types.MonthlySpendingBFFResponseFINAL
-	if len(monthlySpendingAggregates) >= 2 {
-		sta.logger.Debug("Transforming monthly spending data", map[string]any{
-			"currentMonth": monthlySpendingAggregates[0],
-			"previousMonth": monthlySpendingAggregates[1],
-		})
-		monthlySpendingResponse = sta.transformMonthlySpendingDBToResponse(monthlySpendingAggregates[1], monthlySpendingAggregates[0])
-	} else {
-		sta.logger.Debug("Insufficient monthly spending data, using empty state", map[string]any{
-			"count": len(monthlySpendingAggregates),
-		})
-		// Empty state matching mock data structure
-		monthlySpendingResponse = types.MonthlySpendingBFFResponseFINAL{
-			CurrentMonthTotal:    0,
-			LastMonthTotal:      0,
-			PercentageChange:    0,
-			ComparisonDateRange: "No data available",
-			SpendingCategories:  []types.SpendingCategoryBFFResponseFINAL{},
-		}
-	}
-
-	// Log the transformed response
-	sta.logger.Debug("Transformed monthly spending response", map[string]any{
-		"response": monthlySpendingResponse,
-	})
-
-	annualSpendingResponse := tranformYearlySpendingDBToResponse(yearlySpendingAggregates, monthlySpendingAggregates)
-
-	// Transform one-time purchases
-	oneTimePurchasesResponse := make([]types.SpendingItemBFFResponseFINAL, len(oneTimePurchases))
-	for i := 0; i < len(oneTimePurchases); i++ {
-		oneTimePurchasesResponse[i] = transformOneTimePurchasesDBToResponse(oneTimePurchases[i])
-	}
-
-	// Transform subscriptions
-	subscriptionsResponse := make([]types.SpendingItemBFFResponseFINAL, len(subscriptions))
-	for i := 0; i < len(subscriptions); i++ {
-		subscriptionsResponse[i] = transformSubscriptionsDBToResponse(subscriptions[i], models.SpendTrackingSubscriptionDB{
-			ID:              0, // Not needed for response
-			LocationID:      subscriptions[i].ID,
-			BillingCycle:    subscriptions[i].BillingCycle,
-			CostPerCycle:    subscriptions[i].CostPerCycle,
-			AnchorDate:      subscriptions[i].AnchorDate,
-			LastPaymentDate: subscriptions[i].LastPaymentDate,
-			NextPaymentDate: subscriptions[i].NextPaymentDate,
-			PaymentMethod:   subscriptions[i].SubscriptionPaymentMethod,
-			CreatedAt:       subscriptions[i].CreatedAt,
-			UpdatedAt:       subscriptions[i].UpdatedAt,
-		})
-	}
-
-	// Build yearly totals
-	yearlyTotals := types.AllYearlyTotalsBFFResponseFINAL{
-		SubscriptionTotal: make([]types.SingleYearlyTotalBFFResponseFINAL, 0, len(yearlySpendingAggregates)),
-		OneTimeTotal:      make([]types.SingleYearlyTotalBFFResponseFINAL, 0, len(yearlySpendingAggregates)),
-		CombinedTotal:     make([]types.SingleYearlyTotalBFFResponseFINAL, 0, len(yearlySpendingAggregates)),
-	}
-
-	// Only process yearly totals if we have data
-	if len(yearlySpendingAggregates) > 0 {
-		// Sort yearly aggregates by year
-		sort.Slice(yearlySpendingAggregates, func(i, j int) bool {
-			return yearlySpendingAggregates[i].Year < yearlySpendingAggregates[j].Year
-		})
-
-		// Construct yearly totals
-		for _, agg := range yearlySpendingAggregates {
-			yearlyTotals.SubscriptionTotal = append(yearlyTotals.SubscriptionTotal, types.SingleYearlyTotalBFFResponseFINAL{
-				Year:   agg.Year,
-				Amount: agg.SubscriptionAmount,
+			sta.logger.Error("Failed to get subscriptions", map[string]any{
+					"error":  err,
+					"userID": userID,
 			})
-			yearlyTotals.OneTimeTotal = append(yearlyTotals.OneTimeTotal, types.SingleYearlyTotalBFFResponseFINAL{
-				Year:   agg.Year,
-				Amount: agg.OneTimeAmount,
-			})
-			yearlyTotals.CombinedTotal = append(yearlyTotals.CombinedTotal, types.SingleYearlyTotalBFFResponseFINAL{
-				Year:   agg.Year,
-				Amount: agg.TotalAmount,
-			})
-		}
+			return types.SpendTrackingBFFResponseFINAL{}, fmt.Errorf("error getting subscriptions: %w", err)
 	}
 
-	// Return
+	currentTotalThisMonth, oneTimeThisMonth, recurringNextMonth := sta.buildTransactionArraysFromDatabaseRecords(
+    oneTimePurchases,
+    subscriptions,
+    currentMonth,
+)
+
+	// Transform calculated data to BFF response
+	monthlySpendingResponse := types.MonthlySpendingBFFResponseFINAL{
+		CurrentMonthTotal:           currentMonthTotal,
+		LastMonthTotal:              lastMonthTotal,
+		PercentageChange:            percentageChange,
+		ComparisonDateRange:         fmt.Sprintf("%s - %s", lastMonth.Format("Jan 2"), currentMonth.Format("Jan 2, 2006")),
+		SpendingCategories:          sta.transformCalculatorCategoriesToBFFResponse(currentMonthAggregation.SpendingCategories),
+	}
+
+	// Transform calculated annual spending data
+	annualSpendingResponse := annualSpendingForecast
+
+	// Transform calculated yearly totals
+	yearlyTotals := sta.transformThreeYearTotalsToBFFResponse(threeYearSubscriptionTotals)
+
+	// Build FINAL BFF response
 	response := types.SpendTrackingBFFResponseFINAL{
-		TotalMonthlySpending: monthlySpendingResponse,
-		TotalAnnualSpending:  annualSpendingResponse,
-		CurrentTotalThisMonth: append(oneTimePurchasesResponse, subscriptionsResponse...),
-		OneTimeThisMonth:     oneTimePurchasesResponse,
-		RecurringNextMonth:   subscriptionsResponse,
-		YearlyTotals:         yearlyTotals,
+		TotalMonthlySpending:  monthlySpendingResponse,
+		TotalAnnualSpending:   annualSpendingResponse,
+		CurrentTotalThisMonth: currentTotalThisMonth,
+		OneTimeThisMonth:      oneTimeThisMonth,
+		RecurringNextMonth:    recurringNextMonth,
+		YearlyTotals:          yearlyTotals,
 	}
 
-	sta.logger.Debug("GetSpendTrackingBFFResponse response", map[string]any{
-		"response": response,
+	sta.logger.Debug("GetSpendTrackingBFFResponse completed with calculated data", map[string]any{
+    "userID":              userID,
+    "currentMonthTotal":   currentMonthTotal,
+    "previousMonthTotal":  lastMonthTotal,
+    "percentageChange":    percentageChange,
+    "response":            response,
 	})
 
 	return response, nil

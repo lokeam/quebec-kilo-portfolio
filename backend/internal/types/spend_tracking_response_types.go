@@ -74,3 +74,21 @@ type SpendTrackingBFFResponseFINAL struct {
     RecurringNextMonth      []SpendingItemBFFResponseFINAL     `json:"recurringNextMonth"`
     YearlyTotals            AllYearlyTotalsBFFResponseFINAL    `json:"yearlyTotals"`
 }
+
+type SpendTrackingCalculatorCurrentMonthData struct {
+    TotalMonthlySpending     float64
+    SpendingCategories       []SpendTrackingCalculatorSpendingCategory
+    SpendingItems            []SpendTrackingCalculatorSpendingItem
+}
+
+type SpendTrackingCalculatorSpendingCategory struct {
+    SpendingCategoryName   string
+    SpendingCategoryValue  float64
+}
+
+type SpendTrackingCalculatorSpendingItem struct {
+    SpendingCategoryID      string
+    SpendingItemName        string
+    SpendingItemAmount      float64
+    SpendingItemCategory    string
+}
