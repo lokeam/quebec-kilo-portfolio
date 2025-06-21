@@ -11,22 +11,20 @@ import (
 )
 
 type SpendTrackingCalculator struct {
-	dbAdapter   SpendTrackingDbAdapter
+	dbAdapter   *SpendTrackingDbAdapter
 	logger      interfaces.Logger
 }
 
-func NewSpendTrackingCalculator(appContext *appcontext.AppContext) (*SpendTrackingCalculator, error) {
+func NewSpendTrackingCalculator(
+	appContext *appcontext.AppContext,
+	dbAdapter *SpendTrackingDbAdapter,
+) (*SpendTrackingCalculator, error) {
 	appContext.Logger.Debug("Creating SpendTracking Calculator", map[string]any{
 		"appContext": appContext,
 	})
 
-	dbAdapter, err := NewSpendTrackingDbAdapter(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create SpendTrackingDbAdapter: %w", err)
-	}
-
 	return &SpendTrackingCalculator{
-		dbAdapter: *dbAdapter,
+		dbAdapter: dbAdapter,
 		logger:    appContext.Logger,
 	}, nil
 }

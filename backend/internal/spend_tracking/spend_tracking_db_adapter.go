@@ -40,24 +40,29 @@ func NewSpendTrackingDbAdapter(
 		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
 	}
 
-	// Create the spend tracking calculator to fetch data and calculate business intelligence
-	calculator, err := NewSpendTrackingCalculator(appContext)
+	// Register custom types? Not sure if needed
+	db.MapperFunc(strings.ToLower)
+	db.SetMaxOpenConns(10)        // Reduced from 25
+	db.SetMaxIdleConns(5)         // Reduced from 25
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// Create the adapter first
+	adapter := &SpendTrackingDbAdapter{
+		client:  client,
+		db:      db,
+		logger:  appContext.Logger,
+	}
+
+	// Create the spend tracking calculator with the adapter
+	calculator, err := NewSpendTrackingCalculator(appContext, adapter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create spend tracking calculator: %w", err)
 	}
 
-	// Register custom types? Not sure if needed
-	db.MapperFunc(strings.ToLower)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Set the calculator on the adapter
+	adapter.calculator = calculator
 
-	return &SpendTrackingDbAdapter{
-		client:  client,
-		db:      db,
-		logger:  appContext.Logger,
-		calculator: calculator,
-	}, nil
+	return adapter, nil
 }
 
 // --- HELPER METHODS ---
@@ -259,7 +264,7 @@ func (sta *SpendTrackingDbAdapter) buildTransactionArraysFromDatabaseRecords(
 
 
 
-// MAIN RESPONSE LOGIC -- GET
+// MAIN RESPONSE LOGIC -- GET - Send backend for frontend Spend Tracking Response
 func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	ctx context.Context,
 	userID string,
