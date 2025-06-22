@@ -48,7 +48,7 @@ func NewDashboardDbAdapter(appContext *appcontext.AppContext) (*DashboardDbAdapt
 const (
   // Get total games and last updated
   getGameStatsQuery = `
-      SELECT 'Games' AS title, 'games' AS icon, COUNT(*) AS value, MAX(updated_at) AS last_updated
+      SELECT 'Games' AS title, 'games' AS icon, COUNT(*) AS value, MAX(created_at) AS last_updated
       FROM user_games
       WHERE user_id = $1
   `
@@ -56,7 +56,15 @@ const (
   // Get total monthly online services costs and last updated
   getSubscriptionStatsQuery = `
       SELECT 'Monthly Online Services Costs' AS title, 'coin' AS icon,
-             COALESCE(SUM(dls.cost_per_cycle), 0) AS value, MAX(dls.updated_at) AS last_updated
+           COALESCE(ROUND(SUM(
+               CASE
+                   WHEN dls.billing_cycle = '1 month' THEN dls.cost_per_cycle
+                   WHEN dls.billing_cycle = '3 month' THEN dls.cost_per_cycle / 3
+                   WHEN dls.billing_cycle = '6 month' THEN dls.cost_per_cycle / 6
+                   WHEN dls.billing_cycle = '12 month' THEN dls.cost_per_cycle / 12
+                   ELSE dls.cost_per_cycle
+               END
+           ), 2), 0) AS value, MAX(dls.updated_at) AS last_updated
       FROM digital_location_subscriptions dls
       JOIN digital_locations dl ON dls.digital_location_id = dl.id
       WHERE dl.user_id = $1 AND dl.is_subscription = true AND dl.is_active = true
@@ -80,18 +88,20 @@ const (
 
   // Get all digital locations with details
   getDigitalLocationsQuery = `
-      SELECT
-          logo,
-          name,
-          url,
-          COALESCE(dls.billing_cycle, '') AS billing_cycle,
-          COALESCE(dls.cost_per_cycle, 0) AS monthly_fee,
-          (SELECT COUNT(*) FROM digital_game_locations dgl WHERE dgl.digital_location_id = dl.id) AS stored_items,
-          dl.is_subscription,
-          dls.next_payment_date
-      FROM digital_locations dl
-      LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
-      WHERE dl.user_id = $1
+    SELECT
+      dl.name,
+      dl.url,
+      COALESCE(dls.billing_cycle, '') AS billing_cycle,
+      COALESCE(dls.cost_per_cycle, 0) AS monthly_fee,
+      COUNT(dgl.id) AS stored_items,
+      dl.is_subscription,
+      dls.next_payment_date
+    FROM digital_locations dl
+    LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
+    LEFT JOIN digital_game_locations dgl ON dl.id = dgl.digital_location_id
+    LEFT JOIN user_games ug ON dgl.user_game_id = ug.id AND ug.user_id = $1
+    WHERE dl.user_id = $1
+    GROUP BY dl.id, dl.name, dl.url, dls.billing_cycle, dls.cost_per_cycle, dl.is_subscription, dls.next_payment_date
   `
 
   // Get all sublocations with parent location details
@@ -123,12 +133,12 @@ const (
   // Get monthly expenditures (for the last 12 months)
   getMonthlyExpendituresQuery = `
       SELECT
-          TO_CHAR(TO_DATE(CONCAT(year, '-', LPAD(month::text, 2, '0'), '-01'), 'YYYY-MM-DD'), 'YYYY-MM-01') AS date,
-          COALESCE(one_time_purchase, 0) AS one_time_purchase,
-          COALESCE(hardware, 0) AS hardware,
-          COALESCE(dlc, 0) AS dlc,
-          COALESCE(in_game_purchase, 0) AS in_game_purchase,
-          COALESCE(subscription, 0) AS subscription
+        TO_CHAR(TO_DATE(CONCAT(year, '-', LPAD(month::text, 2, '0'), '-01'), 'YYYY-MM-DD'), 'YYYY-MM-01') AS date,
+        COALESCE((category_amounts->>'one_time_purchase')::DECIMAL(10,2), 0) AS one_time_purchase,
+        COALESCE((category_amounts->>'hardware')::DECIMAL(10,2), 0) AS hardware,
+        COALESCE((category_amounts->>'dlc')::DECIMAL(10,2), 0) AS dlc,
+        COALESCE((category_amounts->>'in_game_purchase')::DECIMAL(10,2), 0) AS in_game_purchase,
+        COALESCE((category_amounts->>'subscription')::DECIMAL(10,2), 0) AS subscription
       FROM monthly_spending_aggregates
       WHERE user_id = $1
       ORDER BY year, month
@@ -263,10 +273,7 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
     })
     return types.DashboardBFFResponse{}, fmt.Errorf("error fetching digital locations: %w", err)
   }
-  var subscriptionTotal float64
-  for _, location := range digitalLocationsDB {
-    subscriptionTotal += location.MonthlyFee
-  }
+  subscriptionTotal := subscriptionStatsDB.Value
 
   // 3. Sublocations
   var sublocationsDB []models.DashboardSublocationDB

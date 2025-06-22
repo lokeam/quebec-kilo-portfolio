@@ -6,10 +6,10 @@ import (
 
 // DashboardGameStatsDB represents the raw DB result for a statistics card (games, subscriptions, locations)
 type DashboardGameStatsDB struct {
-	Title      string    `db:"title"`
-	Icon       string    `db:"icon"`
-	Value      int       `db:"value"`
-	LastUpdated time.Time `db:"last_updated"`
+	Title      string      `db:"title"`
+	Icon       string      `db:"icon"`
+	Value      float64     `db:"value"`
+	LastUpdated time.Time  `db:"last_updated"`
 }
 
 // DashboardDigitalLocationDB represents a digital storage location from the DB

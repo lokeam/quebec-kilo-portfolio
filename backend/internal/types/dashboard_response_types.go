@@ -2,10 +2,10 @@ package types
 
 // DashboardStatBFFResponse represents a single statistics card (games, subscriptions, locations)
 type DashboardStatBFFResponse struct {
-    Title      string `json:"title"`
-    Icon       string `json:"icon"`
-    Value      int    `json:"value"`
-    LastUpdated int64 `json:"lastUpdated"`
+    Title        string   `json:"title"`
+    Icon         string   `json:"icon"`
+    Value        float64  `json:"value"`
+    LastUpdated  int64    `json:"lastUpdated"`
 }
 
 // DashboardDigitalLocationBFFResponse represents a digital storage location in the dashboard response
