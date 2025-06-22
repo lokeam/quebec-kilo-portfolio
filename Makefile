@@ -60,7 +60,7 @@
 #
 # ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down seed-data-complete
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -536,6 +536,7 @@ help:
 	@echo " make list-backups       - List available database backups"
 	@echo " make spend-tracking-db-seed - Seed spend tracking data"
 	@echo " make spend-tracking-db-seed-down - Remove spend tracking seed data"
+	@echo " make seed-data-complete - Seed complete data set"
 
 # ---------------------------------------------------------------------------
 # Restore: Restore database from backup
@@ -580,6 +581,11 @@ spend-tracking-db-seed-down:
 	@echo "$(BLUE)Removing spend tracking seed data...$(RESET)"
 	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/20240414150001_seed_spend_tracking_data.down.sql
 	@echo "$(GREEN)Spend tracking seed data removed successfully$(RESET)"
+
+seed-data-complete:
+	@echo "$(BLUE)Seeding complete data set...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/seed_data_complete.sql
+	@echo "$(GREEN)Complete data set seeded successfully$(RESET)"
 
 # Recreate: Forcefully stop everything, remove all containers, networks, and volumes, and start fresh
 recreate:

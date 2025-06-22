@@ -35,7 +35,7 @@ import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
 import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
 
 // Physical Media related icons
-import { IconDisc, IconCpu, IconCloudDown, IconSparkles } from '@tabler/icons-react';
+import { IconCpu, IconCloudDown, IconSparkles, IconDeviceGamepad2 } from '@tabler/icons-react';
 
 // Notification related icons
 import { Bell, Tag, BarChart, SquareCheckBig } from 'lucide-react';
@@ -128,12 +128,13 @@ export const ICON_MAP = {
     box: Package,
   },
   physicalMedia: {
-    disc: IconDisc,
+    physicalGame: IconDeviceGamepad2,
     hardware: IconCpu,
   },
   digitalMedia: {
     dlc: IconCloudDown,
     inGamePurchase: IconSparkles,
+    digitalGame: IconDeviceGamepad2,
   },
   notifications: {
     check: SquareCheckBig,

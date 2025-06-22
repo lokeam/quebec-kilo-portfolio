@@ -15,5 +15,5 @@ DELETE FROM digital_locations WHERE id IN (
     '9a4aeee6-fb31-4839-a921-f61b05250471'
 );
 DELETE FROM one_time_purchases WHERE user_id = '9a4aeee6-fb31-4839-a921-f61b0525046d';
-DELETE FROM spending_categories WHERE name IN ('hardware', 'dlc', 'in_game', 'subscription', 'physical', 'disc');
+DELETE FROM spending_categories WHERE name IN ('hardware', 'dlc', 'in_game_purchase', 'physical_game', 'digital_game', 'misc');
 DELETE FROM users WHERE id = '9a4aeee6-fb31-4839-a921-f61b0525046d';

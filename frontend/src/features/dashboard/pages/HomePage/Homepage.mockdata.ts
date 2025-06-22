@@ -1,5 +1,5 @@
 
-type MediaTypeDomain = "games" | "movies" | "oneTimePurchase" | "hardware" | "dlc" | "inGamePurchase" | "subscription";
+type MediaTypeDomain = "physical_game" | "digital_game" | "oneTimePurchase" | "hardware" | "dlc" | "inGamePurchase" | "subscription" | "misc";
 
 // @ts-nocheck
 

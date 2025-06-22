@@ -41,7 +41,8 @@ export const BASE_MEDIA_CATEGORIES = {
   IN_GAME_PURCHASE: MediaCategory.IN_GAME_PURCHASE,
   SUBSCRIPTION: MediaCategory.SUBSCRIPTION,
   PHYSICAL: MediaCategory.PHYSICAL,
-  DISC: MediaCategory.DISC
+  DIGITAL: MediaCategory.DIGITAL,
+  MISC: MediaCategory.MISC
 } as const;
 
 /**
@@ -65,7 +66,8 @@ export const spendTrackingPageMockData = {
       { name: MediaCategory.IN_GAME_PURCHASE, value: 178.01 },
       { name: MediaCategory.SUBSCRIPTION, value: 356.02 },
       { name: MediaCategory.PHYSICAL, value: 267.02 },
-      { name: MediaCategory.DISC, value: 178.01 },
+      { name: MediaCategory.DIGITAL, value: 178.01 },
+      { name: MediaCategory.MISC, value: 10.00 },
     ]
   },
   totalAnnualSpending: {
@@ -232,7 +234,7 @@ export const spendTrackingPageMockData = {
       isActive: true,
       isDigital: false,
       isWishlisted: true,
-      mediaType: MediaCategory.DISC,
+      mediaType: MediaCategory.PHYSICAL,
       createdAt: 1752465600000,
       updatedAt: 1752465600000,
       purchaseDate: 1752465600000,
@@ -245,7 +247,7 @@ export const spendTrackingPageMockData = {
       paymentMethod: 'Visa',
       isDigital: false,
       isWishlisted: true,
-      mediaType: MediaCategory.DISC,
+      mediaType: MediaCategory.PHYSICAL,
       createdAt: 1752552000000,
       updatedAt: 1752552000000,
       purchaseDate: 1752552000000,
@@ -334,7 +336,7 @@ export const spendTrackingPageMockData = {
       isActive: true,
       isDigital: false,
       isWishlisted: true,
-      mediaType: MediaCategory.DISC,
+      mediaType: MediaCategory.PHYSICAL,
       createdAt: 1752465600000,
       updatedAt: 1752465600000,
       purchaseDate: 1752465600000,
@@ -347,7 +349,7 @@ export const spendTrackingPageMockData = {
       paymentMethod: 'Visa',
       isDigital: false,
       isWishlisted: true,
-      mediaType: MediaCategory.DISC,
+      mediaType: MediaCategory.PHYSICAL,
       createdAt: 1752552000000,
       updatedAt: 1752552000000,
       purchaseDate: 1752552000000,

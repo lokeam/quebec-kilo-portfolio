@@ -77,11 +77,11 @@ CREATE TABLE user_games (
     game_id BIGINT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     platform_id BIGINT NOT NULL REFERENCES platforms(id) ON DELETE CASCADE,
     game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
-    copy_number INTEGER NOT NULL DEFAULT 1,
+    copy_number INTEGER NOT NULL DEFAULT 1, -- refers to instances of the same game across different platforms + locations
     is_unique_copy BOOLEAN NOT NULL DEFAULT true,
     favorite BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (user_id, game_id, platform_id)
+    UNIQUE (user_id, game_id, platform_id, game_type, copy_number)
 );
 
 -- Create physical_locations table
@@ -183,24 +183,11 @@ CREATE TABLE digital_game_locations (
     UNIQUE(user_game_id, digital_location_id)
 );
 
--- Create expenses table
-CREATE TABLE expenses (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    amount DECIMAL(10,2) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    expense_type VARCHAR(50) NOT NULL CHECK (expense_type IN ('subscription', 'purchase', 'dlc', 'in_game')),
-    digital_location_id UUID REFERENCES digital_locations(id) ON DELETE SET NULL,
-    user_game_id INTEGER REFERENCES user_games(id) ON DELETE SET NULL,
-    date TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Create spending_categories table
 CREATE TABLE spending_categories (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
-    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('hardware', 'dlc', 'in_game', 'disc', 'misc')),
+    media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('hardware', 'dlc', 'in_game_purchase', 'physical_game', 'digital_game', 'misc')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -282,9 +269,6 @@ CREATE INDEX idx_digital_location_payments_digital_location_id ON digital_locati
 CREATE INDEX idx_digital_location_payments_payment_date ON digital_location_payments(payment_date);
 CREATE INDEX idx_digital_game_locations_user_game_id ON digital_game_locations(user_game_id);
 CREATE INDEX idx_digital_game_locations_digital_location_id ON digital_game_locations(digital_location_id);
-CREATE INDEX idx_expenses_user_id ON expenses(user_id);
-CREATE INDEX idx_expenses_digital_location_id ON expenses(digital_location_id);
-CREATE INDEX idx_expenses_user_game_id ON expenses(user_game_id);
 CREATE INDEX idx_wishlist_user_id ON wishlist(user_id);
 CREATE INDEX idx_wishlist_game_id ON wishlist(game_id);
 

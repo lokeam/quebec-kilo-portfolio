@@ -19,8 +19,9 @@ export enum MediaCategory {
   DLC = 'dlc',
   IN_GAME_PURCHASE = 'inGamePurchase',
   SUBSCRIPTION = 'subscription',
-  PHYSICAL = 'physical',
-  DISC = 'disc'
+  PHYSICAL = 'physical_game',
+  DIGITAL = 'digital_game',
+  MISC = 'misc'
 }
 
 export enum BillingCycle {

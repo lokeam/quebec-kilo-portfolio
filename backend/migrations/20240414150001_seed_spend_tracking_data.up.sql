@@ -14,10 +14,11 @@ END $$;
 INSERT INTO spending_categories (name, media_type) VALUES
     ('hardware', 'hardware'),
     ('dlc', 'dlc'),
-    ('in_game', 'in_game'),
-    ('subscription', 'misc'),
-    ('physical', 'disc'),
-    ('disc', 'disc');
+    ('in_game_purchase', 'in_game_purchase'),
+    ('subscription', 'subscription'),
+    ('physical_game', 'physical_game'),
+    ('digital_game', 'digital_game'),
+    ('misc', 'misc');
 
 -- Seed monthly spending aggregates
 INSERT INTO monthly_spending_aggregates (
@@ -35,7 +36,7 @@ INSERT INTO monthly_spending_aggregates (
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 1, 201.65, 201.65, 0, '{
         "hardware": 0,
         "dlc": 0,
-        "in_game": 0,
+        "in_game_purchase": 0,
         "subscription": 201.65,
         "physical": 0,
         "disc": 0
@@ -45,7 +46,7 @@ INSERT INTO monthly_spending_aggregates (
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 2, 10.99, 10.99, 0, '{
         "hardware": 0,
         "dlc": 0,
-        "in_game": 10.99,
+        "in_game_purchase": 10.99,
         "subscription": 0,
         "physical": 0,
         "disc": 0
@@ -55,7 +56,7 @@ INSERT INTO monthly_spending_aggregates (
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 3, 39.55, 39.55, 0, '{
         "hardware": 0,
         "dlc": 39.55,
-        "in_game": 0,
+        "in_game_purchase": 0,
         "subscription": 0,
         "physical": 0,
         "disc": 0
@@ -65,7 +66,7 @@ INSERT INTO monthly_spending_aggregates (
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 4, 25.99, 25.99, 0, '{
         "hardware": 0,
         "dlc": 0,
-        "in_game": 0,
+        "in_game_purchase": 0,
         "subscription": 0,
         "physical": 25.99,
         "disc": 0
@@ -75,20 +76,20 @@ INSERT INTO monthly_spending_aggregates (
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 5, 879.37, 356.02, 523.35, '{
         "hardware": 0,
         "dlc": 0,
-        "in_game": 0,
+        "in_game_purchase": 0,
         "subscription": 356.02,
-        "physical": 0,
-        "disc": 0
+        "physical_game": 0,
+        "digital_game": 0
     }'::jsonb, '2025-05-16 00:00:00', '2025-05-16 00:00:00'),
 
     -- June 2025
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 2025, 6, 1784.0, 356.02, 1428.02, '{
         "hardware": 534.04,
         "dlc": 267.02,
-        "in_game": 178.01,
+        "in_game_purchase": 178.01,
         "subscription": 356.02,
-        "physical": 267.02,
-        "disc": 178.01
+        "physical_game": 267.02,
+        "digital_game": 178.01
     }'::jsonb, '2025-06-16 00:00:00', '2025-06-16 00:00:00');
 
 -- Seed yearly spending aggregates
