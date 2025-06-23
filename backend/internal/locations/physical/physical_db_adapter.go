@@ -425,7 +425,8 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	// Initialize with empty slice instead of nil
 	physicalLocations := make([]types.LocationsBFFPhysicalLocationResponse, 0)
 	for physicalLocationRows.Next() {
-		var id, name, locationType, mapCoords, bgColor string
+		var id, name, locationType, bgColor string
+		var mapCoords sql.NullString
 		var createdAt, updatedAt time.Time
 		err := physicalLocationRows.Scan(
 			&id,
@@ -443,11 +444,19 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 		// Unescape HTML entities in the name
 		unescapedName := html.UnescapeString(name)
 
+		// Handle null map coordinates
+		var mapCoordsResponse string
+		if mapCoords.Valid {
+			mapCoordsResponse = mapCoords.String
+		} else {
+			mapCoordsResponse = ""
+		}
+
 		physicalLocations = append(physicalLocations, types.LocationsBFFPhysicalLocationResponse{
 			PhysicalLocationID:   id,
 			Name:                 unescapedName,
 			PhysicalLocationType: locationType,
-			MapCoordinates:       utils.BuildMapCoordinatesResponse(mapCoords),
+			MapCoordinates:       utils.BuildMapCoordinatesResponse(mapCoordsResponse),
 			BgColor:              bgColor,
 			CreatedAt:            createdAt,
 			UpdatedAt:            updatedAt,
@@ -467,7 +476,8 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 	for sublocationRows.Next() {
 		var sublocationID, sublocationName, sublocationType string
 		var storedItems int
-		var parentLocationID, parentLocationName, parentLocationType, parentLocationBgColor, mapCoords string
+		var parentLocationID, parentLocationName, parentLocationType, parentLocationBgColor string
+		var sublocationMapCoords sql.NullString
 		var createdAt, updatedAt time.Time
 		err := sublocationRows.Scan(
 			&sublocationID,
@@ -478,7 +488,7 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 			&parentLocationName,
 			&parentLocationType,
 			&parentLocationBgColor,
-			&mapCoords,
+			&sublocationMapCoords,
 			&createdAt,
 			&updatedAt,
 			&storedGamesJSON,
@@ -486,6 +496,14 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 		if err != nil {
 			return types.LocationsBFFResponse{}, fmt.Errorf("failed to scan sublocation: %w", err)
 		}
+
+		// Handle NULL coordinates
+    var sublocationCoords string
+    if sublocationMapCoords.Valid {
+			sublocationCoords = sublocationMapCoords.String
+    } else {
+			sublocationCoords = ""
+    }
 
 		// Unmarshal stored games
 		var storedGames []types.LocationsBFFStoredGameResponse
@@ -508,7 +526,7 @@ func (pa *PhysicalDbAdapter) GetAllPhysicalLocationsBFF(
 			ParentLocationName:    unescapedParentLocationName,
 			ParentLocationType:    parentLocationType,
 			ParentLocationBgColor: parentLocationBgColor,
-			MapCoordinates:        utils.BuildMapCoordinatesResponse(mapCoords),
+			MapCoordinates:        utils.BuildMapCoordinatesResponse(sublocationCoords),
 			CreatedAt:             createdAt,
 			UpdatedAt:             updatedAt,
 		})

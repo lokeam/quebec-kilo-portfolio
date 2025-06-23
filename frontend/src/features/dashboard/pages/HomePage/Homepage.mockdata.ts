@@ -223,6 +223,17 @@ export const homePageMockData = {
       misc: 0,
     },
     {
+      date: "2025-05-01",
+      physicalGame: 29.99,
+      digitalGame: 10.99,
+      oneTimePurchase: 110.00,
+      hardware: 35.95,
+      dlc: 10.99,
+      inGamePurchase: 10.00,
+      subscription: 65.89,
+      misc: 0,
+    },
+    {
       date: "2025-06-01",
       physicalGame: 0,
       digitalGame: 0,
