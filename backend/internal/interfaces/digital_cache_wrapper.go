@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type DigitalCacheWrapper interface {
@@ -23,4 +24,8 @@ type DigitalCacheWrapper interface {
 	GetCachedPayments(ctx context.Context, locationID string) ([]models.Payment, error)
 	SetCachedPayments(ctx context.Context, locationID string, payments []models.Payment) error
 	InvalidatePaymentsCache(ctx context.Context, locationID string) error
+
+	// BFF Response
+	GetCachedDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
+	SetCachedDigitalLocationsBFF(ctx context.Context, userID string, response types.DigitalLocationsBFFResponse) error
 }

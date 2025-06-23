@@ -108,3 +108,27 @@ func (s *Subscription) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+//--- BFF Response ---
+type DigitalLocationBFFDB struct {
+	ID             string     `db:"id"`
+	Name           string     `db:"name"`
+	IsSubscription bool       `db:"is_subscription"`
+	IsActive       bool       `db:"is_active"`
+	URL            string     `db:"url"`
+	PaymentMethod  string     `db:"payment_method"`
+	CreatedAt      time.Time  `db:"created_at"`
+	UpdatedAt      time.Time  `db:"updated_at"`
+	BillingCycle   string     `db:"billing_cycle"`
+	CostPerCycle   float64    `db:"cost_per_cycle"`
+	NextPaymentDate *time.Time `db:"next_payment_date"`
+	StoredItems    int         `db:"stored_items"`
+}
+
+type DigitalLocationGameDB struct {
+	ID              int64  `db:"id"`
+	Name            string `db:"name"`
+	Platform        string `db:"platform"`
+	IsUniqueCopy    bool   `db:"is_unique_copy"`
+	HasPhysicalCopy bool   `db:"has_physical_copy"`
+}

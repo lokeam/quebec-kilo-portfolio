@@ -3,6 +3,8 @@ package types
 
 import "time"
 
+// ---------- Physical Locations ----------
+
 // PhysicalLocationResponse represents a physical location for the frontend
 type PhysicalLocationResponse struct {
     ID             string                    `json:"id"`
@@ -104,4 +106,35 @@ type DeleteSublocationResponse struct {
     SublocationIDs []string `json:"sublocation_ids"`
     DeletedGames []DeletedGameDetails `json:"deleted_games"`
     Error string `json:"error,omitempty"`
+}
+
+// ---------- Digital Locations ----------
+type DigitalLocationsBFFResponse struct {
+    DigitalLocations []SingleDigitalLocationBFFResponse `json:"digital_locations"`
+}
+
+type SingleDigitalLocationBFFResponse struct {
+    ID                 string                              `json:"id"`
+	Name               string                              `json:"name"`
+    URL                string                              `json:"url"`
+    IsSubscription     bool                                `json:"is_subscription"`
+	IsActive           bool                                `json:"is_active"`
+	BillingCycle       string                              `json:"billing_cycle"`
+	CostPerCycle       float64                             `json:"cost_per_cycle"`
+    MonthlyCost        float64                             `json:"monthly_cost"`
+	NextPaymentDate    *time.Time                          `json:"next_payment_date"`
+    PaymentMethod      string                              `json:"payment_method"`
+    LocationType       string                              `json:"location_type"` // MARKED FOR DELETION
+	ItemCount          int                                 `json:"item_count"`
+	StoredGames        []DigitalLocationGameResponse       `json:"stored_games"`
+	CreatedAt          time.Time                           `json:"created_at"`
+	UpdatedAt          time.Time                           `json:"updated_at"`
+}
+
+type DigitalLocationGameResponse struct {
+    ID               int64  `json:"id"`
+    Name             string `json:"name"`
+    Platform         string `json:"platform"`
+    IsUniqueCopy     bool   `json:"is_unique_copy"`
+    HasPhysicalCopy  bool   `json:"has_physical_copy"`
 }

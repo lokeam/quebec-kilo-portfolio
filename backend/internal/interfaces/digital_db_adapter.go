@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type DigitalDbAdapter interface {
@@ -31,4 +32,7 @@ type DigitalDbAdapter interface {
 	GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error)
 	CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error)
 	GetSinglePayment(ctx context.Context, paymentID int64) (*models.Payment, error)
+
+	// BFF Response
+	GetAllDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
 }
