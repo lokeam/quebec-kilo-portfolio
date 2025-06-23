@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+
+// ShadCN UI components
 import { Card, CardContent, CardDescription,CardFooter, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import {
   Pagination,
@@ -7,8 +9,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/shared/components/ui/pagination"
+
+// Custom components
 import { ServiceList } from './OnlineServicesList';
+
+// Constants
 import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
+
+// Utils
+import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
 
 type OnlineServicesCardProps = {
   subscriptionTotal: number;
@@ -24,7 +33,7 @@ type OnlineServicesCardProps = {
 };
 
 export function OnlineServicesCard({
-  subscriptionTotal,
+  subscriptionTotal = 0,
   digitalLocations,
 }: OnlineServicesCardProps) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +56,7 @@ export function OnlineServicesCard({
       <CardHeader>
         <CardTitle>Online Gaming Services</CardTitle>
         <CardDescription>
-          {subscriptionTotal} total annual fees | {totaldigitalLocations} total services | {subscriptionRecurringNextMonth} renews this month
+          {formatCurrency(subscriptionTotal)} total annual fees | {totaldigitalLocations} total services | {subscriptionRecurringNextMonth} renews this month
         </CardDescription>
       </CardHeader>
 

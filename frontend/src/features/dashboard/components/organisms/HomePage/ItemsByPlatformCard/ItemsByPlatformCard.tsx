@@ -1,8 +1,13 @@
-import * as React from "react"
-import { TrendingUp } from "lucide-react"
-import { Label, Pie, PieChart } from "recharts"
+import { useMemo } from "react";
+
+// Recharts components
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts"
+
+// Types
 import { chartConfig } from "./itemsByPlatformChard.const"
 import type { PlatformItem } from "./itemsByPlatformCard.types"
+
+// ShadCN UI components
 import {
   Card,
   CardContent,
@@ -14,27 +19,40 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/shared/components/ui/chart"
 
+// Utils
+import { normalizePlatformName } from '@/features/dashboard/lib/utils/normalizePlatformName';
+
+// Icons
+import { TrendingUp } from "lucide-react"
+
 type ItemsByPlatformCardProps = {
-  totalItemCount: number;
   platformList: PlatformItem[];
   newItemsThisMonth: number;
 };
 
 export function ItemsByPlatformCard({
-  totalItemCount,
   platformList,
   newItemsThisMonth,
 }: ItemsByPlatformCardProps) {
 
-  // Add fill colors to platform data using chartConfig
-  const platformDataWithColors = platformList.map(item => ({
-    ...item,
-    fill: (chartConfig[item.platform as keyof typeof chartConfig]?.color) || 'hsl(var(--chart-pc))'
-  }));
+  const chartData = useMemo(() => {
+    // Sort by item count descending to show the most popular platforms at the top
+    const sortedData = [...platformList].sort((a, b) => b.itemCount - a.itemCount);
+
+    return sortedData.map(item => {
+      const { displayName } = normalizePlatformName(item.platform);
+      return {
+        ...item,
+        platform: displayName, // Use the clean name for the legend
+      };
+    });
+  }, [platformList]);
+
+  const totalItemCount = useMemo(() => {
+    return platformList.reduce((sum, platform) => sum + platform.itemCount, 0);
+  }, [platformList]);
 
   return (
     <Card className="flex flex-col">
@@ -44,55 +62,44 @@ export function ItemsByPlatformCard({
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square max-h-[400px]"
         >
-          <PieChart>
+          <BarChart
+            accessibilityLayer
+            data={chartData}
+            layout="vertical"
+            margin={{ left: 0, right: 30, top: 10, bottom: 10 }}
+          >
+            <CartesianGrid horizontal={false} />
+            <YAxis
+              dataKey="platform"
+              type="category"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+              width={120}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            />
+            <XAxis dataKey="itemCount" type="number" hide />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent hideLabel />}
+              content={<ChartTooltipContent indicator="line" />}
             />
-            <Pie
-              data={platformDataWithColors}
+            <Bar
               dataKey="itemCount"
-              nameKey="platform"
-              innerRadius={60}
-              strokeWidth={5}
+              fill="hsl(var(--chart-1))"
+              radius={4}
+              barSize={25}
             >
-              <Label
-                content={({ viewBox }) => {
-                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                    return (
-                      <text
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                      >
-                        <tspan
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          className="fill-foreground text-3xl font-bold"
-                        >
-                          {totalItemCount.toLocaleString()}
-                        </tspan>
-                        <tspan
-                          x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground"
-                        >
-                          Titles
-                        </tspan>
-                      </text>
-                    )
-                  }
-                }}
+              <LabelList
+                dataKey="itemCount"
+                position="right"
+                offset={8}
+                className="fill-foreground"
+                fontSize={12}
               />
-            </Pie>
-            <ChartLegend
-              content={<ChartLegendContent nameKey="platform" />}
-              className="-translate-y-2 flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
-            />
-          </PieChart>
+            </Bar>
+          </BarChart>
         </ChartContainer>
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">

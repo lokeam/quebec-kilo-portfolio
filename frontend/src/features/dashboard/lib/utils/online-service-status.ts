@@ -3,6 +3,9 @@ import type { DigitalLocation } from '@/types/domain/online-service';
 
 import { SERVICE_STATUS_CODES, type ServiceStatusCode } from '@/shared/constants/service.constants';
 
+import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
+
+
 export function getServiceStatusColor(status: ServiceStatusCode): string {
   const statusColors = {
     [SERVICE_STATUS_CODES.ACTIVE]: 'text-green-500',
@@ -22,12 +25,13 @@ export function isPaidService(service: DigitalLocation): boolean {
   return hasMonthlyCost && hasBillingCycle && hasPaymentMethod;
 }
 
-export function formatCurrency(amount: string | null | undefined): string {
-  if (!amount || amount === 'FREE' || amount === '0') {
+export function formatServicePrice(amount: string | number | null | undefined): string {
+  if (amount == null || amount === 0 || amount === '0' || amount === 'FREE') {
     return 'FREE';
   }
-  // Ensure consistent currency formatting
-  return amount.startsWith('$') ? amount : `$${amount}`;
+
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return formatCurrency(numericAmount);
 }
 
 export function isRenewalMonth(service: DigitalLocation): boolean {

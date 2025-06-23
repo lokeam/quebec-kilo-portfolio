@@ -20,19 +20,27 @@ import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/H
 import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/wishlistDealsCard.mockdata';
 //import { monthlySpendingData } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/monthlySpendingCard.mockdata';
 
+// API Layer hooks
+import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries';
+
 // Skeleton UI
 import { HomePageSkeleton } from './HomePageSkeleton';
 
 // Page mock data
-import { homePageMockData } from './Homepage.mockdata';
+//import { homePageMockData } from './Homepage.mockdata';
 
 export function HomePageContent() {
+  const { data: dashboardData, isLoading, error } = useGetDashboardBFFResponse();
+
   // Replace with query hook
-  const isLoading = false;
+  //const isLoading = false;
+
 
   if (isLoading) {
     return <HomePageSkeleton />;
   }
+
+  console.log('dashboard bff response', dashboardData);
 
   return (
     <PageMain>
@@ -46,34 +54,38 @@ export function HomePageContent() {
       <PageGrid>
 
         {/* Statistics Cards */}
+        {/* NOTE:
+          We're already explictly data existence and loading state.
+          React Query guarantees that the data grabbed from the API exists when loading is false.
+          The non-null assertion employed below is the standard pattern recommended by the React Query docs.
+        */}
         <SingleStatisticsCard
-          stats={homePageMockData.gameStats}
+          stats={dashboardData!.gameStats}
         />
         <SingleStatisticsCard
-          stats={homePageMockData.subscriptionStats}
+          stats={dashboardData!.subscriptionStats}
         />
         <SingleStatisticsCard
-          stats={homePageMockData.digitalLocationStats}
+          stats={dashboardData!.digitalLocationStats}
         />
         <SingleStatisticsCard
-          stats={homePageMockData.physicalLocationStats}
+          stats={dashboardData!.physicalLocationStats}
         />
 
         {/* Larger Cards */}
         <OnlineServicesCard
-          subscriptionTotal={homePageMockData.subscriptionTotal}
-          digitalLocations={homePageMockData.digitalLocations}
+          subscriptionTotal={dashboardData!.subscriptionTotal}
+          digitalLocations={dashboardData!.digitalLocations}
         />
 
         <StorageLocationsTabCard
-          digitalLocations={homePageMockData.digitalLocations}
-          sublocations={homePageMockData.sublocations}
+          digitalLocations={dashboardData!.digitalLocations}
+          sublocations={dashboardData!.sublocations}
         />
 
         <ItemsByPlatformCard
-          totalItemCount={homePageMockData.totalGames}
-          platformList={homePageMockData.platformList}
-          newItemsThisMonth={homePageMockData.newItemsThisMonth}
+          platformList={dashboardData!.platformList}
+          newItemsThisMonth={dashboardData!.newItemsThisMonth}
         />
 
         <WishListDealsCard
@@ -84,8 +96,8 @@ export function HomePageContent() {
         />
 
         <MonthlySpendingCard
-          mediaTypeDomains={homePageMockData.mediaTypeDomains}
-          monthlyExpenditures={homePageMockData.monthlyExpenditures}
+          mediaTypeDomains={dashboardData!.mediaTypeDomains}
+          monthlyExpenditures={dashboardData!.monthlyExpenditures}
         />
       </PageGrid>
     </PageMain>

@@ -1,5 +1,7 @@
+// ShadCN Recharts Components
 import { Bar, BarChart, XAxis } from "recharts"
 
+// ShadCN Components
 import {
   Card,
   CardContent,
@@ -12,6 +14,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/shared/components/ui/chart"
+
+// Utils
+import { formatCurrency, type CurrencyAmount } from "@/features/dashboard/lib/utils/formatCurrency";
 
 const chartConfig = {
   oneTimePurchase: {
@@ -36,19 +41,10 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-type MediaTypeDomain = "games" | "movies" | "oneTimePurchase" | "hardware" | "dlc" | "inGamePurchase" | "subscription";
-type MonthlyExpenditureItem = {
-  date: string;
-  oneTimePurchase: number;
-  hardware: number;
-  dlc: number;
-  inGamePurchase: number;
-  subscription: number;
-}
 
 type MonthlySpendingCardProps = {
-  mediaTypeDomains: MediaTypeDomain[];
-  monthlyExpenditures: MonthlyExpenditureItem[];
+  mediaTypeDomains: string[];
+  monthlyExpenditures: object[];
 };
 
 export function MonthlySpendingCard({
@@ -102,22 +98,21 @@ export function MonthlySpendingCard({
               content={
                 <ChartTooltipContent
                   hideLabel
-                  className="w-[180px]"
+                  className="w-[220px] p-2"
                   formatter={(value, name) => (
                     <>
-                      <div
-                        className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-[2px] mr-2 align-middle"
                         style={{
-                          "--color-bg": chartConfig[name as keyof typeof chartConfig]?.color || "#8884d8",
-                        } as React.CSSProperties}
+                          background: chartConfig[name as keyof typeof chartConfig]?.color || "#8884d8",
+                        }}
                       />
                       {chartConfig[name as keyof typeof chartConfig]?.label || name}
                       <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
-                        ${value}
+                        {formatCurrency(value as CurrencyAmount)}
                       </div>
                     </>
                   )}
-                  // Optionally, you can add a total below if desired
                 />
               }
               cursor={false}

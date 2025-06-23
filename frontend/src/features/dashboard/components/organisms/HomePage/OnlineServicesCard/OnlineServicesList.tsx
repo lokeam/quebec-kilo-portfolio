@@ -1,19 +1,28 @@
+// ShadCN UI components
 import { Badge } from '@/shared/components/ui/badge';
+
+// Utils
+import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+
+// Types
 import type { ServiceListProps } from './onlineServicesCard.types';
-import SVGLogo from "@/shared/components/ui/LogoMap/LogoMap";
-import type { LogoName } from "@/shared/components/ui/LogoMap/LogoMap";
+
+// Icons
 import { IconCloudDataConnection } from '@tabler/icons-react';
+import { formatServicePrice } from '@/features/dashboard/lib/utils/online-service-status';
 
 export function ServiceList({ digitalLocations }: ServiceListProps) {
+
+  console.log('OnlineServicesList digitalLocations - ', digitalLocations);
+
   return (
     <div className="space-y-6">
       {digitalLocations.map((digitalLocation, index) => (
         <div key={index} className="flex items-center gap-4">
           <div className="h-9 w-9 flex items-center justify-center">
-            {digitalLocation.logo ? (
-              <SVGLogo
-                domain="games"
-                name={digitalLocation.logo as LogoName<'games'>}
+            {digitalLocation.name ? (
+              <DigitalLocationIcon
+                name={digitalLocation.name}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -28,7 +37,7 @@ export function ServiceList({ digitalLocations }: ServiceListProps) {
             </div>
             <div className="flex items-center gap-2">
               { digitalLocation.billingCycle && <Badge variant="outline">{digitalLocation.billingCycle}</Badge> }
-              <div className="font-medium">{digitalLocation.monthlyFee ? `$${digitalLocation.monthlyFee}` : 'FREE'}</div>
+              <div className="font-medium">{formatServicePrice(digitalLocation.monthlyFee)}</div>
             </div>
           </div>
         </div>

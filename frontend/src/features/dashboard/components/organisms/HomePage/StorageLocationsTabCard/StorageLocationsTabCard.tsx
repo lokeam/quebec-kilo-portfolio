@@ -8,10 +8,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/shared/components/ui/pagination"
-//import type { DigitalStorageService, PhysicalStorageLocation } from './storageLocationsTabCard.mockdata';
 import { ITEMS_PER_PAGE } from '@/features/dashboard/lib/constants/dashboard.constants';
 import { StorageLocationList } from './StorageLocationList';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 // Types needed for StorageLocationList component
 export type StorageLocationTabCardPhysicalItem = {
@@ -22,7 +20,7 @@ export type StorageLocationTabCardPhysicalItem = {
   parentLocationId: string;
   parentLocationName: string;
   parentLocationType: string;
-  parentLocationBgColor?: LocationIconBgColor;
+  parentLocationBgColor?: string;
 };
 
 export type StorageLocationTabCardDigitalItem = {

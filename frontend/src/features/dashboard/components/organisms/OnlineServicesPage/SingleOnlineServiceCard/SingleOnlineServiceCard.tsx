@@ -23,7 +23,7 @@ import { IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
 // Utils
 import {
   isPaidService,
-  formatCurrency,
+  formatServicePrice,
   isRenewalMonth,
 } from '@/features/dashboard/lib/utils/online-service-status';
 
@@ -140,7 +140,7 @@ export const SingleOnlineServiceCard = memo(({
                 ) : (
                 <>
                   <span className="font-medium text-white">
-                    {formatCurrency(service.monthlyCost?.toString() || '0')}
+                    {formatServicePrice(service.monthlyCost)}
                   </span>
                   <span className="text-muted-foreground text-xs">/ 1 mo</span>
                 </>
