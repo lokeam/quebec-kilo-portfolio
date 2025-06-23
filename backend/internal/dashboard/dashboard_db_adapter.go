@@ -181,13 +181,16 @@ func (dda *DashboardDbAdapter) transformDigitalLocationDBToResponse(
   db models.DashboardDigitalLocationDB,
 ) types.DashboardDigitalLocationBFFResponse {
   renewsNextMonth := false
-  if db.IsSubscription && db.NextPaymentDate != nil {
-    now := time.Now()
-    nextMonth := now.AddDate(0, 1, 0)
-
-    // Double check if next_payment_date col is indeed next month
-    if db.NextPaymentDate.Year() == nextMonth.Year() && db.NextPaymentDate.Month() == nextMonth.Month() {
+  if db.IsSubscription {
+    if db.BillingCycle == "1 month" {
+      // All monthly subscriptions always renew next month
       renewsNextMonth = true
+    } else if db.NextPaymentDate != nil {
+      now := time.Now()
+      nextMonth := now.AddDate(0, 1, 0)
+      if db.NextPaymentDate.Year() == nextMonth.Year() && db.NextPaymentDate.Month() == nextMonth.Month() {
+        renewsNextMonth = true
+      }
     }
   }
 
@@ -341,7 +344,28 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
     })
     return types.DashboardBFFResponse{}, fmt.Errorf("error fetching digital locations: %w", err)
   }
-  subscriptionTotal := subscriptionStatsDB.Value
+
+  // Calculate the annualized total for all active subscriptions
+  annualizedSubscriptionTotal := 0.0
+  for _, loc := range digitalLocationsDB {
+    if loc.MonthlyFee > 0 && loc.BillingCycle != "" {
+      var multiplier int
+      switch loc.BillingCycle {
+      case "1 month":
+        multiplier = 12
+      case "3 month":
+        multiplier = 4
+      case "6 month":
+        multiplier = 2
+      case "12 month":
+        multiplier = 1
+      default:
+        multiplier = 0
+      }
+      annualizedSubscriptionTotal += loc.MonthlyFee * float64(multiplier)
+    }
+  }
+  subscriptionTotal := annualizedSubscriptionTotal
 
   // 3. Sublocations
   var sublocationsDB []models.DashboardSublocationDB
