@@ -225,11 +225,22 @@ func (stc *SpendTrackingCalculator) CalculatePerSubscriptionYearlyTotals(
 	return yearlyTotals, nil
 }
 
+
+func getBillingCycleMonths(billingCycle string) int {
+	switch billingCycle {
+	case "1 month": return 1
+	case "3 month": return 3
+	case "6 month": return 6
+	case "12 month": return 12
+	default: return 1
+	}
+}
+
+
 func (stc *SpendTrackingCalculator) IsSubscriptionDueInMonth(
 	subscription models.SpendTrackingSubscriptionDB,
 	targetMonth time.Time,
 ) (bool, error) {
-	// Calculate months since anchor date
 	stc.logger.Debug("IsSubscriptionDueInMonth called", map[string]any{
 		"subscriptionID": subscription.LocationID,
 		"billingCycle":   subscription.BillingCycle,
@@ -239,30 +250,49 @@ func (stc *SpendTrackingCalculator) IsSubscriptionDueInMonth(
 
 	// Normalize target month to first day for a consistent comparison
 	targetMonthStart := time.Date(targetMonth.Year(), targetMonth.Month(), 1, 0, 0, 0, 0, targetMonth.Location())
+	targetMonthEnd := targetMonthStart.AddDate(0, 1, 0).Add(-time.Nanosecond)
 
-	// Use anchor date as the base for calculations
-	anchorDate := subscription.AnchorDate
+	billingCycleMonths := getBillingCycleMonths(subscription.BillingCycle)
 
-	// Calculate months since anchor date
-	monthsSinceAnchor := int(
-		(targetMonthStart.Year() - anchorDate.Year()) * 12 + int(targetMonthStart.Month() - anchorDate.Month()),
-	)
-
-	// Determine billing cycle in months
-	billingCycleInMonths, err := utils.GetBillingCycleMonths(subscription.BillingCycle)
-	if err != nil {
-		return false, fmt.Errorf("error getting billing cycle months: %w", err)
+	// If the anchor date is after the target month, no payment is due
+	if subscription.AnchorDate.After(targetMonthEnd) {
+		stc.logger.Debug("Anchor date is after target month, no payment due", map[string]any{
+			"subscriptionID": subscription.LocationID,
+			"anchorDate":     subscription.AnchorDate,
+			"targetMonthEnd": targetMonthEnd,
+		})
+		return false, nil
 	}
 
-	isPaymentDue := monthsSinceAnchor % billingCycleInMonths == 0
+	// Calculate the billing date that falls within or closest to the target month
+	// Start from the anchor date and work backwards to find the first billing date
+	// that could be in or before the target month
+	currentBillingDate := subscription.AnchorDate
+
+	// If the anchor date is after the target month, work backwards
+	for currentBillingDate.After(targetMonthEnd) {
+		currentBillingDate = currentBillingDate.AddDate(0, -billingCycleMonths, 0)
+	}
+
+	// Now work forwards to find the next billing date after the target month start
+	for currentBillingDate.Before(targetMonthStart) {
+		currentBillingDate = currentBillingDate.AddDate(0, billingCycleMonths, 0)
+	}
+
+	// Check if this billing date falls within the target month
+	isDue := (currentBillingDate.Equal(targetMonthStart) || currentBillingDate.After(targetMonthStart)) &&
+	         (currentBillingDate.Equal(targetMonthEnd) || currentBillingDate.Before(targetMonthEnd))
 
 	stc.logger.Debug("Subscription due calculation result", map[string]any{
 		"subscriptionID":      subscription.LocationID,
-		"monthsSinceAnchor":   monthsSinceAnchor,
-		"billingCycleMonths":  billingCycleInMonths,
-		"isDue":              isPaymentDue,
+		"anchorDate":          subscription.AnchorDate,
+		"targetMonthStart":    targetMonthStart,
+		"targetMonthEnd":      targetMonthEnd,
+		"calculatedBillingDate": currentBillingDate,
+		"billingCycleMonths":  billingCycleMonths,
+		"isDue":              isDue,
 		"targetMonth":        targetMonth,
 	})
 
-	return isPaymentDue, nil
+	return isDue, nil
 }

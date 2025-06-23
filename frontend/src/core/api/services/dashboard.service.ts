@@ -22,6 +22,7 @@ export interface LocationStats {
   title: string;
   icon: string;
   value: number;
+  secondaryValue?: number;
   lastUpdated: number;
 }
 

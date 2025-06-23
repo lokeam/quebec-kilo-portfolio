@@ -56,6 +56,12 @@ func (stc *SpendTrackingCalculator) CalculateMonthlySubscriptionCosts(
 		return 0.0, fmt.Errorf("error getting active subscriptions: %w", err)
 	}
 
+	stc.logger.Debug("Retrieved active subscriptions", map[string]any{
+    "userID": userID,
+    "subscriptionCount": len(activeSubscriptions),
+    "subscriptions": activeSubscriptions,
+	})
+
 	// Calculate total subscription costs for target month
 	totalSubscriptionCosts := 0.0
 	for _, subscription := range activeSubscriptions {
@@ -72,6 +78,16 @@ func (stc *SpendTrackingCalculator) CalculateMonthlySubscriptionCosts(
 			CreatedAt:        subscription.CreatedAt,
 			UpdatedAt:        subscription.UpdatedAt,
 		}
+
+		stc.logger.Debug("Checking subscription for target month", map[string]any{
+			"subscriptionID": subscription.ID,
+			"subscriptionName": subscription.Name,
+			"billingCycle": subscription.BillingCycle,
+			"costPerCycle": subscription.CostPerCycle,
+			"anchorDate": subscription.AnchorDate,
+			"targetMonth": targetMonth,
+		})
+
 
 		// Check if subscription is due in target month
 		isPaymentDue, err := stc.IsSubscriptionDueInMonth(subscriptionDB, targetMonth)

@@ -11,14 +11,16 @@ import (
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/postgres"
+	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Adapter struct for Dashboard BFF
 type DashboardDbAdapter struct {
-  client *postgres.PostgresClient
-  db     *sqlx.DB
-  logger interfaces.Logger
+  client                     *postgres.PostgresClient
+  db                         *sqlx.DB
+  logger                     interfaces.Logger
+  spendTrackingCalculator    *spend_tracking.SpendTrackingCalculator
 }
 
 // Constructor for DashboardDbAdapter
@@ -36,10 +38,21 @@ func NewDashboardDbAdapter(appContext *appcontext.AppContext) (*DashboardDbAdapt
   db.SetMaxIdleConns(25)
   db.SetConnMaxLifetime(5 * time.Minute)
 
+  spendTrackingDBAdapter, err := spend_tracking.NewSpendTrackingDbAdapter(appContext)
+  if err != nil {
+    return nil, fmt.Errorf("failed to create spend tracking db adapter: %w", err)
+  }
+
+  spendTrackingCalculator, err := spend_tracking.NewSpendTrackingCalculator(appContext, spendTrackingDBAdapter)
+  if err != nil {
+    return nil, fmt.Errorf("failed to create spend tracking calculator: %w", err)
+  }
+
   return &DashboardDbAdapter{
       client: client,
       db:     db,
       logger: appContext.Logger,
+      spendTrackingCalculator: spendTrackingCalculator,
   }, nil
 }
 
@@ -55,7 +68,7 @@ const (
 
   // Get total monthly online services costs and last updated
   getSubscriptionStatsQuery = `
-      SELECT 'Monthly Online Services Costs' AS title, 'coin' AS icon,
+      SELECT 'Online Service Costs' AS title, 'coin' AS icon,
            COALESCE(ROUND(SUM(
                CASE
                    WHEN dls.billing_cycle = '1 month' THEN dls.cost_per_cycle
@@ -80,10 +93,15 @@ const (
 
   // Get physical storage locations count and last updated
   getPhysicalLocationStatsQuery = `
-      SELECT 'Physical Storage Locations' AS title, 'package' AS icon,
-          COUNT(*) AS value, MAX(updated_at) AS last_updated
-      FROM physical_locations
-      WHERE user_id = $1
+      SELECT
+        'Physical Storage Locations' AS title,
+        'package' AS icon,
+        COUNT(DISTINCT pl.id) AS value,
+        COUNT(s.id) AS secondary_value,
+        MAX(pl.updated_at) AS last_updated
+    FROM physical_locations pl
+    LEFT JOIN sublocations s ON pl.id = s.physical_location_id
+    WHERE pl.user_id = $1
   `
 
   // Get all digital locations with details
@@ -134,11 +152,10 @@ const (
   getMonthlyExpendituresQuery = `
       SELECT
         TO_CHAR(TO_DATE(CONCAT(year, '-', LPAD(month::text, 2, '0'), '-01'), 'YYYY-MM-DD'), 'YYYY-MM-01') AS date,
-        COALESCE((category_amounts->>'one_time_purchase')::DECIMAL(10,2), 0) AS one_time_purchase,
+        one_time_amount AS one_time_purchase,
         COALESCE((category_amounts->>'hardware')::DECIMAL(10,2), 0) AS hardware,
         COALESCE((category_amounts->>'dlc')::DECIMAL(10,2), 0) AS dlc,
-        COALESCE((category_amounts->>'in_game_purchase')::DECIMAL(10,2), 0) AS in_game_purchase,
-        COALESCE((category_amounts->>'subscription')::DECIMAL(10,2), 0) AS subscription
+        COALESCE((category_amounts->>'in_game_purchase')::DECIMAL(10,2), 0) AS in_game_purchase
       FROM monthly_spending_aggregates
       WHERE user_id = $1
       ORDER BY year, month
@@ -155,6 +172,7 @@ func (dda *DashboardDbAdapter) transformGameStatsDBToResponse(
     Title: db.Title,
     Icon: db.Icon,
     Value: db.Value,
+    SecondaryValue: db.SecondaryValue,
     LastUpdated: db.LastUpdated.Unix(),
   }
 }
@@ -209,6 +227,7 @@ func (dda *DashboardDbAdapter) transformPlatformDBToResponse(
 
 func (dda *DashboardDbAdapter) transformMonthlyExpenditureDBToResponse(
   db models.DashboardMonthlyExpenditureDB,
+  subscriptionCost float64,
 ) types.DashboardMonthlyExpenditureBFFResponse {
   return types.DashboardMonthlyExpenditureBFFResponse{
       Date:            db.Date,
@@ -216,9 +235,58 @@ func (dda *DashboardDbAdapter) transformMonthlyExpenditureDBToResponse(
       Hardware:        db.Hardware,
       Dlc:             db.Dlc,
       InGamePurchase:  db.InGamePurchase,
-      Subscription:    db.Subscription,
+      Subscription:    subscriptionCost,
   }
 }
+
+
+// --- Helper Methods ---
+func (dda *DashboardDbAdapter) calculateSubscriptionCostsForMonths(
+  userID string,
+  months []time.Time,
+) (map[string]float64, error) {
+  dda.logger.Debug("calculateSubscriptionCostsForMonths called", map[string]any{
+    "userID": userID,
+    "monthCount": len(months),
+    "months": months,
+  })
+
+  subscriptionCosts := make(map[string]float64)
+
+  for _, month := range months {
+    // Calculate subscription costs for this month using existing calculator
+    // Ensure month is the first day of the month
+    firstDayOfMonth := time.Date(month.Year(), month.Month(), 1, 0, 0, 0, 0, time.UTC)
+    monthlySubscriptionCost, err := dda.spendTrackingCalculator.CalculateMonthlySubscriptionCosts(userID, firstDayOfMonth)
+    if err != nil {
+        dda.logger.Error("Failed to calculate subscription costs for month", map[string]any{
+            "error": err,
+            "userID": userID,
+            "month": month,
+        })
+        // Continue with other months even if one fails
+        monthlySubscriptionCost = 0.0
+    }
+
+    // Format month key to match the date format from the query
+    monthKey := month.Format("2006-01-01")
+    subscriptionCosts[monthKey] = monthlySubscriptionCost
+
+    dda.logger.Debug("Calculated subscription costs for month", map[string]any{
+        "userID": userID,
+        "month": monthKey,
+        "subscriptionCost": monthlySubscriptionCost,
+    })
+  }
+
+  dda.logger.Debug("calculateSubscriptionCostsForMonths completed", map[string]any{
+      "userID": userID,
+      "subscriptionCosts": subscriptionCosts,
+  })
+
+  return subscriptionCosts, nil
+}
+
 
 func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
   ctx context.Context,
@@ -312,9 +380,94 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
     return types.DashboardBFFResponse{}, fmt.Errorf("error fetching monthly expenditures: %w", err)
   }
 
+  // Calculate the current month's total subscription cost using the business logic
+  currentMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+  currentMonthSubscriptionCost, err := dda.spendTrackingCalculator.CalculateMonthlySubscriptionCosts(userID, currentMonth)
+  if err != nil {
+    dda.logger.Error("Failed to calculate current month subscription cost", map[string]any{
+      "error": err,
+      "userID": userID,
+      "currentMonth": currentMonth,
+    })
+    currentMonthSubscriptionCost = 0.0
+  }
+
+  // Extract unique months from the monthlyExpendituresDB instead of hardcoding 2024
+  // Calculate subscription costs for ALL months in the response
+  uniqueMonths := make([]time.Time, 0, len(monthlyExpendituresDB))
+  for _, expenditure := range monthlyExpendituresDB {
+      expenditureMonth, err := time.Parse("2006-01-02", expenditure.Date)
+      if err != nil {
+          dda.logger.Error("Failed to parse expenditure date", map[string]any{
+              "error": err,
+              "date": expenditure.Date,
+          })
+          continue
+      }
+      // Normalize to first day of month
+      firstDayOfMonth := time.Date(expenditureMonth.Year(), expenditureMonth.Month(), 1, 0, 0, 0, 0, time.UTC)
+      uniqueMonths = append(uniqueMonths, firstDayOfMonth)
+
+      dda.logger.Debug("Added month for subscription calculation", map[string]any{
+          "originalDate": expenditure.Date,
+          "normalizedDate": firstDayOfMonth.Format("2006-01-01"),
+      })
+  }
+
+  calculatedSubscriptionCosts, err := dda.calculateSubscriptionCostsForMonths(
+    userID,
+    uniqueMonths,
+  )
+  if err != nil {
+    dda.logger.Error("Failed to calculate subscription costs per month", map[string]any{
+      "error": err,
+      "userID": userID,
+    })
+    // Continue with zero subscription costs if logic fails
+    calculatedSubscriptionCosts = make(map[string]float64)
+  }
+
+  // Create the final mapping for response - simplified logic
+  finalSubscriptionCosts := make(map[string]float64)
+  for _, expenditure := range monthlyExpendituresDB {
+    expenditureMonth, err := time.Parse("2006-01-02", expenditure.Date)
+    if err != nil {
+      dda.logger.Error("Failed to parse expenditure date", map[string]any{
+        "error": err,
+        "date": expenditure.Date,
+      })
+      continue
+    }
+
+    // Use the same format as calculatedSubscriptionCosts for direct lookup
+    monthKey := expenditureMonth.Format("2006-01-01")
+    if cost, exists := calculatedSubscriptionCosts[monthKey]; exists {
+      finalSubscriptionCosts[expenditure.Date] = cost
+      dda.logger.Debug("Found subscription cost for month", map[string]any{
+        "expenditureDate": expenditure.Date,
+        "monthKey": monthKey,
+        "subscriptionCost": cost,
+      })
+    } else {
+      finalSubscriptionCosts[expenditure.Date] = 0.0
+      dda.logger.Debug("No subscription cost found for month", map[string]any{
+        "expenditureDate": expenditure.Date,
+        "monthKey": monthKey,
+        "availableKeys": calculatedSubscriptionCosts,
+      })
+    }
+  }
+
+  dda.logger.Debug("Final subscription costs mapping", map[string]any{
+    "finalSubscriptionCosts": finalSubscriptionCosts,
+    "calculatedSubscriptionCosts": calculatedSubscriptionCosts,
+  })
+
   // 7. Transformation - THIS NEEDS TO BE ADJUSTED ACCORDING TO ITEMS 1-6 AND THE TRANSFORMATION HELPER FNS.
   gameStats := dda.transformGameStatsDBToResponse(gameStatsDB)
   subscriptionStats := dda.transformGameStatsDBToResponse(subscriptionStatsDB)
+  // Override the value with the calculated current month subscription cost
+  subscriptionStats.Value = currentMonthSubscriptionCost
   digitalLocationStats := dda.transformGameStatsDBToResponse(digitalLocationStatsDB)
   physicalLocationStats := dda.transformGameStatsDBToResponse(physicalLocationStatsDB)
 
@@ -335,7 +488,8 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
 
   monthlyExpenditures := make([]types.DashboardMonthlyExpenditureBFFResponse, len(monthlyExpendituresDB))
   for i, db := range monthlyExpendituresDB {
-      monthlyExpenditures[i] = dda.transformMonthlyExpenditureDBToResponse(db)
+      currentMonthSubscriptionCost := finalSubscriptionCosts[db.Date]
+      monthlyExpenditures[i] = dda.transformMonthlyExpenditureDBToResponse(db, currentMonthSubscriptionCost)
   }
 
   // 8. Response assembly

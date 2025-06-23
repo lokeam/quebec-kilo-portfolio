@@ -7,8 +7,13 @@ import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 // Service Layer methods
 import { getDashboardBFFResponse } from '@/core/api/services/dashboard.service';
 
-// Types
-import type { DashboardResponse } from '@/core/api/services/dashboard.service';
+
+// Adapter
+import {
+  dashboardAdapter,
+  type AdaptedDashboardData,
+  dashboardChartConfig,
+} from '@/core/api/adapters/dashboard.adapter';
 
 /**
  * Query keys for dashboard-related queries
@@ -43,12 +48,16 @@ export const dashboardKeys = {
  * ```
  */
 export const useGetDashboardBFFResponse = () => {
-  return useAPIQuery<DashboardResponse>({
+  return useAPIQuery<AdaptedDashboardData>({
     queryKey: dashboardKeys.bff(),
     queryFn: async () => {
       try {
         const response = await getDashboardBFFResponse();
-        return response;
+
+        // Transform API response using the adapter
+        const adaptedResponse = dashboardAdapter.toDisplayModel(response, dashboardChartConfig);
+
+        return adaptedResponse;
       } catch(error) {
         console.error('[DEBUG] useGetDashboardBFFResponse: Error fetching data:', error);
         throw error;

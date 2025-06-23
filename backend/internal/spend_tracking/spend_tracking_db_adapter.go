@@ -274,7 +274,7 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	})
 
 	// Calculate Total Monthly Spending
-	currentMonth := time.Now()
+	currentMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
 	currentMonthTotal, err := sta.calculator.CalculateMonthlyMinimumSpending(userID, currentMonth)
 	if err != nil {
 			sta.logger.Error("Failed to calculate current month total", map[string]any{
