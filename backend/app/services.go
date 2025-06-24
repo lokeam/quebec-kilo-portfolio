@@ -11,7 +11,6 @@ import (
 	"github.com/lokeam/qko-beta/internal/locations/digital"
 	"github.com/lokeam/qko-beta/internal/locations/physical"
 	"github.com/lokeam/qko-beta/internal/locations/sublocation"
-	"github.com/lokeam/qko-beta/internal/media_storage"
 	"github.com/lokeam/qko-beta/internal/search"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/spend_tracking"
@@ -29,7 +28,6 @@ type Services struct {
 	SpendTracking services.SpendTrackingService
 	Dashboard     services.DashboardService
 	Analytics     analytics.Service
-	MediaStorage  media_storage.MediaStorageService
 }
 
 // NewServices initializes all application services
@@ -129,13 +127,6 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing analytics service: %w", err)
 	}
 	servicesObj.Analytics = analyticsService
-
-	// Initialize media storage service
-	mediaStorageService, err := media_storage.NewMediaStorageService(analyticsService, appCtx.Logger)
-	if err != nil {
-		return nil, fmt.Errorf("initializing media storage service: %w", err)
-	}
-	servicesObj.MediaStorage = mediaStorageService
 
 	// Initialize dashboard service
 	dashboardDbAdapter, err := dashboard.NewDashboardDbAdapter(appCtx)

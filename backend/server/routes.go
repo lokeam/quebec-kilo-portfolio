@@ -18,7 +18,6 @@ import (
 	"github.com/lokeam/qko-beta/internal/locations/digital"
 	"github.com/lokeam/qko-beta/internal/locations/physical"
 	"github.com/lokeam/qko-beta/internal/locations/sublocation"
-	"github.com/lokeam/qko-beta/internal/media_storage"
 	"github.com/lokeam/qko-beta/internal/search"
 	"github.com/lokeam/qko-beta/internal/shared/logger"
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
@@ -132,7 +131,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 				gameSearchService,
 				svc.Library,
 				svc.Wishlist,
-		)
+			)
 		})
 
 		// Library
@@ -174,7 +173,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			}
 
 			// Register routes using the new pattern
-			digital.RegisterDigitalRoutes(r, appContext, svc.Digital, svc.Analytics)
+			digital.RegisterDigitalRoutes(r, appContext, svc.Digital)
 
 			// Services Catalog
 			r.Get("/services/catalog", digitalServicesCatalogHandler)
@@ -199,17 +198,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
 		})
 
-
-		// Media Storage
-		r.Route("/media-storage", func(r chi.Router) {
-			appContext.Logger.Info("Registering media storage routes", map[string]any{
-				"path": "/api/v1/media-storage",
-			})
-
-			// Register routes using the service from the Services struct
-			media_storage.RegisterRoutes(r, appContext, svc.MediaStorage)
-		})
-
 		// Analytics
 		r.Route("/analytics", func(r chi.Router) {
 			appContext.Logger.Info("Registering analytics routes", map[string]any{
@@ -230,7 +218,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 			"spend-tracking": "/api/v1/spend-tracking",
 			"dashboard":      "/api/v1/dashboard",
 			"analytics":      "/api/v1/analytics",
-			"media-storage":  "/api/v1/media-storage",
 		})
 	})
 
