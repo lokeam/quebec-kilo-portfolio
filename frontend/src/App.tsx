@@ -38,11 +38,6 @@ const WishListPage = lazy(() => import(
   '@/features/dashboard/pages/WishListPage/WishListPage'
 ));
 
-const MediStoragePage = lazy(() => import(
-  /* webpackChunkName: "MediaStoragepage" */
-  '@/features/dashboard/pages/MediaStoragePage/MediaStoragePage'
-));
-
 const NotificationsPage = lazy(() => import(
   /* webpackChunkName: "NotificationsPage" */
   '@/features/dashboard/pages/NotificationsPage/NotificationsPage'
@@ -125,7 +120,6 @@ function App() {
                       <Route path="/online-services" element={<OnlineServicesPage />} />
                       <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
                       <Route path="/wishlist" element={<WishListPage />} />
-                      <Route path="/media-storage" element={<MediStoragePage />} />
                       <Route path="/spend-tracking" element={<SpendTrackingPage />} />
                       <Route path="/notifications" element={<NotificationsPage /> } />
                       <Route path="/settings" element={<SettingsPage />} />

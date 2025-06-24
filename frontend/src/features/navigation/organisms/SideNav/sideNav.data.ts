@@ -1,19 +1,13 @@
 import {
-  IconBrowserCheck,
   IconHelp,
   IconLayoutDashboard,
-  IconNotification,
   IconPackages,
-  IconPalette,
   IconSettings,
-  IconTool,
-  IconUserCog,
   IconCloudDataConnection,
-  IconPencilCheck,
   IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
-import { Bell, Building2, Package, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
+import { Bell, Building2, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
 import { type SidebarData } from '@/features/navigation/organisms/SideNav/sideNav.types'
 
 export const sidebarData: SidebarData = {
@@ -89,11 +83,6 @@ export const sidebarData: SidebarData = {
           title: 'Online Services',
           icon: IconCloudDataConnection,
           url: '/online-services',
-        },
-        {
-          title: 'Media Storage',
-          icon: Package,
-          url: '/media-storage',
         },
       ],
     },
