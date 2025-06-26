@@ -12,9 +12,11 @@ import (
 type DigitalService interface {
 	GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error)
 	GetSingleDigitalLocation(ctx context.Context, userID, locationID string) (models.DigitalLocation, error)
-	FindDigitalLocationByName(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
-	CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error)
-	UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error
+	GetAllDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
+
+	CreateDigitalLocation(ctx context.Context, userID string, request types.DigitalLocationRequest) (models.DigitalLocation, error)
+	UpdateDigitalLocation(ctx context.Context, userID string, request types.DigitalLocationRequest) error
+
 	DeleteDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error)
 
 	// Game Management Operations
@@ -59,17 +61,8 @@ type SublocationService interface {
 // LibraryService defines operations for managing the game library
 type LibraryService interface {
 	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
-
-	GetAllLibraryItemsBFF(
-		ctx context.Context,
-		userID string,
-	) (types.LibraryBFFResponseFINAL, error)
-
-	GetSingleLibraryGame(
-		ctx context.Context,
-		userID string,
-		gameID int64,
-	) (types.LibraryGameItemBFFResponseFINAL, error)
+	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error)
+	GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (types.LibraryGameItemBFFResponseFINAL, error)
 
 	UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error

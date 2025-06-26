@@ -78,7 +78,7 @@ func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocationsBFF(
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
 }
 
-// ---
+// -- BFF --
 
 func (pca *PhysicalCacheAdapter) GetSingleCachedPhysicalLocation(
 	ctx context.Context,
