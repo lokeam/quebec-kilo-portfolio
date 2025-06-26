@@ -75,7 +75,6 @@ func (dca *DigitalCacheAdapter) SetSingleCachedDigitalLocation(
 	location models.DigitalLocation,
 ) error {
 	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, location.ID)
-
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, location)
 }
 
@@ -83,8 +82,19 @@ func (dca *DigitalCacheAdapter) InvalidateUserCache(
 	ctx context.Context,
 	userID string,
 ) error {
+	// Invalidate regular digital locations cache
 	cacheKey := fmt.Sprintf("digital:%s", userID)
-	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+	if err := dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil); err != nil {
+		return fmt.Errorf("failed to invalidate regular cache: %w", err)
+	}
+
+	// Also invalidate BFF cache to ensure consistency
+	bffCacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	if err := dca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey); err != nil {
+		return fmt.Errorf("failed to invalidate BFF cache: %w", err)
+	}
+
+	return nil
 }
 
 func (dca *DigitalCacheAdapter) InvalidateDigitalLocationCache(
@@ -201,7 +211,10 @@ func (dca *DigitalCacheAdapter) GetCachedDigitalLocationsBFF(
 		return response, nil
 	}
 
-	return types.DigitalLocationsBFFResponse{}, nil
+	// Return empty response with empty slice instead of nil
+	return types.DigitalLocationsBFFResponse{
+		DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+	}, nil
 }
 
 func (dca *DigitalCacheAdapter) SetCachedDigitalLocationsBFF(
@@ -211,4 +224,12 @@ func (dca *DigitalCacheAdapter) SetCachedDigitalLocationsBFF(
 ) error {
 	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
+}
+
+func (dca *DigitalCacheAdapter) InvalidateDigitalLocationsBFFCache(
+	ctx context.Context,
+	userID string,
+) error {
+	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	return dca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }

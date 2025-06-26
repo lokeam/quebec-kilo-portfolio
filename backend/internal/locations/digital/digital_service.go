@@ -6,20 +6,24 @@ import (
 
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/dashboard"
 	"github.com/lokeam/qko-beta/internal/infrastructure/cache"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
+	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type GameDigitalService struct {
-	dbAdapter    interfaces.DigitalDbAdapter
-	config       *config.Config
-	cacheWrapper interfaces.DigitalCacheWrapper
-	logger       interfaces.Logger
-	sanitizer    interfaces.Sanitizer
-	validator    interfaces.DigitalValidator
+	dbAdapter                 interfaces.DigitalDbAdapter
+	config                    *config.Config
+	cacheWrapper              interfaces.DigitalCacheWrapper
+	dashboardCacheWrapper     interfaces.DashboardCacheWrapper
+	spendTrackingCacheWrapper interfaces.SpendTrackingCacheWrapper
+	logger                    interfaces.Logger
+	sanitizer                 interfaces.Sanitizer
+	validator                 interfaces.DigitalValidator
 }
 
 
@@ -48,15 +52,24 @@ func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalServi
 	}
 	appContext.Logger.Info("validator created successfully", nil)
 
-	// Create cache wrapper to handle Redis caching
 	cacheWrapper, err := cache.NewCacheWrapper(
-		appContext.RedisClient,
-		appContext.Config.Redis.RedisTTL,
-		appContext.Config.Redis.RedisTimeout,
-		appContext.Logger,
-	)
+    appContext.RedisClient,
+    appContext.Config.Redis.RedisTTL,
+    appContext.Config.Redis.RedisTimeout,
+    appContext.Logger,
+)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get digital cache wrapper: %w", err)
+	}
+
+	dashboardCacheAdapter, err := dashboard.NewDashboardCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dashboard cache wrapper: %w", err)
+	}
+
+	spendTrackingCacheAdapter, err := spend_tracking.NewSpendTrackingCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get spend tracking cache wrapper: %w", err)
 	}
 
 	// Create digital media cache adapter
@@ -78,6 +91,8 @@ func NewGameDigitalService(appContext *appcontext.AppContext) (*GameDigitalServi
 		logger:        appContext.Logger,
 		config:        appContext.Config,
 		cacheWrapper:  digitalCacheAdapter,
+		dashboardCacheWrapper: dashboardCacheAdapter,
+		spendTrackingCacheWrapper: spendTrackingCacheAdapter,
 		sanitizer:     sanitizer,
 	}, nil
 }
@@ -162,7 +177,9 @@ func (gds *GameDigitalService) GetAllDigitalLocationsBFF(ctx context.Context, us
 	digitalLocations, err := gds.dbAdapter.GetAllDigitalLocationsBFF(ctx, userID)
 	if err != nil {
 		gds.logger.Error("Failed to fetch digital locations from DB", map[string]any{"error": err})
-		return types.DigitalLocationsBFFResponse{}, err
+		return types.DigitalLocationsBFFResponse{
+			DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+		}, err
 	}
 
 	// Cache the results
@@ -217,6 +234,24 @@ func (gds *GameDigitalService) CreateDigitalLocation(ctx context.Context, userID
 					"userID": userID,
 			})
 			// DB update successful, continue despite error
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := gds.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate dashboard cache after adding location", map[string]any{
+				"error": err,
+				"userID": userID,
+		})
+		// DB update successful, continue despite error
+	}
+
+	// Invalidate spend tracking cache to refresh financial data
+	if err := gds.spendTrackingCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate spend tracking cache after adding location", map[string]any{
+				"error": err,
+				"userID": userID,
+		})
+		// DB update successful, continue despite error
 	}
 
 	return createdLocation, nil
@@ -296,6 +331,33 @@ func (gds *GameDigitalService) UpdateDigitalLocation(
 			})
 	}
 
+	// Also invalidate BFF cache to ensure frontend gets fresh data
+	if err := gds.cacheWrapper.InvalidateDigitalLocationsBFFCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate BFF cache after update", map[string]any{
+			"error": err,
+			"userID": userID,
+			"locationID": location.ID,
+		})
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := gds.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate dashboard cache after update", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationID": location.ID,
+		})
+	}
+
+	// Invalidate spend tracking cache to refresh financial data
+	if err := gds.spendTrackingCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate spend tracking cache after update", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationID": location.ID,
+		})
+	}
+
 	return nil
 }
 
@@ -345,6 +407,33 @@ func (gds *GameDigitalService) DeleteDigitalLocation(
 			// Continue with other invalidations even if one fails
 		}
 	}
+
+	// Also invalidate BFF cache to ensure frontend gets fresh data
+	if err := gds.cacheWrapper.InvalidateDigitalLocationsBFFCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate BFF cache after deletion", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := gds.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate dashboard cache after deletion", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationIDs": validatedIDs,
+		})
+	}
+
+	// Invalidate spend tracking cache to refresh financial data
+	if err := gds.spendTrackingCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		gds.logger.Error("Failed to invalidate spend tracking cache after deletion", map[string]any{
+				"error": err,
+				"userID": userID,
+				"locationIDs": validatedIDs,
+		})
+	}
+
 
 	gds.logger.Debug("DeleteDigitalLocation completed successfully", map[string]any{
 		"userID": userID,

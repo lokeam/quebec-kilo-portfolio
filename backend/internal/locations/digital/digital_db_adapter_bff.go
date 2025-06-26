@@ -19,11 +19,13 @@ func (da *DigitalDbAdapter) GetAllDigitalLocationsBFF(
 	// Start transaction
 	tx, err := da.db.BeginTxx(ctx, nil)
 	if err != nil {
-			return types.DigitalLocationsBFFResponse{}, fmt.Errorf("failed to start transaction: %w", err)
+			return types.DigitalLocationsBFFResponse{
+				DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+			}, fmt.Errorf("failed to start transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	// 1. Get all digital locations with basic info
+	// Get all digital locations with basic info
 	var locationsDB []models.DigitalLocationBFFDB
 	if err := tx.SelectContext(
 		ctx,
@@ -31,10 +33,12 @@ func (da *DigitalDbAdapter) GetAllDigitalLocationsBFF(
 		GetAllDigitalLocationsBFFQuery,
 		userID,
 	); err != nil {
-			return types.DigitalLocationsBFFResponse{}, fmt.Errorf("failed to get digital locations: %w", err)
+			return types.DigitalLocationsBFFResponse{
+				DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+			}, fmt.Errorf("failed to get digital locations: %w", err)
 	}
 
-	// 2. For each location, get its games
+	// For each location, get its games
 	digitalLocations := make([]types.SingleDigitalLocationBFFResponse, len(locationsDB))
 	for i, locationDB := range locationsDB {
 			// Get games for this location
@@ -46,7 +50,9 @@ func (da *DigitalDbAdapter) GetAllDigitalLocationsBFF(
 				locationDB.ID,
 				userID,
 			); err != nil {
-					return types.DigitalLocationsBFFResponse{}, fmt.Errorf("failed to get games for location %s: %w", locationDB.ID, err)
+					return types.DigitalLocationsBFFResponse{
+						DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+					}, fmt.Errorf("failed to get games for location %s: %w", locationDB.ID, err)
 			}
 
 			// Transform to response format
@@ -55,7 +61,9 @@ func (da *DigitalDbAdapter) GetAllDigitalLocationsBFF(
 
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
-			return types.DigitalLocationsBFFResponse{}, fmt.Errorf("failed to commit transaction: %w", err)
+			return types.DigitalLocationsBFFResponse{
+				DigitalLocations: []types.SingleDigitalLocationBFFResponse{},
+			}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return types.DigitalLocationsBFFResponse{

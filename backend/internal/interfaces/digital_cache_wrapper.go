@@ -28,4 +28,5 @@ type DigitalCacheWrapper interface {
 	// BFF Response
 	GetCachedDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
 	SetCachedDigitalLocationsBFF(ctx context.Context, userID string, response types.DigitalLocationsBFFResponse) error
+	InvalidateDigitalLocationsBFFCache(ctx context.Context, userID string) error
 }
