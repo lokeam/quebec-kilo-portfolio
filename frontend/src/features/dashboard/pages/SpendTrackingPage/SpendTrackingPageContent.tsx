@@ -8,7 +8,9 @@ import { PageGrid } from '@/shared/components/layout/page-grid';
 import { MonthlySpendingAccordion } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordion.tsx';
 import { TotalMonthlySpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalMonthlySpendingCard/TotalMonthlySpendingCard.tsx';
 import { TotalAnnualSpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalAnnualSpendingCard/TotalAnnualSpendingCard.tsx';
+import { SpendTrackingPageSkeleton } from '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPageSkeleton';
 
+// Queries
 import { useGetSpendTrackingPageBFFResponse } from '@/core/api/queries/spendTracking.queries';
 
 // Mock data for the page
@@ -25,6 +27,14 @@ export function SpendTrackingPageContent() {
   console.log('🔍 DEBUG: SpendTrackingPage -  bffResponse', bffResponse);
 
 
+  if (isLoading) {
+    return <SpendTrackingPageSkeleton />;
+  }
+
+  if (error) {
+    console.error('🔍 DEBUG: SpendTrackingPage -  error', error);
+  }
+
   return (
     <PageMain>
       <PageHeadline>
@@ -34,8 +44,8 @@ export function SpendTrackingPageContent() {
       </PageHeadline>
 
       <PageGrid>
-        <TotalMonthlySpendingCard totalMonthlySpending={spendTrackingPageMockData.totalMonthlySpending} />
-        <TotalAnnualSpendingCard totalAnnualSpending={spendTrackingPageMockData.totalAnnualSpending} />
+        <TotalMonthlySpendingCard totalMonthlySpending={bffResponse!.totalMonthlySpending} />
+        <TotalAnnualSpendingCard totalAnnualSpending={bffResponse!.totalAnnualSpending} />
         <MonthlySpendingAccordion
           thisMonth={spendTrackingPageMockData.currentTotalThisMonth}
           future={spendTrackingPageMockData.recurringNextMonth}

@@ -7,19 +7,14 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 // Types
 import type { SpendingCategoryBFFResponse } from '@/types/domain/spend-tracking';
-import { MediaCategory } from '@/types/domain/spend-tracking';
 
-// TODO: Sync all this hardcoded data with mockdata file
-const mediaTypeColors: Record<MediaCategory, string> = {
-  [MediaCategory.HARDWARE]: "#3FB950",
-  [MediaCategory.DLC]: "#F85149",
-  [MediaCategory.IN_GAME_PURCHASE]: "#FFA657",
-  [MediaCategory.SUBSCRIPTION]: "#A371F7",
-  [MediaCategory.PHYSICAL]: "#2F81F7",
-  [MediaCategory.DISC]: "#DB61A2",
-};
+// Constants
+import {
+  GRAPH_CATEGORY_COLORS,
+  GRAPH_CATEGORY_DISPLAY_NAMES
+} from '@/shared/constants/graphCategoryColors';
 
-// TODO: Normalize Card colors + styling post design a/b test
+
 export function TotalMonthlySpendingCard({
   totalMonthlySpending
 }: {
@@ -85,7 +80,7 @@ export function TotalMonthlySpendingCard({
                   {spendingCategories.map((entry) => (
                     <Cell
                       key={entry.name}
-                      fill={mediaTypeColors[entry.name as MediaCategory]}
+                      fill={GRAPH_CATEGORY_COLORS[entry.name]}
                       strokeWidth={0}
                     />
                   ))}
@@ -99,10 +94,10 @@ export function TotalMonthlySpendingCard({
               <div key={item.name} className="flex items-center">
                 <div
                   className="h-3 w-3 rounded-full mr-2"
-                  style={{ backgroundColor: mediaTypeColors[item.name as MediaCategory] }}
+                  style={{ backgroundColor: GRAPH_CATEGORY_COLORS[item.name] }}
                 />
                 <div className="flex flex-col">
-                  <span className="text-sm">{item.name}</span>
+                  <span className="text-sm">{GRAPH_CATEGORY_DISPLAY_NAMES[item.name] ?? item.name}</span>
                   <span className="text-sm text-[#8B949E]">
                     {formatCurrency(item.value)}
                   </span>

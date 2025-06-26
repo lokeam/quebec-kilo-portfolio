@@ -17,6 +17,13 @@ import {
 
 // Utils
 import { formatCurrency, type CurrencyAmount } from "@/features/dashboard/lib/utils/formatCurrency";
+import { normalizeToSnakeCase } from "@/features/dashboard/lib/utils/normalizeCategoryKey";
+
+// Constants
+import {
+  GRAPH_CATEGORY_COLORS,
+  GRAPH_CATEGORY_DISPLAY_NAMES
+} from '@/shared/constants/graphCategoryColors';
 
 const chartConfig = {
   oneTimePurchase: {
@@ -90,7 +97,7 @@ export function MonthlySpendingCard({
                 key={domain}
                 dataKey={domain}
                 stackId="a"
-                fill={chartConfig[domain as keyof typeof chartConfig].color}
+                fill={GRAPH_CATEGORY_COLORS[normalizeToSnakeCase(domain)]}
                 radius={idx === validDomains.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
               />
             ))}
@@ -103,11 +110,9 @@ export function MonthlySpendingCard({
                     <>
                       <span
                         className="inline-block h-2.5 w-2.5 rounded-[2px] mr-2 align-middle"
-                        style={{
-                          background: chartConfig[name as keyof typeof chartConfig]?.color || "#8884d8",
-                        }}
+                        style={{ background: GRAPH_CATEGORY_COLORS[normalizeToSnakeCase(name as string)] }}
                       />
-                      {chartConfig[name as keyof typeof chartConfig]?.label || name}
+                      {GRAPH_CATEGORY_DISPLAY_NAMES[normalizeToSnakeCase(name as string)] ?? name}
                       <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
                         {formatCurrency(value as CurrencyAmount)}
                       </div>

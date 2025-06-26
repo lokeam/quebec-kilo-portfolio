@@ -39,6 +39,16 @@
     --chart-mobile: 210 12.6% 50.2%;
     --chart-rom: 38 100.0% 85.5%;
     --chart-arcade: 0 100.0% 24.9%;
+
+    --color-hardware: #3FB950;
+    --color-dlc: #F85149;
+    --color-in-game-purchase: #FFA657;
+    --color-one-time-purchase: #1d09ea;
+    --color-subscription: #A371F7;
+    --color-physical: #2F81F7;
+    --color-digital: #DB61A2;
+    --color-misc: #DB61A2;
+
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
