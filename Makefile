@@ -292,6 +292,7 @@ prod: check-docker check-env-files
 dev-backend: CURRENT_ENV=development
 dev-backend: check-docker check-env-files
 	@echo "$(BLUE)Starting development environment without frontend...$(RESET)"
+	docker compose --env-file .env.dev build --no-cache api
 	docker compose --env-file .env.dev up --build -d traefik api postgres redis mailhog
 	@sleep 5
 	@$(MAKE) health
