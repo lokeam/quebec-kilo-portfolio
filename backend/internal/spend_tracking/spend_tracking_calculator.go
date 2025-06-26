@@ -136,6 +136,7 @@ func (stc *SpendTrackingCalculator) CalculateMonthlyMinimumSpending(
         &oneTimePurchases,
         GetCurrentMonthOneTimePurchasesQuery,
         userID,
+				targetMonth,
     )
     if err != nil {
         stc.logger.Error("Failed to get one-time purchases", map[string]any{

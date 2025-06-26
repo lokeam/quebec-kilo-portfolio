@@ -31,8 +31,8 @@ const (
     FROM one_time_purchases otp
     LEFT JOIN spending_categories sc ON otp.spending_category_id = sc.id
     WHERE otp.user_id = $1
-    AND EXTRACT(YEAR FROM purchase_date) = EXTRACT(YEAR FROM $2)
-    AND EXTRACT(MONTH FROM purchase_date) = EXTRACT(MONTH FROM $2)
+    AND EXTRACT(YEAR FROM purchase_date) = EXTRACT(YEAR FROM $2::timestamp)
+    AND EXTRACT(MONTH FROM purchase_date) = EXTRACT(MONTH FROM $2::timestamp)
     ORDER BY purchase_date DESC
   `
 
