@@ -1,20 +1,26 @@
-import { SERVICE_TYPES, type ServiceStatusCode, type ServiceType } from '@/shared/constants/service.constants';
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { ServiceTierName } from '../types/online-services/tiers';
-import type { DigitalLocation } from '../types/media-storage/digital-location.types';
+//import { SERVICE_TYPES, type ServiceStatusCode, type ServiceType } from '@/shared/constants/service.constants';
+//import type { DigitalLocation } from '@/types/domain/digital-location';
 
-/**
- * Determines if a service is a subscription service based on multiple properties
- * This handles different ways a service might indicate it's a subscription
- */
-export function isSubscriptionService(service: OnlineService): boolean {
-  // Check multiple indicators
-  return (
-    service.type === SERVICE_TYPES.SUBSCRIPTION ||
-    service.isSubscriptionService === true ||
-    (service.billing?.cycle !== undefined && service.billing?.cycle !== 'NA')
-  );
-}
+export type ServiceTierName =
+  | 'free'
+  | 'basic'
+  | 'standard'
+  | 'premium'
+  | 'ultimate';
+
+// LEGACY CODE - MARKED FOR DELETION
+// /**
+//  * Determines if a service is a subscription service based on multiple properties
+//  * This handles different ways a service might indicate it's a subscription
+//  */
+// export function isSubscriptionService(service: DigitalLocation): boolean {
+//   // Check multiple indicators
+//   return (
+//     service.type === SERVICE_TYPES.SUBSCRIPTION ||
+//     service.isSubscriptionService === true ||
+//     (service.billing?.cycle !== undefined && service.billing?.cycle !== 'NA')
+//   );
+// }
 
 /**
  * Derives a logo identifier from a service name
@@ -82,47 +88,47 @@ export function getLogo(serviceName: string): string | undefined {
  * @param location The DigitalLocation from the backend
  * @returns A properly formatted OnlineService object for the frontend
  */
-export function transformDigitalLocationToService(location: DigitalLocation): OnlineService {
-  // Determine if this is a subscription service
-  const isSubscriptionService = location.isSubscriptionService || false;
-  const isActive = location.isActive || false;
-  const serviceType = location.serviceType as ServiceType;
+// export function transformDigitalLocationToService(location: DigitalLocation): OnlineService {
+//   // Determine if this is a subscription service
+//   const isSubscriptionService = location.isSubscriptionService || false;
+//   const isActive = location.isActive || false;
+//   const serviceType = location.serviceType as ServiceType;
 
-  return {
-    id: location.id,
-    name: location.name,
-    logo: location.logo || 'default-logo',
-    url: location.url || '#',
-    type: serviceType,
-    status: isActive ? 'active' as ServiceStatusCode : 'inactive' as ServiceStatusCode,
-    features: [],
-    label: location.label || location.name,
-    createdAt: location.createdAt,
-    updatedAt: location.updatedAt,
-    isSubscriptionService,
-    serviceType,
-    isActive,
-    tier: {
-      currentTier: 'Basic' as ServiceTierName,
-      availableTiers: [{
-        name: 'Basic' as ServiceTierName,
-        features: [],
-        id: `tier-basic`,
-        isDefault: true
-      }]
-    },
-    billing: location.billing ? {
-      cycle: location.billing.cycle || 'NA',
-      fees: {
-        monthly: location.billing.fees?.monthly || '0',
-        quarterly: location.billing.fees?.quarterly || '0',
-        annual: location.billing.fees?.annual || '0'
-      },
-      paymentMethod: location.billing.paymentMethod || 'Generic',
-      renewalDate: location.billing.renewalDate ? {
-        month: location.billing.renewalDate.month,
-        day: location.billing.renewalDate.day
-      } : undefined
-    } : undefined
-  };
-}
+//   return {
+//     id: location.id,
+//     name: location.name,
+//     logo: location.logo || 'default-logo',
+//     url: location.url || '#',
+//     type: serviceType,
+//     status: isActive ? 'active' as ServiceStatusCode : 'inactive' as ServiceStatusCode,
+//     features: [],
+//     label: location.label || location.name,
+//     createdAt: location.createdAt,
+//     updatedAt: location.updatedAt,
+//     isSubscriptionService,
+//     serviceType,
+//     isActive,
+//     tier: {
+//       currentTier: 'Basic' as ServiceTierName,
+//       availableTiers: [{
+//         name: 'Basic' as ServiceTierName,
+//         features: [],
+//         id: `tier-basic`,
+//         isDefault: true
+//       }]
+//     },
+//     billing: location.billing ? {
+//       cycle: location.billing.cycle || 'NA',
+//       fees: {
+//         monthly: location.billing.fees?.monthly || '0',
+//         quarterly: location.billing.fees?.quarterly || '0',
+//         annual: location.billing.fees?.annual || '0'
+//       },
+//       paymentMethod: location.billing.paymentMethod || 'Generic',
+//       renewalDate: location.billing.renewalDate ? {
+//         month: location.billing.renewalDate.month,
+//         day: location.billing.renewalDate.day
+//       } : undefined
+//     } : undefined
+//   };
+// }

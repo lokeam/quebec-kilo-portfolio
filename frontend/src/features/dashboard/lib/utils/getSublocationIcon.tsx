@@ -1,17 +1,34 @@
 import { Package } from 'lucide-react';
-import { SublocationType } from '@/features/dashboard/lib/types/media-storage/constants';
 import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
 import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
 import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
 import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
 import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
+//import type { LocationIconBgColor } from '@/types/domain/location-types';
 import { useLocationBgColor } from './getLocationBgColor';
 
 interface SublocationIconProps {
   type: string;
-  bgColor?: LocationIconBgColor;
+  bgColor?: string;
 }
+
+/**
+ * Types of storage subdivisions within physical locations.
+ * Represents specific storage units or furniture.
+ *
+ * @constant SublocationType
+ */
+export const SublocationType = {
+  shelf: 'shelf',
+  console: 'console',
+  cabinet: 'cabinet',
+  closet: 'closet',
+  drawer: 'drawer',
+  box: 'box'
+} as const;
+
+export type SublocationType = typeof SublocationType[keyof typeof SublocationType];
+
 
 /**
  * Renders the appropriate icon component for a sublocation type with background color

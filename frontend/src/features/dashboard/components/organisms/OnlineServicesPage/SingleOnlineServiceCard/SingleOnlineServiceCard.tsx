@@ -85,6 +85,12 @@ export const SingleOnlineServiceCard = memo(({
       // We're not calling setIsDeleting(false) here because
       // we want the button to stay in loading state until the
       // dialog is closed after success, which happens through the mutation
+      // Close the dialog after a short delay to allow the mutation to process
+      // The mutation's onSuccess will handle the actual cleanup
+      setTimeout(() => {
+        setDeleteDialogOpen(false);
+        setIsDeleting(false);
+      }, 100);
     } catch (err) {
       // This catch block is for synchronous errors
       // Most errors will be caught by the mutation's onError

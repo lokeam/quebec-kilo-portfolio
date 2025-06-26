@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import type { OnlineService } from '@/features/dashboard/lib/types/online-services/services';
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 import {
   getStoredViewMode,

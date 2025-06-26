@@ -1,6 +1,6 @@
 import { useTheme } from '@/core/theme/hooks/useTheme';
 import { LOCATION_ICON_COLORS, DEFAULT_COLORS } from '../constants/location-icon-colors';
-import type { LocationIconBgColor } from '@/types/domain/location-types';
+//import type { LocationIconBgColor } from '@/types/domain/location-types';
 
 /**
  * Hook to get the appropriate background and text colors for a location icon based on the current theme
@@ -14,7 +14,7 @@ import type { LocationIconBgColor } from '@/types/domain/location-types';
  * return <div style={{ color: text, backgroundColor: background }}>Content</div>;
  * ```
  */
-export function useLocationBgColor(color?: LocationIconBgColor) {
+export function useLocationBgColor(color?: string) {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? 'dark' : 'light';
 
@@ -22,5 +22,5 @@ export function useLocationBgColor(color?: LocationIconBgColor) {
     return DEFAULT_COLORS[theme];
   }
 
-  return LOCATION_ICON_COLORS[color][theme];
+  return LOCATION_ICON_COLORS[color as keyof typeof LOCATION_ICON_COLORS][theme];
 }

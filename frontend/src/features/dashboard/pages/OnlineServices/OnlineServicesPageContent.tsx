@@ -14,8 +14,10 @@ import { OnlineServiceForm } from '@/features/dashboard/components/organisms/Onl
 
 // API Hooks and Utilities
 //import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
-import { useGetDigitalLocationsBFFResponse } from '@/core/api/queries/digitalLocation.queries';
-
+import {
+  useGetDigitalLocationsBFFResponse,
+  useDeleteDigitalLocation
+} from '@/core/api/queries/digitalLocation.queries';
 
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
@@ -33,7 +35,7 @@ const DEFAULT_FORM_VALUES = {
   isSubscriptionService: false,
   billingCycle: '',
   costPerCycle: 0,
-  nextPaymentDate: new Date(),
+  anchorDate: new Date(),
   paymentMethod: '',
 };
 
@@ -50,7 +52,7 @@ const transformServiceToFormValues = (service: DigitalLocation): FormValues => {
     isSubscriptionService: service.isSubscription ?? false,
     billingCycle: service.billingCycle || '',
     costPerCycle: service.costPerCycle || 0,
-    nextPaymentDate: service.nextPaymentDate
+    anchorDate: service.nextPaymentDate
       ? new Date(service.nextPaymentDate)
       : new Date(),
     paymentMethod: service.paymentMethod || '',
@@ -90,13 +92,13 @@ export function OnlineServicesPageContent() {
 
   // Fetch digital locations using analytics
   const { data: storageData, isLoading, error } = useGetDigitalLocationsBFFResponse();
-  //const { data: digitalLocationsBFFResponse, isLoading, error } = useGetDigitalLocationsBFFResponse();
+  const deleteDigitalLocation = useDeleteDigitalLocation();
 
   //const storageData = {digitalLocations: []};
   console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);
 
   // Get filtered services using the unified hook
-  const services = storageData?.digitalLocations || [];
+  const services = storageData || [];
   const filteredServices = useFilteredServices(services);
 
   const handleAddService = useCallback((data: FormValues) => {
@@ -124,6 +126,10 @@ export function OnlineServicesPageContent() {
     setEditServiceOpen(false);
     setServiceBeingEdited(null);
   }, []);
+
+  const handleDeleteService = useCallback((serviceId: string) => {
+    deleteDigitalLocation.mutate(serviceId);
+  }, [deleteDigitalLocation]);
 
   // Set up card label width for responsive design
   useCardLabelWidth({
@@ -190,6 +196,7 @@ export function OnlineServicesPageContent() {
               key={`${service.id}-${index}`}
               service={service}
               onEdit={handleEditService}
+              onDelete={handleDeleteService}
               isWatchedByResizeObserver={index === 0}
             />
           ))}

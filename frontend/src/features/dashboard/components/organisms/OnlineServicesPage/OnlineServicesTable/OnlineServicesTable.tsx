@@ -36,18 +36,6 @@ interface OnlineServicesTableProps {
   onEdit?: (service: DigitalLocation) => void
 }
 
-const TableHeaderRow: React.FC = () => (
-  <TableRow>
-    <TableHead className="w-[50px]" />
-    <TableHead>Service</TableHead>
-    <TableHead>Active</TableHead>
-    <TableHead>Billing Cycle</TableHead>
-    <TableHead>Amount</TableHead>
-    <TableHead>Payment Method</TableHead>
-    <TableHead>Renewal Date</TableHead>
-  </TableRow>
-)
-
 export function OnlineServicesTable({ services, onEdit }: OnlineServicesTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -94,27 +82,27 @@ export function OnlineServicesTable({ services, onEdit }: OnlineServicesTablePro
       <Table className="rounded-xl border">
         <TableHeader>
           <TableRow>
-          <TableHead>Service</TableHead>
-          <TableHead>Active</TableHead>
-          <TableHead>Billing Cycle</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Payment Method</TableHead>
-          <TableHead>Renewal Date</TableHead>
-          <TableHead colSpan={6}>
-            {selectedRows.length > 0 && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDeleteSelectedRows}
-                className="flex items-center gap-2"
-              >
-                <IconTrash size={16} />
-                Delete Selected ({selectedRows.length})
-              </Button>
-            )}
-          </TableHead>
+            <TableHead></TableHead>
+            <TableHead>Service</TableHead>
+            <TableHead>Active</TableHead>
+            <TableHead>Billing Cycle</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Payment Method</TableHead>
+            <TableHead>Renewal Date</TableHead>
+            <TableHead colSpan={6}>
+              {selectedRows.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelectedRows}
+                  className="flex items-center gap-2"
+                >
+                  <IconTrash size={16} />
+                  Delete Selected ({selectedRows.length})
+                </Button>
+              )}
+            </TableHead>
           </TableRow>
-          <TableHeaderRow />
         </TableHeader>
         <TableBody>
           {services.map((service, index) => (

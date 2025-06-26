@@ -16,8 +16,20 @@ import { X } from 'lucide-react'
 import type { Notification } from '@/features/dashboard/lib/types/notifications/event-variants';
 import type { NotificationIconType } from '@/features/navigation/types/navigation.types';
 
+function transformNotificationIcon(icon: NotificationIcon): string {
+  const iconMap: Record<NotificationIcon, string> = {
+    [NOTIFICATION_ICONS.CHECK]: 'check',
+    [NOTIFICATION_ICONS.TAG]: 'tag',
+    [NOTIFICATION_ICONS.BAR_CHART]: 'barChart',
+    [NOTIFICATION_ICONS.ALERT_TRIANGLE]: 'alertTriangle',
+  };
+
+  return iconMap[icon] || 'QuestionMarkIcon'; // Fallback icon for unexpected values
+}
+
 // Guards
-import { transformNotificationIcon } from '@/features/dashboard/lib/types/library/guards';
+//import { transformNotificationIcon } from '@/features/dashboard/lib/types/library/guards';
+import { NOTIFICATION_ICONS, type NotificationIcon } from '@/features/dashboard/lib/types/notifications/constants';
 
 interface NotificationItemProps {
   notification: Notification;

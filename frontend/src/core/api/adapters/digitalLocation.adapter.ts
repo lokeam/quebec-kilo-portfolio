@@ -1,23 +1,37 @@
-import type { DigitalLocation } from '@/types/domain/digital-location';
+import type {
+  DigitalLocationBFFResponseItem,
+  DigitalLocation
+} from '@/types/domain/digital-location';
 
 /**
- * Transforms a DigitalLocation from the API into the domain OnlineService format
+ * Transforms BFF response items to DigitalLocation format
  */
-export const adaptDigitalLocationToService = (location: DigitalLocation): DigitalLocation => ({
-  id: location.id,
-  name: location.name,
-  locationType: 'subscription',
-  itemCount: location.itemCount,
-  isSubscription: location.isSubscription,
-  monthlyCost: location.monthlyCost,
-  isActive: location.isActive,
-  url: location.url,
-  createdAt: location.createdAt,
-  updatedAt: location.updatedAt,
-  items: location.items,
-  paymentMethod: location.paymentMethod,
-  paymentDate: location.paymentDate,
-  billingCycle: location.billingCycle,
-  costPerCycle: location.costPerCycle,
-  nextPaymentDate: location.nextPaymentDate
+export const adaptBFFResponseItemToDigitalLocation = (
+  item: DigitalLocationBFFResponseItem
+):DigitalLocation => ({
+  id: item.id,
+  name: item.name,
+  items: item.items,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+  isSubscription: item.isSubscription,
+  monthlyCost: item.monthlyCost,
+  isActive: item.isActive,
+  url: item.url,
+  paymentMethod: item.paymentMethod,
+  paymentDate: item.paymentDate,
+  billingCycle: item.billingCycle,
+  costPerCycle: item.costPerCycle,
+  nextPaymentDate: item.nextPaymentDate,
 });
+
+/**
+ * Transforms BFF response to DigitalLocation array
+ */
+export const adaptBFFResponseToDigitalLocations = (
+  response: { digitalLocations: DigitalLocationBFFResponseItem[] | null }
+): DigitalLocation[] => {
+  // Defensive check: ensure we always have an array, even if backend returns null
+  const digitalLocations = response.digitalLocations || [];
+  return digitalLocations.map(adaptBFFResponseItemToDigitalLocation);
+};

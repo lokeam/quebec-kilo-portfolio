@@ -7,7 +7,7 @@
 import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 import { getServicesCatalog, FALLBACK_SERVICES } from '@/core/api/services/digitalServicesCatalog.service';
 import { logger } from '@/core/utils/logger/logger';
-import type { DigitalServiceItem } from '@/types/domain/online-service';
+import type { DigitalServiceItem } from '@/types/domain/digital-location';
 
 /**
  * Query key factory for digital services catalog queries

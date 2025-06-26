@@ -4,7 +4,6 @@
  * All types for digital media storage locations and related operations.
  */
 
-import type { GamePlatform } from './game-platform';
 import type { GameItem } from './game-item';
 
 /**
@@ -13,7 +12,6 @@ import type { GameItem } from './game-item';
 export interface DigitalLocation {
   id: string;
   name: string;
-  type: GamePlatform;
   items: GameItem[];
   createdAt: string;
   updatedAt: string;
@@ -57,7 +55,7 @@ export type BillingCycle = '1 month' | '3 month' | '6 month' | '12 month';
  * Represents response object from Digital BFF endpoint
  */
 export interface DigitalLocationBFFResponse {
-  digitalItems: DigitalLocationBFFResponseItem[];
+  digitalLocations: DigitalLocationBFFResponseItem[];
 }
 
 export interface DigitalLocationBFFResponseItem {

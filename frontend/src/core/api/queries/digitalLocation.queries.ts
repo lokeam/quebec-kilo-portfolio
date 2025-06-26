@@ -22,6 +22,9 @@ import {
   getDigitalLocationsBFFResponse,
 } from '@/core/api/services/digitalLocation.service';
 
+// Adapters
+import { adaptBFFResponseToDigitalLocations } from '@/core/api/adapters/digitalLocation.adapter';
+
 // Utils
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 import { logger } from '@/core/utils/logger/logger';
@@ -31,7 +34,6 @@ import type { ApiError } from '@/types/api/response';
 import type {
   DigitalLocation,
   CreateDigitalLocationRequest,
-  DigitalLocationBFFResponse,
 } from '@/types/domain/digital-location';
 import type { DeleteDigitalLocationResponse } from '@/core/api/services/digitalLocation.service';
 
@@ -54,7 +56,7 @@ export const digitalLocationKeys = {
 
 
 export const useGetDigitalLocationsBFFResponse = () => {
-  return useAPIQuery<DigitalLocationBFFResponse>({
+  return useAPIQuery<DigitalLocation[]>({
     queryKey: digitalLocationKeys.lists(),
     queryFn: async () => {
       try {
@@ -65,7 +67,8 @@ export const useGetDigitalLocationsBFFResponse = () => {
           throw new Error('No data received from server');
         }
 
-        return response;
+        // Transform BFF response to DigitalLocation array
+        return adaptBFFResponseToDigitalLocations(response);
       } catch (error) {
         console.error('[DEBUG] useGetDigitalLocationsBFFResponse: Error fetching data: ', error);
         throw error;

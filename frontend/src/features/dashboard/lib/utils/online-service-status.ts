@@ -1,5 +1,4 @@
-
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 import { SERVICE_STATUS_CODES, type ServiceStatusCode } from '@/shared/constants/service.constants';
 

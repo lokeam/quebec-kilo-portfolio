@@ -6,7 +6,7 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
-import type { DigitalServiceItem } from '@/types/domain/online-service';
+import type { DigitalServiceItem } from '@/types/domain/digital-location';
 
 interface CatalogResponse {
   success: boolean;

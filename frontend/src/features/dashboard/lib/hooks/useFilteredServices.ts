@@ -6,12 +6,16 @@ import {
   useOnlineServicesPaymentFilters,
 } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
-import type { DigitalLocation } from '@/types/domain/online-service';
+//import type { DigitalLocation } from '@/types/domain/digital-location';
+import type { DigitalLocationBFFResponseItem } from '@/types/domain/digital-location';
 
-export function useFilteredServices(services: DigitalLocation[]) {
+
+export function useFilteredServices(services: DigitalLocationBFFResponseItem[]) {
   const searchQuery = useOnlineServicesSearch();
   const billingCycleFilters = useOnlineServicesBillingFilters();
   const paymentMethodFilters = useOnlineServicesPaymentFilters();
+
+  console.log('[DEBUG] useFilteredServices: Services:', services);
 
   return useMemo(() => {
     return services.filter((service) => {
