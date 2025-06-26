@@ -29,7 +29,7 @@ import { useDeleteDigitalLocation } from '@/core/api/queries/digitalLocation.que
 import { IconTrash } from '@tabler/icons-react'
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service'
+import type { DigitalLocation } from '@/types/domain/digital-location'
 
 interface OnlineServicesTableProps {
   services: DigitalLocation[]
@@ -91,7 +91,7 @@ export function OnlineServicesTable({ services, onEdit }: OnlineServicesTablePro
 
   return (
     <div className="w-full">
-      <Table>
+      <Table className="rounded-xl border">
         <TableHeader>
           <TableRow>
           <TableHead>Service</TableHead>

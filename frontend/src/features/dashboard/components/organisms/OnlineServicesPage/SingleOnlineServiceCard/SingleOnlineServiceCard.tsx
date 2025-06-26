@@ -28,10 +28,10 @@ import {
 } from '@/features/dashboard/lib/utils/online-service-status';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 // Constants
-import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
+//import { SERVICE_STATUS_CODES } from '@/shared/constants/service.constants';
 import { cn } from '@/shared/components/ui/utils';
 
 interface SingleOnlineServiceCardProps {
@@ -51,9 +51,9 @@ export const SingleOnlineServiceCard = memo(({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const currentTierDetails = service.tier?.availableTiers?.find(t =>
-    t?.name?.toLowerCase() === service.tier?.currentTier?.toLowerCase()
-  );
+  // const currentTierDetails = service.tier?.availableTiers?.find(t =>
+  //   t?.name?.toLowerCase() === service.tier?.currentTier?.toLowerCase()
+  // );
 
   const showRenewalBadge = service.isActive &&
     isPaidService(service) &&

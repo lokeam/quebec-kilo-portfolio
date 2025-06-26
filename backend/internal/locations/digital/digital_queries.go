@@ -2,6 +2,48 @@ package digital
 
 // Common queries used by the DigitalDbAdapter
 const (
+	// ---------------- USER AND OWNERSHIP QUERIES ----------------
+	CheckIfUserExistsQuery = `
+		SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)
+	`
+
+	CheckIfLocationExistsForUserQuery = `
+		SELECT id FROM digital_locations
+		WHERE user_id = $1 AND LOWER(name) = LOWER($2)
+	`
+
+	CheckIfAllLocationsExistForUserQuery = `
+		SELECT COUNT(*) FROM digital_locations
+		WHERE id = ANY($1) AND user_id = $2
+	`
+
+	// ---------------- LOCATIONS QUERIES ----------------
+	GetSingleDigitalLocationQuery = `
+		SELECT * FROM digital_locations WHERE id = $1 AND user_id = $2
+	`
+
+	GetSingleDigitalLocationSubscriptionQuery = `
+		SELECT * FROM digital_location_subscriptions WHERE digital_location_id = $1
+	`
+
+	CascadingDeleteDigitalLocationQuery = `
+		WITH deleted_related AS (
+					DELETE FROM digital_location_subscriptions
+					WHERE digital_location_id = ANY($1)
+				),
+				deleted_games AS (
+					DELETE FROM digital_game_locations
+					WHERE digital_location_id = ANY($1)
+				),
+				deleted_payments AS (
+					DELETE FROM digital_location_payments
+					WHERE digital_location_id = ANY($1)
+				)
+				DELETE FROM digital_locations
+				WHERE id = ANY($1) AND user_id = $2
+	`
+
+	// ---------------- SUBSCRIPTIONS QUERIES ----------------
 	GetLocationsWithSubscriptionDataQuery = `
 		SELECT
 			dl.*,
@@ -28,26 +70,13 @@ const (
 		WHERE digital_location_id = $1
 	`
 
-	GetAllGamesInDigitalLocationQuery = `
-		SELECT g.*
-		FROM games g
-		JOIN user_games ug ON ug.game_id = g.id
-		JOIN digital_game_locations dgl ON dgl.user_game_id = ug.id
-		WHERE dgl.digital_location_id = $1 AND ug.user_id = $2
-	`
-
-	//retrieves a specific payment by ID
-	GetSinglePaymentQuery = `
-		SELECT id, digital_location_id, amount, payment_date,
-			payment_method, transaction_id, created_at
-		FROM digital_location_payments
-		WHERE id = $1
-	`
-
-	RecordPaymentQuery = `
-		INSERT INTO digital_location_payments
-			(digital_location_id, amount, payment_date, payment_method, transaction_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+	CreateSubscriptionWithAnchorDateQuery = `
+		INSERT INTO digital_location_subscriptions
+				(digital_location_id, billing_cycle, cost_per_cycle,
+				anchor_date, payment_method, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id, digital_location_id, billing_cycle, cost_per_cycle,
+				anchor_date, last_payment_date, next_payment_date, payment_method, created_at, updated_at
 	`
 
 	UpdateSubscriptionQuery = `
@@ -60,22 +89,88 @@ const (
 		WHERE digital_location_id = $6
 	`
 
+	DeleteSubscriptionQuery = `DELETE FROM digital_location_subscriptions
+		WHERE digital_location_id = $1`
+
+	// ---------------- PAYMENTS QUERIES ----------------
+	GetSinglePaymentQuery = `
+		SELECT id, digital_location_id, amount, payment_date,
+			payment_method, transaction_id, created_at
+		FROM digital_location_payments
+		WHERE id = $1
+	`
+
+	GetAllPaymentsQuery = `
+		SELECT id, digital_location_id, amount, payment_date,
+						payment_method, transaction_id, created_at
+			FROM digital_location_payments
+			WHERE digital_location_id = $1
+			ORDER BY payment_date DESC
+	`
+
+	CreatePaymentQuery = `
+		INSERT INTO digital_location_payments
+				(digital_location_id, amount, payment_date,
+				payment_method, transaction_id, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id, digital_location_id, amount, payment_date,
+								payment_method, transaction_id, created_at
+	`
+
+	UpdatePaymentQuery = `
+		UPDATE digital_location_payments
+			SET amount = $1,
+				payment_date = $2,
+				payment_method = $3,
+				transaction_id = $4,
+				updated_at = $5
+			WHERE id = $6
+	`
+
 	UpdateSubscriptionLastPaymentDateQuery = `
 		UPDATE digital_location_subscriptions
       SET last_payment_date = $1, updated_at = $2
     WHERE digital_location_id = $3
 	`
 
-	SubscriptionAnchorDateQuery = `
-		INSERT INTO digital_location_subscriptions
-			(digital_location_id, billing_cycle, cost_per_cycle,
-			 anchor_date, payment_method, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, digital_location_id, billing_cycle, cost_per_cycle,
-		  anchor_date, last_payment_date, next_payment_date, payment_method, created_at, updated_at
+
+	// ---------------- GAMES QUERIES ----------------
+	GetUserIDGameQuery = `
+		SELECT id FROM user_games
+		WHERE user_id = $1 AND game_id = $2
 	`
 
-	// BFF Response Queries
+	GetAllGamesInDigitalLocationQuery = `
+		SELECT g.*
+		FROM games g
+		JOIN user_games ug ON ug.game_id = g.id
+		JOIN digital_game_locations dgl ON dgl.user_game_id = ug.id
+		WHERE dgl.digital_location_id = $1 AND ug.user_id = $2
+	`
+
+	AddGameToDigitalLocationQuery = `
+		INSERT INTO digital_game_locations (user_game_id, digital_location_id)
+		VALUES ($1, $2)
+	`
+
+	RemoveGameFromDigitalLocationQuery = `
+		DELETE FROM digital_game_locations
+		WHERE user_game_id = $1 AND digital_location_id = $2
+	`
+
+	DeleteOrphanedUserGamesQuery = `
+		DELETE FROM user_games
+				WHERE user_id = $1
+					AND id IN (
+						SELECT ug.id
+						FROM user_games ug
+						LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+						WHERE ug.user_id = $1 AND dgl.user_game_id IS NULL
+					)
+	`
+
+
+	// ---------------- BACKEND FOR FRONTEND QUERIES ----------------
 	GetAllDigitalLocationsBFFQuery = `
         SELECT
             dl.id,

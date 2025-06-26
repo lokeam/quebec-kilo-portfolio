@@ -19,7 +19,7 @@ import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 // Hooks
 import { useOnlineServicesToggleActive } from '@/features/dashboard/lib/stores/onlineServicesStore';
@@ -32,15 +32,6 @@ import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToas
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
 type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
-
-const isValidPaymentMethod = (method: string): method is PaymentMethodType => {
-  const validMethods = [
-    "Alipay", "Amex", "Code", "CodeFront", "Diners", "Discover", "Elo",
-    "Generic", "Hiper", "Hipercard", "Jcb", "Maestro", "Mastercard",
-    "Mir", "Paypal", "Unionpay", "Visa"
-  ];
-  return validMethods.includes(method);
-};
 
 interface OnlineServicesTableRowProps {
   service: DigitalLocation;
@@ -154,7 +145,7 @@ function OnlineServicesTableRowComponent({
           }
         </TableCell>
         <TableCell>
-          {isValidPaymentMethod(service.paymentMethod) ? (
+          {/* {isValidPaymentMethod(service.paymentMethod) ? (
             <PaymentIcon
               type={service.paymentMethod}
               format="flatRounded"
@@ -164,7 +155,11 @@ function OnlineServicesTableRowComponent({
               type="Generic"
               format="flatRounded"
             />
-          )}
+          )} */}
+          <PaymentIcon
+            type={service.paymentMethod as PaymentMethodType}
+            format="flatRounded"
+          />
         </TableCell>
         <TableCell>
           {

@@ -113,6 +113,8 @@ type DigitalLocationsBFFResponse struct {
     DigitalLocations []SingleDigitalLocationBFFResponse `json:"digital_locations"`
 }
 
+// Digital Location BFF Response
+// Field removed: LocationType string `json:"location_type"` // MARKED FOR DELETION
 type SingleDigitalLocationBFFResponse struct {
     ID                 string                              `json:"id"`
 	Name               string                              `json:"name"`
@@ -124,7 +126,6 @@ type SingleDigitalLocationBFFResponse struct {
     MonthlyCost        float64                             `json:"monthly_cost"`
 	NextPaymentDate    *time.Time                          `json:"next_payment_date"`
     PaymentMethod      string                              `json:"payment_method"`
-    LocationType       string                              `json:"location_type"` // MARKED FOR DELETION
 	ItemCount          int                                 `json:"item_count"`
 	StoredGames        []DigitalLocationGameResponse       `json:"stored_games"`
 	CreatedAt          time.Time                           `json:"created_at"`

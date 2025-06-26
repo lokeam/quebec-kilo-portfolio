@@ -13,13 +13,16 @@ import { DrawerContainer } from '@/features/dashboard/components/templates/Drawe
 import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
 // API Hooks and Utilities
-import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
+//import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
+import { useGetDigitalLocationsBFFResponse } from '@/core/api/queries/digitalLocation.queries';
+
+
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
 
 // Types
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 import type { FormValues } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
 // Utils
@@ -86,7 +89,11 @@ export function OnlineServicesPageContent() {
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
   // Fetch digital locations using analytics
-  const { data: storageData, isLoading, error } = useStorageAnalytics();
+  const { data: storageData, isLoading, error } = useGetDigitalLocationsBFFResponse();
+  //const { data: digitalLocationsBFFResponse, isLoading, error } = useGetDigitalLocationsBFFResponse();
+
+  //const storageData = {digitalLocations: []};
+  console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);
 
   // Get filtered services using the unified hook
   const services = storageData?.digitalLocations || [];

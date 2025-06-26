@@ -6,7 +6,11 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
-import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/domain/digital-location';
+import type {
+  DigitalLocation,
+  CreateDigitalLocationRequest,
+  DigitalLocationBFFResponse,
+} from '@/types/domain/digital-location';
 
 interface DigitalLocationResponseWrapper {
   success: boolean;
@@ -35,6 +39,28 @@ export interface DeleteDigitalLocationResponse {
 }
 
 const DIGITAL_LOCATION_ENDPOINT = '/v1/locations/digital';
+const DIGITAL_LOCATION_BFF_ENDPOINT = '/v1/locations/digital/bff';
+
+
+/**
+ * Fetches all digital locations for the current user
+ */
+export const getDigitalLocationsBFFResponse = (): Promise<DigitalLocationBFFResponse> =>
+  apiRequest('getPhysicalLocationsBFFResponse', async () => {
+    console.log('[DEBUG] getDigitalLocationsBFFResponse: Making API request');
+    const response = await axiosInstance.get<{ digital: DigitalLocationBFFResponse }>(DIGITAL_LOCATION_BFF_ENDPOINT);
+    console.log('[DEBUG] getDigitalLocationsBFFResponse: Raw API response:', response.data);
+
+    if (!response.data.digital) {
+      console.error('[DEBUG] getDigitalLocationsBFFResponse: No digital data in response:', response.data);
+      throw new Error('No digital data in response');
+    }
+
+    console.log('[DEBUG] getDigitalLocationsBFFResponse: Successfully extracted digital data:', response.data.digital);
+    return response.data.digital;
+  })
+
+
 
 /**
  * Fetches all digital locations for the current user

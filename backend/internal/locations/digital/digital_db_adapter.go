@@ -62,7 +62,11 @@ func NewDigitalDbAdapter(appContext *appcontext.AppContext) (*DigitalDbAdapter, 
 }
 
 // GET
-func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID string, locationID string) (models.DigitalLocation, error) {
+func (da *DigitalDbAdapter) GetSingleDigitalLocation(
+	ctx context.Context,
+	userID string,
+	locationID string,
+) (models.DigitalLocation, error) {
 	da.logger.Debug("GetSingleDigitalLocation called", map[string]any{
 		"userID":     userID,
 		"locationID": locationID,
@@ -73,7 +77,7 @@ func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID
 	err := da.db.GetContext(
 		ctx,
 		&digitalLocation,
-		`SELECT * FROM digital_locations WHERE id = $1 AND user_id = $2`,
+		GetSingleDigitalLocationQuery,
 		locationID,
 		userID,
 	)
@@ -89,7 +93,7 @@ func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID
 	err = da.db.GetContext(
 		ctx,
 		&subscription,
-		`SELECT * FROM digital_location_subscriptions WHERE digital_location_id = $1`,
+		GetSingleDigitalLocationSubscriptionQuery,
 		locationID,
 	)
 	if err == nil {
@@ -107,7 +111,10 @@ func (da *DigitalDbAdapter) GetSingleDigitalLocation(ctx context.Context, userID
 	return digitalLocation, nil
 }
 
-func (da *DigitalDbAdapter) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
+func (da *DigitalDbAdapter) GetAllDigitalLocations(
+	ctx context.Context,
+	userID string,
+) ([]models.DigitalLocation, error) {
 	// Define the DigitalLocationJoin struct
 	type DigitalLocationJoin struct {
 		models.DigitalLocation
@@ -209,13 +216,16 @@ func (a *DigitalDbAdapter) ensureUserExists(ctx context.Context, userID string) 
 
 	// Check if user exists
 	var exists bool
-	err := a.db.QueryRowContext(ctx, `
-		SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)
-	`, userID).Scan(&exists)
+	err := a.db.QueryRowContext(
+		ctx,
+		CheckIfUserExistsQuery,
+		userID,
+	).Scan(&exists)
 	if err != nil {
 		return fmt.Errorf("error checking if user exists: %w", err)
 	}
 
+	// NOTE: There must be a better way to do this
 	if !exists {
 		// Create user with all required fields
 		_, err = a.db.ExecContext(ctx, `
@@ -230,24 +240,30 @@ func (a *DigitalDbAdapter) ensureUserExists(ctx context.Context, userID string) 
 	return nil
 }
 
-func (a *DigitalDbAdapter) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (a *DigitalDbAdapter) CreateDigitalLocation(
+	ctx context.Context,
+	userID string,
+	location models.DigitalLocation,
+) (models.DigitalLocation, error) {
 	a.logger.Debug("Adding digital location", map[string]any{
 		"userID": userID,
 		"location": location,
 		"is_active": location.IsActive,
 	})
 
-	// Ensure user exists first
-	if err := a.ensureUserExists(ctx, userID); err != nil {
-		return models.DigitalLocation{}, fmt.Errorf("error ensuring user exists: %w", err)
+	// Validate userID is not empty
+	if userID == "" {
+		return models.DigitalLocation{}, fmt.Errorf("user ID cannot be empty")
 	}
 
 	// Check if a location with this name already exists for the user
 	var existingID string
-	err := a.db.QueryRowContext(ctx, `
-		SELECT id FROM digital_locations
-		WHERE user_id = $1 AND LOWER(name) = LOWER($2)
-	`, userID, location.Name).Scan(&existingID)
+	err := a.db.QueryRowContext(
+		ctx,
+		CheckIfLocationExistsForUserQuery,
+		userID,
+		location.Name,
+	).Scan(&existingID)
 
 	if err == nil {
 		return models.DigitalLocation{}, fmt.Errorf("a digital location with the name '%s' already exists", location.Name)
@@ -340,7 +356,11 @@ func (a *DigitalDbAdapter) CreateDigitalLocation(ctx context.Context, userID str
 }
 
 // PUT
-func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error {
+func (a *DigitalDbAdapter) UpdateDigitalLocation(
+	ctx context.Context,
+	userID string,
+	location models.DigitalLocation,
+) error {
 	a.logger.Debug("Updating digital location", map[string]any{
 		"userID": userID,
 		"location": location,
@@ -412,7 +432,11 @@ func (a *DigitalDbAdapter) UpdateDigitalLocation(ctx context.Context, userID str
 }
 
 // DELETE
-func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID string, locationIDs []string) (int64, error) {
+func (da *DigitalDbAdapter) DeleteDigitalLocation(
+	ctx context.Context,
+	userID string,
+	locationIDs []string,
+) (int64, error) {
 	isBulk := len(locationIDs) > 1
 	da.logger.Debug("DeleteDigitalLocation called", map[string]any{
 		"userID":         userID,
@@ -434,12 +458,13 @@ func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID st
 	// Use the transaction utility
 	err := postgres.WithTransaction(ctx, da.db, da.logger, func(tx *sqlx.Tx) error {
 		// First verify all locations exist and belong to the user
-		checkQuery := `
-			SELECT COUNT(*) FROM digital_locations
-			WHERE id = ANY($1) AND user_id = $2
-		`
 		var count int
-		err := tx.QueryRowxContext(ctx, checkQuery, pq.Array(locationIDs), userID).Scan(&count)
+		err := tx.QueryRowxContext(
+			ctx,
+			CheckIfAllLocationsExistForUserQuery,
+			pq.Array(locationIDs),
+			userID,
+		).Scan(&count)
 		if err != nil {
 			return fmt.Errorf("error verifying locations: %w", err)
 		}
@@ -448,25 +473,12 @@ func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID st
 		}
 
 		// Delete all related records and locations in one go
-		deleteQuery := `
-			WITH deleted_related AS (
-				DELETE FROM digital_location_subscriptions
-				WHERE digital_location_id = ANY($1)
-			),
-			deleted_games AS (
-				DELETE FROM digital_game_locations
-				WHERE digital_location_id = ANY($1)
-			),
-			deleted_payments AS (
-				DELETE FROM digital_location_payments
-				WHERE digital_location_id = ANY($1)
-			)
-			DELETE FROM digital_locations
-			WHERE id = ANY($1) AND user_id = $2
-		`
-
-		// Execute the delete query
-		result, err := tx.ExecContext(ctx, deleteQuery, pq.Array(locationIDs), userID)
+		result, err := tx.ExecContext(
+			ctx,
+			CascadingDeleteDigitalLocationQuery,
+			pq.Array(locationIDs),
+			userID,
+		)
 		if err != nil {
 			return fmt.Errorf("error executing delete: %w", err)
 		}
@@ -483,17 +495,11 @@ func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID st
 		}
 
 		// Clean up games that are not associated with any digital location
-		cleanupOrphanedUserGamesQuery := `
-			DELETE FROM user_games
-			WHERE user_id = $1
-				AND id IN (
-					SELECT ug.id
-					FROM user_games ug
-					LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
-					WHERE ug.user_id = $1 AND dgl.user_game_id IS NULL
-				)
-		`
-		_, err = tx.ExecContext(ctx, cleanupOrphanedUserGamesQuery, userID)
+		_, err = tx.ExecContext(
+			ctx,
+			DeleteOrphanedUserGamesQuery,
+			userID,
+		)
 		if err != nil {
 			return fmt.Errorf("error cleaning up orphaned user games: %w", err)
 		}
@@ -518,31 +524,3 @@ func (da *DigitalDbAdapter) DeleteDigitalLocation(ctx context.Context, userID st
 	return totalDeleted, nil
 }
 
-// FindDigitalLocationByName finds a digital location by name and user ID
-func (da *DigitalDbAdapter) FindDigitalLocationByName(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
-	da.logger.Debug("FindDigitalLocationByName called", map[string]any{
-		"userID": userID,
-		"name":   name,
-	})
-
-	query := `
-		SELECT id, user_id, name, service_type, is_active, url, created_at, updated_at
-		FROM digital_locations
-		WHERE user_id = $1 AND LOWER(name) = LOWER($2)
-		`
-
-	var location models.DigitalLocation
-	err := da.db.GetContext(ctx, &location, query, userID, name)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return models.DigitalLocation{}, fmt.Errorf("digital location not found: %w", err)
-		}
-		return models.DigitalLocation{}, fmt.Errorf("error finding digital location: %w", err)
-	}
-
-	da.logger.Debug("FindDigitalLocationByName success", map[string]any{
-		"location": location,
-	})
-
-	return location, nil
-}

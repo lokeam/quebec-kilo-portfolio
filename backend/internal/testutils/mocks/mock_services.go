@@ -41,19 +41,29 @@ type MockServices struct {
 
 // MockDigitalService implements services.DigitalService
 type MockDigitalService struct {
+	// Read ops for digital locations
 	GetUserDigitalLocationsFunc    func(ctx context.Context, userID string) ([]models.DigitalLocation, error)
 	GetDigitalLocationFunc         func(ctx context.Context, userID, locationID string) (models.DigitalLocation, error)
 	FindDigitalLocationByNameFunc  func(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
-	AddDigitalLocationFunc         func(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error)
-	UpdateDigitalLocationFunc      func(ctx context.Context, userID string, location models.DigitalLocation) error
+	GetAllDigitalLocationsBFFFunc func(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
+
+	// Write ops for digital locations
+	AddDigitalLocationFunc         func(ctx context.Context, userID string, location types.DigitalLocationRequest) (models.DigitalLocation, error)
+	UpdateDigitalLocationFunc      func(ctx context.Context, userID string, location types.DigitalLocationRequest) error
 	RemoveDigitalLocationFunc      func(ctx context.Context, userID string, locationIDs []string) (int64, error)
+
+	// Games
 	AddGameToDigitalLocationFunc   func(ctx context.Context, userID string, locationID string, gameID int64) error
 	RemoveGameFromDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
 	GetGamesByDigitalLocationIDFunc func(ctx context.Context, userID string, locationID string) ([]models.Game, error)
+
+	// Subscriptions
 	GetSubscriptionFunc           func(ctx context.Context, locationID string) (*models.Subscription, error)
 	AddSubscriptionFunc           func(ctx context.Context, subscription models.Subscription) (*models.Subscription, error)
 	UpdateSubscriptionFunc        func(ctx context.Context, subscription models.Subscription) error
 	RemoveSubscriptionFunc        func(ctx context.Context, locationID string) error
+
+	// Payments
 	GetPaymentsFunc              func(ctx context.Context, locationID string) ([]models.Payment, error)
 	AddPaymentFunc               func(ctx context.Context, payment models.Payment) (*models.Payment, error)
 	GetPaymentFunc               func(ctx context.Context, paymentID int64) (*models.Payment, error)
@@ -73,6 +83,13 @@ func (m *MockDigitalService) GetSingleDigitalLocation(ctx context.Context, userI
 	return models.DigitalLocation{}, nil
 }
 
+func (m *MockDigitalService) GetAllDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error) {
+	if m.GetAllDigitalLocationsBFF != nil {
+		return m.GetAllDigitalLocationsBFF(ctx, userID)
+	}
+	return types.DigitalLocationsBFFResponse{}, nil
+}
+
 func (m *MockDigitalService) FindDigitalLocationByName(ctx context.Context, userID string, name string) (models.DigitalLocation, error) {
 	if m.FindDigitalLocationByNameFunc != nil {
 		return m.FindDigitalLocationByNameFunc(ctx, userID, name)
@@ -80,14 +97,14 @@ func (m *MockDigitalService) FindDigitalLocationByName(ctx context.Context, user
 	return models.DigitalLocation{}, nil
 }
 
-func (m *MockDigitalService) CreateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) (models.DigitalLocation, error) {
+func (m *MockDigitalService) CreateDigitalLocation(ctx context.Context, userID string, location types.DigitalLocationRequest) (models.DigitalLocation, error) {
 	if m.AddDigitalLocationFunc != nil {
 		return m.AddDigitalLocationFunc(ctx, userID, location)
 	}
 	return models.DigitalLocation{}, nil
 }
 
-func (m *MockDigitalService) UpdateDigitalLocation(ctx context.Context, userID string, location models.DigitalLocation) error {
+func (m *MockDigitalService) UpdateDigitalLocation(ctx context.Context, userID string, location types.DigitalLocationRequest) error {
 	if m.UpdateDigitalLocationFunc != nil {
 		return m.UpdateDigitalLocationFunc(ctx, userID, location)
 	}

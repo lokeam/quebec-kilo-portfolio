@@ -47,13 +47,23 @@ import { cn } from '@/shared/components/ui/utils';
 
 // Constants
 import { PAYMENT_METHODS } from '@/shared/constants/payment';
-import { DEFAULT_FORM_VALUES } from '@/features/dashboard/lib/constants/online-service-form';
 
 // Types
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
 
 // Utils, OnlineService
 import { ServiceCombobox } from '@/features/dashboard/components/organisms/OnlineServicesPage/ServiceCombobox/ServiceCombobox';
+
+const DEFAULT_FORM_VALUES: FormValues = {
+  name: "",
+  isActive: true,
+  url: "",
+  billingCycle: "",
+  costPerCycle: 0,
+  nextPaymentDate: new Date(),
+  paymentMethod: "",
+  isSubscriptionService: false
+};
 
 export type FormValues = {
   name: string;

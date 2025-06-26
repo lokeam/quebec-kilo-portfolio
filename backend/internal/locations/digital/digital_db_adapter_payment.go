@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/models"
-	"github.com/lokeam/qko-beta/internal/postgres"
 )
 
 // GetSinglePayment retrieves a specific payment by ID
@@ -41,16 +39,13 @@ func (da *DigitalDbAdapter) GetAllPayments(ctx context.Context, locationID strin
 		"locationID": locationID,
 	})
 
-	query := `
-		SELECT id, digital_location_id, amount, payment_date,
-		       payment_method, transaction_id, created_at
-		FROM digital_location_payments
-		WHERE digital_location_id = $1
-		ORDER BY payment_date DESC
-	`
-
 	var payments []models.Payment
-	err := da.db.SelectContext(ctx, &payments, query, locationID)
+	err := da.db.SelectContext(
+		ctx,
+		&payments,
+		GetAllPaymentsQuery,
+		locationID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting payments: %w", err)
 	}
@@ -60,25 +55,18 @@ func (da *DigitalDbAdapter) GetAllPayments(ctx context.Context, locationID strin
 
 
 // CreatePayment records a new payment for a digital location
-func (da *DigitalDbAdapter) CreatePayment(ctx context.Context, payment models.Payment) (*models.Payment, error) {
+func (da *DigitalDbAdapter) CreatePayment(
+	ctx context.Context, payment models.Payment,
+) (*models.Payment, error) {
 	da.logger.Debug("CreatePayment called", map[string]any{
 		"payment": payment,
 	})
-
-	query := `
-		INSERT INTO digital_location_payments
-			(digital_location_id, amount, payment_date,
-			 payment_method, transaction_id, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, digital_location_id, amount, payment_date,
-		          payment_method, transaction_id, created_at
-	`
 
 	payment.CreatedAt = time.Now()
 
 	err := da.db.QueryRowxContext(
 		ctx,
-		query,
+		CreatePaymentQuery,
 		payment.LocationID,
 		payment.Amount,
 		payment.PaymentDate,
@@ -95,51 +83,34 @@ func (da *DigitalDbAdapter) CreatePayment(ctx context.Context, payment models.Pa
 }
 
 
-func (da *DigitalDbAdapter) RecordPayment(
+func (da *DigitalDbAdapter) UpdatePayment(
 	ctx context.Context,
 	payment models.Payment,
 ) error {
-		return postgres.WithTransaction(
-			ctx,
-			da.db,
-			da.logger,
-			func(tx *sqlx.Tx) error {
-				// 1. Record the payment
-				_, err := tx.ExecContext(
-					ctx,
-					RecordPaymentQuery,
-					payment.LocationID,
-					payment.Amount,
-					payment.PaymentDate,
-					payment.PaymentMethod,
-					payment.TransactionID,
-					time.Now(),
-				)
-				if err != nil {
-					return fmt.Errorf("error recording payment: %w", err)
-				}
+	payment.UpdatedAt = time.Now()
 
-				// 2. Update the subscription's last payment date
-				result, err := tx.ExecContext(
-					ctx,
-					UpdateSubscriptionLastPaymentDateQuery,
-					payment.PaymentDate,
-					time.Now(),
-					payment.LocationID,
-				)
-				if err != nil {
-					return fmt.Errorf("error updating subscription last payment date: %w", err)
-				}
+	result, err := da.db.ExecContext(
+		ctx,
+		UpdatePaymentQuery,
+		payment.Amount,
+		payment.PaymentDate,
+		payment.PaymentMethod,
+		payment.TransactionID,
+		payment.UpdatedAt,
+		payment.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating payment: %w", err)
+	}
 
-				rowsAffected, err := result.RowsAffected()
-				if err != nil {
-					return fmt.Errorf("error getting rows affected: %w", err)
-				}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting rows affected: %w", err)
+	}
 
-				if rowsAffected == 0 {
-					return fmt.Errorf("subscription not found for location: %s", payment.LocationID)
-				}
+	if rowsAffected == 0 {
+		return fmt.Errorf("payment not found")
+	}
 
-				return nil
-			})
+	return nil
 }

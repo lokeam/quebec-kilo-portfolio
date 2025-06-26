@@ -90,6 +90,9 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 	// IMPORTANT: Preserve is_subscription flag
 	validatedLocation.IsSubscription = location.IsSubscription
 
+	// IMPORTANT: Preserve original subscription data
+
+
 	// Validate name
 	if sanitizedName, err := v.validateName(location.Name); err != nil {
 		violations = append(violations, err.Error())
@@ -116,11 +119,12 @@ func (v *DigitalValidator) ValidateDigitalLocation(
 		if location.Subscription == nil {
 			violations = append(violations, "Subscription service must have subscription data")
 		} else {
-			// Validate subscription data
-			if validatedSubscription, err := v.ValidateSubscription(*location.Subscription); err != nil {
+			// Validate subscription data IN PLACE (don't create new struct)
+			if err := v.validateSubscriptionFields(location.Subscription); err != nil {
 				violations = append(violations, err.Error())
 			} else {
-				validatedLocation.Subscription = &validatedSubscription
+				// Keep the original subscription data (preserves AnchorDate)
+				validatedLocation.Subscription = location.Subscription
 			}
 		}
 	} else {
@@ -223,62 +227,6 @@ func (v *DigitalValidator) validateURL(urlStr string) (string, error) {
 	}
 
 	return sanitized, nil
-}
-
-func (v *DigitalValidator) ValidateSubscription(subscription models.Subscription) (models.Subscription, error) {
-	v.logger.Debug("Validating subscription details", map[string]any{
-		"subscription": subscription,
-	})
-
-	var violations []string
-	var validatedSubscription models.Subscription
-
-	// Validate billing cycle
-	if !ValidBillingCycles[subscription.BillingCycle] {
-		violations = append(violations, fmt.Sprintf("invalid billing cycle: %s", subscription.BillingCycle))
-	} else {
-		validatedSubscription.BillingCycle = subscription.BillingCycle
-	}
-
-	// Validate cost per cycle
-	if subscription.CostPerCycle <= 0 {
-		violations = append(violations, "cost per cycle must be greater than 0")
-	} else if subscription.CostPerCycle > MaxCostPerCycle {
-		violations = append(violations, fmt.Sprintf("cost per cycle must be less than %.2f", MaxCostPerCycle))
-	} else {
-		validatedSubscription.CostPerCycle = subscription.CostPerCycle
-	}
-
-	// Validate payment method - REQUIRED for subscription services
-	if subscription.PaymentMethod == "" {
-		violations = append(violations, "payment method is required for subscription services")
-	} else if !ValidPaymentMethods[subscription.PaymentMethod] {
-		violations = append(violations, fmt.Sprintf("Invalid payment method: %s", subscription.PaymentMethod))
-	} else {
-		validatedSubscription.PaymentMethod = subscription.PaymentMethod
-	}
-
-	// Copy other fields that don't need validation
-	validatedSubscription.ID = subscription.ID
-	validatedSubscription.LocationID = subscription.LocationID
-	validatedSubscription.CreatedAt = subscription.CreatedAt
-	validatedSubscription.UpdatedAt = subscription.UpdatedAt
-	validatedSubscription.NextPaymentDate = subscription.NextPaymentDate
-
-	if len(violations) > 0 {
-		v.logger.Debug("Subscription validation failed", map[string]any{
-			"violations": violations,
-		})
-		return models.Subscription{}, &validationErrors.ValidationError{
-			Field:   "subscription",
-			Message: fmt.Sprintf("Subscription validation failed: %v", violations),
-		}
-	}
-
-	v.logger.Debug("Subscription validation successful", map[string]any{
-		"subscription": validatedSubscription,
-	})
-	return validatedSubscription, nil
 }
 
 func (v *DigitalValidator) ValidatePayment(payment models.Payment) (models.Payment, error) {
@@ -512,4 +460,38 @@ func (v *DigitalValidator) ValidateRemoveDigitalLocation(
 	})
 
 	return validatedIDs,nil
+}
+
+
+// ---- validator refactor /
+func (v *DigitalValidator) validateSubscriptionFields(subscription *models.Subscription) error {
+	var violations []string
+
+	// Validate billing cycle
+	if !ValidBillingCycles[subscription.BillingCycle] {
+			violations = append(violations, fmt.Sprintf("invalid billing cycle: %s", subscription.BillingCycle))
+	}
+
+	// Validate cost per cycle
+	if subscription.CostPerCycle <= 0 {
+			violations = append(violations, "cost per cycle must be greater than 0")
+	} else if subscription.CostPerCycle > MaxCostPerCycle {
+			violations = append(violations, fmt.Sprintf("cost per cycle must be less than %.2f", MaxCostPerCycle))
+	}
+
+	// Validate payment method
+	if subscription.PaymentMethod == "" {
+			violations = append(violations, "payment method is required for subscription services")
+	} else if !ValidPaymentMethods[subscription.PaymentMethod] {
+			violations = append(violations, fmt.Sprintf("Invalid payment method: %s", subscription.PaymentMethod))
+	}
+
+	if len(violations) > 0 {
+			return &validationErrors.ValidationError{
+					Field:   "subscription",
+					Message: fmt.Sprintf("Subscription validation failed: %v", violations),
+			}
+	}
+
+	return nil
 }

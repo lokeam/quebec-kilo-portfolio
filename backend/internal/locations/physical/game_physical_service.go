@@ -160,7 +160,6 @@ func (gps *GamePhysicalService) GetSinglePhysicalLocation(
 }
 
 // --- BFF ---
-
 func (gps *GamePhysicalService) GetAllPhysicalLocationsBFF(ctx context.Context, userID string) (types.LocationsBFFResponse, error) {
 	// Try to get from cache first
 	cachedLocations, err := gps.cacheWrapper.GetCachedPhysicalLocationsBFF(ctx, userID)
@@ -220,7 +219,11 @@ func (gps *GamePhysicalService) CreatePhysicalLocation(
 }
 
 // UPDATE
-func (gps *GamePhysicalService) UpdatePhysicalLocation(ctx context.Context, userID string, location models.PhysicalLocation) (models.PhysicalLocation, error) {
+func (gps *GamePhysicalService) UpdatePhysicalLocation(
+	ctx context.Context,
+	userID string,
+	location models.PhysicalLocation,
+) (models.PhysicalLocation, error) {
 	gps.logger.Debug("Updating physical location", map[string]any{
 		"userID": userID,
 		"location": location,

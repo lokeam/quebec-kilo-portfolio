@@ -6,6 +6,7 @@ import (
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type DigitalCacheAdapter struct {
@@ -180,4 +181,34 @@ func (dca *DigitalCacheAdapter) InvalidatePaymentsCache(
 ) error {
 	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
+}
+
+
+// -- BFF --
+func (dca *DigitalCacheAdapter) GetCachedDigitalLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.DigitalLocationsBFFResponse, error) {
+	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+
+	var response types.DigitalLocationsBFFResponse
+	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
+	if err != nil {
+		return types.DigitalLocationsBFFResponse{}, err
+	}
+
+	if cacheHit {
+		return response, nil
+	}
+
+	return types.DigitalLocationsBFFResponse{}, nil
+}
+
+func (dca *DigitalCacheAdapter) SetCachedDigitalLocationsBFF(
+	ctx context.Context,
+	userID string,
+	response types.DigitalLocationsBFFResponse,
+) error {
+	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
 }

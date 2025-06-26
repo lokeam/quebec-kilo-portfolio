@@ -10,7 +10,10 @@ import (
 )
 
 // GetSubscription retrieves a subscription for a digital location
-func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID string) (*models.Subscription, error) {
+func (da *DigitalDbAdapter) GetSubscription(
+	ctx context.Context,
+	locationID string,
+) (*models.Subscription, error) {
 	da.logger.Debug("GetSubscription called", map[string]any{
 		"locationID": locationID,
 	})
@@ -24,10 +27,14 @@ func (da *DigitalDbAdapter) GetSubscription(ctx context.Context, locationID stri
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil // No subscription found is not an error
+			return nil, fmt.Errorf("subscription not found: %w", err)
 		}
 		return nil, fmt.Errorf("error getting subscription: %w", err)
 	}
+
+	da.logger.Debug("GetSubscription success", map[string]any{
+		"subscription": subscription,
+	})
 
 	return &subscription, nil
 }
@@ -61,7 +68,7 @@ func (da *DigitalDbAdapter) CreateSubscription(
 
 	err := da.db.QueryRowxContext(
 		ctx,
-		SubscriptionAnchorDateQuery,
+		CreateSubscriptionWithAnchorDateQuery,
 		subscription.LocationID,
 		subscription.BillingCycle,
 		subscription.CostPerCycle,
@@ -75,12 +82,19 @@ func (da *DigitalDbAdapter) CreateSubscription(
 		return nil, fmt.Errorf("error adding subscription: %w", err)
 	}
 
+	da.logger.Debug("CreateSubscription success", map[string]any{
+		"subscription": subscription,
+	})
+
 	return &subscription, nil
 }
 
 
 // UpdateSubscription updates an existing subscription
-func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription models.Subscription) error {
+func (da *DigitalDbAdapter) UpdateSubscription(
+	ctx context.Context,
+	subscription models.Subscription,
+) error {
 	da.logger.Debug("UpdateSubscription called", map[string]any{
 		"subscription": subscription,
 	})
@@ -123,22 +137,28 @@ func (da *DigitalDbAdapter) UpdateSubscription(ctx context.Context, subscription
 		return fmt.Errorf("subscription not found")
 	}
 
+	da.logger.Debug("UpdateSubscription success", map[string]any{
+		"rowsAffected": rowsAffected,
+	})
+
 	return nil
 }
 
 
 // DeleteSubscription deletes a subscription for a digital location
-func (da *DigitalDbAdapter) DeleteSubscription(ctx context.Context, locationID string) error {
+func (da *DigitalDbAdapter) DeleteSubscription(
+	ctx context.Context,
+	locationID string,
+) error {
 	da.logger.Debug("DeleteSubscription called", map[string]any{
 		"locationID": locationID,
 	})
 
-	query := `
-		DELETE FROM digital_location_subscriptions
-		WHERE digital_location_id = $1
-	`
-
-	result, err := da.db.ExecContext(ctx, query, locationID)
+	result, err := da.db.ExecContext(
+		ctx,
+		DeleteSubscriptionQuery,
+		locationID,
+	)
 	if err != nil {
 		return fmt.Errorf("error removing subscription: %w", err)
 	}
@@ -152,19 +172,9 @@ func (da *DigitalDbAdapter) DeleteSubscription(ctx context.Context, locationID s
 		return fmt.Errorf("subscription not found")
 	}
 
-	return nil
-}
-
-func (da *DigitalDbAdapter) ValidateSubscriptionExists(ctx context.Context, locationID string) (*models.Subscription, error) {
-	da.logger.Debug("ValidateSubscriptionExists called", map[string]any{
-			"locationID": locationID,
+	da.logger.Debug("DeleteSubscription success", map[string]any{
+		"rowsAffected": rowsAffected,
 	})
 
-	// Just check if subscription exists
-	existingSub, err := da.GetSubscription(ctx, locationID)
-	if err != nil {
-			return nil, fmt.Errorf("failed to validate subscription: %w", err)
-	}
-
-	return existingSub, nil
+	return nil
 }

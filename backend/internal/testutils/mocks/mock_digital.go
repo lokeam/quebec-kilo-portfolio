@@ -161,16 +161,6 @@ func (m *MockDigitalDbAdapter) DeleteSubscription(ctx context.Context, locationI
 	return m.RemoveSubscriptionFunc(ctx, locationID)
 }
 
-func (m *MockDigitalDbAdapter) ValidateSubscriptionExists(
-	ctx context.Context,
-	locationID string,
-) (*models.Subscription, error) {
-	if m.ValidateSubscriptionExistsFunc != nil {
-		return m.ValidateSubscriptionExistsFunc(ctx, locationID)
-	}
-	return nil, nil
-}
-
 // Payment Operations
 func (m *MockDigitalDbAdapter) GetAllPayments(ctx context.Context, locationID string) ([]models.Payment, error) {
 	return m.GetPaymentsFunc(ctx, locationID)

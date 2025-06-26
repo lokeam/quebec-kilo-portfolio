@@ -302,7 +302,7 @@ func TestDigitalValidator(t *testing.T) {
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
+		testErr := testValidator.validateSubscriptionFields(&testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for invalid billing cycle, but got nil")
@@ -311,10 +311,6 @@ func TestDigitalValidator(t *testing.T) {
 		expectedError := "invalid billing cycle: invalid"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
-		}
-
-		if validatedSubscription.ID != 0 {
-			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
 		}
 	})
 
@@ -331,7 +327,7 @@ func TestDigitalValidator(t *testing.T) {
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
+		testErr := testValidator.validateSubscriptionFields(&testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for non-positive cost, but got nil")
@@ -340,10 +336,6 @@ func TestDigitalValidator(t *testing.T) {
 		expectedError := "cost per cycle must be greater than 0"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
-		}
-
-		if validatedSubscription.ID != 0 {
-			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
 		}
 	})
 
@@ -360,7 +352,7 @@ func TestDigitalValidator(t *testing.T) {
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
+		testErr := testValidator.validateSubscriptionFields(&testSubscription)
 
 		if testErr == nil {
 			t.Fatalf("expected an error for invalid payment method, but got nil")
@@ -371,9 +363,6 @@ func TestDigitalValidator(t *testing.T) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
 
-		if validatedSubscription.ID != 0 {
-			t.Errorf("expected validated subscription to be empty on error, but got %+v", validatedSubscription)
-		}
 	})
 
 	/*
@@ -389,15 +378,11 @@ func TestDigitalValidator(t *testing.T) {
 			NextPaymentDate: time.Now().Add(-24 * time.Hour), // Past date
 		}
 
-		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
-
+		testErr := testValidator.validateSubscriptionFields(&testSubscription)
 		if testErr != nil {
 			t.Errorf("expected no error for past next payment date, but got %v", testErr)
 		}
-
-		if !validatedSubscription.NextPaymentDate.Equal(testSubscription.NextPaymentDate) {
-			t.Errorf("expected next payment date to be preserved, but got %v", validatedSubscription.NextPaymentDate)
-		}
+		// The subscription is validated in place, so NextPaymentDate is preserved
 	})
 
 	/*
@@ -413,18 +398,11 @@ func TestDigitalValidator(t *testing.T) {
 			NextPaymentDate: time.Now().Add(24 * time.Hour),
 		}
 
-		validatedSubscription, testErr := testValidator.ValidateSubscription(testSubscription)
-
+		testErr := testValidator.validateSubscriptionFields(&testSubscription)
 		if testErr != nil {
 			t.Errorf("expected no error for valid subscription, but got %v", testErr)
 		}
-
-		if validatedSubscription.BillingCycle != testSubscription.BillingCycle ||
-			validatedSubscription.CostPerCycle != testSubscription.CostPerCycle ||
-			validatedSubscription.PaymentMethod != testSubscription.PaymentMethod ||
-			!validatedSubscription.NextPaymentDate.Equal(testSubscription.NextPaymentDate) {
-			t.Errorf("expected validated subscription to match input, but got %+v", validatedSubscription)
-		}
+		// The subscription is validated in place, so all fields are preserved
 	})
 
 	// ----------- ValidatePayment() ------------
@@ -765,7 +743,8 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := validator.ValidateSubscription(tt.subscription)
+			subscriptionCopy := tt.subscription
+			err := validator.validateSubscriptionFields(&subscriptionCopy)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -774,10 +753,10 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.subscription.BillingCycle, got.BillingCycle)
-			assert.Equal(t, tt.subscription.CostPerCycle, got.CostPerCycle)
-			assert.Equal(t, tt.subscription.PaymentMethod, got.PaymentMethod)
-			assert.Equal(t, tt.subscription.NextPaymentDate, got.NextPaymentDate)
+			assert.Equal(t, tt.subscription.BillingCycle, subscriptionCopy.BillingCycle)
+			assert.Equal(t, tt.subscription.CostPerCycle, subscriptionCopy.CostPerCycle)
+			assert.Equal(t, tt.subscription.PaymentMethod, subscriptionCopy.PaymentMethod)
+			assert.Equal(t, tt.subscription.NextPaymentDate, subscriptionCopy.NextPaymentDate)
 		})
 	}
 }

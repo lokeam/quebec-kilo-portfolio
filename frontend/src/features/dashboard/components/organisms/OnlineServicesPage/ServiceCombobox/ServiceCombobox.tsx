@@ -25,7 +25,7 @@ import { cn } from '@/shared/components/ui/utils';
 import { useGetDigitalServicesCatalog } from '@/core/api/queries/digitalServicesCatalog.queries';
 
 // Types
-import type { DigitalServiceItem } from '@/types/domain/online-service';
+import type { DigitalServiceItem } from '@/types/domain/digital-location';
 
 interface ServiceComboboxProps {
   onServiceSelect: (service: {

@@ -1,4 +1,4 @@
-import type { DigitalLocation } from '@/types/domain/online-service';
+import type { DigitalLocation } from '@/types/domain/digital-location';
 
 /**
  * Transforms a DigitalLocation from the API into the domain OnlineService format

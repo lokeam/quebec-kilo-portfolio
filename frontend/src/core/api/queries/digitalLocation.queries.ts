@@ -4,6 +4,8 @@
  * Provides React Query hooks for fetching and managing digital media storage locations.
  */
 
+import { AxiosError } from 'axios';
+
 // React Query
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -17,20 +19,27 @@ import {
   createDigitalLocation,
   updateDigitalLocation,
   deleteDigitalLocation,
+  getDigitalLocationsBFFResponse,
 } from '@/core/api/services/digitalLocation.service';
 
 // Utils
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
+import { logger } from '@/core/utils/logger/logger';
 
 // Types
-import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/domain/digital-location';
+import type { ApiError } from '@/types/api/response';
+import type {
+  DigitalLocation,
+  CreateDigitalLocationRequest,
+  DigitalLocationBFFResponse,
+} from '@/types/domain/digital-location';
 import type { DeleteDigitalLocationResponse } from '@/core/api/services/digitalLocation.service';
+
+// Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
-import { logger } from '@/core/utils/logger/logger';
-import { AxiosError } from 'axios';
-import type { ApiError } from '@/types/api/response';
+
 
 /**
  * Query key factory for digital location queries
@@ -42,6 +51,31 @@ export const digitalLocationKeys = {
   details: () => [...digitalLocationKeys.all, 'detail'] as const,
   detail: (id: string) => [...digitalLocationKeys.details(), id] as const,
 };
+
+
+export const useGetDigitalLocationsBFFResponse = () => {
+  return useAPIQuery<DigitalLocationBFFResponse>({
+    queryKey: digitalLocationKeys.lists(),
+    queryFn: async () => {
+      try {
+        const response = await getDigitalLocationsBFFResponse();
+        console.log('[DEBUG] useGetDigitalLocationsBFFResponse: Raw response:', response);
+
+        if (!response) {
+          throw new Error('No data received from server');
+        }
+
+        return response;
+      } catch (error) {
+        console.error('[DEBUG] useGetDigitalLocationsBFFResponse: Error fetching data: ', error);
+        throw error;
+      }
+    },
+    staleTime: 3000,
+    refetchOnMount: true,
+  })
+}
+
 
 /**
  * Hook to fetch all digital locations
