@@ -79,5 +79,15 @@ const (
     FROM digital_locations dl
     LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
     WHERE dl.id = $1 AND dl.user_id = $2 AND dl.is_subscription = true
-`
+	`
+
+	CreateOneTimePurchaseQuery = `
+	INSERT INTO one_time_purchases (
+		user_id, title, amount, purchase_date, payment_method,
+		spending_category_id, digital_location_id, is_digital, is_wishlisted
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	RETURNING id, user_id, title, amount, purchase_date, payment_method,
+		spending_category_id, digital_location_id, is_digital, is_wishlisted,
+		created_at, updated_at
+	`
 )

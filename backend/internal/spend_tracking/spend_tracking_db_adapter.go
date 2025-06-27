@@ -168,7 +168,7 @@ func (sta *SpendTrackingDbAdapter) buildTransactionArraysFromDatabaseRecords(
 							ID:                   fmt.Sprintf("one-%d", purchase.ID),
 							Title:                purchase.Title,
 							Amount:               purchase.Amount,
-							SpendTransactionType: "ONE_TIME",
+							SpendTransactionType: "one time purchase",
 							PaymentMethod:        purchase.PaymentMethod,
 							MediaType:            purchase.MediaType,
 							CreatedAt:            purchase.CreatedAt.Unix(),
@@ -226,9 +226,9 @@ func (sta *SpendTrackingDbAdapter) buildTransactionArraysFromDatabaseRecords(
 							ID:                   fmt.Sprintf("sub-%s", subscription.ID),
 							Title:                subscription.Name,
 							Amount:               subscription.CostPerCycle,
-							SpendTransactionType: "SUBSCRIPTION",
+							SpendTransactionType: "subscription",
 							PaymentMethod:        subscription.SubscriptionPaymentMethod,
-							MediaType:            "SUBSCRIPTION",
+							MediaType:            "subscription",
 							Provider:             strings.ToLower(subscription.Name),
 							CreatedAt:            subscription.CreatedAt.Unix(),
 							UpdatedAt:            subscription.UpdatedAt.Unix(),
@@ -403,4 +403,56 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	})
 
 	return response, nil
+}
+
+
+// --- WRITE OPERATIONS ---
+func (sta *SpendTrackingDbAdapter) CreateOneTimePurchase(
+	ctx context.Context,
+	userID string,
+	request models.SpendTrackingOneTimePurchaseDB,
+) (models.SpendTrackingOneTimePurchaseDB, error) {
+	sta.logger.Debug("CreateOneTimePurchase called", map[string]any{
+		"userID": userID,
+		"request": request,
+	})
+
+	// Start transaction
+	tx, err := sta.db.BeginTxx(ctx, nil)
+	if err != nil {
+			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Execute INSERT query
+	var newPurchase models.SpendTrackingOneTimePurchaseDB
+	err = tx.GetContext(
+		ctx,
+		&newPurchase,
+		CreateOneTimePurchaseQuery,
+		userID,
+		request.Title,
+		request.Amount,
+		request.PurchaseDate,
+		request.PaymentMethod,
+		request.CategoryID,
+		request.DigitalLocationID,
+		request.IsDigital,
+		request.IsWishlisted,
+	)
+
+	if err != nil {
+			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to create one-time purchase: %w", err)
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	sta.logger.Debug("CreateOneTimePurchase success", map[string]any{
+		"oneTimePurchase": newPurchase,
+	})
+
+	return newPurchase, nil
 }
