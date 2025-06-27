@@ -18,8 +18,6 @@ import { DrawerContainer } from '@/features/dashboard/components/templates/Drawe
 // Queries
 import { useGetSpendTrackingPageBFFResponse } from '@/core/api/queries/spendTracking.queries';
 
-// Mock data for the page
-import { spendTrackingPageMockData } from './SpendTrackingPage.mockdata';
 
 export function SpendTrackingPageContent() {
   const [addOneTimePurchaseOpen, setAddOneTimePurchaseOpen] = useState<boolean>(false);
@@ -52,29 +50,6 @@ export function SpendTrackingPageContent() {
   }
   /* RENDER LOGIC */
 
-  /* DEBUG - DELETE AFTER UI NORMALIZATION */
-  const showMockAccordion = false;
-  const renderAccordion = () => {
-    if (showMockAccordion) {
-      return (
-        <MonthlySpendingAccordion
-          thisMonth={spendTrackingPageMockData.currentTotalThisMonth}
-          future={spendTrackingPageMockData.recurringNextMonth}
-          oneTimeTotal={spendTrackingPageMockData.yearlyTotals?.oneTimeTotal}
-        />
-      )
-    } else {
-      return (
-        <MonthlySpendingAccordion
-          thisMonth={bffResponse!.currentTotalThisMonth}
-          future={bffResponse!.recurringNextMonth}
-          oneTimeTotal={bffResponse!.yearlyTotals?.oneTimeTotal}
-        />
-      )
-    }
-  };
-  /* DEBUG - DELETE AFTER UI NORMALIZATION */
-
   return (
     <PageMain>
       <PageHeadline>
@@ -102,9 +77,11 @@ export function SpendTrackingPageContent() {
       <PageGrid>
         <TotalMonthlySpendingCard totalMonthlySpending={bffResponse!.totalMonthlySpending} />
         <TotalAnnualSpendingCard totalAnnualSpending={bffResponse!.totalAnnualSpending} />
-
-        {renderAccordion()}
-
+        <MonthlySpendingAccordion
+          thisMonth={bffResponse!.currentTotalThisMonth}
+          future={bffResponse!.recurringNextMonth}
+          oneTimeTotal={bffResponse!.yearlyTotals?.oneTimeTotal}
+        />
       </PageGrid>
     </PageMain>
   );

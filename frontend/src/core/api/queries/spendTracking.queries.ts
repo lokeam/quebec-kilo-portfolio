@@ -45,8 +45,9 @@ export const spendTrackingKeys = {
 };
 
 interface SpendTrackingPageData {
-  currentMonthItems: SpendItem[];
-  nextMonthItems: SpendItem[];
+  currentTotalThisMonth: SpendingItemBFFResponse[];
+  oneTimeThisMonth: SpendingItemBFFResponse[];
+  recurringNextMonth: SpendingItemBFFResponse[];
   yearlyTotals: SingleYearlyTotalBFFResponse[];
 }
 
@@ -94,13 +95,18 @@ export const useCreateSpendItem = () => {
   return useMutation({
     mutationFn: (data: CreateOneTimePurchaseRequest) => createOneTimePurchase(data), // ← CHANGE THIS LINE
     onSuccess: (data) => {
-      console.log('�� DEBUG: useCreateSpendItem onSuccess:', {
+      console.log(' DEBUG: useCreateSpendItem onSuccess:', {
         data,
         queryKey: spendTrackingKeys.lists(),
         currentCache: queryClient.getQueryData(spendTrackingKeys.lists())
       });
+
+      // Force refetch to get fresh data from server
       queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });
       queryClient.invalidateQueries({ queryKey: dashboardKeys.bff() });
+
+      // Explicitly refetch to ensure fresh data
+      queryClient.refetchQueries({ queryKey: spendTrackingKeys.lists() });
 
       showToast({
         message: TOAST_SUCCESS_MESSAGES.SPEND_TRACKING.ADD_ITEM,
@@ -110,36 +116,13 @@ export const useCreateSpendItem = () => {
     },
     onMutate: async (newItem) => {
       // Cancel any outgoing refetches
+      console.log('[DEBUG] useCreateSpendItem onMutate: New item:', newItem);
       await queryClient.cancelQueries({ queryKey: spendTrackingKeys.lists() });
 
       // Snapshot the previous value
       const previousItems = queryClient.getQueryData<SpendTrackingPageData>(spendTrackingKeys.lists());
 
-      // Create a temporary ID for the new item
-      const tempItem: SpendingItemBFFResponse = {
-        id: 'temp-' + Date.now(),
-        title: newItem.title,
-        amount: newItem.amount,
-        spendTransactionType: 'one_time_purchase' as TransactionType,
-        mediaType: 'misc' as MediaCategory, // Default to misc for new items
-        paymentMethod: newItem.payment_method,
-        isActive: true,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        purchaseDate: new Date(newItem.purchase_date).getTime(),
-        isDigital: newItem.is_digital || false,
-        isWishlisted: newItem.is_wishlisted || false
-      };
-
-      // Optimistically update the cache
-      queryClient.setQueryData<SpendTrackingPageData>(spendTrackingKeys.lists(), (old) => {
-        if (!old) return { currentMonthItems: [tempItem], nextMonthItems: [], yearlyTotals: [] };
-        return {
-          ...old,
-          currentMonthItems: [...old.currentMonthItems, tempItem]
-        };
-      });
-
+      // Don't optimistically update - let the server response drive the UI
       return { previousItems };
     },
     onError: (error) => {
@@ -150,10 +133,6 @@ export const useCreateSpendItem = () => {
         duration: TOAST_DURATIONS.EXTENDED,
       });
     },
-    onSettled: () => {
-      // Always refetch after error or success
-      queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });
-    }
   });
 };
 

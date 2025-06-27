@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import type { CreateOneTimePurchaseRequest } from '@/types/domain/spend-tracking
 import { Button } from "@/shared/components/ui/button"
 import { Calendar } from '@/shared/components/ui/calendar';
 import { Input } from "@/shared/components/ui/input"
-import { Checkbox } from "@/shared/components/ui/checkbox"
+//import { Checkbox } from "@/shared/components/ui/checkbox"
 import {
   FormControl,
   FormDescription,
@@ -58,7 +58,6 @@ export const SpendTrackingFormSchema = z.object({
   payment_method: z.string().min(1, "Payment method is required"),
   purchase_date: z.date(),
   digital_location_id: z.string().optional(),
-  is_wishlisted: z.boolean().default(false),
 });
 
 type FormValues = z.infer<typeof SpendTrackingFormSchema>;
@@ -102,7 +101,6 @@ export function SpendTrackingForm({
     amount: 0,
     payment_method: '',
     purchase_date: new Date(),
-    is_wishlisted: false,
   },
   spendTrackingData,
   isEditing = false,
@@ -120,7 +118,6 @@ export function SpendTrackingForm({
     payment_method: spendTrackingData.payment_method,
     purchase_date: spendTrackingData.purchase_date || new Date(),
     digital_location_id: spendTrackingData.digital_location_id,
-    is_wishlisted: spendTrackingData.is_wishlisted || false,
   } : defaultValues;
 
   const form = useForm<FormValues>({
@@ -139,7 +136,24 @@ export function SpendTrackingForm({
   const selectedCategory = watch('spending_category_id');
   const isDigitalCategory = selectedCategory === 5; // Digital Game
 
+  // Debug form state changes
+  useEffect(() => {
+    console.log('[DEBUG] SpendTrackingForm: Form state changed');
+    console.log('[DEBUG] SpendTrackingForm: Current errors:', errors);
+    console.log('[DEBUG] SpendTrackingForm: Form is valid:', form.formState.isValid);
+    console.log('[DEBUG] SpendTrackingForm: Form values:', form.getValues());
+  }, [errors, form.formState.isValid, form]);
+
   const onSubmit = useCallback((data: FormValues) => {
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Form data received:', data);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Current form errors:', form.formState.errors);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Form is valid:', form.formState.isValid);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Form is dirty:', form.formState.isDirty);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: All form values:', form.getValues());
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Amount field value:', form.getValues('amount'));
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Purchase date field value:', form.getValues('purchase_date'));
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Payment method field value:', form.getValues('payment_method'));
+
     const payload: CreateOneTimePurchaseRequest = {
       title: data.title,
       spending_category_id: data.spending_category_id,
@@ -147,17 +161,39 @@ export function SpendTrackingForm({
       payment_method: data.payment_method,
       purchase_date: data.purchase_date.toISOString(),
       digital_location_id: data.digital_location_id,
-      is_wishlisted: data.is_wishlisted,
+      is_wishlisted: false,
       is_digital: isDigitalCategory || !!data.digital_location_id,
     };
 
+    console.log('[DEBUG] SpendTrackingForm onSubmit: Payload being sent to service:', payload);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: isDigitalCategory:', isDigitalCategory);
+    console.log('[DEBUG] SpendTrackingForm onSubmit: digital_location_id:', data.digital_location_id);
+
     createMutation.mutate(payload, {
       onSuccess: () => {
+        console.log('[DEBUG] SpendTrackingForm onSubmit: Mutation succeeded');
         if (onClose) onClose();
         if (onSuccess) onSuccess(data);
+      },
+      onError: (error) => {
+        console.error('[DEBUG] SpendTrackingForm onSubmit: Mutation failed:', error);
       }
     });
-  }, [createMutation, isDigitalCategory, onSuccess, onClose]);
+  }, [createMutation, isDigitalCategory, onSuccess, onClose, form]);
+
+  // Debug when form is submitted but validation fails
+  const handleSubmitWithDebug = useCallback((data: FormValues) => {
+    console.log('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Called with data:', data);
+    console.log('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Form errors at submit:', form.formState.errors);
+
+    if (!form.formState.isValid) {
+      console.error('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Form is not valid!');
+      console.error('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Validation errors:', form.formState.errors);
+      return;
+    }
+
+    onSubmit(data);
+  }, [form, onSubmit]);
 
   const handleDelete = useCallback((id: string) => {
     if (onDelete) onDelete(id);
@@ -166,7 +202,7 @@ export function SpendTrackingForm({
 
   return (
     <HookFormProvider {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(handleSubmitWithDebug)} className="space-y-8">
         {/* Title */}
         <FormField
           control={control}
@@ -366,26 +402,6 @@ export function SpendTrackingForm({
         />
 
         {/* Wishlist Checkbox */}
-        <FormField
-          control={form.control}
-          name="is_wishlisted"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Add to wishlist</FormLabel>
-                <FormDescription>
-                  Mark this as a wishlist item for future reference.
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
 
         {/* Form actions */}
         <div className="flex justify-between w-full mt-6">

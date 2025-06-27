@@ -12,6 +12,14 @@ type LibraryCacheAdapter struct {
 	cacheWrapper interfaces.CacheWrapper
 }
 
+// Constants for cache keys
+const (
+	libraryCacheKey = "library:%s"
+	libraryGameCacheKey = "library:%s:game:%d"
+	libraryBFFCacheKey = "library:bff:%s"
+)
+
+
 func NewLibraryCacheAdapter(
 	cacheWrapper interfaces.CacheWrapper,
 ) (interfaces.LibraryCacheWrapper, error) {
@@ -30,7 +38,7 @@ func (lca *LibraryCacheAdapter) GetCachedLibraryItems(
 	ctx context.Context,
 	userID string,
 ) ([]types.LibraryGameDBResult, []types.LibraryGamePhysicalLocationDBResponse, []types.LibraryGameDigitalLocationDBResponse, error) {
-	cacheKey := fmt.Sprintf("library:%s", userID)
+	cacheKey := fmt.Sprintf(libraryCacheKey, userID)
 
 	var items cachedLibraryItems
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &items)
@@ -52,7 +60,7 @@ func (lca *LibraryCacheAdapter) SetCachedLibraryItems(
 	physicalLocations []types.LibraryGamePhysicalLocationDBResponse,
 	digitalLocations []types.LibraryGameDigitalLocationDBResponse,
 ) error {
-	cacheKey := fmt.Sprintf("library:%s", userID)
+	cacheKey := fmt.Sprintf(libraryCacheKey, userID)
 
 	items := cachedLibraryItems{
 		Games:             games,
@@ -72,7 +80,7 @@ func (lca *LibraryCacheAdapter) GetCachedGame(
 	userID string,
 	gameID int64,
 ) (types.LibraryGameItemBFFResponseFINAL, bool, error) {
-	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
+	cacheKey := fmt.Sprintf(libraryGameCacheKey, userID, gameID)
 
 	var item cachedGame
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &item)
@@ -92,7 +100,7 @@ func (lca *LibraryCacheAdapter) SetCachedGame(
 	userID string,
 	game types.LibraryGameItemBFFResponseFINAL,
 ) error {
-	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, game.ID)
+	cacheKey := fmt.Sprintf(libraryGameCacheKey, userID, game.ID)
 
 	item := cachedGame{
 		Game: game,
@@ -106,7 +114,7 @@ func (lca *LibraryCacheAdapter) GetCachedLibraryItemsBFF(
 	ctx context.Context,
 	userID string,
 ) (types.LibraryBFFResponseFINAL, error) {
-	cacheKey := fmt.Sprintf("library:bff:%s", userID)
+	cacheKey := fmt.Sprintf(libraryBFFCacheKey, userID)
 
 	var response types.LibraryBFFResponseFINAL
 	cacheHit, err := lca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
@@ -127,7 +135,7 @@ func (lca *LibraryCacheAdapter) SetCachedLibraryItemsBFF(
 	userID string,
 	response types.LibraryBFFResponseFINAL,
 ) error {
-	cacheKey := fmt.Sprintf("library:bff:%s", userID)
+	cacheKey := fmt.Sprintf(libraryBFFCacheKey, userID)
 	return lca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
 }
 
@@ -137,13 +145,13 @@ func (lca *LibraryCacheAdapter) InvalidateUserCache(
 	userID string,
 ) error {
 	// Invalidate regular library cache
-	cacheKey := fmt.Sprintf("library:%s", userID)
+	cacheKey := fmt.Sprintf(libraryCacheKey, userID)
 	if err := lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey); err != nil {
 		return err
 	}
 
 	// Also invalidate BFF cache
-	bffCacheKey := fmt.Sprintf("library:bff:%s", userID)
+	bffCacheKey := fmt.Sprintf(libraryBFFCacheKey, userID)
 	return lca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey)
 }
 
@@ -153,6 +161,6 @@ func (lca *LibraryCacheAdapter) InvalidateGameCache(
 	userID string,
 	gameID int64,
 ) error {
-	cacheKey := fmt.Sprintf("library:%s:game:%d", userID, gameID)
+	cacheKey := fmt.Sprintf(libraryGameCacheKey, userID, gameID)
 	return lca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }

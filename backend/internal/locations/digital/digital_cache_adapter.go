@@ -13,6 +13,16 @@ type DigitalCacheAdapter struct {
 	cacheWrapper interfaces.CacheWrapper
 }
 
+// Constants for cache keys
+const (
+	digitalLocationsCacheKey = "digital:%s"
+	digitalLocationsBFFCacheKey = "digital:bff:%s"
+	digitalLocationsSingleLocationCacheKey = "digital:%s:location:%s"
+	digitalLocationsPaymentsCacheKey = "digital:payments:%s"
+	digitalLocationsSubscriptionCacheKey = "digital:subscription:%s"
+)
+
+
 func NewDigitalCacheAdapter(
 	cacheWrapper interfaces.CacheWrapper,
 ) (interfaces.DigitalCacheWrapper, error) {
@@ -25,7 +35,7 @@ func (dca *DigitalCacheAdapter) GetCachedDigitalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.DigitalLocation, error) {
-	cacheKey := fmt.Sprintf("digital:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsCacheKey, userID)
 
 	var locations []models.DigitalLocation
 	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &locations)
@@ -45,7 +55,7 @@ func (dca *DigitalCacheAdapter) SetCachedDigitalLocations(
 	userID string,
 	locations []models.DigitalLocation,
 ) error {
-	cacheKey := fmt.Sprintf("digital:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsCacheKey, userID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
 }
 
@@ -54,7 +64,7 @@ func (dca *DigitalCacheAdapter) GetSingleCachedDigitalLocation(
 	userID string,
 	locationID string,
 ) (*models.DigitalLocation, bool, error) {
-	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsSingleLocationCacheKey, userID, locationID)
 
 	var location models.DigitalLocation
 	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &location)
@@ -74,7 +84,7 @@ func (dca *DigitalCacheAdapter) SetSingleCachedDigitalLocation(
 	userID string,
 	location models.DigitalLocation,
 ) error {
-	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, location.ID)
+	cacheKey := fmt.Sprintf(digitalLocationsSingleLocationCacheKey, userID, location.ID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, location)
 }
 
@@ -83,13 +93,13 @@ func (dca *DigitalCacheAdapter) InvalidateUserCache(
 	userID string,
 ) error {
 	// Invalidate regular digital locations cache
-	cacheKey := fmt.Sprintf("digital:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsCacheKey, userID)
 	if err := dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil); err != nil {
 		return fmt.Errorf("failed to invalidate regular cache: %w", err)
 	}
 
 	// Also invalidate BFF cache to ensure consistency
-	bffCacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	bffCacheKey := fmt.Sprintf(digitalLocationsBFFCacheKey, userID)
 	if err := dca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey); err != nil {
 		return fmt.Errorf("failed to invalidate BFF cache: %w", err)
 	}
@@ -103,14 +113,14 @@ func (dca *DigitalCacheAdapter) InvalidateDigitalLocationCache(
 	locationID string,
 ) error {
 	// Invalidate the specific location cache
-	cacheKey := fmt.Sprintf("digital:%s:location:%s", userID, locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsSingleLocationCacheKey, userID, locationID)
 	if err := dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil); err != nil {
 		return fmt.Errorf("failed to invalidate cache for location %s (user: %s, key: %s): %w",
 			locationID, userID, cacheKey, err)
 	}
 
 	// Also invalidate the user's locations list to ensure consistency
-	userCacheKey := fmt.Sprintf("digital:%s", userID)
+	userCacheKey := fmt.Sprintf(digitalLocationsCacheKey, userID)
 	if err := dca.cacheWrapper.SetCachedResults(ctx, userCacheKey, nil); err != nil {
 		return fmt.Errorf("failed to invalidate user cache (user: %s, key: %s): %w",
 			userID, userCacheKey, err)
@@ -125,7 +135,7 @@ func (dca *DigitalCacheAdapter) GetCachedSubscription(
 	ctx context.Context,
 	locationID string,
 ) (*models.Subscription, bool, error) {
-	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsSubscriptionCacheKey, locationID)
 
 	var subscription models.Subscription
 	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &subscription)
@@ -145,7 +155,7 @@ func (dca *DigitalCacheAdapter) SetCachedSubscription(
 	locationID string,
 	subscription models.Subscription,
 ) error {
-	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsSubscriptionCacheKey, locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, subscription)
 }
 
@@ -153,7 +163,7 @@ func (dca *DigitalCacheAdapter) InvalidateSubscriptionCache(
 	ctx context.Context,
 	locationID string,
 ) error {
-	cacheKey := fmt.Sprintf("digital:subscription:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsSubscriptionCacheKey, locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
 }
 
@@ -161,7 +171,7 @@ func (dca *DigitalCacheAdapter) GetCachedPayments(
 	ctx context.Context,
 	locationID string,
 ) ([]models.Payment, error) {
-	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsPaymentsCacheKey, locationID)
 
 	var payments []models.Payment
 	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &payments)
@@ -181,7 +191,7 @@ func (dca *DigitalCacheAdapter) SetCachedPayments(
 	locationID string,
 	payments []models.Payment,
 ) error {
-	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsPaymentsCacheKey, locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, payments)
 }
 
@@ -189,7 +199,7 @@ func (dca *DigitalCacheAdapter) InvalidatePaymentsCache(
 	ctx context.Context,
 	locationID string,
 ) error {
-	cacheKey := fmt.Sprintf("digital:payments:%s", locationID)
+	cacheKey := fmt.Sprintf(digitalLocationsPaymentsCacheKey, locationID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, nil)
 }
 
@@ -199,7 +209,7 @@ func (dca *DigitalCacheAdapter) GetCachedDigitalLocationsBFF(
 	ctx context.Context,
 	userID string,
 ) (types.DigitalLocationsBFFResponse, error) {
-	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsBFFCacheKey, userID)
 
 	var response types.DigitalLocationsBFFResponse
 	cacheHit, err := dca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
@@ -222,7 +232,7 @@ func (dca *DigitalCacheAdapter) SetCachedDigitalLocationsBFF(
 	userID string,
 	response types.DigitalLocationsBFFResponse,
 ) error {
-	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsBFFCacheKey, userID)
 	return dca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
 }
 
@@ -230,6 +240,6 @@ func (dca *DigitalCacheAdapter) InvalidateDigitalLocationsBFFCache(
 	ctx context.Context,
 	userID string,
 ) error {
-	cacheKey := fmt.Sprintf("digital:bff:%s", userID)
+	cacheKey := fmt.Sprintf(digitalLocationsBFFCacheKey, userID)
 	return dca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }

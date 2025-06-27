@@ -98,18 +98,21 @@ export const getSpendTrackingItemById = (id: string): Promise<SpendingItemBFFRes
 /**
  * Creates a new spend item
  */
-export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendingItemBFFResponse> =>
-  apiRequest('createOneTimePurchase', () =>
-    axiosInstance
-      .post<SpendTrackingItemResponseWrapper>(SPEND_TRACKING_ENDPOINT, input)
-      .then(response => {
-        const item = response.data.spendTracking.item;
-        if (!item) {
-          throw new Error('Failed to create one-time purchase');
-        }
-        return item;
-      })
-  );
+export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendTrackingOperationResponse> =>
+  apiRequest('createSpendTrackingItem', async () => {
+    console.log('[DEBUG] createSpendTrackingItem: Making API request');
+    console.log('[DEBUG] createSpendTrackingItem: Request payload:', input);
+
+    const response = await axiosInstance.post<SpendTrackingOperationResponseWrapper>(SPEND_TRACKING_ENDPOINT, input);
+    console.log('[DEBUG] createSpendTrackingItem: Raw API response:', response.data);
+
+    if (!response.data.spendTracking) {
+      console.error('[DEBUG] createSpendTrackingItem: No spend tracking data in response:', response.data);
+    }
+
+    console.log('[DEBUG] createSpendTrackingItem: Successfully extracted spend tracking data:', response.data.spendTracking);
+    return response.data.spendTracking;
+  });
 
 /**
  * Updates an existing spend item

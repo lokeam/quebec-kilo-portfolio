@@ -56,7 +56,6 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
 
   const renderIcon = () => {
     // For subscriptions, use the digital location icon
-    console.log('renderIcon, item: ', item);
 
     if (item.mediaType === MediaCategory.SUBSCRIPTION) {
       return (

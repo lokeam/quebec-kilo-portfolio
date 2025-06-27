@@ -11,8 +11,6 @@ const camelCaseMediaTypeMap: Record<string, string> = {
 };
 
 const camelCaseMediaType = (snakeCaseMediaType: string): string => {
-  console.log("-----")
-  console.log(`Normalizing media type: ${snakeCaseMediaType}`);
   const normalizedStr = camelCaseMediaTypeMap[snakeCaseMediaType];
 
   if (!normalizedStr) {
