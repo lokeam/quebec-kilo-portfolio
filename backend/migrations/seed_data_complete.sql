@@ -337,7 +337,7 @@ INSERT INTO one_time_purchases (user_id, title, amount, purchase_date, payment_m
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 'Dark Souls: Remastered', 59.99, '2025-04-16 00:00:00', 'visa', 5, NULL, false, true, '2025-04-16 00:00:00', '2025-04-16 00:00:00'),
     -- June 2025
     ('9a4aeee6-fb31-4839-a921-f61b0525046d', 'Path of Exile', 10.00, '2025-06-16 00:00:00', 'paypal', 3, '5ab530cb-fdd2-4281-aa90-cdb1abe63d02', true, false, '2025-06-16 00:00:00', '2025-06-16 00:00:00'),
-    ('9a4aeee6-fb31-4839-a921-f61b0525046d', 'Elden Ring: Nightreign', 49.00, '2025-06-16 00:00:00', 'paypal', 6, '5ab530cb-fdd2-4281-aa90-cdb1abe63d02', true, false, '2025-06-16 00:00:00', '2025-06-16 00:00:00');
+    ('9a4aeee6-fb31-4839-a921-f61b0525046d', 'Elden Ring: Nightreign', 49.00, '2025-06-16 00:00:00', 'paypal', 5, '5ab530cb-fdd2-4281-aa90-cdb1abe63d02', true, false, '2025-06-16 00:00:00', '2025-06-16 00:00:00');
 
 -- 13. WISHLIST (5 records)
 -- ------------------------

@@ -106,30 +106,45 @@ const (
 
   // Get all digital locations with details
   getDigitalLocationsQuery = `
+  SELECT
+    dl.name,
+    dl.url,
+    COALESCE(dls.billing_cycle, '') AS billing_cycle,
+    COALESCE(dls.cost_per_cycle, 0) AS monthly_fee,
+    COALESCE(stored_games.count, 0) AS stored_items,
+    dl.is_subscription,
+    dls.next_payment_date
+  FROM digital_locations dl
+  LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
+  LEFT JOIN (
     SELECT
-      dl.name,
-      dl.url,
-      COALESCE(dls.billing_cycle, '') AS billing_cycle,
-      COALESCE(dls.cost_per_cycle, 0) AS monthly_fee,
-      COUNT(dgl.id) AS stored_items,
-      dl.is_subscription,
-      dls.next_payment_date
-    FROM digital_locations dl
-    LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
-    LEFT JOIN digital_game_locations dgl ON dl.id = dgl.digital_location_id
-    LEFT JOIN user_games ug ON dgl.user_game_id = ug.id AND ug.user_id = $1
-    WHERE dl.user_id = $1
-    GROUP BY dl.id, dl.name, dl.url, dls.billing_cycle, dls.cost_per_cycle, dl.is_subscription, dls.next_payment_date
-  `
+      dgl.digital_location_id,
+      COUNT(*) as count
+    FROM digital_game_locations dgl
+    JOIN user_games ug ON dgl.user_game_id = ug.id
+    WHERE ug.user_id = $1
+    GROUP BY dgl.digital_location_id
+  ) stored_games ON dl.id = stored_games.digital_location_id
+  WHERE dl.user_id = $1
+`
 
   // Get all sublocations with parent location details
   getSublocationsQuery = `
-      SELECT s.id AS sublocation_id, s.name AS sublocation_name, s.location_type AS sublocation_type,
-             s.stored_items, pl.id AS parent_location_id, pl.name AS parent_location_name,
-             pl.location_type AS parent_location_type, pl.bg_color AS parent_location_bg_color
-      FROM sublocations s
-      JOIN physical_locations pl ON s.physical_location_id = pl.id
-      WHERE s.user_id = $1
+    SELECT s.id AS sublocation_id, s.name AS sublocation_name, s.location_type AS sublocation_type,
+           COALESCE(stored_games.count, 0) AS stored_items, pl.id AS parent_location_id, pl.name AS parent_location_name,
+           pl.location_type AS parent_location_type, pl.bg_color AS parent_location_bg_color
+    FROM sublocations s
+    JOIN physical_locations pl ON s.physical_location_id = pl.id
+    LEFT JOIN (
+      SELECT
+        pgl.sublocation_id,
+        COUNT(*) as count
+      FROM physical_game_locations pgl
+      JOIN user_games ug ON pgl.user_game_id = ug.id
+      WHERE ug.user_id = $1
+      GROUP BY pgl.sublocation_id
+    ) stored_games ON s.id = stored_games.sublocation_id
+    WHERE s.user_id = $1
   `
 
   // Get platform distribution
@@ -201,6 +216,7 @@ func (dda *DashboardDbAdapter) transformDigitalLocationDBToResponse(
     BillingCycle: db.BillingCycle,
     MonthlyFee: db.MonthlyFee,
     RenewsNextMonth: renewsNextMonth,
+    StoredItems: db.StoredItems,
   }
 }
 
@@ -487,7 +503,7 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
     "calculatedSubscriptionCosts": calculatedSubscriptionCosts,
   })
 
-  // 7. Transformation - THIS NEEDS TO BE ADJUSTED ACCORDING TO ITEMS 1-6 AND THE TRANSFORMATION HELPER FNS.
+  // Transformations
   gameStats := dda.transformGameStatsDBToResponse(gameStatsDB)
   subscriptionStats := dda.transformGameStatsDBToResponse(subscriptionStatsDB)
   // Override the value with the calculated current month subscription cost
