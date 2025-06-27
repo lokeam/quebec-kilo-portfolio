@@ -74,6 +74,31 @@ export interface SpendingItemBFFResponse {
   yearlySpending?: SingleYearlyTotalBFFResponse[];
 }
 
+export interface TransformedSpendingItemBFFResponse {
+  id: string;
+  title: string;
+  amount: string;
+  spendTransactionType: TransactionType;
+  mediaType: MediaCategory;
+  paymentMethod: string;
+  serviceName?: {
+    id: string;
+    displayName: string;
+  };
+  provider?: string;
+  isActive: boolean;
+  createdAt: number;
+  updatedAt: number;
+
+  // Optional fields based on transaction type
+  billingCycle?: BillingCycle;
+  nextBillingDate?: number;
+  purchaseDate?: number;
+  isDigital?: boolean;
+  isWishlisted?: boolean;
+  yearlySpending?: SingleYearlyTotalBFFResponse[];
+}
+
 // original name: YearlySpending
 // Linked to SingleYearlyTotalBFFResponse in spend_tracking_response_types.go
 export interface SingleYearlyTotalBFFResponse {
@@ -119,6 +144,17 @@ export interface AllYearlyTotalsBFFResponse {
 }
 
 export interface SpendTrackingBFFResponse {
+  totalMonthlySpending: MonthlySpendingBFFResponse;
+  totalAnnualSpending: AnnualSpendingBFFResponse;
+  currentTotalThisMonth: SpendingItemBFFResponse[];
+  oneTimeThisMonth: SpendingItemBFFResponse[];
+  recurringNextMonth: SpendingItemBFFResponse[];
+  yearlyTotals: AllYearlyTotalsBFFResponse;
+};
+
+
+// Transformed response types
+export interface TransformedSpendTrackingBFFResponse {
   totalMonthlySpending: MonthlySpendingBFFResponse;
   totalAnnualSpending: AnnualSpendingBFFResponse;
   currentTotalThisMonth: SpendingItemBFFResponse[];

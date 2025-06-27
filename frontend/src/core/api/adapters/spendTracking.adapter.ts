@@ -1,6 +1,6 @@
 import type { SpendTrackingBFFResponse, MediaCategory } from "@/types/domain/spend-tracking";
 
-const mediaTypeMap: Record<string, string> = {
+const camelCaseMediaTypeMap: Record<string, string> = {
   'in_game_purchase': 'inGamePurchase',
   'physical_game': 'physicalGame',
   'digital_game': 'digitalGame',
@@ -10,10 +10,10 @@ const mediaTypeMap: Record<string, string> = {
   'subscription': 'subscription'
 };
 
-const normalizeMediaType = (snakeCaseMediaType: string): string => {
+const camelCaseMediaType = (snakeCaseMediaType: string): string => {
   console.log("-----")
   console.log(`Normalizing media type: ${snakeCaseMediaType}`);
-  const normalizedStr = mediaTypeMap[snakeCaseMediaType];
+  const normalizedStr = camelCaseMediaTypeMap[snakeCaseMediaType];
 
   if (!normalizedStr) {
     console.warn(`Unknown media type: ${snakeCaseMediaType}, defaulting to misc`);
@@ -29,8 +29,12 @@ export const spendTrackingAdapter = {
       ...response,
       currentTotalThisMonth: response.currentTotalThisMonth.map(item => ({
         ...item,
-        mediaType: normalizeMediaType(item.mediaType) as MediaCategory
-      }))
+        mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
+      })),
+      totalMonthlySpending: {
+        ...response.totalMonthlySpending,
+        percentageChange: Math.round(response.totalMonthlySpending.percentageChange * 10) / 10
+      }
     };
   }
 }

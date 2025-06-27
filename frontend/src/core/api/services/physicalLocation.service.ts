@@ -66,7 +66,7 @@ const SUBLOCATION_CRUD_ENDPOINT = '/v1/locations/sublocations';
 // Physical Location Operations
 
 /**
- * Fetches all physical locations for the current user
+ * Fetches all physical locations for the current user on physical location page
  */
 export const getPhysicalLocationsBFFResponse = (): Promise<LocationsBFFResponse> =>
   apiRequest('getPhysicalLocationsBFFResponse', async () => {

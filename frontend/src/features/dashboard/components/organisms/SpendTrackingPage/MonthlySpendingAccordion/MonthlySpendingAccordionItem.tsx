@@ -7,6 +7,7 @@ import { MemoizedDashboardBadge } from '@/features/dashboard/components/molecule
 import { useFormattedDate } from '@/features/dashboard/lib/hooks/useFormattedDate';
 import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
 
 // Types
 import type { SpendItem } from '@/types/domain/spend-tracking';
@@ -113,7 +114,7 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
             {item.mediaType}
           </MemoizedDashboardBadge>
         )}
-        <span className="text-slate-200 w-24 text-right">${item.amount}</span>
+        <span className="text-slate-200 w-24 text-right">{formatCurrency(item.amount)}</span>
       </div>
     </div>
   );

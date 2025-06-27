@@ -9,7 +9,7 @@ import { SinglePhysicalLocationCard } from '@/features/dashboard/components/orga
 import { SingleSublocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SingleSublocationCard/SingleSublocationCard';
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
 import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
-import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/MediaStoragePage/PhysicalLocationForm/PhysicalLocationForm';
+import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsForm/PhysicalLocationsForm';
 import { SublocationForm } from '@/features/dashboard/components/organisms/SublocationForm/SublocationForm';
 
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';

@@ -6,9 +6,14 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAPIQuery } from './useAPIQuery';
-import { digitalLocationService } from '../services/digitalLocation.service';
+import {
+  getAllDigitalLocationsBFFResponse,
+  getSingleDigitalLocation,
+  createDigitalLocation,
+  updateDigitalLocation,
+  deleteDigitalLocation,
+} from '@/core/api/services/digitalLocation.service';
 import type { DigitalLocation, CreateDigitalLocationRequest } from '@/types/domain/digital-location';
-import type { OnlineService } from '@/types/domain/online-service';
 import { adaptDigitalLocationToService } from '../adapters/digitalLocation.adapter';
 import { logger } from '@/core/utils/logger/logger';
 import { AxiosError } from 'axios';
@@ -28,12 +33,12 @@ export const digitalLocationKeys = {
 };
 
 /**
- * Hook to fetch all digital locations
+ * Hook to fetch all digital locations -- NOTE: CHANGE THIS TO BFF
  */
 export const useDigitalLocations = () => {
   return useAPIQuery<DigitalLocation[]>({
     queryKey: digitalLocationKeys.lists(),
-    queryFn: () => digitalLocationService.getAllLocations(),
+    queryFn: () => getAllDigitalLocations(),
   });
 };
 
@@ -98,7 +103,7 @@ export const useDeleteDigitalLocation = () => {
  * Hook to fetch all digital locations as online services
  */
 export const useOnlineServices = () => {
-  return useAPIQuery<OnlineService[]>({
+  return useAPIQuery<DigitalLocation[]>({
     queryKey: digitalLocationKeys.lists(),
     queryFn: async () => {
       const locations = await digitalLocationService.getAllLocations();
@@ -111,7 +116,7 @@ export const useOnlineServices = () => {
  * Hook to fetch a single online service by ID
  */
 export const useOnlineService = (id: string) => {
-  return useAPIQuery<OnlineService>({
+  return useAPIQuery<DigitalLocation>({
     queryKey: digitalLocationKeys.detail(id),
     queryFn: async () => {
       const location = await digitalLocationService.getLocationById(id);

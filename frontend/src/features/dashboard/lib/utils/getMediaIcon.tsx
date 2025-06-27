@@ -2,13 +2,12 @@ import { memo } from 'react';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { IconCloudDataConnection, IconDeviceGamepad2, IconPackage, IconDisc, IconCpu2, IconSparkles } from '@tabler/icons-react';
 import { normalizeDigitalLocationName } from '../constants/digital-location-logos';
-import { MediaCategory } from '@/types/domain/spend-tracking';
 
 interface MediaIconProps {
   /** The name of the service or media (e.g., 'steam', 'epic', 'gog') */
   name?: string;
   /** The type of media (e.g., 'subscription', 'dlc', 'hardware') */
-  mediaType?: MediaCategory;
+  mediaType?: string;
   /** Optional className for styling the icon */
   className?: string;
 }
@@ -44,18 +43,26 @@ export const MediaIcon = memo(function MediaIcon({
   // If no service icon, try to get icon from media type
   if (mediaType) {
     switch (mediaType) {
-      case MediaCategory.SUBSCRIPTION:
+      case 'subscription':
         return <IconCloudDataConnection className={className} />;
-      case MediaCategory.DLC:
+      case 'dlc':
         return <IconDeviceGamepad2 className={className} />;
-      case MediaCategory.IN_GAME_PURCHASE:
+      case 'inGamePurchase':
         return <IconSparkles className={className} />;
-      case MediaCategory.MISC:
-        return <IconPackage className={className} />;
-      case MediaCategory.PHYSICAL:
+      case 'in_game_purchase':
+        return <IconSparkles className={className} />;
+      case 'digital_game':
+        return <IconDeviceGamepad2 className={className} />;
+      case 'digitalGame':
+        return <IconDeviceGamepad2 className={className} />;
+      case 'physical_game':
         return <IconDisc className={className} />;
-      case MediaCategory.HARDWARE:
+      case 'physicalGame':
+        return <IconDisc className={className} />;
+      case 'hardware':
         return <IconCpu2 className={className} />;
+        case 'misc':
+          return <IconPackage className={className} />;
       default:
         return <IconPackage className={className} />;
     }

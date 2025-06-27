@@ -1,3 +1,4 @@
+import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
 import { Fragment, memo } from 'react';
 
 interface YearlySpendingData {
@@ -23,7 +24,7 @@ export const SpendingItemYearGrid = memo(function SpendingItemYearGrid({
       ))}
       {data.map((yearData) => (
         <Fragment key={yearData.year}>
-          <div className="font-semibold">${yearData.amount}</div>
+          <div className="font-semibold">{formatCurrency(yearData.amount)}</div>
         </Fragment>
       ))}
     </div>

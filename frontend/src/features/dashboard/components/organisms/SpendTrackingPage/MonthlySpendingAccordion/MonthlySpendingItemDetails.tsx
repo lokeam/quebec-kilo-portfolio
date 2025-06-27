@@ -13,6 +13,7 @@ import { useFormattedDate } from '@/features/dashboard/lib/hooks/useFormattedDat
 import { useSpendingData } from '@/features/dashboard/lib/hooks/useSpendingData';
 import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
+import { normalizeOneTimePurchaseMediaType } from '@/features/dashboard/lib/utils/normalizeOneTimePurchaseMediaType';
 
 // Types
 import type { SpendingItemBFFResponse, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
@@ -20,6 +21,7 @@ import { MediaCategory } from '@/types/domain/spend-tracking';
 
 // Icons
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
 //import { CreditCard } from 'lucide-react';
 
 interface MonthlySpendingItemDetailsProps {
@@ -53,6 +55,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
     }
 
     // For other media types, use the media icon
+    console.log('monthly spending item details, item.mediaType: ', item.mediaType);
     return (
       <MediaIcon
         mediaType={item.mediaType}
@@ -72,7 +75,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
                 className="bg-purple-900/50 text-purple-300 border-purple-700 w-auto"
                 data-testid="media-type-badge"
               >
-                {item.mediaType}
+                {normalizeOneTimePurchaseMediaType(item.mediaType)}
               </MemoizedDashboardBadge>
             </div>
 
@@ -125,7 +128,6 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
           <h3 className="text-lg font-semibold mb-4">Payment method</h3>
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              {/* <CreditCard className="w-6 h-6 text-gray-400" /> */}
               <PaymentIcon
                 type={item.paymentMethod as PaymentMethodType}
                 format="flatRounded"
@@ -133,12 +135,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
             </div>
             <div>
               <div className="font-semibold">{item.paymentMethod}</div>
-              <div className="text-sm text-gray-400">
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD'
-                }).format(Number(item.amount))}
-              </div>
+              <div className="text-sm text-gray-400">{formatCurrency(item.amount)}</div>
             </div>
           </div>
         </div>

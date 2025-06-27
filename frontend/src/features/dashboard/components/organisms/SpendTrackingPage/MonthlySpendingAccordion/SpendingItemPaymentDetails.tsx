@@ -1,4 +1,6 @@
 import { memo } from "react";
+import { formatCurrency } from "@/features/dashboard/lib/utils/formatCurrency";
+
 
 // Type safety improvements
 interface SpendingItemPaymentDetailsProps {
@@ -12,15 +14,14 @@ export const SpendingItemPaymentDetails = memo(function SpendingItemPaymentDetai
   date,
   isSubscription = false,
 }: SpendingItemPaymentDetailsProps) {
+
   return (
     <div className="text-right">
-      <div className="text-sm text-gray-400">{isSubscription ? "NEXT PAYMENT" : "PURCHASE DATE"}</div>
-      <div className="text-2xl font-bold">${amount}</div>
-      {isSubscription && (
+      <div className="text-sm text-gray-400">{isSubscription ? "NEXT PAYMENT" : "AMOUNT"}</div>
+      <div className="text-2xl font-bold">{formatCurrency(amount)}</div>
         <div className="text-sm text-gray-400">
-          <span>Due <span className="font-bold text-white ml-1">{date}</span></span>
+          <span>{isSubscription ? "Due" : "Payment Date"}<span className="font-bold text-white ml-1">{date}</span></span>
         </div>
-      )}
     </div>
   );
 });
