@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -598,11 +597,6 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 		return models.PhysicalLocation{}, fmt.Errorf("error checking for existing location: %w", err)
 	}
 
-	// Generate a new UUID if ID is not provided
-	if location.ID == "" {
-		location.ID = uuid.New().String()
-	}
-
 	// Set the user ID and timestamps
 	location.UserID = userID
 	now := time.Now()
@@ -611,7 +605,9 @@ func (pa *PhysicalDbAdapter) CreatePhysicalLocation(ctx context.Context, userID 
 
 	var newLocation models.PhysicalLocation
 	var rawCoords string
-	err = tx.QueryRowContext(ctx, createPhysicalLocationQuery,
+	err = tx.QueryRowContext(
+		ctx,
+		createPhysicalLocationQuery,
 		location.ID,
 		userID,
 		location.Name,

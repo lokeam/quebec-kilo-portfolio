@@ -259,14 +259,6 @@ func (sa *SublocationDbAdapter) CreateSublocation(ctx context.Context, userID st
 		"sublocation": sublocation,
 	})
 
-	// Generate a new UUID if ID is not provided
-	if sublocation.ID == "" {
-		sublocation.ID = uuid.New().String()
-	}
-
-	// Set the user ID
-	sublocation.UserID = userID
-
 	// Set timestamps
 	now := time.Now()
 	sublocation.CreatedAt = now
