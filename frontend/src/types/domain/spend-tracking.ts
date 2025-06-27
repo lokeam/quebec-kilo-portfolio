@@ -30,6 +30,23 @@ export enum BillingCycle {
   ANNUAL = 'annual'
 }
 
+/**
+ * Types used for write operations originating from the Spend Tracking Page
+ *
+ * Request type for creating a new one time purchase
+ */
+export interface CreateOneTimePurchaseRequest {
+  title: string;
+  amount: number;
+  spending_category_id: number;
+  payment_method: string;
+  purchase_date: string;
+  digital_location_id?: string;
+  is_wishlisted?: boolean;
+  is_digital?: boolean;
+}
+
+
 // Core Types
 // original name: SpendingItem
 export interface SpendingItemBFFResponse {

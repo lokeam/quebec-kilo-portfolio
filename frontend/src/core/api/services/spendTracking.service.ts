@@ -9,6 +9,7 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // Types
 import type {
+  CreateOneTimePurchaseRequest,
   SpendingItemBFFResponse,
   SpendTrackingBFFResponse
 } from '@/types/domain/spend-tracking';
@@ -97,14 +98,14 @@ export const getSpendTrackingItemById = (id: string): Promise<SpendingItemBFFRes
 /**
  * Creates a new spend item
  */
-export const createSpendTrackingItem = (data: Omit<SpendingItemBFFResponse, 'id'>): Promise<SpendTrackingOperationResponse> =>
-  apiRequest('createSpendItem', () =>
+export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendingItemBFFResponse> =>
+  apiRequest('createOneTimePurchase', () =>
     axiosInstance
-      .post<SpendTrackingOperationResponseWrapper>(SPEND_TRACKING_ENDPOINT, data)
+      .post<SpendTrackingItemResponseWrapper>(SPEND_TRACKING_ENDPOINT, input)
       .then(response => {
-        const item = response.data.spendTracking;
+        const item = response.data.spendTracking.item;
         if (!item) {
-          throw new Error('Failed to create spend item');
+          throw new Error('Failed to create one-time purchase');
         }
         return item;
       })
@@ -113,7 +114,7 @@ export const createSpendTrackingItem = (data: Omit<SpendingItemBFFResponse, 'id'
 /**
  * Updates an existing spend item
  */
-export const updateSpendTrackingItem = (id: string, data: Partial<SpendingItemBFFResponse>): Promise<SpendTrackingOperationResponse> =>
+export const updateSpendTrackingItem = (id: string, data: Partial<CreateOneTimePurchaseRequest>): Promise<SpendTrackingOperationResponse> =>
   apiRequest(`updateSpendItem(${id})`, () =>
     axiosInstance
       .put<SpendTrackingOperationResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`, data)

@@ -17,7 +17,7 @@ import { cn } from '@/shared/components/ui/utils';
 import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosition';
 
 // Icons
-import { Building2 } from 'lucide-react';
+import { Building2, CircleDollarSign } from 'lucide-react';
 import { IconCloudDataConnection } from '@tabler/icons-react';
 
 /**
@@ -90,7 +90,7 @@ interface DrawerContainerProps {
   drawerPosition?: 'right' | 'bottom' | 'left' | 'top';
   mobilePosition?: 'bottom' | 'top';
   desktopBreakpoint?: string;
-  triggerBtnIcon?: 'location' | 'digital';
+  triggerBtnIcon?: 'location' | 'digital' | 'spend';
   onTriggerClick?: () => void;
 }
 
@@ -197,6 +197,7 @@ export function DrawerContainer({
           >
             {triggerBtnIcon === 'location' && <Building2 />}
             {triggerBtnIcon === 'digital' && <IconCloudDataConnection />}
+            {triggerBtnIcon === 'spend' && <CircleDollarSign />}
             {triggerAddLocation}
           </Button>
         </DrawerTrigger>

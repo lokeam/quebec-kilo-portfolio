@@ -4,10 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 // Base query hook
 import { useAPIQuery } from '@/core/api/queries/useAPIQuery';
 
+// Adapters
+import { spendTrackingAdapter } from '@/core/api/adapters/spendTracking.adapter';
+
 // Service Layer methods
 import {
   getSpendTrackingItemById,
-  createSpendTrackingItem,
+  createOneTimePurchase,
   updateSpendTrackingItem,
   deleteSpendTrackingItem,
   getSpendTrackingPageBFFResponse,
@@ -17,12 +20,21 @@ import {
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Types
-import type { SpendItem, SingleYearlyTotalBFFResponse, SpendTrackingBFFResponse } from '@/types/domain/spend-tracking';
+import type {
+  CreateOneTimePurchaseRequest,
+  SpendItem,
+  SingleYearlyTotalBFFResponse,
+  SpendTrackingBFFResponse,
+  MediaCategory,
+  TransactionType,
+  SpendingItemBFFResponse,
+} from '@/types/domain/spend-tracking';
 
 // Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
 import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
+import { dashboardKeys } from './dashboard.queries';
 
 export const spendTrackingKeys = {
   all: ['spend-tracking'] as const,
@@ -47,7 +59,8 @@ export const useGetSpendTrackingPageBFFResponse = () => {
     queryFn: async () => {
       try {
         const response = await getSpendTrackingPageBFFResponse();
-        return response;
+
+        return spendTrackingAdapter.transformSpendTrackingResponse(response);
       } catch(error) {
         console.error('[DEBUG] useGetSpendTrackingPageBFFResponse: Error fetching data:', error);
         throw error;
@@ -79,14 +92,15 @@ export const useCreateSpendItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Omit<SpendItem, 'id'>) => createSpendTrackingItem(data),
+    mutationFn: (data: CreateOneTimePurchaseRequest) => createOneTimePurchase(data), // ← CHANGE THIS LINE
     onSuccess: (data) => {
-      console.log('🔍 DEBUG: useCreateSpendItem onSuccess:', {
+      console.log('�� DEBUG: useCreateSpendItem onSuccess:', {
         data,
         queryKey: spendTrackingKeys.lists(),
         currentCache: queryClient.getQueryData(spendTrackingKeys.lists())
       });
       queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.bff() });
 
       showToast({
         message: TOAST_SUCCESS_MESSAGES.SPEND_TRACKING.ADD_ITEM,
@@ -102,9 +116,19 @@ export const useCreateSpendItem = () => {
       const previousItems = queryClient.getQueryData<SpendTrackingPageData>(spendTrackingKeys.lists());
 
       // Create a temporary ID for the new item
-      const tempItem: SpendItem = {
-        ...newItem,
-        id: 'temp-' + Date.now()
+      const tempItem: SpendingItemBFFResponse = {
+        id: 'temp-' + Date.now(),
+        title: newItem.title,
+        amount: newItem.amount,
+        spendTransactionType: 'one_time_purchase' as TransactionType,
+        mediaType: 'misc' as MediaCategory, // Default to misc for new items
+        paymentMethod: newItem.payment_method,
+        isActive: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        purchaseDate: new Date(newItem.purchase_date).getTime(),
+        isDigital: newItem.is_digital || false,
+        isWishlisted: newItem.is_wishlisted || false
       };
 
       // Optimistically update the cache

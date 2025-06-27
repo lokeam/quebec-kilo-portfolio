@@ -55,9 +55,9 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
 
   const renderIcon = () => {
     // For subscriptions, use the digital location icon
-    if (item.mediaType === MediaCategory.SUBSCRIPTION) {
-      // console.log(`renderIcon, subscription,: `, item);
+    console.log('renderIcon, item: ', item);
 
+    if (item.mediaType === MediaCategory.SUBSCRIPTION) {
       return (
         <DigitalLocationIcon
           name={item?.provider ?? ''}

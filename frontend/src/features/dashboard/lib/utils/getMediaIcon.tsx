@@ -50,7 +50,8 @@ export const MediaIcon = memo(function MediaIcon({
         return <IconDeviceGamepad2 className={className} />;
       case MediaCategory.IN_GAME_PURCHASE:
         return <IconSparkles className={className} />;
-      case MediaCategory.DISC:
+      case MediaCategory.MISC:
+        return <IconPackage className={className} />;
       case MediaCategory.PHYSICAL:
         return <IconDisc className={className} />;
       case MediaCategory.HARDWARE:

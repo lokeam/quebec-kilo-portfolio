@@ -19,12 +19,15 @@ import type { SpendingItemBFFResponse, SingleYearlyTotalBFFResponse } from '@/ty
 import { MediaCategory } from '@/types/domain/spend-tracking';
 
 // Icons
-import { CreditCard } from 'lucide-react';
+import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+//import { CreditCard } from 'lucide-react';
 
 interface MonthlySpendingItemDetailsProps {
   item: SpendingItemBFFResponse;
   oneTimeTotal: SingleYearlyTotalBFFResponse[];
 }
+
+type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
 
 export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetails({
   item,
@@ -122,7 +125,11 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
           <h3 className="text-lg font-semibold mb-4">Payment method</h3>
           <div className="flex items-center space-x-4">
             <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-              <CreditCard className="w-6 h-6 text-gray-400" />
+              {/* <CreditCard className="w-6 h-6 text-gray-400" /> */}
+              <PaymentIcon
+                type={item.paymentMethod as PaymentMethodType}
+                format="flatRounded"
+              />
             </div>
             <div>
               <div className="font-semibold">{item.paymentMethod}</div>
