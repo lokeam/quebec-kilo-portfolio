@@ -1,6 +1,7 @@
 package spend_tracking
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/services"
 	"github.com/lokeam/qko-beta/internal/shared/httputils"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type SpendTrackingHandler struct {
@@ -36,6 +38,9 @@ func RegisterSpendTrackingRoutes(
 	spendTrackingService services.SpendTrackingService,
 ) {
 	handler := NewSpendTrackingHandler(appCtx, spendTrackingService)
+	// Base routes
+	// r.Post("/", handler.CreateOneTimePurchase)
+
 	// BFF route
 	r.Get("/bff", handler.GetAllSpendTrackingItemsBFF)
 }
@@ -75,6 +80,51 @@ func (h *SpendTrackingHandler) GetAllSpendTrackingItemsBFF(w http.ResponseWriter
 		response,
 	)
 }
+
+func (h *SpendTrackingHandler) CreateOneTimePurchase(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracking
+	requestID := httputils.GetRequestID(r)
+
+	// Grab user ID from request context
+	userID := httputils.GetUserID(r)
+	if userID == "" {
+		h.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	// Log request
+	h.appContext.Logger.Info("Creating one-time purchase", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+	})
+
+	// Parse request
+	var spendTrackingRequest types.SpendTrackingRequest
+	if err := json.NewDecoder(r.Body).Decode(&spendTrackingRequest); err != nil {
+		h.handleError(w, requestID, err, http.StatusBadRequest)
+		return
+	}
+
+	// Call service method
+	createdOneTimePurchase, err := h.spendTrackingService.CreateOneTimePurchase(r.Context(), userID, spendTrackingRequest)
+	if err != nil {
+		h.handleError(w, requestID, err, http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to frontend format
+	response := httputils.NewAPIResponse(r, userID, map[string]any{
+		"spend_tracking": createdOneTimePurchase,
+	})
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		h.appContext.Logger,
+		http.StatusCreated,
+		response,
+	)
+}
+
 
 // helper fn to standardize error handling
 func (h *SpendTrackingHandler) handleError(

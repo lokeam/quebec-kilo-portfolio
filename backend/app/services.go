@@ -81,7 +81,11 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 	}
 
 	// Initialize library service with dependencies
-	libraryService, err := library.NewGameLibraryService(appCtx, libraryDbAdapter, libraryCacheAdapter)
+	libraryService, err := library.NewGameLibraryService(
+		appCtx,
+		libraryDbAdapter,
+		libraryCacheAdapter,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("initializing library service: %w", err)
 	}
@@ -101,7 +105,18 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing spend tracking db adapter: %w", err)
 	}
 
-	spendTrackingService, err := spend_tracking.NewSpendTrackingService(appCtx, spendTrackingDbAdapter, spendTrackingCacheAdapter)
+	// Create dashboard cache adapter for spend tracking service
+	dashboardCacheAdapter, err := dashboard.NewDashboardCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("initializing dashboard cache adapter: %w", err)
+	}
+
+	spendTrackingService, err := spend_tracking.NewSpendTrackingService(
+		appCtx,
+		spendTrackingDbAdapter,
+		spendTrackingCacheAdapter,
+		dashboardCacheAdapter,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("initializing spend tracking service: %w", err)
 	}
@@ -134,12 +149,11 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing dashboard db adapter: %w", err)
 	}
 
-	dashboardCacheAdapter, err := dashboard.NewDashboardCacheAdapter(cacheWrapper)
-	if err != nil {
-		return nil, fmt.Errorf("initializing dashboard cache adapter: %w", err)
-	}
-
-	dashboardService, err := dashboard.NewDashboardService(appCtx, dashboardDbAdapter, dashboardCacheAdapter)
+	dashboardService, err := dashboard.NewDashboardService(
+		appCtx,
+		dashboardDbAdapter,
+		dashboardCacheAdapter,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("initializing dashboard service: %w", err)
 	}

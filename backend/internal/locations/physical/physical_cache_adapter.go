@@ -3,6 +3,7 @@ package physical
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -12,6 +13,14 @@ import (
 type PhysicalCacheAdapter struct {
 	cacheWrapper interfaces.CacheWrapper
 }
+
+// Constants for cache keys
+const (
+	physicalLocationsCacheKey = "physical:%s"
+	physicalLocationsBFFCacheKey = "physical:bff:%s"
+	physicalLocationSingleLocationCacheKey = "physical:%s:location:%s"
+	cacheTTL = 1 * time.Hour
+)
 
 func NewPhysicalCacheAdapter(
 	cacheWrapper interfaces.CacheWrapper,
@@ -25,7 +34,7 @@ func (pca *PhysicalCacheAdapter) GetCachedPhysicalLocations(
 	ctx context.Context,
 	userID string,
 ) ([]models.PhysicalLocation, error) {
-	cacheKey := fmt.Sprintf("physical:%s", userID)
+	cacheKey := fmt.Sprintf(physicalLocationsCacheKey, userID)
 
 	var locations []models.PhysicalLocation
 	cacheHit, err := pca.cacheWrapper.GetCachedResults(ctx, cacheKey, &locations)
@@ -45,7 +54,7 @@ func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocations(
 	userID string,
 	locations []models.PhysicalLocation,
 ) error {
-	cacheKey := fmt.Sprintf("physical:%s", userID)
+	cacheKey := fmt.Sprintf(physicalLocationsCacheKey, userID)
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, locations)
 }
 
@@ -54,7 +63,7 @@ func (pca *PhysicalCacheAdapter) GetCachedPhysicalLocationsBFF(
 	ctx context.Context,
 	userID string,
 ) (types.LocationsBFFResponse, error) {
-	cacheKey := fmt.Sprintf("physical:bff:%s", userID)
+	cacheKey := fmt.Sprintf(physicalLocationsBFFCacheKey, userID)
 
 	var response types.LocationsBFFResponse
 	cacheHit, err := pca.cacheWrapper.GetCachedResults(ctx, cacheKey, &response)
@@ -74,7 +83,7 @@ func (pca *PhysicalCacheAdapter) SetCachedPhysicalLocationsBFF(
 	userID string,
 	response types.LocationsBFFResponse,
 ) error {
-	cacheKey := fmt.Sprintf("physical:bff:%s", userID)
+	cacheKey := fmt.Sprintf(physicalLocationsBFFCacheKey, userID)
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, response)
 }
 
@@ -85,7 +94,7 @@ func (pca *PhysicalCacheAdapter) GetSingleCachedPhysicalLocation(
 	userID string,
 	locationID string,
 ) (*models.PhysicalLocation, bool, error) {
-	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
+	cacheKey := fmt.Sprintf(physicalLocationSingleLocationCacheKey, userID, locationID)
 
 	var location models.PhysicalLocation
 	cacheHit, err := pca.cacheWrapper.GetCachedResults(ctx, cacheKey, &location)
@@ -105,7 +114,7 @@ func (pca *PhysicalCacheAdapter) SetSingleCachedPhysicalLocation(
 	userID string,
 	location models.PhysicalLocation,
 ) error {
-	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, location.ID)
+	cacheKey := fmt.Sprintf(physicalLocationSingleLocationCacheKey, userID, location.ID)
 	return pca.cacheWrapper.SetCachedResults(ctx, cacheKey, location)
 }
 
@@ -114,13 +123,13 @@ func (pca *PhysicalCacheAdapter) InvalidateUserCache(
 	userID string,
 ) error {
 	// Invalidate regular physical locations cache
-	cacheKey := fmt.Sprintf("physical:%s", userID)
+	cacheKey := fmt.Sprintf(physicalLocationsCacheKey, userID)
 	if err := pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey); err != nil {
 		return err
 	}
 
 	// Also invalidate BFF cache
-	bffCacheKey := fmt.Sprintf("physical:bff:%s", userID)
+	bffCacheKey := fmt.Sprintf(physicalLocationsBFFCacheKey, userID)
 	return pca.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey)
 }
 
@@ -129,7 +138,7 @@ func (pca *PhysicalCacheAdapter) InvalidateLocationCache(
 	userID string,
 	locationID string,
 ) error {
-	cacheKey := fmt.Sprintf("physical:%s:location:%s", userID, locationID)
+	cacheKey := fmt.Sprintf(physicalLocationSingleLocationCacheKey, userID, locationID)
 	return pca.cacheWrapper.DeleteCacheKey(ctx, cacheKey)
 }
 
