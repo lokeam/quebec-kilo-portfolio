@@ -60,7 +60,7 @@
 #
 # ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down seed-data-complete
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down seed-data-complete debug-migration
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -538,6 +538,7 @@ help:
 	@echo " make spend-tracking-db-seed - Seed spend tracking data"
 	@echo " make spend-tracking-db-seed-down - Remove spend tracking seed data"
 	@echo " make seed-data-complete - Seed complete data set"
+	@echo " make debug-migration - Debug migration and seeding issues"
 
 # ---------------------------------------------------------------------------
 # Restore: Restore database from backup
@@ -587,6 +588,16 @@ seed-data-complete:
 	@echo "$(BLUE)Seeding complete data set...$(RESET)"
 	@docker compose exec -T postgres psql -U postgres -d qkoapi -f /docker-entrypoint-initdb.d/migrations/seed_data_complete.sql
 	@echo "$(GREEN)Complete data set seeded successfully$(RESET)"
+
+debug-migration:
+	@echo "$(BLUE)Debugging migration issues...$(RESET)"
+	@if [ ! -f "scripts/debug_migration.sh" ]; then \
+		echo "$(RED)Error: Debug script not found$(RESET)"; \
+		echo "Please ensure scripts/debug_migration.sh exists and is executable"; \
+		exit 1; \
+	fi
+	@chmod +x scripts/debug_migration.sh
+	@./scripts/debug_migration.sh
 
 # Recreate: Forcefully stop everything, remove all containers, networks, and volumes, and start fresh
 recreate:
