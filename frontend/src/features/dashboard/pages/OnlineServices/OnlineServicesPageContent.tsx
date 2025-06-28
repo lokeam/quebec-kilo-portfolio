@@ -22,6 +22,7 @@ import {
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { useFilteredServices } from '@/features/dashboard/lib/hooks/useFilteredServices';
+import { useOnlineServicesFilters } from '@/features/dashboard/lib/hooks/useOnlineServicesFilters';
 
 // Types
 import type { DigitalLocation } from '@/types/domain/digital-location';
@@ -100,6 +101,9 @@ export function OnlineServicesPageContent() {
   // Get filtered services using the unified hook
   const services = storageData || [];
   const filteredServices = useFilteredServices(services);
+
+  // Get filter options from BFF data
+  const filterOptions = useOnlineServicesFilters(services);
 
   const handleAddService = useCallback((data: FormValues) => {
     console.log('Add service:', data);
@@ -253,7 +257,10 @@ export function OnlineServicesPageContent() {
 
       {/* Digital Services Display Section */}
       <div className="mt-6">
-        <OnlineServicesToolbar />
+        <OnlineServicesToolbar
+          paymentMethods={filterOptions.paymentMethods}
+          billingCycles={filterOptions.billingCycles}
+        />
         <div className="mt-4 space-y-4">
           {renderContent()}
         </div>

@@ -30,11 +30,13 @@ export function useFilteredServices(services: DigitalLocationBFFResponseItem[]) 
         (service.billingCycle != null &&
          billingCycleFilters.some(filter => filter === service.billingCycle));
 
-      // Payment method filter
+      // Payment method filter - case insensitive comparison
       const matchesPaymentMethod =
         paymentMethodFilters.length === 0 || // if no filters, show all
         (service.paymentMethod != null &&
-         paymentMethodFilters.some(filter => filter === service.paymentMethod));
+         paymentMethodFilters.some(filter =>
+           filter.toLowerCase() === service.paymentMethod.toLowerCase()
+         ));
       return matchesSearch && matchesBillingCycle && matchesPaymentMethod;
     });
   }, [services, searchQuery, billingCycleFilters, paymentMethodFilters]);
