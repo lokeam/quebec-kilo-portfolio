@@ -10,10 +10,6 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
-// Types
-import { PhysicalLocationType } from '@/types/domain/location-types';
-import { SublocationType } from '@/types/domain/location-types';
-
 interface FilterOption {
   key: string;
   label: string;

@@ -43,7 +43,7 @@ export function useFilteredLibraryItems(
     if (platformFilter) {
       filtered = filtered.filter(game =>
         game.gamesByPlatformAndLocation.some(loc =>
-          loc.platformName.toLowerCase() === platformFilter.toLowerCase()
+          getPlatformCategory(loc.platformName) === platformFilter
         )
       );
     }
@@ -57,4 +57,31 @@ export function useFilteredLibraryItems(
 
     return filtered;
   }, [services, platformFilter, searchQuery]);
+}
+
+function getPlatformCategory(platformName: string): string {
+  const lowerName = platformName.toLowerCase();
+
+  if (lowerName.includes('playstation') ||
+      lowerName.includes('xbox') ||
+      lowerName.includes('nintendo') ||
+      lowerName.includes('sega') ||
+      lowerName.includes('atari') ||
+      lowerName.includes('nec')) {
+    return 'Console';
+  }
+
+  if (lowerName.includes('android') ||
+      lowerName.includes('ios') ||
+      lowerName.includes('mobile')) {
+    return 'Mobile';
+  }
+
+  if (lowerName.includes('pc') ||
+      lowerName.includes('windows') ||
+      lowerName.includes('mac')) {
+    return 'PC';
+  }
+
+  return 'Console'; // Default fallback
 }

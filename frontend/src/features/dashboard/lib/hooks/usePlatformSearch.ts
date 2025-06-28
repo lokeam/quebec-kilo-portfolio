@@ -123,17 +123,15 @@ export function usePlatformSearch(): UsePlatformSearchReturn {
   const enhancedPlatforms = useMemo(() => {
     const platforms = Object.entries(CONSOLE_PLATFORMS)
       .flatMap(([manufacturer, platforms]) =>
-        platforms
-          .filter(platform => platformKeys.has(platform.key))
-          .map(platform => ({
-            ...platform,
-            manufacturer,
-            searchString: createPlatformSearchString(platform)
-          }))
+        platforms.map(platform => ({
+          ...platform,
+          manufacturer,
+          searchString: createPlatformSearchString(platform)
+        }))
       );
 
       return platforms;
-  }, [platformKeys]);
+  }, []);
 
   /* Apply search functionality using useMultiMatchSearch hook */
   const { filteredItems, setSearchTerm } = useMultiMatchSearch(enhancedPlatforms, {

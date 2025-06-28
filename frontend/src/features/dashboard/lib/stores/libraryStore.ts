@@ -1,27 +1,26 @@
 import { create } from 'zustand';
-import { type LibraryGameItem, type LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { LibraryGameItemResponse } from '@/types/domain/library-types';
 import {
-  featureViewModes,
   getStoredViewMode,
+  featureViewModes
 } from '@/shared/constants/viewModes';
 
-
-export type LibraryViewMode = typeof featureViewModes.library.allowed[number];
+type LibraryViewMode = typeof featureViewModes.library.allowed[number];
 
 interface LibraryState {
-  platformFilter: string;
-  setPlatformFilter: (filter: string) => void;
   userGames: LibraryGameItemResponse[];
   setGames: (games: LibraryGameItemResponse[]) => void;
   viewMode: LibraryViewMode;
   setViewMode: (mode: LibraryViewMode) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  platformFilters: string[];
+  setPlatformFilters: (filters: string[]) => void;
+  locationFilters: string[];
+  setLocationFilters: (filters: string[]) => void;
 }
 
 export const useLibraryStore = create<LibraryState>((set) => ({
-  platformFilter: '',
-  setPlatformFilter: (platform) => set({ platformFilter: platform}),
   userGames: [],
   setGames: (games) => set({ userGames: games }),
   viewMode: getStoredViewMode(
@@ -38,14 +37,19 @@ export const useLibraryStore = create<LibraryState>((set) => ({
   },
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
+  platformFilters: [],
+  setPlatformFilters: (filters) => set({ platformFilters: filters }),
+  locationFilters: [],
+  setLocationFilters: (filters) => set({ locationFilters: filters }),
 }));
 
-// Selector hooks
+// Selector hooks for better performance
 export const useLibraryGames = () => useLibraryStore((state) => state.userGames);
 export const useLibraryViewMode = () => useLibraryStore((state) => state.viewMode);
-export const useLibrarySetGames = () => useLibraryStore((state) => state.setGames);
 export const useLibrarySetViewMode = () => useLibraryStore((state) => state.setViewMode);
 export const useLibrarySearchQuery = () => useLibraryStore((state) => state.searchQuery);
 export const useLibrarySetSearchQuery = () => useLibraryStore((state) => state.setSearchQuery);
-export const useLibraryPlatformFilter = () => useLibraryStore((state) => state.platformFilter);
-export const useLibrarySetPlatformFilter = () => useLibraryStore((state) => state.setPlatformFilter);
+export const useLibraryPlatformFilters = () => useLibraryStore((state) => state.platformFilters);
+export const useLibrarySetPlatformFilters = () => useLibraryStore((state) => state.setPlatformFilters);
+export const useLibraryLocationFilters = () => useLibraryStore((state) => state.locationFilters);
+export const useLibrarySetLocationFilters = () => useLibraryStore((state) => state.setLocationFilters);

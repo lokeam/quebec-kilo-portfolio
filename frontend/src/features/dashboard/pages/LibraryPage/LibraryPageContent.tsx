@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 
 // Components
 import { PageHeadline } from '@/shared/components/layout/page-headline';
@@ -10,16 +10,14 @@ import { MemoizedLibraryMediaListItem } from '@/features/dashboard/components/or
 
 // Utils + Hooks
 import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
-import { useLibraryTitle } from '@/features/dashboard/lib/hooks/useLibraryTitle';
-import { useFilteredLibraryItems } from '@/features/dashboard/lib/hooks/useFilteredLibraryItems';
 import { useGetLibraryPageBFFResponse } from '@/core/api/queries/gameLibrary.queries';
+import { useLibraryFilters } from '@/features/dashboard/lib/hooks/useLibraryFilters';
 import type { LibraryGameItemResponse } from '@/types/domain/library-types';
 
 export function LibraryPageContent() {
   const { viewMode, setGames } = useLibraryStore();
   const services = useLibraryStore((state) => state.userGames);
-  const platformFilter = useLibraryStore((state) => state.platformFilter);
-  const searchQuery = useLibraryStore((state) => state.searchQuery);
+  const { searchQuery, platformFilters, locationFilters } = useLibraryStore();
 
   const {
     data: bffResponse,
@@ -27,8 +25,10 @@ export function LibraryPageContent() {
     error
   } = useGetLibraryPageBFFResponse();
 
-  const libraryItems = bffResponse?.libraryItems ?? [];
-  const recentlyAdded = bffResponse?.recentlyAdded ?? [];
+  const libraryItems = useMemo(() => bffResponse?.libraryItems ?? [], [bffResponse?.libraryItems]);
+
+  // Get filter options from library data
+  const filterOptions = useLibraryFilters(libraryItems);
 
   // Set games in store when page mounts or when library items change
   useEffect(() => {
@@ -41,7 +41,7 @@ export function LibraryPageContent() {
     if (libraryItems.length > 0) {
       setGames(libraryItems);
     }
-  }, [libraryItems, setGames]);
+  }, [libraryItems, setGames, services.length]);
 
   useEffect(() => {
     console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
@@ -51,15 +51,39 @@ export function LibraryPageContent() {
     });
   }, [libraryItems, services, bffResponse]);
 
-  /* Combined filtering for both platform and title search */
-  const filteredServices = useFilteredLibraryItems(services, platformFilter, searchQuery);
+  // Memoize filter function
+  const filterGame = useCallback((game: LibraryGameItemResponse) => {
+    // Search filter - match against game name
+    const matchesSearch = !searchQuery ||
+      game.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-  /* Pass filtered data to title hook */
-  const { title, countText } = useLibraryTitle({
-    baseTitle: 'All Games',
-    filteredCount: filteredServices.length,
-    platformFilter,
-  });
+    // Platform filter - match against any of the selected platforms
+    const matchesPlatform = platformFilters.length === 0 ||
+      game.gamesByPlatformAndLocation.some(location =>
+        platformFilters.includes(location.platformName)
+      );
+
+    // Location filter - match against any of the selected locations
+    const matchesLocation = locationFilters.length === 0 ||
+      game.gamesByPlatformAndLocation.some(location =>
+        locationFilters.includes(location.sublocationName || '') ||
+        locationFilters.includes(location.parentLocationName || '')
+      );
+
+    return matchesSearch && matchesPlatform && matchesLocation;
+  }, [searchQuery, platformFilters, locationFilters]);
+
+  // Memoize filtered results
+  const filteredServices = useMemo(() => {
+    if (!services || services.length === 0) return [];
+
+    // Early return if no filters are active
+    if (searchQuery === '' && platformFilters.length === 0 && locationFilters.length === 0) {
+      return services;
+    }
+
+    return services.filter(filterGame);
+  }, [services, filterGame, searchQuery, platformFilters.length, locationFilters.length]);
 
   // Handle loading state
   if (isLoading) {
@@ -93,8 +117,8 @@ export function LibraryPageContent() {
       <PageMain>
         <PageHeadline>
           <div className='flex items-center'>
-            <h1 className='text-2xl font-bold tracking-tight'>{title}</h1>
-            <span className='text-[20px] text-gray-500 ml-1'>{countText}</span>
+            <h1 className='text-2xl font-bold tracking-tight'>All Games</h1>
+            <span className='text-[20px] text-gray-500 ml-1'>(0 games)</span>
           </div>
         </PageHeadline>
         <NoResultsFound />
@@ -104,14 +128,16 @@ export function LibraryPageContent() {
 
   /* Render content based on view mode */
   const renderContent = () => {
-
     console.log('🔍 DEBUG: LibraryPageContent render:', {
+      servicesLength: services.length,
       filteredServicesLength: filteredServices.length,
+      searchQuery,
+      platformFilters,
+      locationFilters,
       viewMode
     });
 
-
-    if (services.length === 0) {
+    if (filteredServices.length === 0) {
       return <NoResultsFound />;
     }
 
@@ -143,14 +169,19 @@ export function LibraryPageContent() {
     );
   };
 
+  const title = 'All Games';
+
   return (
     <PageMain>
-      <LibraryPageToolbar />
+      <LibraryPageToolbar
+        platforms={filterOptions.platforms}
+        locations={filterOptions.locations}
+      />
       <PageHeadline>
         <div className='flex items-center'>
           <h1 className='text-3xl font-bold tracking-tight'>
             {title}
-            <span className='text-[20px] text-gray-500 ml-1'>{countText}</span>
+            <span className='text-[20px] text-gray-500 ml-1'>({filteredServices.length} {filteredServices.length === 1 ? 'game' : 'games'})</span>
           </h1>
         </div>
       </PageHeadline>
