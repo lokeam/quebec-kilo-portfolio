@@ -109,4 +109,15 @@ const (
 		FROM one_time_purchases
 		WHERE id = $1 AND user_id = $2
 	`
+
+	CheckIfAllOneTimePurchasesExistForUserQuery = `
+		SELECT COUNT(*)
+		FROM one_time_purchases
+		WHERE id = ANY($1) AND user_id = $2
+	`
+
+	DeleteOneTimePurchasesQuery = `
+		DELETE FROM one_time_purchases
+		WHERE id = ANY($1) AND user_id = $2
+	`
 )

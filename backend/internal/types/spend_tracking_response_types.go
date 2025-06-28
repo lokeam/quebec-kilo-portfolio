@@ -92,3 +92,22 @@ type SpendTrackingCalculatorSpendingItem struct {
     SpendingItemAmount      float64
     SpendingItemCategory    string
 }
+
+type DeletedSpendTrackingItemDetails struct {
+    ID                   int    `json:"id"`
+    Title                string  `json:"title"`
+    Amount               float64  `json:"amount"`
+    PurchaseDate         int64  `json:"purchase_date"`
+    PaymentMethod        string `json:"payment_method"`
+    SpendingCategoryID   int `json:"spending_category_id"`
+    DigitalLocationID    string `json:"digital_location_id"`
+    IsDigital            bool `json:"is_digital"`
+    IsWishlisted         bool `json:"is_wishlisted"`
+}
+
+type DeleteSpendTrackingResponse struct {
+    Success          bool `json:"success"`
+    DeletedCount     int `json:"deleted_count"`
+    DeletedItems     []DeletedSpendTrackingItemDetails `json:"deleted_items"`
+    Error            string `json:"error,omitempty"`
+}

@@ -12,7 +12,7 @@ import {
   getSpendTrackingItemById,
   createOneTimePurchase,
   updateSpendTrackingItem,
-  deleteSpendTrackingItem,
+  deleteSpendTrackingItems,
   getSpendTrackingPageBFFResponse,
 } from '@/core/api/services/spendTracking.service';
 
@@ -26,6 +26,7 @@ import type {
   SingleYearlyTotalBFFResponse,
   SpendTrackingBFFResponse,
   SpendingItemBFFResponse,
+  SpendTrackingDeleteResponse,
 } from '@/types/domain/spend-tracking';
 
 // Constants
@@ -49,6 +50,7 @@ interface SpendTrackingPageData {
   yearlyTotals: SingleYearlyTotalBFFResponse[];
 }
 
+
 /**
  * Hook to fetch all spend tracking data for the BFF page
  */
@@ -65,9 +67,9 @@ export const useGetSpendTrackingPageBFFResponse = () => {
         throw error;
       }
     },
-    staleTime: 0, // Consider data stale immediately
-    refetchOnMount: true, // Refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -120,7 +122,7 @@ export const useCreateSpendItem = () => {
       // Snapshot the previous value
       const previousItems = queryClient.getQueryData<SpendTrackingPageData>(spendTrackingKeys.lists());
 
-      // Don't optimistically update - let the server response drive the UI
+      // NOTE: Don't optimistically update - let the server response drive the UI
       return { previousItems };
     },
     onError: (error) => {
@@ -167,14 +169,45 @@ export const useUpdateSpendItem = () => {
 /**
  * Hook to delete a spend item
  */
-export const useDeleteSpendItem = () => {
+export const useDeleteSpendItems = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: deleteSpendTrackingItem,
-    onSuccess: (_, id) => {
+    mutationFn: deleteSpendTrackingItems,
+    onMutate: async (idsToDelete: string[]) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: spendTrackingKeys.lists() });
+
+      // Snapshot the previous value
+      const previousData = queryClient.getQueryData<SpendTrackingBFFResponse>(spendTrackingKeys.lists());
+
+      // Optimistically update the cache by removing the deleted items
+      if (previousData) {
+        const updatedData = {
+          ...previousData,
+          currentTotalThisMonth: previousData.currentTotalThisMonth.filter(
+            item => !idsToDelete.includes(item.id.toString())
+          ),
+          oneTimeThisMonth: previousData.oneTimeThisMonth.filter(
+            item => !idsToDelete.includes(item.id.toString())
+          ),
+        };
+
+        queryClient.setQueryData(spendTrackingKeys.lists(), updatedData);
+      }
+
+      return { previousData };
+    },
+    onSuccess: (response: SpendTrackingDeleteResponse) => {
+      // Invalidate queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: spendTrackingKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.bff() });
+
+      // Invalidate individual items if they exist in response
+      if (response.spend_tracking_ids) {
+        response.spend_tracking_ids.forEach((id: string) => {
+          queryClient.invalidateQueries({ queryKey: spendTrackingKeys.detail(id) });
+        });
+      }
 
       showToast({
         message: TOAST_SUCCESS_MESSAGES.SPEND_TRACKING.DELETE_ITEM,
@@ -182,8 +215,13 @@ export const useDeleteSpendItem = () => {
         duration: TOAST_DURATIONS.EXTENDED,
       });
     },
-    onError: (error) => {
-      console.log('❔🔎 useDeleteSpendItem query onError, error - ', error);
+    onError: (error, idsToDelete, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousData) {
+        queryClient.setQueryData(spendTrackingKeys.lists(), context.previousData);
+      }
+
+      console.error('Failed to delete spend items:', error);
       showToast({
         message: TOAST_ERROR_MESSAGES.SPEND_TRACKING.DELETE_ITEM.DEFAULT,
         variant: 'error',

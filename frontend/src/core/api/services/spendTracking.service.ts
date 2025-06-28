@@ -11,24 +11,16 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 import type {
   CreateOneTimePurchaseRequest,
   SpendingItemBFFResponse,
-  SpendTrackingBFFResponse
+  SpendTrackingBFFResponse,
+  SpendTrackingDeleteResponse,
 } from '@/types/domain/spend-tracking';
 
 const SPEND_TRACKING_ENDPOINT = '/v1/spend-tracking';
 const SPEND_TRACKING_BFF_ENDPOINT = '/v1/spend-tracking/bff';
 
-// Used for CRUD ops where we don't need a full response
-type SpendTrackingOperationResponse = {
-  id: number;
-  message: string;
-};
-
-interface SpendTrackingOperationResponseWrapper {
+interface SpendTrackingDeleteResponseWrapper {
   success: boolean;
-  spendTracking: {
-    id: number;
-    message: string;
-  };
+  spendTracking: SpendTrackingDeleteResponse;
   metadata: {
     timestamp: string;
     request_id: string;
@@ -98,44 +90,44 @@ export const getSpendTrackingItemById = (id: string): Promise<SpendingItemBFFRes
 /**
  * Creates a new spend item
  */
-export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendTrackingOperationResponse> =>
+export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendingItemBFFResponse> =>
   apiRequest('createSpendTrackingItem', async () => {
     console.log('[DEBUG] createSpendTrackingItem: Making API request');
     console.log('[DEBUG] createSpendTrackingItem: Request payload:', input);
 
-    const response = await axiosInstance.post<SpendTrackingOperationResponseWrapper>(SPEND_TRACKING_ENDPOINT, input);
+    const response = await axiosInstance.post<SpendTrackingItemResponseWrapper>(SPEND_TRACKING_ENDPOINT, input);
     console.log('[DEBUG] createSpendTrackingItem: Raw API response:', response.data);
 
     if (!response.data.spendTracking) {
       console.error('[DEBUG] createSpendTrackingItem: No spend tracking data in response:', response.data);
     }
 
-    console.log('[DEBUG] createSpendTrackingItem: Successfully extracted spend tracking data:', response.data.spendTracking);
-    return response.data.spendTracking;
+    console.log('[DEBUG] createSpendTrackingItem: Successfully extracted spend tracking data:', response.data.spendTracking.item);
+    return response.data.spendTracking.item;
   });
 
 /**
  * Updates an existing spend item
  */
-export const updateSpendTrackingItem = (id: string, data: Partial<CreateOneTimePurchaseRequest>): Promise<SpendTrackingOperationResponse> =>
+export const updateSpendTrackingItem = (id: string, data: Partial<CreateOneTimePurchaseRequest>): Promise<SpendingItemBFFResponse> =>
   apiRequest(`updateSpendItem(${id})`, () =>
     axiosInstance
-      .put<SpendTrackingOperationResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`, data)
-      .then(response => {
-        const item = response.data.spendTracking;
-        if (!item) {
-          throw new Error(`Failed to update spend item with id ${id}`);
-        }
-        return item;
-      })
+.put<SpendTrackingItemResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`, data)
+  .then(response => {
+    const item = response.data.spendTracking.item;
+    if (!item) {
+      throw new Error(`Failed to update spend item with id ${id}`);
+    }
+    return item;
+  })
   );
 
 /**
- * Deletes an existing spend item
+ * Deletes an array existing spend items (frontend UI currently only allows for single item deletion. Expand upon this feature in future)
  */
-export const deleteSpendTrackingItem = (id: string): Promise<SpendTrackingOperationResponse> =>
-  apiRequest(`deleteSpendItem(${id})`, () =>
+export const deleteSpendTrackingItems = (ids: string[]): Promise<SpendTrackingDeleteResponse> =>
+  apiRequest(`deleteSpendItems(${ids.join(',')})`, () =>
     axiosInstance
-      .delete<SpendTrackingOperationResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}/${id}`)
+      .delete<SpendTrackingDeleteResponseWrapper>(`${SPEND_TRACKING_ENDPOINT}?ids=${ids.join(',')}`)
       .then(response => response.data.spendTracking)
   );

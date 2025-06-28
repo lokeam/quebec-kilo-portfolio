@@ -13,6 +13,7 @@ var (
 	ErrUnauthorizedSpendTrackingItem = errors.New("unauthorized: spend tracking item does not belong to user")
 	ErrInvalidSpendTrackingItem = errors.New("invalid spend tracking item ID")
 	ErrValidationFailed = errors.New("validation failed")
+	ErrEmptySpendTrackingIDs = errors.New("no spend tracking IDs provided")
 )
 
 // GetStatusCodeForError returns the appropriate HTTP status code for a given error

@@ -9,7 +9,7 @@ interface SpendingData {
   isSubscription: boolean;
 }
 
-export function useSpendingData(
+export function useDisplayAnnualSpendingData(
   item: SpendingItemBFFResponse,
   oneTimeTotal: SingleYearlyTotalBFFResponse[]
 ): SpendingData {

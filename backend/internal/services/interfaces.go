@@ -88,6 +88,7 @@ type SpendTrackingService interface {
 
 	CreateOneTimePurchase(ctx context.Context, userID string, request types.SpendTrackingRequest) (models.SpendTrackingOneTimePurchaseDB, error)
 	UpdateOneTimePurchase(ctx context.Context, userID string, request types.SpendTrackingRequest) error
+	DeleteSpendTrackingItems(ctx context.Context, userID string, itemIDs []string) (types.DeleteSpendTrackingResponse, error)
 }
 
 type DashboardService interface {

@@ -181,3 +181,42 @@ export type ISO8601Date = string;
 export type SpendItem = SpendingItemBFFResponse;
 export type MediaType = MediaCategory;
 export type SpendTransactionType = TransactionType;
+
+export interface SpendTrackingOperationResponse {
+  success: boolean;
+  deleted_count: number;
+  spend_tracking_ids: string[];
+  error?: string;
+}
+
+// Response types for different operations
+export interface SpendTrackingItemResponse {
+  id: number;
+  message: string;
+}
+
+export interface SpendTrackingDeleteResponse {
+  success: boolean;
+  deleted_count: number;
+  spend_tracking_ids: string[];
+}
+
+// Wrapper types for different operations
+export interface SpendTrackingItemResponseWrapper {
+  success: boolean;
+  spendTracking: SpendTrackingItemResponse;
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+
+export interface SpendTrackingDeleteResponseWrapper {
+  success: boolean;
+  spendTracking: SpendTrackingDeleteResponse;
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+

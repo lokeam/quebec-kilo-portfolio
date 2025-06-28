@@ -49,8 +49,12 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
     setIsDrawerOpen(false); // Close the details drawer
   };
 
-  const handleDeleteClick = (id: string) => {
-    console.log('Delete clicked for item id: ', id);
+  /**
+   * Closes the details drawer when an item is deleted
+   */
+  const handleDeleteClick = () => {
+    setIsDrawerOpen(false);
+    setSelectedItem(null);
   };
 
   return (

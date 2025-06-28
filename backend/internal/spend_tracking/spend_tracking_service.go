@@ -276,3 +276,77 @@ func (sts *SpendTrackingService) GetSingleSpendTrackingItem(
 
 	return item, nil
 }
+
+func (sts *SpendTrackingService) DeleteSpendTrackingItems(
+    ctx context.Context,
+    userID string,
+    itemIDs []string,
+) (types.DeleteSpendTrackingResponse, error) {
+    sts.logger.Debug("DeleteSpendTrackingItems called", map[string]any{
+        "userID":      userID,
+        "itemIDs":     itemIDs,
+        "isBulk":      len(itemIDs) > 1,
+    })
+
+    // Validate input and get sanitized, deduplicated IDs
+    validatedIDs, err := sts.validator.ValidateDeleteOneSpendTrackingItems(userID, itemIDs)
+    if err != nil {
+        sts.logger.Error("Validation failed for DeleteSpendTrackingItems", map[string]any{
+            "error": err,
+            "userID": userID,
+            "itemIDs": itemIDs,
+        })
+        return types.DeleteSpendTrackingResponse{
+            Success:      false,
+            DeletedCount: 0,
+            Error:        fmt.Sprintf("validation failed: %v", err),
+        }, nil
+    }
+
+    // Remove items from database using validated IDs
+    deletedCount, err := sts.dbAdapter.DeleteSpendTrackingItems(ctx, userID, validatedIDs)
+    if err != nil {
+        sts.logger.Error("Failed to remove one-time purchases from database", map[string]any{
+            "error": err,
+            "userID": userID,
+            "itemIDs": validatedIDs,
+        })
+        return types.DeleteSpendTrackingResponse{
+            Success:      false,
+            DeletedCount: 0,
+            Error:        fmt.Sprintf("failed to remove one-time purchases: %v", err),
+        }, nil
+    }
+
+    // Invalidate spend tracking cache (includes BFF cache and timestamp)
+    if err := sts.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+        sts.logger.Error("Failed to invalidate spend tracking cache after deletion", map[string]any{
+            "error": err,
+            "userID": userID,
+            "itemIDs": validatedIDs,
+        })
+        // Continue despite cache error since DB operation was successful
+    }
+
+    // Invalidate dashboard cache to refresh statistics
+    if err := sts.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+        sts.logger.Error("Failed to invalidate dashboard cache after deletion", map[string]any{
+            "error": err,
+            "userID": userID,
+            "itemIDs": validatedIDs,
+        })
+        // Continue despite cache error since DB operation was successful
+    }
+
+    sts.logger.Debug("DeleteSpendTrackingItems completed successfully", map[string]any{
+        "userID":        userID,
+        "itemIDs":       validatedIDs,
+        "deletedCount":  deletedCount,
+    })
+
+    return types.DeleteSpendTrackingResponse{
+        Success:      true,
+        DeletedCount: int(deletedCount),
+        DeletedItems: []types.DeletedSpendTrackingItemDetails{},
+    }, nil
+}

@@ -13,6 +13,7 @@ type MockSpendTrackingService struct {
 
 	CreateOneTimePurchaseFunc func(ctx context.Context, userID string, request types.SpendTrackingRequest) (models.SpendTrackingOneTimePurchaseDB, error)
 	UpdateOneTimePurchaseFunc func(ctx context.Context, userID string, request types.SpendTrackingRequest) error
+	DeleteSpendTrackingItemsFunc func(ctx context.Context, userID string, itemIDs []string) (types.DeleteSpendTrackingResponse, error)
 }
 
 
@@ -57,4 +58,15 @@ func (m *MockSpendTrackingService) UpdateOneTimePurchase(
 		return m.UpdateOneTimePurchaseFunc(ctx, userID, request)
 	}
 	return nil
+}
+
+func (m *MockSpendTrackingService) DeleteSpendTrackingItems(
+	ctx context.Context,
+	userID string,
+	itemIDs []string,
+) (types.DeleteSpendTrackingResponse, error) {
+	if m.DeleteSpendTrackingItemsFunc != nil {
+		return m.DeleteSpendTrackingItemsFunc(ctx, userID, itemIDs)
+	}
+	return types.DeleteSpendTrackingResponse{}, nil
 }

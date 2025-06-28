@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 // React Hook Form + Zod
 import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
@@ -32,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select"
-import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
 import {
   Popover,
   PopoverContent,
@@ -114,7 +113,6 @@ export function SpendTrackingForm({
   onClose,
   onSuccess,
 }: SpendTrackingFormProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Create form default values based on whether we're editing or creating
   const formDefaultValues = isEditing && spendTrackingData ? {
@@ -132,7 +130,10 @@ export function SpendTrackingForm({
     mode: 'onTouched'
   });
 
+  // React hook form
   const { handleSubmit, control, watch, formState: { errors } } = form;
+
+  // Mutation Hooks
   const createMutation = useCreateSpendItem();
   const updateMutation = useUpdateSpendItem();
 
@@ -222,11 +223,6 @@ export function SpendTrackingForm({
 
     onSubmit(data);
   }, [form, onSubmit]);
-
-  const handleDelete = useCallback((id: string) => {
-    if (onDelete) onDelete(id);
-    setDeleteDialogOpen(false);
-  }, [onDelete]);
 
   return (
     <HookFormProvider {...form}>
@@ -441,49 +437,8 @@ export function SpendTrackingForm({
               : (createMutation.isPending ? "Creating..." : buttonText)
             }
           </Button>
-
-          {isEditing && onDelete && spendTrackingData && (
-            <Button
-              type="button"
-              variant="destructive"
-              className="ml-2"
-              onClick={() => setDeleteDialogOpen(true)}
-              disabled={updateMutation.isPending}
-            >
-              Delete
-            </Button>
-          )}
         </div>
       </form>
-
-      {/* Delete confirmation dialog */}
-      {isEditing && onDelete && spendTrackingData && (
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Deletion</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to delete this purchase? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setDeleteDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(spendTrackingData.id)}
-                disabled={updateMutation.isPending}
-              >
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
     </HookFormProvider>
   );
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -556,4 +557,94 @@ func (sta *SpendTrackingDbAdapter) UpdateOneTimePurchase(
 	})
 
 	return updatedPurchase, nil
+}
+
+func (sta *SpendTrackingDbAdapter) DeleteSpendTrackingItems(
+	ctx context.Context,
+	userID string,
+	itemIDs []string,
+) (int64, error) {
+	sta.logger.Debug("DeleteSpendTrackingItems called", map[string]any{
+		"userID": userID,
+		"itemIDs": itemIDs,
+	})
+
+	// Validate input parameters
+	if userID == "" {
+		return 0, fmt.Errorf("user ID cannot be empty")
+	}
+
+	if len(itemIDs) == 0 {
+		return 0, fmt.Errorf("no item IDs provided for deletion")
+	}
+
+	// Start transaction
+	tx, err := sta.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Convert itemIDs from ["one-15"] to [15] before passing to SQL
+	var numericIDs []int
+	for _, itemID := range itemIDs {
+		if !strings.HasPrefix(itemID, "one-") {
+			return 0, fmt.Errorf("invalid item ID format: must start with 'one-'")
+		}
+		numericID := strings.TrimPrefix(itemID, "one-")
+		id, err := strconv.Atoi(numericID)
+		if err != nil {
+			return 0, fmt.Errorf("invalid item ID format: %w", err)
+		}
+		numericIDs = append(numericIDs, id)
+	}
+
+	// Verify all items exist and belong to the user
+	var count int
+	err = tx.QueryRowxContext(
+		ctx,
+		CheckIfAllOneTimePurchasesExistForUserQuery,
+		pq.Array(numericIDs),  // ← Now passing [15] to integer array
+		userID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("error verifying one-time purchases: %w", err)
+	}
+	if count != len(itemIDs) {
+		return 0, fmt.Errorf("one or more one-time purchases not found or do not belong to user")
+	}
+
+	// Delete all items in one go
+	result, err := tx.ExecContext(
+		ctx,
+		DeleteOneTimePurchasesQuery,
+		pq.Array(numericIDs),  // ← Use numericIDs instead of itemIDs
+		userID,
+	)
+	if err != nil {
+		return 0, fmt.Errorf("error executing delete: %w", err)
+	}
+
+	// Get the number of deleted rows
+	totalDeleted, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("error getting rows affected: %w", err)
+	}
+
+	// If not all items were deleted, return an error
+	if totalDeleted < int64(len(itemIDs)) {
+		return totalDeleted, fmt.Errorf("partial deletion: %d of %d items deleted", totalDeleted, len(itemIDs))
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	sta.logger.Debug("DeleteOneTimePurchases success", map[string]any{
+		"totalDeleted": totalDeleted,
+		"isBulk": len(itemIDs) > 1,
+	})
+
+	return totalDeleted, nil
 }

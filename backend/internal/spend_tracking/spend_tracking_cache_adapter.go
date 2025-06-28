@@ -112,16 +112,29 @@ func (sta *SpendTrackingCacheAdapter) InvalidateUserCache(
     ctx context.Context,
     userID string,
 ) error {
-    // 1. Delete the BFF response cache
+    // Invalidate BFF cache
     bffCacheKey := fmt.Sprintf(spendTrackingBFFCacheKey, userID)
     if err := sta.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey); err != nil {
-        return fmt.Errorf("failed to delete BFF cache: %w", err)
+        return fmt.Errorf("failed to invalidate BFF cache: %w", err)
     }
 
-    // 2. Delete the last update timestamp
+    // Also invalidate last update timestamp to ensure consistency
     lastUpdateKey := fmt.Sprintf(spendTrackingLastUpdateKey, userID)
     if err := sta.cacheWrapper.DeleteCacheKey(ctx, lastUpdateKey); err != nil {
-        return fmt.Errorf("failed to delete last update timestamp: %w", err)
+        return fmt.Errorf("failed to invalidate last update timestamp: %w", err)
+    }
+
+    return nil
+}
+
+func (sta *SpendTrackingCacheAdapter) InvalidateSpendTrackingBFFCache(
+    ctx context.Context,
+    userID string,
+) error {
+    // Invalidate ONLY the BFF cache
+    bffCacheKey := fmt.Sprintf(spendTrackingBFFCacheKey, userID)
+    if err := sta.cacheWrapper.DeleteCacheKey(ctx, bffCacheKey); err != nil {
+        return fmt.Errorf("failed to invalidate BFF cache: %w", err)
     }
 
     return nil
