@@ -39,7 +39,12 @@ func RegisterSpendTrackingRoutes(
 ) {
 	handler := NewSpendTrackingHandler(appCtx, spendTrackingService)
 	// Base routes
-	// r.Post("/", handler.CreateOneTimePurchase)
+	r.Post("/", handler.CreateOneTimePurchase)
+
+	// Nested routes with ID
+	r.Route("/{id}", func(r chi.Router) {
+		r.Put("/", handler.UpdateOneTimePurchase)
+	})
 
 	// BFF route
 	r.Get("/bff", handler.GetAllSpendTrackingItemsBFF)
@@ -114,13 +119,91 @@ func (h *SpendTrackingHandler) CreateOneTimePurchase(w http.ResponseWriter, r *h
 
 	// Convert to frontend format
 	response := httputils.NewAPIResponse(r, userID, map[string]any{
-		"spend_tracking": createdOneTimePurchase,
+		"spend_tracking": map[string]any{
+			"item": createdOneTimePurchase,
+		},
 	})
 
 	httputils.RespondWithJSON(
 		httputils.NewResponseWriterAdapter(w),
 		h.appContext.Logger,
 		http.StatusCreated,
+		response,
+	)
+}
+
+func (h *SpendTrackingHandler) UpdateOneTimePurchase(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracing
+	requestID := httputils.GetRequestID(r)
+
+	userID := httputils.GetUserID(r)
+	if userID == "" {
+		h.appContext.Logger.Error("userID not found in request context", map[string]any{
+			"requestID": requestID,
+		})
+		h.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	oneTimePurchaseID := chi.URLParam(r, "id")
+	h.appContext.Logger.Info("Updating one-time purchase", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+		"id":        oneTimePurchaseID,
+	})
+
+	if oneTimePurchaseID == "" {
+		h.handleError(w, requestID, errors.New("one-time purchase ID is required"), http.StatusBadRequest)
+		return
+	}
+
+	var req types.SpendTrackingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.appContext.Logger.Error("Failed to decode request body", map[string]any{
+			"requestID": requestID,
+			"error":     err,
+		})
+		h.handleError(w, requestID, errors.New("invalid request body"), http.StatusBadRequest)
+		return
+	}
+
+	// Set the ID in the request
+	req.ID = oneTimePurchaseID
+
+	// Call service method
+	if err := h.spendTrackingService.UpdateOneTimePurchase(r.Context(), userID, req); err != nil {
+		h.appContext.Logger.Error("Failed to update one-time purchase", map[string]any{
+			"requestID": requestID,
+			"error":     err,
+		})
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, ErrSpendTrackingItemNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		h.handleError(w, requestID, err, statusCode)
+		return
+	}
+
+	// Get updated one time purchase and return
+	updatedOneTimePurchase, err := h.spendTrackingService.GetSingleSpendTrackingItem(r.Context(), userID, oneTimePurchaseID)
+	if err != nil {
+		h.appContext.Logger.Error("Failed to get updated one-time purchase", map[string]any{
+			"requestID": requestID,
+			"error":     err,
+		})
+	}
+
+	// Use standard response format
+	response := httputils.NewAPIResponse(r, userID, map[string]any{
+		"spend_tracking": map[string]any{
+			"item": updatedOneTimePurchase,
+		},
+	})
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		h.appContext.Logger,
+		http.StatusOK,
 		response,
 	)
 }

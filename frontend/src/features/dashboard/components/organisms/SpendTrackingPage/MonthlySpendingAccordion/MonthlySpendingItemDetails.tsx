@@ -6,6 +6,7 @@ import { SpendingItemYearGrid } from './SpendingItemYearGrid';
 import { SpendingItemPaymentDetails } from './SpendingItemPaymentDetails';
 
 // Shadcn UI Components
+import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 
 // Hooks + Utils
@@ -18,15 +19,17 @@ import { normalizeOneTimePurchaseMediaType } from '@/features/dashboard/lib/util
 // Types
 import type { SpendingItemBFFResponse, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
 import { MediaCategory } from '@/types/domain/spend-tracking';
+import { TransactionType } from '@/types/domain/spend-tracking';
 
 // Icons
 import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
 import { formatCurrency } from '@/features/dashboard/lib/utils/formatCurrency';
-//import { CreditCard } from 'lucide-react';
 
 interface MonthlySpendingItemDetailsProps {
   item: SpendingItemBFFResponse;
   oneTimeTotal: SingleYearlyTotalBFFResponse[];
+  onEdit?: (item: SpendingItemBFFResponse) => void;
+  onDelete?: (item: string) => void;
 }
 
 type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
@@ -34,6 +37,8 @@ type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "
 export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetails({
   item,
   oneTimeTotal,
+  onEdit,
+  onDelete,
 }: MonthlySpendingItemDetailsProps) {
   const { spendingData, title, isSubscription } = useSpendingData(item, oneTimeTotal);
 
@@ -139,6 +144,32 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
             </div>
           </div>
         </div>
+
+        {/* Edit / Delete Buttons */}
+        {item.spendTransactionType !== TransactionType.SUBSCRIPTION && (
+          <div>
+            <div className="flex-col w-full">
+              {onEdit && (
+                <Button
+                  variant="outline"
+                  onClick={() => onEdit(item)}
+                  className="w-full mb-4"
+                >
+                  Edit Expense
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="destructive"
+                  onClick={() => onDelete(item.id)}
+                  className="w-full"
+                >
+                  Delete Expense
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

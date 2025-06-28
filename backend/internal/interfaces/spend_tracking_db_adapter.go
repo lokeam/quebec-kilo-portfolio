@@ -10,4 +10,6 @@ import (
 type SpendTrackingDbAdapter interface {
 	GetSpendTrackingBFFResponse(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
 	CreateOneTimePurchase(ctx context.Context, userID string, request models.SpendTrackingOneTimePurchaseDB) (models.SpendTrackingOneTimePurchaseDB, error)
+	UpdateOneTimePurchase(ctx context.Context, userID string, request models.SpendTrackingOneTimePurchaseDB) (models.SpendTrackingOneTimePurchaseDB, error)
+	GetSingleSpendTrackingItem(ctx context.Context, userID string, itemID string) (models.SpendTrackingOneTimePurchaseDB, error)
 }

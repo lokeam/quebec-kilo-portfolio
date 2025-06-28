@@ -68,3 +68,45 @@ func TransformCreateRequestToModel(
 		UpdatedAt:         now,
 	}, nil
 }
+
+func TransformUpdateRequestToModel(
+	request types.SpendTrackingRequest,
+	oneTimePurchaseID int,
+	userID string,
+) (models.SpendTrackingOneTimePurchaseDB, error) {
+	now := time.Now()
+
+	// Parse purchase date
+	purchaseDate, err := time.Parse("2006-01-02T15:04:05Z", request.PurchaseDate)
+	if err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("invalid purchase_date format: %w", err)
+	}
+
+	// Handle optional boolean fields with defaults
+	isDigital := false
+	if request.IsDigital != nil {
+		isDigital = *request.IsDigital
+	}
+
+	isWishlisted := false
+	if request.IsWishlisted != nil {
+		isWishlisted = *request.IsWishlisted
+	}
+
+	spendTrackingModel := models.SpendTrackingOneTimePurchaseDB{
+		ID:                oneTimePurchaseID,
+		UserID:            userID,
+		Title:             request.Title,
+		Amount:            request.Amount,
+		PurchaseDate:      purchaseDate,
+		PaymentMethod:     request.PaymentMethod,
+		CategoryID:        request.SpendingCategoryID,
+		DigitalLocationID: request.DigitalLocationID,
+		IsDigital:         isDigital,
+		IsWishlisted:      isWishlisted,
+		CreatedAt:         now, // Keep original creation time
+		UpdatedAt:         now,
+	}
+
+	return spendTrackingModel, nil
+}

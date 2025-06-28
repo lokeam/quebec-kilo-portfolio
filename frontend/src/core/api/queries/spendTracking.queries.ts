@@ -25,8 +25,6 @@ import type {
   SpendItem,
   SingleYearlyTotalBFFResponse,
   SpendTrackingBFFResponse,
-  MediaCategory,
-  TransactionType,
   SpendingItemBFFResponse,
 } from '@/types/domain/spend-tracking';
 
@@ -143,7 +141,7 @@ export const useUpdateSpendItem = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<SpendItem> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateOneTimePurchaseRequest> }) =>
       updateSpendTrackingItem(id, data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });

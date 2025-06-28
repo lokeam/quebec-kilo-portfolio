@@ -90,4 +90,23 @@ const (
 		spending_category_id, digital_location_id, is_digital, is_wishlisted,
 		created_at, updated_at
 	`
+
+	UpdateOneTimePurchaseQuery = `
+	  UPDATE one_time_purchases
+    SET title = $1, amount = $2, purchase_date = $3, payment_method = $4,
+			spending_category_id = $5, digital_location_id = $6, is_digital = $7,
+			is_wishlisted = $8, updated_at = NOW()
+    WHERE id = $9 AND user_id = $10
+    RETURNING id, user_id, title, amount, purchase_date, payment_method,
+			spending_category_id, digital_location_id, is_digital, is_wishlisted,
+			created_at, updated_at
+	`
+
+	GetSingleSpendTrackingItemQuery = `
+		SELECT id, user_id, title, amount, purchase_date, payment_method,
+			spending_category_id, digital_location_id, is_digital, is_wishlisted,
+			created_at, updated_at
+		FROM one_time_purchases
+		WHERE id = $1 AND user_id = $2
+	`
 )

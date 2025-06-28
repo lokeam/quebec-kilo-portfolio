@@ -50,7 +50,7 @@ export interface CreateOneTimePurchaseRequest {
 // Core Types
 // original name: SpendingItem
 export interface SpendingItemBFFResponse {
-  id: string;
+  id: number;
   title: string;
   amount: number;
   spendTransactionType: TransactionType;

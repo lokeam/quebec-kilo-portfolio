@@ -3,6 +3,8 @@ package spend_tracking
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
@@ -149,4 +151,128 @@ func (sts *SpendTrackingService) CreateOneTimePurchase(
     })
 
     return createdPurchase, nil
+}
+
+func (sts *SpendTrackingService) UpdateOneTimePurchase(
+	ctx context.Context,
+	userID string,
+	request types.SpendTrackingRequest,
+) error {
+	sts.logger.Debug("Updating one-time purchase", map[string]any{
+		"userID":  userID,
+		"request": request,
+	})
+
+	// Validate userID
+	if err := sts.validator.ValidateUserID(userID); err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Validate the request
+	if err := sts.validator.ValidateOneTimePurchase(request); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Extract numeric ID from frontend format (e.g., "one-16" -> "16")
+	if !strings.HasPrefix(request.ID, "one-") {
+		return fmt.Errorf("invalid purchase ID format: must start with 'one-'")
+	}
+	numericID := strings.TrimPrefix(request.ID, "one-")
+
+	// Convert string ID to int for database operations
+	purchaseID, err := strconv.Atoi(numericID)
+	if err != nil {
+		return fmt.Errorf("invalid purchase ID format: %w", err)
+	}
+
+	// Get existing one-time purchase to ensure it exists and belongs to user
+	_, err = sts.dbAdapter.GetSingleSpendTrackingItem(ctx, userID, request.ID)
+	if err != nil {
+		sts.logger.Error("Failed to get existing one-time purchase", map[string]any{
+			"error": err,
+			"userID": userID,
+			"purchaseID": request.ID,
+		})
+		return fmt.Errorf("failed to get existing one-time purchase: %w", err)
+	}
+
+	// Transform request to database model
+	oneTimePurchase, err := TransformUpdateRequestToModel(request, purchaseID, userID)
+	if err != nil {
+		return fmt.Errorf("transformation failed: %w", err)
+	}
+
+	// Update in database
+	_, err = sts.dbAdapter.UpdateOneTimePurchase(ctx, userID, oneTimePurchase)
+	if err != nil {
+		sts.logger.Error("Failed to update one-time purchase in DB", map[string]any{"error": err})
+		return err
+	}
+
+	// Invalidate the cache for this user
+	if err := sts.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		sts.logger.Error("Failed to invalidate user cache after updating purchase", map[string]any{
+			"error":  err,
+			"userID": userID,
+		})
+		// DB update successful, continue despite error
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := sts.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		sts.logger.Error("Failed to invalidate dashboard cache after updating purchase", map[string]any{
+			"error":  err,
+			"userID": userID,
+		})
+		// DB update successful, continue despite error
+	}
+
+	// Invalidate spend tracking cache to refresh financial data
+	if err := sts.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		sts.logger.Error("Failed to invalidate spend tracking cache after updating purchase", map[string]any{
+			"error":  err,
+			"userID": userID,
+		})
+		// DB update successful, continue despite error
+	}
+
+	sts.logger.Debug("UpdateOneTimePurchase success", map[string]any{
+		"oneTimePurchase": oneTimePurchase,
+	})
+
+	return nil
+}
+
+// GetSingleSpendTrackingItem retrieves a single spend tracking item by ID
+func (sts *SpendTrackingService) GetSingleSpendTrackingItem(
+	ctx context.Context,
+	userID string,
+	itemID string,
+) (models.SpendTrackingOneTimePurchaseDB, error) {
+	sts.logger.Debug("GetSingleSpendTrackingItem called", map[string]any{
+		"userID": userID,
+		"itemID": itemID,
+	})
+
+	// Validate userID
+	if err := sts.validator.ValidateUserID(userID); err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Get the item from database
+	item, err := sts.dbAdapter.GetSingleSpendTrackingItem(ctx, userID, itemID)
+	if err != nil {
+		sts.logger.Error("Failed to get single spend tracking item", map[string]any{
+			"error": err,
+			"userID": userID,
+			"itemID": itemID,
+		})
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to get spend tracking item: %w", err)
+	}
+
+	sts.logger.Debug("GetSingleSpendTrackingItem success", map[string]any{
+		"item": item,
+	})
+
+	return item, nil
 }

@@ -6,6 +6,12 @@
  * - MonthlySpendingAccordionItem.tsx
  * - MonthlySpendingItemDetails.tsx
  * - useSpendingData.ts
+ *
+ *
+ *
+ * IMPORTANT: LEGACY SPEND-TRACKING TYPES. DO NOT USE. THIS FILE IS MARKED FOR DELETION.
+ *
+ *
  */
 
 import type { SingleYearlyTotalBFFResponse } from "@/types/domain/spend-tracking";

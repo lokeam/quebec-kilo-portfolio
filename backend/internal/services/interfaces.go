@@ -84,7 +84,10 @@ type SearchService interface {
 // SpendTrackingService defines operations for managing spend tracking
 type SpendTrackingService interface {
 	GetSpendTrackingBFFResponse(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
+	GetSingleSpendTrackingItem(ctx context.Context, userID string, itemID string) (models.SpendTrackingOneTimePurchaseDB, error)
+
 	CreateOneTimePurchase(ctx context.Context, userID string, request types.SpendTrackingRequest) (models.SpendTrackingOneTimePurchaseDB, error)
+	UpdateOneTimePurchase(ctx context.Context, userID string, request types.SpendTrackingRequest) error
 }
 
 type DashboardService interface {

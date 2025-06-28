@@ -1,8 +1,15 @@
 import { useCallback, useState, useEffect } from 'react';
+
+// React Hook Form + Zod
 import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCreateSpendItem } from '@/core/api/queries/spendTracking.queries';
+
+// Queries
+import {
+  useCreateSpendItem,
+  useUpdateSpendItem,
+} from '@/core/api/queries/spendTracking.queries';
 import { useGetAllDigitalLocations } from '@/core/api/queries/digitalLocation.queries';
 import type { CreateOneTimePurchaseRequest } from '@/types/domain/spend-tracking';
 
@@ -10,7 +17,6 @@ import type { CreateOneTimePurchaseRequest } from '@/types/domain/spend-tracking
 import { Button } from "@/shared/components/ui/button"
 import { Calendar } from '@/shared/components/ui/calendar';
 import { Input } from "@/shared/components/ui/input"
-//import { Checkbox } from "@/shared/components/ui/checkbox"
 import {
   FormControl,
   FormDescription,
@@ -62,7 +68,7 @@ export const SpendTrackingFormSchema = z.object({
 
 type FormValues = z.infer<typeof SpendTrackingFormSchema>;
 
-interface SpendTrackingData {
+export interface SpendTrackingData {
   id: string;
   title: string;
   spending_category_id: number;
@@ -128,6 +134,7 @@ export function SpendTrackingForm({
 
   const { handleSubmit, control, watch, formState: { errors } } = form;
   const createMutation = useCreateSpendItem();
+  const updateMutation = useUpdateSpendItem();
 
   // Get digital locations for dropdown
   const { data: digitalLocations = [] } = useGetAllDigitalLocations();
@@ -169,17 +176,38 @@ export function SpendTrackingForm({
     console.log('[DEBUG] SpendTrackingForm onSubmit: isDigitalCategory:', isDigitalCategory);
     console.log('[DEBUG] SpendTrackingForm onSubmit: digital_location_id:', data.digital_location_id);
 
-    createMutation.mutate(payload, {
-      onSuccess: () => {
-        console.log('[DEBUG] SpendTrackingForm onSubmit: Mutation succeeded');
-        if (onClose) onClose();
-        if (onSuccess) onSuccess(data);
-      },
-      onError: (error) => {
-        console.error('[DEBUG] SpendTrackingForm onSubmit: Mutation failed:', error);
-      }
-    });
-  }, [createMutation, isDigitalCategory, onSuccess, onClose, form]);
+    if (isEditing && spendTrackingData) {
+      // Update existing item
+      updateMutation.mutate(
+        {
+          id: spendTrackingData.id,
+          data: payload
+        },
+        {
+          onSuccess: () => {
+            console.log('[DEBUG] SpendTrackingForm onSubmit: Update mutation succeeded');
+            if (onClose) onClose();
+            if (onSuccess) onSuccess(data);
+          },
+          onError: (error) => {
+            console.error('[DEBUG] SpendTrackingForm onSubmit: Update mutation failed:', error);
+          }
+        }
+      );
+    } else {
+      // Create new item
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          console.log('[DEBUG] SpendTrackingForm onSubmit: Create mutation succeeded');
+          if (onClose) onClose();
+          if (onSuccess) onSuccess(data);
+        },
+        onError: (error) => {
+          console.error('[DEBUG] SpendTrackingForm onSubmit: Create mutation failed:', error);
+        }
+      });
+    }
+  }, [createMutation, updateMutation, isEditing, spendTrackingData, isDigitalCategory, onSuccess, onClose, form]);
 
   // Debug when form is submitted but validation fails
   const handleSubmitWithDebug = useCallback((data: FormValues) => {
@@ -401,20 +429,17 @@ export function SpendTrackingForm({
           )}
         />
 
-        {/* Wishlist Checkbox */}
-
         {/* Form actions */}
         <div className="flex justify-between w-full mt-6">
           <Button
             type="submit"
             className={isEditing && onDelete ? "flex-1" : "w-full"}
-            disabled={createMutation.isPending}
+            disabled={isEditing ? (updateMutation.isPending || !form.formState.isDirty) : createMutation.isPending}
           >
-            {createMutation.isPending
-              ? isEditing ? "Updating..." : "Creating..."
-              : isEditing
-                ? "Update Purchase"
-                : buttonText}
+            {isEditing
+              ? (updateMutation.isPending ? "Updating..." : "Update Purchase")
+              : (createMutation.isPending ? "Creating..." : buttonText)
+            }
           </Button>
 
           {isEditing && onDelete && spendTrackingData && (
@@ -423,7 +448,7 @@ export function SpendTrackingForm({
               variant="destructive"
               className="ml-2"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={createMutation.isPending}
+              disabled={updateMutation.isPending}
             >
               Delete
             </Button>
@@ -451,6 +476,7 @@ export function SpendTrackingForm({
               <Button
                 variant="destructive"
                 onClick={() => handleDelete(spendTrackingData.id)}
+                disabled={updateMutation.isPending}
               >
                 Delete
               </Button>

@@ -2,7 +2,9 @@ package spend_tracking
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -264,7 +266,7 @@ func (sta *SpendTrackingDbAdapter) buildTransactionArraysFromDatabaseRecords(
 
 
 
-// MAIN RESPONSE LOGIC -- GET - Send backend for frontend Spend Tracking Response
+// --- MAIN RESPONSE LOGIC -- GET - Send backend for frontend Spend Tracking Response ---
 func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	ctx context.Context,
 	userID string,
@@ -405,6 +407,54 @@ func (sta *SpendTrackingDbAdapter) GetSpendTrackingBFFResponse(
 	return response, nil
 }
 
+// --- SINGLE GET OPERATION ---
+func (sta *SpendTrackingDbAdapter) GetSingleSpendTrackingItem(
+	ctx context.Context,
+	userID string,
+	itemID string,
+) (models.SpendTrackingOneTimePurchaseDB, error) {
+	sta.logger.Debug("GetSingleSpendTrackingItem called", map[string]any{
+		"userID": userID,
+		"itemID": itemID,
+	})
+
+	// Extract numeric ID from frontend format (e.g., "one-16" -> "16")
+	if !strings.HasPrefix(itemID, "one-") {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("invalid purchase ID format: must start with 'one-'")
+	}
+	numericID := strings.TrimPrefix(itemID, "one-")
+
+	// Convert string ID to int for database query
+	purchaseID, err := strconv.Atoi(numericID)  // ✅ NOW converts "16" to int 16
+	if err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("invalid purchase ID format: %w", err)
+	}
+
+	// Execute SELECT query
+	var purchase models.SpendTrackingOneTimePurchaseDB
+	err = sta.db.GetContext(
+		ctx,
+		&purchase,
+		GetSingleSpendTrackingItemQuery,
+		purchaseID,
+		userID,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("one-time purchase not found")
+		}
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to get one-time purchase: %w", err)
+	}
+
+	sta.logger.Debug("GetSingleSpendTrackingItem success", map[string]any{
+		"purchase": purchase,
+	})
+
+	return purchase, nil
+}
+
+
 
 // --- WRITE OPERATIONS ---
 func (sta *SpendTrackingDbAdapter) CreateOneTimePurchase(
@@ -455,4 +505,55 @@ func (sta *SpendTrackingDbAdapter) CreateOneTimePurchase(
 	})
 
 	return newPurchase, nil
+}
+
+func (sta *SpendTrackingDbAdapter) UpdateOneTimePurchase(
+	ctx context.Context,
+	userID string,
+	request models.SpendTrackingOneTimePurchaseDB,
+) (models.SpendTrackingOneTimePurchaseDB, error) {
+	sta.logger.Debug("UpdateOneTimePurchase called", map[string]any{
+		"userID": userID,
+		"request": request,
+	})
+
+	// Start transaction
+	tx, err := sta.db.BeginTxx(ctx, nil)
+	if err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Execute UPDATE query
+	var updatedPurchase models.SpendTrackingOneTimePurchaseDB
+	err = tx.GetContext(
+		ctx,
+		&updatedPurchase,
+		UpdateOneTimePurchaseQuery,
+		request.Title,
+		request.Amount,
+		request.PurchaseDate,
+		request.PaymentMethod,
+		request.CategoryID,
+		request.DigitalLocationID,
+		request.IsDigital,
+		request.IsWishlisted,
+		request.ID,
+		userID,
+	)
+
+	if err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to update one-time purchase: %w", err)
+	}
+
+	// Commit transaction
+	if err := tx.Commit(); err != nil {
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	sta.logger.Debug("UpdateOneTimePurchase success", map[string]any{
+		"updatedPurchase": updatedPurchase,
+	})
+
+	return updatedPurchase, nil
 }

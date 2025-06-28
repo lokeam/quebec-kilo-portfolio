@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 import { MonthlySpendingItemDetails } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingItemDetails';
 import { MemoizedMonthlySpendingAccordionItem } from '@/features/dashboard/components/organisms/SpendTrackingPage/MonthlySpendingAccordion/MonthlySpendingAccordionItem';
+import { SpendTrackingForm } from '@/features/dashboard/components/organisms/SpendTrackingPage/SpendTrackingForm/SpendTrackingForm';
 
 // Shadcn UI Components
 import {
@@ -14,6 +15,9 @@ import {
 } from '@/shared/components/ui/accordion';
 import { Separator } from '@/shared/components/ui/separator';
 
+// Utils
+import { transformSpendingItemResponseToFormData } from '@/features/dashboard/lib/utils/spendTrackingTransformers';
+
 // Types
 import type { SpendItem, SingleYearlyTotalBFFResponse } from '@/types/domain/spend-tracking';
 
@@ -23,13 +27,30 @@ interface MonthlySpendingAccordionProps {
   oneTimeTotal: SingleYearlyTotalBFFResponse[];
 }
 
+
+
 export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: MonthlySpendingAccordionProps) {
+  /* Open / Close Details Drawer */
   const [selectedItem, setSelectedItem] = useState<SpendItem | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+
+  /* Editing an item */
+  const [isEditFormOpen, setIsEditFormOpen] = useState<boolean>(false);
+  const [editingItem, setEditingItem] = useState<SpendItem | null>(null);
 
   const handleItemClick = (item: SpendItem) => {
     setSelectedItem(item);
     setIsDrawerOpen(true);
+  };
+
+  const handleEditClick = (item: SpendItem) => {
+    setEditingItem(item);
+    setIsEditFormOpen(true);
+    setIsDrawerOpen(false); // Close the details drawer
+  };
+
+  const handleDeleteClick = (id: string) => {
+    console.log('Delete clicked for item id: ', id);
   };
 
   return (
@@ -72,6 +93,29 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
         </AccordionItem>
       </Accordion>
 
+      {editingItem && (
+        <DrawerContainer
+          open={isEditFormOpen}
+          onOpenChange={setIsEditFormOpen}
+          title={`Edit ${editingItem.title}`}
+          description="Update your expense details"
+        >
+          <SpendTrackingForm
+            isEditing={true}
+            spendTrackingData={transformSpendingItemResponseToFormData(editingItem)}
+            onClose={() => {
+              setIsEditFormOpen(false);
+              setEditingItem(null);
+            }}
+            onSuccess={() => {
+              setIsEditFormOpen(false);
+              setEditingItem(null);
+              // Refresh data will be handled by cache invalidation
+            }}
+          />
+        </DrawerContainer>
+      )}
+
       {selectedItem && (
         <DrawerContainer
           open={isDrawerOpen}
@@ -82,6 +126,8 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
           <MonthlySpendingItemDetails
             item={selectedItem}
             oneTimeTotal={oneTimeTotal}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
           />
         </DrawerContainer>
       )}
