@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 // Components
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -54,6 +56,7 @@ export function SearchResult({
   onAction,
   onAddToLibrary,
 }: SearchResultProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
   // const addToLibrary = useAddToLibrary();
   // const addToWishList = useAddToWishlist();
 
@@ -100,7 +103,7 @@ export function SearchResult({
   const showWishlistButton = !game.isInWishlist && game.gameType?.normalizedText !== 'mod';
 
   return (
-    <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden">
+    <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden opacity-0 data-[loaded=true]:opacity-100" data-loaded={imageLoaded}>
       { game.isInLibrary && (
         <div className="absolute left-0 top-0 bottom-0 z-10">
           <div className="flex h-full items-center">
@@ -114,13 +117,15 @@ export function SearchResult({
         </div>
       )}
       <div className="shrink-0 p-2">
-        <div className="relative w-24 md:w-32 p-2">
+        <div className="relative w-24 md:w-32 h-[130px] p-2">
           <ImageWithFallback
             src={game.coverUrl}
             alt={`cover image for ${game.name}`}
             width={292}
-            height={120}
-            className="rounded-sm w-[140px] h-full object-cover"
+            height={130}
+            className="rounded-sm w-full h-full object-cover"
+            onLoad={() => setImageLoaded(true)}
+            igdbSize="cover_big"
           />
         </div>
       </div>
