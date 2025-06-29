@@ -10,10 +10,17 @@ import { FilterDropdown } from '@/shared/components/ui/FilterDropdown/FilterDrop
 import { useFilterCheckboxes } from '@/shared/components/ui/FilterDropdown/useFilterCheckboxes';
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 
-// Constants
-import { BILLING_CYCLE_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/shared/components/ui/FilterDropdown/filterOptions.consts';
+interface FilterOption {
+  key: string;
+  label: string;
+}
 
-export function OnlineServicesToolbar() {
+interface OnlineServicesToolbarProps {
+  paymentMethods: FilterOption[];
+  billingCycles: FilterOption[];
+}
+
+export function OnlineServicesToolbar({ paymentMethods, billingCycles }: OnlineServicesToolbarProps) {
   const {
     viewMode,
     setViewMode,
@@ -21,11 +28,12 @@ export function OnlineServicesToolbar() {
     setBillingCycleFilters,
     setPaymentMethodFilters,
   } = useOnlineServicesStore();
+
   const billingCycleFilter = useFilterCheckboxes(
-    BILLING_CYCLE_OPTIONS.map(option => option.key)
+    billingCycles.map(option => option.key)
   );
   const paymentMethodFilter = useFilterCheckboxes(
-    PAYMENT_METHOD_OPTIONS.map(option => option.key)
+    paymentMethods.map(option => option.key)
   );
 
   const handleSearchChange = useCallback(
@@ -36,7 +44,6 @@ export function OnlineServicesToolbar() {
   );
 
   useEffect(() => {
-
     const selectedBillingCycles = Object.entries(billingCycleFilter.checkboxes)
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .filter(([_, isChecked]) => isChecked === true)
@@ -67,14 +74,14 @@ export function OnlineServicesToolbar() {
 
         <FilterDropdown
           label="Billing Cycle"
-          options={BILLING_CYCLE_OPTIONS}
+          options={billingCycles}
           width="140px"
           {...billingCycleFilter}
         />
 
         <FilterDropdown
           label="Payment Method"
-          options={PAYMENT_METHOD_OPTIONS}
+          options={paymentMethods}
           width="180px"
           {...paymentMethodFilter}
         />

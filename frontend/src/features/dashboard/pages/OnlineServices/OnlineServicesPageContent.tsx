@@ -12,6 +12,9 @@ import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResu
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 import { OnlineServiceForm } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServiceForm/OnlineServiceForm';
 
+// Skeleton Components
+import { OnlineServicesPageSkeleton } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageSkeleton';
+
 // API Hooks and Utilities
 //import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 import {
@@ -148,6 +151,10 @@ export function OnlineServicesPageContent() {
       wide: '200px'
     }
   });
+
+  if (isLoading) {
+    return <OnlineServicesPageSkeleton />
+  }
 
   // Render content based on the selected view mode
   const renderContent = () => {

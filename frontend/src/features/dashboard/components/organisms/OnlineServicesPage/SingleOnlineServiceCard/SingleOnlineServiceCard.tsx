@@ -51,10 +51,6 @@ export const SingleOnlineServiceCard = memo(({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // const currentTierDetails = service.tier?.availableTiers?.find(t =>
-  //   t?.name?.toLowerCase() === service.tier?.currentTier?.toLowerCase()
-  // );
-
   const showRenewalBadge = service.isActive &&
     isPaidService(service) &&
     isRenewalMonth(service);
@@ -136,9 +132,9 @@ export const SingleOnlineServiceCard = memo(({
             </div>
           </div>
 
-          <div className="relative w-32">
+          <div className="relative w-24">
             {/* Show on no hover */}
-            <div className="absolute inset-0 flex items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
+            <div className="absolute inset-0 flex justify-end items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
               {!isPaidService(service) ? (
                   <span className="font-medium text-white">
                     --
@@ -151,9 +147,9 @@ export const SingleOnlineServiceCard = memo(({
                   <span className="text-muted-foreground text-xs">/ 1 mo</span>
                 </>
               )}
-              {service.isActive && (
+              {/* {service.isActive && (
                 <Power className="h-5 w-5 ml-1 text-emerald-500" />
-              )}
+              )} */}
               {showRenewalBadge && (
                 <Badge
                   variant="default"
