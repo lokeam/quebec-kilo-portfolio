@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 import {
   getStoredViewMode,
   featureViewModes
@@ -8,8 +8,8 @@ import {
 type LibraryViewMode = typeof featureViewModes.library.allowed[number];
 
 interface LibraryState {
-  userGames: LibraryGameItemResponse[];
-  setGames: (games: LibraryGameItemResponse[]) => void;
+  userGames: LibraryGameItemRefactoredResponse[];
+  setGames: (games: LibraryGameItemRefactoredResponse[]) => void;
   viewMode: LibraryViewMode;
   setViewMode: (mode: LibraryViewMode) => void;
   searchQuery: string;

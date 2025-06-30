@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 
 interface FilterOption {
   key: string;
@@ -11,7 +11,7 @@ interface LibraryFilterOptions {
   locations: FilterOption[];
 }
 
-export function useLibraryFilters(libraryItems: LibraryGameItemResponse[]): LibraryFilterOptions {
+export function useLibraryFilters(libraryItems: LibraryGameItemRefactoredResponse[]): LibraryFilterOptions {
   return useMemo(() => {
     if (!libraryItems || libraryItems.length === 0) {
       return { platforms: [], locations: [] };
@@ -19,9 +19,16 @@ export function useLibraryFilters(libraryItems: LibraryGameItemResponse[]): Libr
 
     // Extract unique platforms from library items
     const uniquePlatforms = Array.from(new Set(
-      libraryItems.flatMap(item =>
-        item.gamesByPlatformAndLocation.map(location => location.platformName)
-      )
+      libraryItems.flatMap(item => [
+        // Extract platforms from physical locations
+        ...item.physicalLocations.flatMap(location =>
+          location.gamePlatformVersions.map(platform => platform.platformName)
+        ),
+        // Extract platforms from digital locations
+        ...item.digitalLocations.flatMap(location =>
+          location.gamePlatformVersions.map(platform => platform.platformName)
+        )
+      ])
     ))
     .sort()
     .map(platform => ({
@@ -33,7 +40,8 @@ export function useLibraryFilters(libraryItems: LibraryGameItemResponse[]): Libr
     const locationSet = new Set<string>();
 
     libraryItems.forEach(item => {
-      item.gamesByPlatformAndLocation.forEach(location => {
+      // Add physical locations
+      item.physicalLocations.forEach(location => {
         // Add sublocation name if it exists
         if (location.sublocationName) {
           locationSet.add(location.sublocationName);
@@ -41,6 +49,13 @@ export function useLibraryFilters(libraryItems: LibraryGameItemResponse[]): Libr
         // Add parent location name if it exists
         if (location.parentLocationName) {
           locationSet.add(location.parentLocationName);
+        }
+      });
+
+      // Add digital locations
+      item.digitalLocations.forEach(location => {
+        if (location.digitalLocationName) {
+          locationSet.add(location.digitalLocationName);
         }
       });
     });

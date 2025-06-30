@@ -1,5 +1,11 @@
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
-import type { CreateLibraryGameRequest, LibraryGameItemResponse, LibraryItemsBFFResponse } from '@/types/domain/library-types';
+import type {
+  CreateLibraryGameRequest,
+  LibraryGameItemResponse,
+  LibraryItemsBFFResponse,
+  LibraryGameItemRefactoredResponse,
+  LibraryItemsBFFRefactoredResponse,
+} from '@/types/domain/library-types';
 
 export const adaptAddToLibraryFromToRequest = (
   formPayload: AddToLibraryFormPayload
@@ -35,8 +41,30 @@ const adaptLibraryBFFResponse = (response: LibraryItemsBFFResponse | undefined) 
   };
 };
 
+// REFACTORED RESPONSE - updated adapters
+const adaptLibraryBFFRefactoredResponse = (response: LibraryItemsBFFRefactoredResponse | undefined) => {
+  return {
+    libraryItems: response?.libraryItems?.filter(isValidLibraryItemRefactored) ?? [],
+    recentlyAdded: response?.recentlyAdded?.filter(isValidLibraryItemRefactored) ?? []
+  };
+};
+
+// Add validation function for refactored items
+const isValidLibraryItemRefactored = (item: LibraryGameItemRefactoredResponse): boolean => {
+  return !!(
+    item &&
+    typeof item.id === 'number' &&
+    typeof item.name === 'string' &&
+    typeof item.coverUrl === 'string' &&
+    Array.isArray(item.physicalLocations) &&
+    Array.isArray(item.digitalLocations)
+  );
+};
+
+
 // Export both functions
 export {
   isValidLibraryItem,
-  adaptLibraryBFFResponse
+  adaptLibraryBFFResponse,
+  adaptLibraryBFFRefactoredResponse
 };

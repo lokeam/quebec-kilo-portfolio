@@ -1,7 +1,7 @@
 import { memo, useReducer, useCallback, useMemo, useRef } from 'react';
 
 // Components
-import { InfoSection } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection';
+import { LibraryGameDetailCardInfoSection } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameDetailCard/LibraryGameDetailCardInfoSection';
 import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage";
 import { Badge } from "@/shared/components/ui/badge";
 
@@ -9,14 +9,13 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from '@/shared/components/ui/button';
 
 // Hooks + Utils
-import { useLocationIcons } from '@/features/dashboard/lib/hooks/useLocationIcons';
 import { useElementBreakpoint } from '@/shared/hooks/useElementBreakpoint';
 import { visibilityReducer } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/visibilityReducer';
 //import { toast } from 'sonner';
 
 // Types
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
-import type { GamePlatformLocation, GamePlatformLocationResponse, GameType } from '@/types/domain/library-types';
+import type { GameType, PhysicalLocationResponse, DigitalLocationResponse } from '@/types/domain/library-types';
 
 // Icons
 import {
@@ -32,7 +31,7 @@ import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/co
 import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
-interface LibraryMediaListItemProps {
+interface LibraryGameDetailCardProps {
   index: number;
   id: number;
   name: string;
@@ -44,10 +43,13 @@ interface LibraryMediaListItemProps {
   isInWishlist: boolean;
   gameType: GameType;
   favorite: boolean;
-  gamesByPlatformAndLocation: GamePlatformLocationResponse[];
+  physicalLocations: PhysicalLocationResponse[];
+  digitalLocations: DigitalLocationResponse[];
   onFavorite?: () => void;
   onSettings?: () => void;
   onRemoveFromLibrary?: () => void;
+  totalDigitalVersions?: number;
+  totalPhysicalVersions?: number;
 }
 
 const createAddToFavoritesToast = (title: string) => {
@@ -58,14 +60,15 @@ const createAddToFavoritesToast = (title: string) => {
   });
 };
 
-function LibraryMediaListItem({
+function LibraryGameDetailCard({
   index,
   name,
   coverUrl,
   favorite = false,
-  gamesByPlatformAndLocation = [],
+  physicalLocations = [],
+  digitalLocations = [],
   onRemoveFromLibrary = () => {},
-}: LibraryMediaListItemProps) {
+}: LibraryGameDetailCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
   const handleAddToFavorites = useCallback(() => {
@@ -78,13 +81,16 @@ function LibraryMediaListItem({
     [index, name]
   );
 
-  const { locationIcon, subLocationIcon } = useLocationIcons({
-    gamesByPlatformAndLocation,
-    selectedIndex: 0
-  });
+  // Calculate total locations for the count badge
+  const totalLocations = physicalLocations.length + digitalLocations.length;
 
-  // Get the first platform/location for display
-  const selectedLocation = gamesByPlatformAndLocation[0];
+  // Get the first location for display (prioritize physical over digital)
+  const firstPhysicalLocation = physicalLocations[0];
+  const firstDigitalLocation = digitalLocations[0];
+
+  // Get platform name from the first platform version
+  const platformName = firstPhysicalLocation?.gamePlatformVersions[0]?.platformName ||
+                      firstDigitalLocation?.gamePlatformVersions[0]?.platformName || "";
 
   // Visibility reducer to handle breakpoint related visibility changes
   const [visibility, dispatch] = useReducer(visibilityReducer, {
@@ -104,10 +110,10 @@ function LibraryMediaListItem({
 
   // Memoize expensive computations
   const platformIcon = useMemo(() => {
-    return selectedLocation?.PlatformName === "PC" ?
+    return platformName === "PC" ?
       <IconDevicesPc className="h-8 w-8 mt-[-4px]" /> :
       <IconDeviceGamepad className="h-7 w-7" />
-  }, [selectedLocation?.PlatformName]);
+  }, [platformName]);
 
   const defaultValue = useMemo(() => ({
     showTags: true,
@@ -135,10 +141,10 @@ function LibraryMediaListItem({
       ref={cardRef}
     >
       {/* Game Cover */}
-      <div className="h-16 w-28 flex-shrink-0">
+      <div className="h-28 w-28 flex-shrink-0">
         <CoverImage
           src={coverUrl}
-          size="cover_small"
+          size="cover_big"
           alt={name}
           className="h-full w-full rounded-md"
         />
@@ -149,12 +155,12 @@ function LibraryMediaListItem({
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
             <h3 className="font-semibold">{name}</h3>
-            {gamesByPlatformAndLocation.length > 1 && (
+            {totalLocations > 1 && (
               <Badge
                 variant="secondary"
                 className="bg-purple-500/20 text-purple-500 hover:bg-purple-500/30"
               >
-                {gamesByPlatformAndLocation.length} versions
+                {totalLocations} versions
               </Badge>
             )}
           </div>
@@ -162,44 +168,44 @@ function LibraryMediaListItem({
           <div className="flex gap-8 text-sm text-muted-foreground">
 
             {/* Game Platform */}
-            <InfoSection
+            <LibraryGameDetailCardInfoSection
               icon={platformIcon}
               label="Platform"
-              value={selectedLocation?.PlatformName ?? ""}
+              value={platformName}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
 
             {/* Game Location */}
-            <InfoSection
-              icon={locationIcon}
-              label={selectedLocation?.Type === 'physical' ? "Location" : "Service"}
-              value={selectedLocation?.LocationName ?? ""}
-              hasStackedContent={visibility.stackInfoContent}
-              isMobile={visibility.isMobile}
-            />
+            {firstPhysicalLocation ? (
+              <>
+                <LibraryGameDetailCardInfoSection
+                  icon={<IconFileFilled className="h-7 w-7" />}
+                  label="Location"
+                  value={firstPhysicalLocation.parentLocationName ?? ""}
+                  hasStackedContent={visibility.stackInfoContent}
+                  isMobile={visibility.isMobile}
+                />
 
-            {/* Game Sublocation */}
-            <InfoSection
-              icon={subLocationIcon}
-              label="Sublocation"
-              value={selectedLocation?.SublocationName ?? ""}
-              isVisible={!!selectedLocation?.SublocationName && !!selectedLocation?.SublocationType}
-              hasStackedContent={visibility.stackInfoContent}
-              isMobile={visibility.isMobile}
-            />
-
-            {/* Game Disk Size - Only show for digital games */}
-            {selectedLocation?.Type === 'digital' && (
-              <InfoSection
+                {/* Game Sublocation */}
+                <LibraryGameDetailCardInfoSection
+                  icon={<IconFileFilled className="h-7 w-7" />}
+                  label="Sublocation"
+                  value={firstPhysicalLocation.sublocationName ?? ""}
+                  isVisible={!!firstPhysicalLocation.sublocationName && !!firstPhysicalLocation.sublocationType}
+                  hasStackedContent={visibility.stackInfoContent}
+                  isMobile={visibility.isMobile}
+                />
+              </>
+            ) : firstDigitalLocation ? (
+              <LibraryGameDetailCardInfoSection
                 icon={<IconFileFilled className="h-7 w-7" />}
-                label="Disk Size"
-                value="0 GB" // TODO: Add disk size to the API response
+                label="Service"
+                value={firstDigitalLocation.digitalLocationName ?? ""}
                 hasStackedContent={visibility.stackInfoContent}
                 isMobile={visibility.isMobile}
               />
-            )}
-
+            ) : null}
           </div>
         </div>
 
@@ -224,4 +230,4 @@ function LibraryMediaListItem({
   );
 }
 
-export const MemoizedLibraryMediaListItem = memo(LibraryMediaListItem);
+export const MemoizedLibraryGameDetailCard = memo(LibraryGameDetailCard);

@@ -169,3 +169,54 @@ export interface LibraryGame {
   favorite: boolean;
   gamesByPlatformAndLocation: GamePlatformLocation[];
 }
+
+
+// -- REFACTORED LIBRARY RESPONSE TYPES, TO LEGACY TYPES ABOVE WHEN COMPLETE --
+export interface LibraryGameItemRefactoredResponse {
+  id: number;
+  name: string;
+  coverUrl: string;
+  isInWishlist: boolean;
+  firstReleaseDate: number;
+  genreNames: string[];
+  gameType: {
+    displayText: string;
+    normalizedText: string;
+  };
+  favorite: boolean;
+  totalPhysicalVersions: number;
+  totalDigitalVersions: number;
+  physicalLocations: PhysicalLocationResponse[];
+  digitalLocations: DigitalLocationResponse[];
+}
+
+// Physical location response
+export interface PhysicalLocationResponse {
+  parentLocationName: string;
+  parentLocationId: string;
+  parentLocationType: string;
+  parentLocationBgColor: string;
+  sublocationName: string;
+  sublocationId: string;
+  sublocationType: string;
+  gamePlatformVersions: PlatformVersionResponse[];
+}
+
+// Digital location response
+export interface DigitalLocationResponse {
+  digitalLocationName: string;
+  digitalLocationId: string;
+  gamePlatformVersions: PlatformVersionResponse[];
+}
+
+// Platform version response
+export interface PlatformVersionResponse {
+  platformName: string;
+  platformId: number;
+}
+
+// Updated BFF response
+export interface LibraryItemsBFFRefactoredResponse {
+  libraryItems: LibraryGameItemRefactoredResponse[];
+  recentlyAdded: LibraryGameItemRefactoredResponse[];
+}

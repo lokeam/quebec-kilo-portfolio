@@ -1,6 +1,6 @@
 import { memo, type ReactNode } from 'react';
 
-interface InfoSectionProps {
+interface LibraryGameDetailCardInfoSectionProps {
   icon: ReactNode;
   label: string;
   value: string;
@@ -10,7 +10,7 @@ interface InfoSectionProps {
   isCardView?: boolean;
 };
 
-export const InfoSection = memo(({
+export const LibraryGameDetailCardInfoSection = memo(({
   icon,
   label,
   value,
@@ -18,7 +18,7 @@ export const InfoSection = memo(({
   isVisible = true,
   isMobile = false,
   isCardView = false,
-}: InfoSectionProps) => {
+}: LibraryGameDetailCardInfoSectionProps) => {
 
   if (!isVisible || isMobile) return null;
 

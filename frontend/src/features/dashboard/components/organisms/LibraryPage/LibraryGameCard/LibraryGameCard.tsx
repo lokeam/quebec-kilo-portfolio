@@ -1,5 +1,5 @@
 // Components
-import { InfoSection } from "@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/InfoSection"
+import { LibraryGameCardInfoSection } from "@/features/dashboard/components/organisms/LibraryPage/LibraryGameCard/LibraryGameCardInfoSection"
 import { CoverImage } from "@/shared/components/ui/CoverImage/CoverImage"
 import { LibraryCountIcon } from "@/features/dashboard/lib/utils/getLibraryItemCountIcon"
 
@@ -10,14 +10,13 @@ import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/shared/components/ui/utils"
 
 // Icons
-import { useLocationIcons } from '@/features/dashboard/lib/hooks/useLocationIcons';
 import { IconFileFilled } from "@tabler/icons-react"
-import { LibraryItemContextMenu } from '../LibraryMediaListItem/LibraryItemContextMenu';
+import { LibraryItemContextMenu } from '../LibraryGameDetailCard/LibraryItemContextMenu';
 
 // Types
-import type { GamePlatformLocation, GamePlatformLocationResponse, GameType } from '@/types/domain/library-types';
+import type { GameType, PhysicalLocationResponse, DigitalLocationResponse } from '@/types/domain/library-types';
 
-interface LibraryMediaItemProps {
+interface LibraryGameCardProps {
   index?: number;
   id: number;
   steamHref?: string
@@ -30,25 +29,32 @@ interface LibraryMediaItemProps {
   isInWishlist: boolean;
   gameType: GameType;
   favorite: boolean;
-  gamesByPlatformAndLocation?: GamePlatformLocationResponse[];
+  physicalLocations?: PhysicalLocationResponse[];
+  digitalLocations?: DigitalLocationResponse[];
   onRemoveFromLibrary?: () => void;
+  totalDigitalVersions?: number;
+  totalPhysicalVersions?: number;
 }
 
-export function LibraryMediaItem({
+export function LibraryGameCard({
   steamHref,
   coverUrl,
   name,
-  gamesByPlatformAndLocation = [],
+  physicalLocations = [],
+  digitalLocations = [],
   onRemoveFromLibrary = () => {},
-}: LibraryMediaItemProps) {
-  const { locationIcon, subLocationIcon } = useLocationIcons({
-    gamesByPlatformAndLocation,
-    selectedIndex: 0 // For now, just show the first platform/location
-  });
+  totalDigitalVersions,
+  totalPhysicalVersions,
+}: LibraryGameCardProps) {
+  // Calculate total locations for the count icon
+  const totalLocations = physicalLocations.length + digitalLocations.length;
 
-  // Get the first platform/location for display
-  const selectedLocation = gamesByPlatformAndLocation?.[0];
+  // Get the first location for display (prioritize physical over digital)
+  // const firstPhysicalLocation = physicalLocations[0];
+  // const firstDigitalLocation = digitalLocations[0];
+  //const selectedLocation = firstPhysicalLocation || firstDigitalLocation;
 
+  console.log('library card', totalDigitalVersions, totalPhysicalVersions);
   const content = (
     <div className={cn(
       "group relative aspect-[11/15] w-full bg-black shadow-[0px_3px_10px_rgba(0,0,0,0.9)]",
@@ -67,7 +73,7 @@ export function LibraryMediaItem({
         />
         <div className="absolute top-2 right-2 z-10">
           <LibraryCountIcon
-            count={gamesByPlatformAndLocation.length}
+            count={totalLocations}
             className="h-6 w-6 text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]"
           />
         </div>
@@ -83,39 +89,22 @@ export function LibraryMediaItem({
                    group-hover:translate-y-0 backdrop-blur-[5px] bg-black bg-opacity-50 space-y-2"
       >
         {/* Game Location */}
-        {selectedLocation && (
-          <>
-            <InfoSection
-              icon={locationIcon}
-              label={selectedLocation.Type === 'physical' ? "Location" : "Service"}
-              value={selectedLocation.LocationName ?? ""}
-              hasStackedContent={false}
-              isMobile={false}
-            />
 
-            {/* Game Sublocation */}
-            <InfoSection
-              icon={subLocationIcon}
-              label="Sublocation"
-              value={selectedLocation.SublocationName ?? ""}
-              isVisible={!!selectedLocation.SublocationName && !!selectedLocation.SublocationType}
-              hasStackedContent={false}
-              isMobile={false}
-              isCardView={true}
-            />
+        <LibraryGameCardInfoSection
+           physicalLocations={physicalLocations ?? []}
+           digitalLocations={digitalLocations ?? []}
+           totalDigitalVersions={totalDigitalVersions ?? 0}
+           totalPhysicalVersions={totalPhysicalVersions ?? 0}
+        />
 
-            {/* Disk Size - Only show for digital games */}
-            {selectedLocation.Type === 'digital' && (
-              <InfoSection
-                icon={<IconFileFilled className="h-7 w-7" />}
-                label="Disk Size"
-                value="0 GB" // TODO: Add disk size to the API response
-                hasStackedContent={false}
-                isMobile={false}
-              />
-            )}
-          </>
-        )}
+        {/* Game Sublocation */}
+        {/* <LibraryGameCardInfoSection
+          icon={<IconFileFilled className="h-7 w-7" />}
+          label="Sublocation"
+          value={firstPhysicalLocation.sublocationName ?? ""}
+          isVisible={!!firstPhysicalLocation.sublocationName && !!firstPhysicalLocation.sublocationType}
+          isMobile={false}
+        /> */}
       </div>
       <div
         data-testid="library-media-item-shine"

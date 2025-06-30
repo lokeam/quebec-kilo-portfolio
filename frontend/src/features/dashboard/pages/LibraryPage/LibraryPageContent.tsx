@@ -5,14 +5,14 @@ import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { LibraryPageToolbar } from '@/features/dashboard/components/organisms/LibraryPage/LibraryPageToolbar/LibraryPageToolbar';
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
-import { LibraryMediaItem } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaItem/LibraryMediaItem';
-import { MemoizedLibraryMediaListItem } from '@/features/dashboard/components/organisms/LibraryPage/LibraryMediaListItem/LibraryMediaListItem';
+import { LibraryGameCard } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameCard/LibraryGameCard';
+import { MemoizedLibraryGameDetailCard } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameDetailCard/LibraryGameDetailCard';
 
 // Utils + Hooks
 import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
 import { useGetLibraryPageBFFResponse } from '@/core/api/queries/gameLibrary.queries';
 import { useLibraryFilters } from '@/features/dashboard/lib/hooks/useLibraryFilters';
-import type { LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 
 export function LibraryPageContent() {
   const { viewMode, setGames } = useLibraryStore();
@@ -52,23 +52,35 @@ export function LibraryPageContent() {
   }, [libraryItems, services, bffResponse]);
 
   // Memoize filter function
-  const filterGame = useCallback((game: LibraryGameItemResponse) => {
+  const filterGame = useCallback((game: LibraryGameItemRefactoredResponse) => {
     // Search filter - match against game name
     const matchesSearch = !searchQuery ||
       game.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Platform filter - match against any of the selected platforms
     const matchesPlatform = platformFilters.length === 0 ||
-      game.gamesByPlatformAndLocation.some(location =>
-        platformFilters.includes(location.platformName)
-      );
+      [
+        // Check physical locations
+        ...game.physicalLocations.flatMap(location =>
+          location.gamePlatformVersions.map(platform => platform.platformName)
+        ),
+        // Check digital locations
+        ...game.digitalLocations.flatMap(location =>
+          location.gamePlatformVersions.map(platform => platform.platformName)
+        )
+      ].some(platformName => platformFilters.includes(platformName));
 
     // Location filter - match against any of the selected locations
     const matchesLocation = locationFilters.length === 0 ||
-      game.gamesByPlatformAndLocation.some(location =>
-        locationFilters.includes(location.sublocationName || '') ||
-        locationFilters.includes(location.parentLocationName || '')
-      );
+      [
+        // Check physical locations
+        ...game.physicalLocations.flatMap(location => [
+          location.sublocationName || '',
+          location.parentLocationName || ''
+        ]),
+        // Check digital locations
+        ...game.digitalLocations.map(location => location.digitalLocationName || '')
+      ].some(locationName => locationFilters.includes(locationName));
 
     return matchesSearch && matchesPlatform && matchesLocation;
   }, [searchQuery, platformFilters, locationFilters]);
@@ -142,12 +154,12 @@ export function LibraryPageContent() {
     }
 
     const CardComponent = viewMode === 'grid'
-      ? LibraryMediaItem
-      : MemoizedLibraryMediaListItem;
+      ? LibraryGameCard
+      : MemoizedLibraryGameDetailCard;
 
     return (
       <div className="flex h-full w-full flex-wrap content-start">
-        {filteredServices.map((item: LibraryGameItemResponse, index) => (
+        {filteredServices.map((item: LibraryGameItemRefactoredResponse, index) => (
           <CardComponent
             key={`${item.name}-${index}`}
             index={index}
@@ -155,14 +167,17 @@ export function LibraryPageContent() {
             name={item.name}
             coverUrl={item.coverUrl}
             firstReleaseDate={item.firstReleaseDate}
-            rating={item.rating}
-            themeNames={item.themeNames ?? null}
-            isInLibrary={item.isInLibrary}
+            rating={0}
+            themeNames={item.genreNames ?? null}
+            isInLibrary={true}
             isInWishlist={item.isInWishlist}
             gameType={item.gameType}
             favorite={item.favorite}
-            gamesByPlatformAndLocation={item.gamesByPlatformAndLocation}
+            physicalLocations={item.physicalLocations}
+            digitalLocations={item.digitalLocations}
             onRemoveFromLibrary={() => {}}
+            totalDigitalVersions={item.totalDigitalVersions}
+            totalPhysicalVersions={item.totalPhysicalVersions}
           />
         ))}
       </div>

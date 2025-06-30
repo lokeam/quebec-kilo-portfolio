@@ -18,12 +18,15 @@ import {
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Adapters
-import { adaptAddToLibraryFromToRequest, adaptLibraryBFFResponse } from '@/core/api/adapters/gameLibrary.adapter';
+import { adaptAddToLibraryFromToRequest, adaptLibraryBFFRefactoredResponse, adaptLibraryBFFResponse } from '@/core/api/adapters/gameLibrary.adapter';
 
 // Type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
 import type { Game } from '@/types/game';
-import type { CreateLibraryGameRequest, LibraryGameItem, LibraryItemsBFFResponse } from '@/types/domain/library-types';
+import type {
+   CreateLibraryGameRequest,
+   LibraryItemsBFFRefactoredResponse,
+} from '@/types/domain/library-types';
 
 // Constants
 import { TOAST_SUCCESS_MESSAGES } from '@/shared/constants/toast.success.messages';
@@ -42,14 +45,14 @@ export const gameLibraryKeys = {
  * Hook to fetch all library items for the BFF page
 */
 export const useGetLibraryPageBFFResponse = () => {
-  return useAPIQuery<LibraryItemsBFFResponse>({
+  return useAPIQuery<LibraryItemsBFFRefactoredResponse>({
     queryKey: gameLibraryKeys.lists(),
     queryFn: async () => {
       try {
         const response = await getLibraryPageBFFResponse();
 
         // Use our adapter to safely extract and validate data
-        const adaptedResponse = adaptLibraryBFFResponse(response);
+        const adaptedResponse = adaptLibraryBFFRefactoredResponse(response);
 
         return adaptedResponse;
       } catch(error) {

@@ -9,7 +9,7 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // types
 // import type { ApiResponse } from '@/types/api/api.types';
-import type { CreateLibraryGameRequest, LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemRefactoredResponse, LibraryGameItemResponse } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
@@ -60,6 +60,25 @@ type LibraryBFFResponse = {
   recentlyAdded: LibraryGameItemResponse[];
 };
 
+// REFACTORED RESPONSE - REMOVE UNUSED types WHEN COMPLETE
+interface LibraryBFFRefactoredResponseWrapper {
+  success: boolean;
+  library: {
+    libraryItems: LibraryGameItemRefactoredResponse[];
+    recentlyAdded: LibraryGameItemRefactoredResponse[];
+  };
+  metadata: {
+    timestamp: string;
+    request_id: string;
+  };
+}
+
+type LibraryBFFRefactoredResponse = {
+  libraryItems: LibraryGameItemRefactoredResponse[];
+  recentlyAdded: LibraryGameItemRefactoredResponse[];
+};
+
+
 /**
  * Fetches all games for the current user.
  *
@@ -74,10 +93,10 @@ type LibraryBFFResponse = {
  *   return apiRequest('getAllGames', () => axios.get(...));
  */
 
-export const getLibraryPageBFFResponse = (): Promise<LibraryBFFResponse> =>
+export const getLibraryPageBFFResponse = (): Promise<LibraryBFFRefactoredResponse> =>
   apiRequest('getLibraryPageBFFResponse', async () => {
     console.log('[DEBUG] getLibraryPageBFFResponse: Making API request');
-    const response = await axiosInstance.get<LibraryBFFResponseWrapper>(LIBRARY_BFF_ENDPOINT);
+    const response = await axiosInstance.get<LibraryBFFRefactoredResponseWrapper>(LIBRARY_BFF_ENDPOINT);
     console.log('[DEBUG] getLibraryPageBFFResponse: Raw API response:', response.data);
 
     if (!response.data.library) {
