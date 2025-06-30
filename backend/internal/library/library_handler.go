@@ -89,7 +89,8 @@ func GetAllLibraryItemsBFF(
 			"userID":    userID,
 		})
 
-		libraryItemsPayload, err := libraryService.GetAllLibraryItemsBFF(r.Context(), userID)
+		//libraryItemsPayload, err := libraryService.GetAllLibraryItemsBFF(r.Context(), userID)
+		libraryItemsPayload, err := libraryService.GetLibraryRefactoredBFFResponse(r.Context(), userID)
 		if err != nil {
 			handleError(w, appCtx.Logger, requestID, err)
 			return

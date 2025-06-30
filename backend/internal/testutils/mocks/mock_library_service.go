@@ -45,12 +45,21 @@ func (m *MockLibraryService) UpdateLibraryGame(
 	return nil
 }
 
+// LEGACY BFF RESPONSE - MARKED FOR DELETION
 func (m *MockLibraryService) GetAllLibraryItemsBFF(
 	ctx context.Context,
 	userID string,
 ) (types.LibraryBFFResponseFINAL, error) {
 	args := m.Called(ctx, userID)
 	return args.Get(0).(types.LibraryBFFResponseFINAL), args.Error(1)
+}
+
+func (m *MockLibraryService) GetLibraryRefactoredBFFResponse(
+	ctx context.Context,
+	userID string,
+) (types.LibraryBFFRefactoredResponse, error) {
+	args := m.Called(ctx, userID)
+	return args.Get(0).(types.LibraryBFFRefactoredResponse), args.Error(1)
 }
 
 // InvalidateUserCache mocks the InvalidateUserCache method

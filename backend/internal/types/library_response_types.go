@@ -123,3 +123,47 @@ type GameLocationDBResponse struct {
 	SublocationBgColor string   `json:"sublocation_bg_color"`
 	IsActive           bool     `json:"is_active"`
 }
+
+
+// -- REFACTORED LIBRARY RESPONSE TYPES, TO LEGACY TYPES ABOVE WHEN COMPLETE --
+type PlatformVersionResponse struct {
+		PlatformName string `json:"platformName"`
+    PlatformId   int64  `json:"platformId"`
+}
+
+type LibraryBFFSinglePhysicalLocationResponse struct {
+	ParentLocationName    string                    `json:"parentLocationName"`
+	ParentLocationId      string                    `json:"parentLocationId"`
+	ParentLocationType    string                    `json:"parentLocationType"`
+	ParentLocationBgColor string                    `json:"parentLocationBgColor"`
+	SublocationName       string                    `json:"sublocationName"`
+	SublocationId         string                    `json:"sublocationId"`
+	SublocationType       string                    `json:"sublocationType"`
+	GamePlatformVersions  []PlatformVersionResponse `json:"gamePlatformVersions"`
+}
+
+type LibraryBFFSingleDigitalLocationResponse struct {
+	DigitalLocationName   string                    `json:"digitalLocationName"`
+	DigitalLocationId     string                    `json:"digitalLocationId"`
+	GamePlatformVersions  []PlatformVersionResponse `json:"gamePlatformVersions"`
+}
+
+type SingleLibraryGameBFFResponse struct {
+	ID                    int64                                           `json:"id"`
+	Name                  string                                          `json:"name"`
+	CoverURL              string                                          `json:"coverUrl"`
+	IsInWishlist          bool                                            `json:"isInWishlist"`
+	FirstReleaseDate      int64                                           `json:"firstReleaseDate"`
+	GenreNames            []string                                        `json:"genreNames"`
+	GameType              GameTypeResponse                                `json:"gameType"`
+	Favorite              bool                                            `json:"favorite"`
+	TotalPhysicalVersions int                                             `json:"totalPhysicalVersions"`
+	TotalDigitalVersions  int                                             `json:"totalDigitalVersions"`
+	PhysicalLocations     []LibraryBFFSinglePhysicalLocationResponse      `json:"physicalLocations"`
+	DigitalLocations      []LibraryBFFSingleDigitalLocationResponse       `json:"digitalLocations"`
+}
+
+type LibraryBFFRefactoredResponse struct {
+	LibraryItems  []SingleLibraryGameBFFResponse `json:"libraryItems"`
+  RecentlyAdded []SingleLibraryGameBFFResponse `json:"recentlyAdded"`
+}

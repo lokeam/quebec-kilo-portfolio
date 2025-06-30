@@ -60,10 +60,14 @@ type SublocationService interface {
 
 // LibraryService defines operations for managing the game library
 type LibraryService interface {
-	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
-	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error)
 	GetSingleLibraryGame(ctx context.Context, userID string, gameID int64) (types.LibraryGameItemBFFResponseFINAL, error)
+	GetLibraryRefactoredBFFResponse(ctx context.Context, userID string) (types.LibraryBFFRefactoredResponse, error)
 
+	// MARKED FOR DELETION - LEGACY RESPONSE
+	GetAllLibraryItemsBFF(ctx context.Context, userID string) (types.LibraryBFFResponseFINAL, error)
+
+
+	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
 	InvalidateUserCache(ctx context.Context, userID string) error

@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib" // NOTE: this registers pgx with database/sql
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
@@ -51,116 +52,6 @@ func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, 
 	}, nil
 }
 
-// --- QUERIES ---
-const (
-	getSingleLibraryGameQuery = `
-		SELECT DISTINCT ON (g.id)
-			g.id,
-			g.name,
-			g.cover_url,
-			ug.game_type as game_type_display_text,
-			LOWER(ug.game_type) as game_type_normalized_text,
-			ug.favorite as is_favorite,
-			ug.created_at
-		FROM games g
-		JOIN user_games ug ON g.id = ug.game_id
-		WHERE ug.user_id = $1 AND g.id = $2
-		ORDER BY g.id, ug.id
-	`
-
-	getLibraryGamesBFFQuery = `
-		SELECT DISTINCT ON (g.id)
-			g.id,
-			g.name,
-			g.cover_url,
-			ug.game_type as game_type_display_text,
-			LOWER(ug.game_type) as game_type_normalized_text,
-			ug.favorite as is_favorite,
-			ug.created_at
-		FROM games g
-		JOIN user_games ug ON g.id = ug.game_id
-		WHERE ug.user_id = $1
-		ORDER BY g.id, ug.id
-	`
-
-	getLibraryLocationsQuery = `
-		SELECT
-			ug.game_id,
-			p.id as platform_id,
-			p.name as platform_name,
-			p.category,
-			ug.created_at,
-			pl.id as parent_location_id,
-			pl.name as parent_location_name,
-			pl.location_type as parent_location_type,
-			pl.bg_color as parent_location_bg_color,
-			sl.id as sublocation_id,
-			sl.name as sublocation_name,
-			sl.location_type as sublocation_type
-		FROM user_games ug
-		JOIN platforms p ON ug.platform_id = p.id
-		LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
-		LEFT JOIN sublocations sl ON pgl.sublocation_id = sl.id
-		LEFT JOIN physical_locations pl ON sl.physical_location_id = pl.id
-		WHERE ug.user_id = $1
-	`
-
-	updateLibraryGameQuery = `
-		UPDATE games
-		SET name = $2,
-				cover_url = $3,
-				game_type_display_text = $4,
-				game_type_normalized_text = $5
-		WHERE id = $1
-	`
-
-	deleteLibraryLocationsQuery = `
-		DELETE FROM physical_game_locations
-		WHERE user_game_id IN (
-			SELECT id FROM user_games WHERE game_id = $1
-		)
-	`
-
-	insertLibraryLocationQuery = `
-		INSERT INTO physical_game_locations (user_game_id, sublocation_id)
-		SELECT id, $5
-		FROM user_games
-		WHERE game_id = $1 AND platform_id = $2 AND platform_name = $3 AND game_type = $4
-	`
-)
-
-// transformLocationDBToResponse converts a LibraryLocationDB to a LibraryGamesByPlatformAndLocationItemFINAL
-func transformLocationDBToResponse(db models.GameLocationDatabaseEntry) types.LibraryGamesByPlatformAndLocationItemFINAL {
-	return types.LibraryGamesByPlatformAndLocationItemFINAL{
-		ID: db.GameID,
-		PlatformID: db.PlatformID,
-		PlatformName: db.PlatformName,
-		IsPC: db.Category == "pc",
-		IsMobile: db.Category == "mobile",
-		DateAdded: db.CreatedAt.Unix(),
-		ParentLocationID: db.ParentLocationID.String,
-		ParentLocationName: db.ParentLocationName.String,
-		ParentLocationType: db.ParentLocationType.String,
-		ParentLocationBgColor: db.ParentLocationBgColor.String,
-		SublocationID: db.SublocationID.String,
-		SublocationName: db.SublocationName.String,
-		SublocationType: db.SublocationType.String,
-	}
-}
-
-// transformGameDBToResponse converts a LibraryGameDB to a LibraryGameItemBFFResponseFINAL
-func transformGameDBToResponse(db models.LibraryGameDB, locations []types.LibraryGamesByPlatformAndLocationItemFINAL) types.LibraryGameItemBFFResponseFINAL {
-	return types.LibraryGameItemBFFResponseFINAL{
-		ID: db.ID,
-		Name: db.Name,
-		CoverURL: db.CoverURL,
-		GameTypeDisplayText: db.GameTypeDisplayText,
-		GameTypeNormalizedText: db.GameTypeNormalizedText,
-		IsFavorite: db.IsFavorite,
-		GamesByPlatformAndLocation: locations,
-	}
-}
-
 // GET
 // GetSingleLibraryGame retrieves a game from a user's library.
 // Returns:
@@ -182,12 +73,12 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 
 	// First check if game exists within user's library
 	var exists bool
-	err := la.db.QueryRowContext(ctx, `
-		SELECT EXISTS(
-			SELECT 1 FROM user_games
-			WHERE user_id = $1 AND game_id = $2
-		)
-	`, userID, gameID).Scan(&exists)
+	err := la.db.QueryRowContext(
+		ctx,
+		CheckIfGameIsInLibraryQuery,
+		userID,
+		gameID,
+	).Scan(&exists)
 	if err != nil {
 		return types.LibraryGameItemBFFResponseFINAL{}, fmt.Errorf("error checking if game exists in library: %w", err)
 	}
@@ -201,7 +92,7 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 	err = la.db.GetContext(
 		ctx,
 		&game,
-		getSingleLibraryGameQuery,
+		GetSingleLibraryGameQuery,
 		userID,
 		gameID,
 	)
@@ -214,7 +105,7 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 	err = la.db.SelectContext(
 		ctx,
 		&locations,
-		getLibraryLocationsQuery,
+		GetLibraryLocationsQuery,
 		userID,
 	)
 	if err != nil {
@@ -225,12 +116,12 @@ func (la *LibraryDbAdapter) GetSingleLibraryGame(
 	var bffLocations []types.LibraryGamesByPlatformAndLocationItemFINAL
 	for _, loc := range locations {
 		if loc.GameID == gameID {
-			bffLocations = append(bffLocations, transformLocationDBToResponse(loc))
+			bffLocations = append(bffLocations, TransformLocationDBToResponse(loc))
 		}
 	}
 
 	// Transform game to BFF response format
-	return transformGameDBToResponse(game, bffLocations), nil
+	return TransformGameDBToResponse(game, bffLocations), nil
 }
 
 // PUT
@@ -248,7 +139,7 @@ func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.G
 	// Update game in database
 	_, err := la.db.ExecContext(
 		ctx,
-		updateLibraryGameQuery,
+		UpdateLibraryGameQuery,
 		game.GameID,
 		game.GameName,
 		game.GameCoverURL,
@@ -262,7 +153,7 @@ func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.G
 	// Delete existing locations
 	_, err = la.db.ExecContext(
 		ctx,
-		deleteLibraryLocationsQuery,
+		DeleteLibraryLocationsQuery,
 		game.GameID,
 	)
 	if err != nil {
@@ -273,7 +164,7 @@ func (la *LibraryDbAdapter) UpdateLibraryGame(ctx context.Context, game models.G
 	for _, location := range game.PlatformLocations {
 		_, err = la.db.ExecContext(
 			ctx,
-			insertLibraryLocationQuery,
+			InsertLibraryLocationQuery,
 			game.GameID,
 			location.PlatformID,
 			location.PlatformName,
@@ -425,12 +316,12 @@ func (la *LibraryDbAdapter) DeleteLibraryGame(ctx context.Context, userID string
 	return postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
 		// First check if the game exists in the user's library
 		var exists bool
-		err := tx.QueryRowContext(ctx, `
-			SELECT EXISTS(
-				SELECT 1 FROM user_games
-				WHERE user_id = $1 AND game_id = $2
-			)
-		`, userID, gameID).Scan(&exists)
+		err := tx.QueryRowContext(
+			ctx,
+			CheckIfGameIsInLibraryQuery,
+			userID,
+			gameID,
+		).Scan(&exists)
 		if err != nil {
 			la.logger.Error("Failed to check if game exists in library", map[string]any{
 				"error": err,
@@ -449,12 +340,12 @@ func (la *LibraryDbAdapter) DeleteLibraryGame(ctx context.Context, userID string
 		}
 
 		// Delete the game from user's library
-		// Note: Due to ON DELETE CASCADE in our schema, this will automatically
-		// remove related records from physical_game_locations and digital_game_locations
-		_, err = tx.ExecContext(ctx, `
-			DELETE FROM user_games
-			WHERE user_id = $1 AND game_id = $2
-		`, userID, gameID)
+		_, err = tx.ExecContext(
+			ctx,
+			CascadingDeleteLibraryGameQuery,
+			userID,
+			gameID,
+		)
 		if err != nil {
 			la.logger.Error("Failed to delete game from library", map[string]any{
 				"error": err,
@@ -480,14 +371,8 @@ func (la *LibraryDbAdapter) IsGameInLibrary(ctx context.Context, userID string, 
 	})
 
 	var exists bool
-	query := `
-		SELECT EXISTS(
-			SELECT 1 FROM user_games
-			WHERE user_id = $1 AND game_id = $2
-		)
-	`
 
-	err := la.db.GetContext(ctx, &exists, query, userID, gameID)
+	err := la.db.GetContext(ctx, &exists, CheckIfGameIsInLibraryQuery, userID, gameID)
 	if err != nil {
 		return false, fmt.Errorf("error checking if game is in library: %w", err)
 	}
@@ -529,13 +414,13 @@ func (la *LibraryDbAdapter) GetLibraryBFFResponse(
 
 	// Get games data
 	var games []models.LibraryGameDB
-	if err := tx.SelectContext(ctx, &games, getLibraryGamesBFFQuery, userID); err != nil {
+	if err := tx.SelectContext(ctx, &games, GetLibraryGamesBFFQuery, userID); err != nil {
 		return types.LibraryBFFResponseFINAL{}, fmt.Errorf("error querying games: %w", err)
 	}
 
 	// Get locations data
 	var locations []models.GameLocationDatabaseEntry
-	if err := tx.SelectContext(ctx, &locations, getLibraryLocationsQuery, userID); err != nil {
+	if err := tx.SelectContext(ctx, &locations, GetLibraryLocationsQuery, userID); err != nil {
 		return types.LibraryBFFResponseFINAL{}, fmt.Errorf("error querying locations: %w", err)
 	}
 
@@ -547,7 +432,7 @@ func (la *LibraryDbAdapter) GetLibraryBFFResponse(
 	// Transform locations
 	transformedLocations := make([]types.LibraryGamesByPlatformAndLocationItemFINAL, len(locations))
 	for i, loc := range locations {
-		transformedLocations[i] = transformLocationDBToResponse(loc)
+		transformedLocations[i] = TransformLocationDBToResponse(loc)
 	}
 
 	// Group locations by game ID
@@ -567,7 +452,7 @@ func (la *LibraryDbAdapter) GetLibraryBFFResponse(
 
 	// Process games
 	for _, game := range games {
-		gameItem := transformGameDBToResponse(game, locationsByGame[game.ID])
+		gameItem := TransformGameDBToResponse(game, locationsByGame[game.ID])
 		response.LibraryItems = append(response.LibraryItems, gameItem)
 
 		// Check if game is recently added
@@ -602,7 +487,7 @@ func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID stri
 	err := la.db.SelectContext(
 		ctx,
 		&games,
-		getLibraryGamesBFFQuery,
+		GetLibraryGamesBFFQuery,
 		userID,
 	)
 	if err != nil {
@@ -614,7 +499,7 @@ func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID stri
 	err = la.db.SelectContext(
 		ctx,
 		&locations,
-		getLibraryLocationsQuery,
+		GetLibraryLocationsQuery,
 		userID,
 	)
 	if err != nil {
@@ -658,4 +543,151 @@ func (la *LibraryDbAdapter) GetUserLibraryItems(ctx context.Context, userID stri
 	}
 
 	return result, nil
+}
+
+// -- REFACTORED LIBRARY BFF RESPONSE METHODS DELETE LEGACY RESPONSE METHODS WHEN COMPLETE --
+func (la *LibraryDbAdapter) GetPhysicalLocations(
+	ctx context.Context,
+	userID string,
+) ([]models.PhysicalLocationDB, error) {
+	la.logger.Debug("GetPhysicalLocations called", map[string]any{
+			"userID": userID,
+	})
+
+	var locations []models.PhysicalLocationDB
+	err := la.db.SelectContext(
+		ctx,
+		&locations,
+		GetPhysicalLocationsRefactoredQuery,
+		userID,
+	)
+	if err != nil {
+			return nil, fmt.Errorf("error querying physical locations: %w", err)
+	}
+
+	la.logger.Debug("GetPhysicalLocations success", map[string]any{
+			"userID": userID,
+			"locationCount": len(locations),
+	})
+
+	return locations, nil
+}
+
+
+func (la *LibraryDbAdapter) GetDigitalLocations(
+	ctx context.Context,
+	userID string,
+) ([]models.DigitalLocationDB, error) {
+	la.logger.Debug("GetDigitalLocations called", map[string]any{
+			"userID": userID,
+	})
+
+	var locations []models.DigitalLocationDB
+	err := la.db.SelectContext(
+		ctx,
+		&locations,
+		GetDigitalLocationsRefactoredQuery,
+		userID,
+	)
+	if err != nil {
+			return nil, fmt.Errorf("error querying digital locations: %w", err)
+	}
+
+	la.logger.Debug("GetDigitalLocations success", map[string]any{
+			"userID": userID,
+			"locationCount": len(locations),
+	})
+
+	return locations, nil
+}
+
+
+func (la *LibraryDbAdapter) GetGamesMetadata(
+	ctx context.Context,
+	userID string,
+) ([]models.LibraryGameRefactoredDB, error) {
+	la.logger.Debug("GetGamesMetadata called", map[string]any{
+			"userID": userID,
+	})
+
+	// Use raw query to manually scan the array
+	rows, err := la.db.QueryxContext(ctx, GetGamesMetadataRefactoredQuery, userID)
+	if err != nil {
+			return nil, fmt.Errorf("error querying games metadata: %w", err)
+	}
+	defer rows.Close()
+
+	var games []models.LibraryGameRefactoredDB
+	for rows.Next() {
+			var game models.LibraryGameRefactoredDB
+			var genreNames []string
+
+			err := rows.Scan(
+					&game.ID,
+					&game.Name,
+					&game.CoverURL,
+					&game.FirstReleaseDate,
+					&game.Rating,
+					&game.GameTypeDisplayText,
+					&game.GameTypeNormalizedText,
+					&game.Favorite,
+					&game.CreatedAt,
+					&game.IsInWishlist,
+					pq.Array(&genreNames),
+			)
+			if err != nil {
+					return nil, fmt.Errorf("error scanning game metadata: %w", err)
+			}
+
+			// Manually assign the scanned array to the struct field
+			game.GenreNames = genreNames
+			games = append(games, game)
+	}
+
+	if err = rows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating games metadata: %w", err)
+	}
+
+	la.logger.Debug("GetGamesMetadata success", map[string]any{
+			"userID": userID,
+			"gameCount": len(games),
+	})
+
+	return games, nil
+}
+
+func (la *LibraryDbAdapter) GetLibraryRefactoredBFFResponse(
+	ctx context.Context,
+	userID string,
+) (types.LibraryBFFRefactoredResponse, error) {
+	la.logger.Debug("GetLibraryRefactoredBFFResponse called", map[string]any{
+			"userID": userID,
+	})
+
+	// Execute queries sequentially
+	games, err := la.GetGamesMetadata(ctx, userID)
+	if err != nil {
+			return types.LibraryBFFRefactoredResponse{}, fmt.Errorf("error getting games metadata: %w", err)
+	}
+
+	physicalLocations, err := la.GetPhysicalLocations(ctx, userID)
+	if err != nil {
+			return types.LibraryBFFRefactoredResponse{}, fmt.Errorf("error getting physical locations: %w", err)
+	}
+
+	digitalLocations, err := la.GetDigitalLocations(ctx, userID)
+	if err != nil {
+			return types.LibraryBFFRefactoredResponse{}, fmt.Errorf("error getting digital locations: %w", err)
+	}
+
+	// Transform to final response
+	response := la.TransformToRefactoredResponse(games, physicalLocations, digitalLocations)
+
+	la.logger.Debug("GetLibraryRefactoredResponse success", map[string]any{
+			"userID": userID,
+			"libraryItemsCount": len(response.LibraryItems),
+			"recentlyAddedCount": len(response.RecentlyAdded),
+	})
+
+	return response, nil
 }

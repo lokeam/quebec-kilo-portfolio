@@ -33,6 +33,9 @@ type LibraryService interface {
 
 	// InvalidateUserCache invalidates all cache entries for a specific user
 	InvalidateUserCache(ctx context.Context, userID string) error
+
+	// REFACTORED RESPONSE
+	GetLibraryRefactoredBFFResponse(ctx context.Context, userID string) (types.LibraryBFFRefactoredResponse, error)
 }
 
 func NewGameLibraryService(
@@ -271,6 +274,30 @@ func (ls *GameLibraryService) GetAllLibraryItemsBFF(
 
 	return response, nil
 }
+
+
+// REFACTORED RESPONSE
+func (ls *GameLibraryService) GetLibraryRefactoredBFFResponse(
+	ctx context.Context,
+	userID string,
+) (types.LibraryBFFRefactoredResponse, error) {
+	if userID == "" {
+			return types.LibraryBFFRefactoredResponse{}, errors.New("user ID is required")
+	}
+
+	// Try to get from cache first (if cache supports new structure)
+	// For now, always get from database
+	response, err := ls.dbAdapter.GetLibraryRefactoredBFFResponse(ctx, userID)
+	if err != nil {
+			return types.LibraryBFFRefactoredResponse{}, err
+	}
+
+	return response, nil
+}
+
+
+
+
 
 // InvalidateUserCache invalidates all cache entries for a specific user
 func (ls *GameLibraryService) InvalidateUserCache(ctx context.Context, userID string) error {
