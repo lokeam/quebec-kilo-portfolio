@@ -7,6 +7,7 @@ import { LibraryPageToolbar } from '@/features/dashboard/components/organisms/Li
 import { NoResultsFound } from '@/features/dashboard/components/molecules/NoResultsFound';
 import { LibraryGameCard } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameCard/LibraryGameCard';
 import { MemoizedLibraryGameDetailCard } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameDetailCard/LibraryGameDetailCard';
+import { LibraryPageSkeleton } from '@/features/dashboard/components/organisms/LibraryPage/LibraryPageSkeleton';
 
 // Utils + Hooks
 import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
@@ -43,13 +44,6 @@ export function LibraryPageContent() {
     }
   }, [libraryItems, setGames, services.length]);
 
-  useEffect(() => {
-    console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
-      libraryItemsLength: libraryItems.length,
-      storeGamesLength: services.length,
-      bffResponse
-    });
-  }, [libraryItems, services, bffResponse]);
 
   // Memoize filter function
   const filterGame = useCallback((game: LibraryGameItemRefactoredResponse) => {
@@ -99,15 +93,7 @@ export function LibraryPageContent() {
 
   // Handle loading state
   if (isLoading) {
-    return (
-      <PageMain>
-        <PageHeadline>
-          <div className='flex items-center'>
-            <h1 className='text-3xl font-bold tracking-tight'>Loading...</h1>
-          </div>
-        </PageHeadline>
-      </PageMain>
-    );
+    return <LibraryPageSkeleton />;
   }
 
   // Handle error state
@@ -156,6 +142,7 @@ export function LibraryPageContent() {
     const CardComponent = viewMode === 'grid'
       ? LibraryGameCard
       : MemoizedLibraryGameDetailCard;
+
 
     return (
       <div className="flex h-full w-full flex-wrap content-start">

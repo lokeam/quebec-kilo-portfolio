@@ -145,17 +145,6 @@ function OnlineServicesTableRowComponent({
           }
         </TableCell>
         <TableCell>
-          {/* {isValidPaymentMethod(service.paymentMethod) ? (
-            <PaymentIcon
-              type={service.paymentMethod}
-              format="flatRounded"
-            />
-          ) : (
-            <PaymentIcon
-              type="Generic"
-              format="flatRounded"
-            />
-          )} */}
           <PaymentIcon
             type={service.paymentMethod as PaymentMethodType}
             format="flatRounded"
