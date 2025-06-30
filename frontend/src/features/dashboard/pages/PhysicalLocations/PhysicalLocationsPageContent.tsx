@@ -11,6 +11,7 @@ import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organi
 import { PhysicalLocationsTable } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsTable/PhysicalLocationsTable';
 import { PhysicalLocationForm } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsForm/PhysicalLocationsForm';
 import { SublocationForm } from '@/features/dashboard/components/organisms/SublocationForm/SublocationForm';
+import { PhysicalLocationsPageSkeleton } from '@/features/dashboard/pages/PhysicalLocations/PhysicalLocationsPageSkeleton';
 
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
 
@@ -23,28 +24,6 @@ import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysic
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
 import { useGetPhysicalLocationsBFFResponse, useDeletePhysicalLocation } from '@/core/api/queries/physicalLocation.queries';
 
-// Loading States
-const TableLoadingState = () => (
-  <div className="w-full">
-    <div className="h-[72px] border rounded-md mb-2 bg-slate-100 animate-pulse" />
-    <div className="space-y-2">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-[72px] border rounded-md bg-slate-100 animate-pulse" />
-      ))}
-    </div>
-  </div>
-);
-
-const CardLoadingState = () => (
-  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-    {[1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="h-[180px] border rounded-md bg-gradient-to-b from-slate-100 to-slate-200 animate-pulse"
-      />
-    ))}
-  </div>
-);
 
 // Empty States
 const NoDataState = () => (
@@ -225,7 +204,7 @@ export function PhysicalLocationsPageContent() {
   const renderContent = () => {
     // Loading state
     if (isLoading) {
-      return viewMode === 'table' ? <TableLoadingState /> : <CardLoadingState />;
+      return <PhysicalLocationsPageSkeleton />;
     }
 
     // Error state

@@ -9,7 +9,7 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // types
 // import type { ApiResponse } from '@/types/api/api.types';
-import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemRefactoredResponse, LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemResponse } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
@@ -43,22 +43,16 @@ type LibraryOperationResponse = {
   message: string;
 };
 
-interface LibraryBFFResponseWrapper {
-  success: boolean;
-  library: {
-    libraryItems: LibraryGameItemResponse[];
-    recentlyAdded: LibraryGameItemResponse[];
-  };
-  metadata: {
-    timestamp: string;
-    request_id: string;
-  };
+// New interface for batch deletion
+interface BatchDeleteLibraryGameRequest {
+  gameId: number;
+  versions: Array<{
+    type: 'physical' | 'digital';
+    locationId: string;
+    platformId: number;
+  }>;
+  deleteAll?: boolean;
 }
-
-type LibraryBFFResponse = {
-  libraryItems: LibraryGameItemResponse[];
-  recentlyAdded: LibraryGameItemResponse[];
-};
 
 // REFACTORED RESPONSE - REMOVE UNUSED types WHEN COMPLETE
 interface LibraryBFFRefactoredResponseWrapper {
@@ -95,9 +89,9 @@ type LibraryBFFRefactoredResponse = {
 
 export const getLibraryPageBFFResponse = (): Promise<LibraryBFFRefactoredResponse> =>
   apiRequest('getLibraryPageBFFResponse', async () => {
-    console.log('[DEBUG] getLibraryPageBFFResponse: Making API request');
+    //console.log('[DEBUG] getLibraryPageBFFResponse: Making API request');
     const response = await axiosInstance.get<LibraryBFFRefactoredResponseWrapper>(LIBRARY_BFF_ENDPOINT);
-    console.log('[DEBUG] getLibraryPageBFFResponse: Raw API response:', response.data);
+    //console.log('[DEBUG] getLibraryPageBFFResponse: Raw API response:', response.data);
 
     if (!response.data.library) {
       console.error('[DEBUG] getLibraryPageBFFResponse: No library data in response:', response.data);
@@ -107,14 +101,6 @@ export const getLibraryPageBFFResponse = (): Promise<LibraryBFFRefactoredRespons
     return response.data.library;
   });
 
-// Legacy: DO NOT USE. This was the old way of fetching all library games.
-// It was replaced with the BFF endpoint above.
-// export const getAllLibraryGames = (): Promise<LibraryGameItemResponse[]> =>
-//   apiRequest('getAllLibraryGames', () =>
-//     axiosInstance
-//       .get<LibraryResponseWrapper>(LIBRARY_ENDPOINT)
-//       .then(response => response.data.library.games || [])
-//   );
 
 /**
  * Fetches a specific game by ID
@@ -198,7 +184,7 @@ export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameReq
 
 
 /**
- * Deletes an existing game in the library
+ * Deletes an existing game in the library (legacy - deletes entire game)
  *
  * Uses apiRequest helper to wrap the axios call with:
  *  - async/await syntax
@@ -208,11 +194,31 @@ export const updateLibraryGame = (id: string, data: Partial<CreateLibraryGameReq
  *  - retry logic (if configured)
  *
  * Usage:
- *   return apiRequest('deleteGame', () => axios.put(...));
+ *   return apiRequest('deleteGame', () => axios.delete(...));
  */
 export const deleteLibraryGame = (id: string): Promise<LibraryOperationResponse> =>
   apiRequest(`deleteGame(${id})`, () =>
     axiosInstance
       .delete<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${id}`)
       .then(response => response.data.library)
-);
+  );
+
+/**
+ * Deletes specific platform versions of a game from the library
+ *
+ * Uses apiRequest helper to wrap the axios call with:
+ *  - async/await syntax
+ *  - pre‑call debug log
+ *  - post‑call success log
+ *  - catch block with error log + optional Sentry/metrics
+ *  - retry logic (if configured)
+ *
+ * Usage:
+ *   return apiRequest('deleteLibraryGameVersions', () => axios.delete(...));
+ */
+export const deleteLibraryGameVersions = (data: BatchDeleteLibraryGameRequest): Promise<LibraryOperationResponse> =>
+  apiRequest('deleteLibraryGameVersions', () =>
+    axiosInstance
+      .delete<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${data.gameId}/versions`, { data })
+      .then(response => response.data.library)
+  );

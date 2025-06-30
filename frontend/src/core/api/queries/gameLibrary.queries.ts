@@ -11,6 +11,7 @@ import {
   createLibraryGame,
   updateLibraryGame,
   deleteLibraryGame,
+  deleteLibraryGameVersions,
   getLibraryPageBFFResponse,
 } from '@/core/api/services/gameLibrary.service';
 
@@ -18,11 +19,11 @@ import {
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 
 // Adapters
-import { adaptAddToLibraryFromToRequest, adaptLibraryBFFRefactoredResponse, adaptLibraryBFFResponse } from '@/core/api/adapters/gameLibrary.adapter';
+import { adaptAddToLibraryFromToRequest, adaptLibraryBFFRefactoredResponse } from '@/core/api/adapters/gameLibrary.adapter';
 
 // Type
 import type { AddToLibraryFormPayload } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/AddGameToLibraryForm/AddGameToLibraryForm';
-import type { Game } from '@/types/game';
+import type { LibraryGameItemResponse } from '@/types/domain/library-types';
 import type {
    CreateLibraryGameRequest,
    LibraryItemsBFFRefactoredResponse,
@@ -83,7 +84,7 @@ export const useGetLibraryPageBFFResponse = () => {
  * Hook to fetch a single game from the library
 */
 export const useGetSingleGame = (id: string) => {
-  return useAPIQuery<Game>({
+  return useAPIQuery<LibraryGameItemResponse>({
     queryKey: gameLibraryKeys.detail(id),
     queryFn: async () => {
       const game = await getLibraryGameById(id);
@@ -126,7 +127,7 @@ export const useCreateLibraryGame = () => {
       const previousGames = queryClient.getQueryData(gameLibraryKeys.lists());
 
       // Optimistically update the cache
-      queryClient.setQueryData(gameLibraryKeys.lists(), (old: any) => ({
+      queryClient.setQueryData(gameLibraryKeys.lists(), (old: LibraryItemsBFFRefactoredResponse | undefined) => ({
         ...old,
         libraryItems: [...(old?.libraryItems || []), newGame]
       }));
@@ -166,7 +167,7 @@ export const useUpdateLibraryGame = () => {
 };
 
 /*
- * Hook to delete a game from the library
+ * Hook to delete a game from the library (legacy - deletes entire game)
 */
 export const useDeleteLibraryGame = () => {
   const queryClient = useQueryClient();
@@ -176,6 +177,40 @@ export const useDeleteLibraryGame = () => {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.detail(id) });
+    },
+  });
+};
+
+/*
+ * Hook to delete specific platform versions of a game from the library
+*/
+export const useDeleteLibraryGameVersions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteLibraryGameVersions,
+    onSuccess: (data, variables) => {
+      // Invalidate the library list to refresh the data
+      queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
+
+      // Invalidate the specific game detail if it exists
+      queryClient.invalidateQueries({ queryKey: gameLibraryKeys.detail(String(variables.gameId)) });
+
+      // Show success toast
+      const versionCount = variables.deleteAll ? 'all versions' : `${variables.versions.length} version${variables.versions.length === 1 ? '' : 's'}`;
+      showToast({
+        message: `Successfully removed ${versionCount} of the game from your library`,
+        variant: 'success',
+        duration: TOAST_DURATIONS.EXTENDED,
+      });
+    },
+    onError: (error) => {
+      console.error('Error deleting game versions:', error);
+      showToast({
+        message: TOAST_ERROR_MESSAGES.GAME.REMOVE_FROM_LIBRARY?.DEFAULT || 'Failed to remove game versions from library',
+        variant: 'error',
+        duration: TOAST_DURATIONS.EXTENDED,
+      });
     },
   });
 };

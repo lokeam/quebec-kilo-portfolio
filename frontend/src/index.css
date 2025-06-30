@@ -281,9 +281,58 @@
     @apply overflow-x-hidden;
     /* Shadcn UI Dropdown Menu fix */
     overflow-y: scroll;
+    /* Default to instant scroll */
+    scroll-behavior: auto;
+  }
+
+  /* Smooth scroll only when no dropdowns are open */
+  html:not([data-dropdown-open]) {
     scroll-behavior: smooth;
   }
+
   body {
     @apply min-h-svh w-full bg-background text-foreground;
   }
+}
+
+
+/* Prevent scroll jumping when dropdowns open */
+html {
+  @apply overflow-x-hidden;
+  /* Shadcn UI Dropdown Menu fix */
+  overflow-y: scroll;
+  /* Default to instant scroll */
+  scroll-behavior: auto;
+}
+
+/* Smooth scroll only when no dropdowns are open */
+html:not([data-dropdown-open]) {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply min-h-svh w-full bg-background text-foreground;
+}
+
+/* Prevent layout recalculation for dropdowns */
+[data-radix-dropdown-menu-content] {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+/* Prevent focus scroll behavior */
+*:focus {
+  scroll-margin-top: 0;
+  scroll-margin-bottom: 0;
+}
+
+/* Prevent scroll when dropdown is open */
+html[data-dropdown-open] {
+  scroll-behavior: auto !important;
+}
+
+/* Alternative: Use CSS containment to prevent layout recalculation */
+[data-radix-popper-content-wrapper] {
+  contain: layout style paint;
+  isolation: isolate;
 }

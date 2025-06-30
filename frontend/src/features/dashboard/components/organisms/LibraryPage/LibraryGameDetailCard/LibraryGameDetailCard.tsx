@@ -15,7 +15,7 @@ import { visibilityReducer } from '@/features/dashboard/components/organisms/Wis
 
 // Types
 import type { CardVisibility } from '@/features/dashboard/lib/types/wishlist/cards';
-import type { GameType, PhysicalLocationResponse, DigitalLocationResponse } from '@/types/domain/library-types';
+import type { GameType, PhysicalLocationResponse, DigitalLocationResponse, LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 
 // Icons
 import {
@@ -25,7 +25,7 @@ import {
 
 // Constants
 import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';
-import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
+import { MemoizedLibraryGameDetailCardDropDownMenu } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameDetailCard/LibraryGameDetailCardDropDownMenu';
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 import { formatReleaseDate } from '@/features/dashboard/lib/utils/libraryCardUtils';
 
@@ -60,10 +60,14 @@ const createAddToFavoritesToast = (title: string) => {
 
 function LibraryGameDetailCard({
   index,
+  id,
   name,
   coverUrl,
   favorite = false,
   firstReleaseDate,
+  themeNames,
+  isInWishlist,
+  gameType,
   physicalLocations = [],
   digitalLocations = [],
   onRemoveFromLibrary = () => {},
@@ -71,6 +75,35 @@ function LibraryGameDetailCard({
   totalDigitalVersions = 0,
 }: LibraryGameDetailCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Construct the game object for the deletion dialog
+  const game: LibraryGameItemRefactoredResponse = useMemo(() => ({
+    id,
+    name,
+    coverUrl,
+    isInWishlist,
+    firstReleaseDate: firstReleaseDate || 0,
+    genreNames: themeNames || [],
+    gameType,
+    favorite,
+    totalPhysicalVersions,
+    totalDigitalVersions,
+    physicalLocations,
+    digitalLocations,
+  }), [
+    id,
+    name,
+    coverUrl,
+    isInWishlist,
+    firstReleaseDate,
+    themeNames,
+    gameType,
+    favorite,
+    totalPhysicalVersions,
+    totalDigitalVersions,
+    physicalLocations,
+    digitalLocations,
+  ]);
 
   const handleAddToFavorites = useCallback(() => {
     createAddToFavoritesToast(name);
@@ -186,7 +219,10 @@ function LibraryGameDetailCard({
               <IconStar className="h-4 w-4" />
             )}
           </Button>
-          <MemoizedMediaListItemDropDownMenu onRemoveFromLibrary={onRemoveFromLibrary} />
+          <MemoizedLibraryGameDetailCardDropDownMenu
+            game={game}
+            onRemoveFromLibrary={onRemoveFromLibrary}
+          />
         </div>
       </div>
     </div>

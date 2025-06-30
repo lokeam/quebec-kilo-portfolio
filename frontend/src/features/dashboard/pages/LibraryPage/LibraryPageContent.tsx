@@ -33,10 +33,10 @@ export function LibraryPageContent() {
 
   // Set games in store when page mounts or when library items change
   useEffect(() => {
-    console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
-      libraryItemsLength: libraryItems.length,
-      storeGamesLength: services.length
-    });
+    // console.log('🔍 DEBUG: LibraryPageContent useEffect:', {
+    //   libraryItemsLength: libraryItems.length,
+    //   storeGamesLength: services.length
+    // });
 
     // Only update if we have new library items
     if (libraryItems.length > 0) {
@@ -126,14 +126,14 @@ export function LibraryPageContent() {
 
   /* Render content based on view mode */
   const renderContent = () => {
-    console.log('🔍 DEBUG: LibraryPageContent render:', {
-      servicesLength: services.length,
-      filteredServicesLength: filteredServices.length,
-      searchQuery,
-      platformFilters,
-      locationFilters,
-      viewMode
-    });
+    // console.log('🔍 DEBUG: LibraryPageContent render:', {
+    //   servicesLength: services.length,
+    //   filteredServicesLength: filteredServices.length,
+    //   searchQuery,
+    //   platformFilters,
+    //   locationFilters,
+    //   viewMode
+    // });
 
     if (filteredServices.length === 0) {
       return <NoResultsFound />;
