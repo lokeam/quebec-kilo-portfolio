@@ -19,24 +19,22 @@ import type { GameType, PhysicalLocationResponse, DigitalLocationResponse } from
 
 // Icons
 import {
-  IconFileFilled,
   IconStar,
   IconStarFilled,
-  IconDevicesPc,
-  IconDeviceGamepad,
 } from '@tabler/icons-react';
 
 // Constants
 import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';
 import { MemoizedMediaListItemDropDownMenu } from './MediaListItemDropDownMenu';
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
+import { formatReleaseDate } from '@/features/dashboard/lib/utils/libraryCardUtils';
 
 interface LibraryGameDetailCardProps {
   index: number;
   id: number;
   name: string;
   coverUrl: string;
-  firstReleaseDate: number;
+  firstReleaseDate?: number;
   rating: number;
   themeNames: string[] | null;
   isInLibrary: boolean;
@@ -65,9 +63,12 @@ function LibraryGameDetailCard({
   name,
   coverUrl,
   favorite = false,
+  firstReleaseDate,
   physicalLocations = [],
   digitalLocations = [],
   onRemoveFromLibrary = () => {},
+  totalPhysicalVersions = 0,
+  totalDigitalVersions = 0,
 }: LibraryGameDetailCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -84,14 +85,6 @@ function LibraryGameDetailCard({
   // Calculate total locations for the count badge
   const totalLocations = physicalLocations.length + digitalLocations.length;
 
-  // Get the first location for display (prioritize physical over digital)
-  const firstPhysicalLocation = physicalLocations[0];
-  const firstDigitalLocation = digitalLocations[0];
-
-  // Get platform name from the first platform version
-  const platformName = firstPhysicalLocation?.gamePlatformVersions[0]?.platformName ||
-                      firstDigitalLocation?.gamePlatformVersions[0]?.platformName || "";
-
   // Visibility reducer to handle breakpoint related visibility changes
   const [visibility, dispatch] = useReducer(visibilityReducer, {
     showTags: true,
@@ -107,13 +100,6 @@ function LibraryGameDetailCard({
   const setVisibilityCallback = useCallback((value: CardVisibility) => {
     dispatch({ type: 'SET_VISIBILITY', payload: value });
   }, []);
-
-  // Memoize expensive computations
-  const platformIcon = useMemo(() => {
-    return platformName === "PC" ?
-      <IconDevicesPc className="h-8 w-8 mt-[-4px]" /> :
-      <IconDeviceGamepad className="h-7 w-7" />
-  }, [platformName]);
 
   const defaultValue = useMemo(() => ({
     showTags: true,
@@ -134,14 +120,14 @@ function LibraryGameDetailCard({
 
   return (
     <div
-      className={`flex items-center gap-4 w-full rounded-lg border bg-card p-4 text-card-foreground shadow-sm overflow-x-hidden ${
+      className={`flex items-start gap-4 w-full rounded-lg border bg-card p-4 text-card-foreground shadow-sm overflow-x-hidden ${
         index % 2 === 0 ? 'my-2' : ''}`
       }
       data-library-item={`${index}-${name}`}
       ref={cardRef}
     >
       {/* Game Cover */}
-      <div className="h-28 w-28 flex-shrink-0">
+      <div className="h-[341px] w-64 flex-shrink-0">
         <CoverImage
           src={coverUrl}
           size="cover_big"
@@ -151,10 +137,10 @@ function LibraryGameDetailCard({
       </div>
 
       {/* Game Info */}
-      <div className="flex flex-1 items-center justify-between">
-        <div className="space-y-1">
+      <div className="flex flex-1 items-start justify-between">
+        <div className="">
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-semibold">{name}</h3>
+            <h3 className="text-2xl font-semibold">{name}</h3>
             {totalLocations > 1 && (
               <Badge
                 variant="secondary"
@@ -164,53 +150,30 @@ function LibraryGameDetailCard({
               </Badge>
             )}
           </div>
+          <div className="flex flex-row gap-2 mb-6">Release Date: {formatReleaseDate(firstReleaseDate || 0)}</div>
+          {/* DO NOT DELETE THIS COMMENT: NON FUNCTIONAL REQUIREMENT ITEMS START */}
+          {/* All of these require either updated db adapter logic, db columns, db  */}
+          {/* <div className="flex flex-row gap-2">Genres: (List of all genres as classified by IGDB)</div>
+          <div className="flex flex-row gap-2">Published on the following platforms: (List of all platforms as classified by IGDB)</div>
+          <div className="flex flex-row gap-2">If this title is not an IGDB gameType main game, show specific badge denoting IGDB game type () | Game Title</div> */}
+          {/* DO NOT DELETE THIS COMMENT: NON FUNCTIONAL REQUIREMENT ITEMS END */}
 
           <div className="flex gap-8 text-sm text-muted-foreground">
 
             {/* Game Platform */}
             <LibraryGameDetailCardInfoSection
-              icon={platformIcon}
-              label="Platform"
-              value={platformName}
+              physicalLocations={physicalLocations}
+              digitalLocations={digitalLocations}
+              totalPhysicalVersions={totalPhysicalVersions}
+              totalDigitalVersions={totalDigitalVersions}
               hasStackedContent={visibility.stackInfoContent}
               isMobile={visibility.isMobile}
             />
-
-            {/* Game Location */}
-            {firstPhysicalLocation ? (
-              <>
-                <LibraryGameDetailCardInfoSection
-                  icon={<IconFileFilled className="h-7 w-7" />}
-                  label="Location"
-                  value={firstPhysicalLocation.parentLocationName ?? ""}
-                  hasStackedContent={visibility.stackInfoContent}
-                  isMobile={visibility.isMobile}
-                />
-
-                {/* Game Sublocation */}
-                <LibraryGameDetailCardInfoSection
-                  icon={<IconFileFilled className="h-7 w-7" />}
-                  label="Sublocation"
-                  value={firstPhysicalLocation.sublocationName ?? ""}
-                  isVisible={!!firstPhysicalLocation.sublocationName && !!firstPhysicalLocation.sublocationType}
-                  hasStackedContent={visibility.stackInfoContent}
-                  isMobile={visibility.isMobile}
-                />
-              </>
-            ) : firstDigitalLocation ? (
-              <LibraryGameDetailCardInfoSection
-                icon={<IconFileFilled className="h-7 w-7" />}
-                label="Service"
-                value={firstDigitalLocation.digitalLocationName ?? ""}
-                hasStackedContent={visibility.stackInfoContent}
-                isMobile={visibility.isMobile}
-              />
-            ) : null}
           </div>
         </div>
 
         {/* Actions */}
-        <div className={`flex items-center gap-2 ${visibility.isMobile ? 'flex-col' : ''}`}>
+        <div className={`flex items-start gap-2 ${visibility.isMobile ? 'flex-col' : ''}`}>
           <Button
             variant={favorite ? "default" : "secondary"}
             size="sm"

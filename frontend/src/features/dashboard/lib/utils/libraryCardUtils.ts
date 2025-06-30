@@ -4,6 +4,48 @@ import type {
 } from '@/types/domain/library-types';
 
 /**
+ * Data structure for displaying physical location information
+ */
+export interface PhysicalLocationDisplayData {
+  parentLocationName: string;
+  parentLocationType: string;
+  parentLocationBgColor: string;
+  sublocationName: string;
+  sublocationType: string;
+  platforms: string[];
+}
+
+/**
+ * Data structure for displaying digital location information
+ */
+export interface DigitalLocationDisplayData {
+  digitalLocationName: string;
+  platforms: string[];
+}
+
+/**
+ * Formats a release date from milliseconds to a readable format
+ * @param releaseDate - Release date in milliseconds (Unix timestamp)
+ * @returns Formatted date string (e.g., "January 15, 2023")
+ */
+export function formatReleaseDate(releaseDate: number): string {
+  if (!releaseDate || releaseDate <= 0) {
+    return 'Release date unknown';
+  }
+
+  try {
+    const date = new Date(releaseDate * 1000); // Convert seconds to milliseconds
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch {
+    return 'Release date unknown';
+  }
+}
+
+/**
  * Removes duplicate platform names and returns unique array
  * @param platforms - Array of platform names
  * @returns Array of unique platform names
@@ -40,6 +82,38 @@ export function extractDigitalPlatformNamesFromLocations(
       location.gamePlatformVersions.map(platform => platform.platformName)
     )
   );
+}
+
+/**
+ * Extracts physical location data for display
+ * @param physicalLocations - Array of physical locations
+ * @returns Array of physical location display data
+ */
+export function extractPhysicalLocationData(
+  physicalLocations: PhysicalLocationResponse[]
+): PhysicalLocationDisplayData[] {
+  return physicalLocations.map(location => ({
+    parentLocationName: location.parentLocationName,
+    parentLocationType: location.parentLocationType,
+    parentLocationBgColor: location.parentLocationBgColor,
+    sublocationName: location.sublocationName,
+    sublocationType: location.sublocationType,
+    platforms: location.gamePlatformVersions.map(p => p.platformName)
+  }));
+}
+
+/**
+ * Extracts digital location data for display
+ * @param digitalLocations - Array of digital locations
+ * @returns Array of digital location display data
+ */
+export function extractDigitalLocationData(
+  digitalLocations: DigitalLocationResponse[]
+): DigitalLocationDisplayData[] {
+  return digitalLocations.map(location => ({
+    digitalLocationName: location.digitalLocationName,
+    platforms: location.gamePlatformVersions.map(p => p.platformName)
+  }));
 }
 
 /**

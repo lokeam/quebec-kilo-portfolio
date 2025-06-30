@@ -42,19 +42,19 @@ export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProp
 
   switch (normalizedType) {
     case 'house':
-      IconComponent = <Home className="h-6 w-6" />;
+      IconComponent = <Home className="h-6 w-6 text-white" />;
       break;
     case 'apartment':
-      IconComponent = <Building2 className="h-6 w-6" />;
+      IconComponent = <Building2 className="h-6 w-6 text-white" />;
       break;
     case 'office':
-      IconComponent = <Building className="h-6 w-6" />;
+      IconComponent = <Building className="h-6 w-6 text-white" />;
       break;
     case 'warehouse':
-      IconComponent = <Warehouse className="h-6 w-6" />;
+      IconComponent = <Warehouse className="h-6 w-6 text-white" />;
       break;
     case 'vehicle':
-      IconComponent = <IconCar className="h-6 w-6" />;
+      IconComponent = <IconCar className="h-6 w-6 text-white" />;
       break;
     default:
       return null;
