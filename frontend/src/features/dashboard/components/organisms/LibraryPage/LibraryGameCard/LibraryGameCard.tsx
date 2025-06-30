@@ -10,7 +10,6 @@ import { Card } from "@/shared/components/ui/card"
 import { cn } from "@/shared/components/ui/utils"
 
 // Icons
-import { IconFileFilled } from "@tabler/icons-react"
 import { LibraryItemContextMenu } from '../LibraryGameDetailCard/LibraryItemContextMenu';
 
 // Types
@@ -43,18 +42,12 @@ export function LibraryGameCard({
   physicalLocations = [],
   digitalLocations = [],
   onRemoveFromLibrary = () => {},
-  totalDigitalVersions,
-  totalPhysicalVersions,
+  totalDigitalVersions = 0,
+  totalPhysicalVersions = 0,
 }: LibraryGameCardProps) {
   // Calculate total locations for the count icon
-  const totalLocations = physicalLocations.length + digitalLocations.length;
+  const totalLocations = totalDigitalVersions + totalPhysicalVersions;
 
-  // Get the first location for display (prioritize physical over digital)
-  // const firstPhysicalLocation = physicalLocations[0];
-  // const firstDigitalLocation = digitalLocations[0];
-  //const selectedLocation = firstPhysicalLocation || firstDigitalLocation;
-
-  console.log('library card', totalDigitalVersions, totalPhysicalVersions);
   const content = (
     <div className={cn(
       "group relative aspect-[11/15] w-full bg-black shadow-[0px_3px_10px_rgba(0,0,0,0.9)]",
@@ -88,23 +81,12 @@ export function LibraryGameCard({
                    transform translate-y-full transition-transform duration-200 ease-out
                    group-hover:translate-y-0 backdrop-blur-[5px] bg-black bg-opacity-50 space-y-2"
       >
-        {/* Game Location */}
-
         <LibraryGameCardInfoSection
            physicalLocations={physicalLocations ?? []}
            digitalLocations={digitalLocations ?? []}
            totalDigitalVersions={totalDigitalVersions ?? 0}
            totalPhysicalVersions={totalPhysicalVersions ?? 0}
         />
-
-        {/* Game Sublocation */}
-        {/* <LibraryGameCardInfoSection
-          icon={<IconFileFilled className="h-7 w-7" />}
-          label="Sublocation"
-          value={firstPhysicalLocation.sublocationName ?? ""}
-          isVisible={!!firstPhysicalLocation.sublocationName && !!firstPhysicalLocation.sublocationType}
-          isMobile={false}
-        /> */}
       </div>
       <div
         data-testid="library-media-item-shine"
