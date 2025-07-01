@@ -88,6 +88,12 @@ const OnboardingPageDigital = lazy(() => import(
   '@/features/dashboard/components/organisms/OnboardingPage/OnboardingDigital'
 ));
 
+// Login
+const LoginPage = lazy(() => import(
+  /* webpackChunkName: "LoginPage" */
+  '@/features/login/pages/LoginPage'
+));
+
 
 function App() {
   return (
@@ -96,37 +102,40 @@ function App() {
         <ThemeProvider enableSystemPreference>
           <TooltipProvider delayDuration={300}>
             <NetworkStatusProvider>
-              <SidebarProvider defaultOpen={true}>
-                <TanstackMutationToast />
-                <Suspense fallback={<Loading />}>
-                  <Routes>
-                    <Route path="/onboarding/welcome" element={<OnboardingPage />} />
-                    <Route path="/onboarding/intro" element={<OnboardingIntro />} />
-                    <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
-                    <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
-                    <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
-                    <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
-                    <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
+              <TanstackMutationToast />
+              <Suspense fallback={<Loading />}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/onboarding/welcome" element={<OnboardingPage />} />
+                  <Route path="/onboarding/intro" element={<OnboardingIntro />} />
+                  <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
+                  <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
+                  <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
+                  <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
+                  <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
 
-                    <Route
-                      element={
-                        <ProtectedRoute>
+                  {/* Protected routes */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <SidebarProvider defaultOpen={true}>
                           <AuthenticatedLayout />
-                        </ProtectedRoute>
-                      }
-                    >
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/library" element={<LibraryPage />}/>
-                      <Route path="/online-services" element={<OnlineServicesPage />} />
-                      <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
-                      <Route path="/wishlist" element={<WishListPage />} />
-                      <Route path="/spend-tracking" element={<SpendTrackingPage />} />
-                      <Route path="/notifications" element={<NotificationsPage /> } />
-                      <Route path="/settings" element={<SettingsPage />} />
-                    </Route>
-                  </Routes>
-                </Suspense>
-              </SidebarProvider>
+                        </SidebarProvider>
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/library" element={<LibraryPage />}/>
+                    <Route path="/online-services" element={<OnlineServicesPage />} />
+                    <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
+                    <Route path="/wishlist" element={<WishListPage />} />
+                    <Route path="/spend-tracking" element={<SpendTrackingPage />} />
+                    <Route path="/notifications" element={<NotificationsPage /> } />
+                    <Route path="/settings" element={<SettingsPage />} />
+                  </Route>
+                </Routes>
+              </Suspense>
             </NetworkStatusProvider>
           </TooltipProvider>
         </ThemeProvider>
