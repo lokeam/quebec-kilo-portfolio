@@ -97,50 +97,51 @@ const LoginPage = lazy(() => import(
 
 function App() {
   return (
-    <ErrorBoundaryProvider>
-      <BrowserRouter>
-        <ThemeProvider enableSystemPreference>
-          <TooltipProvider delayDuration={300}>
-            <NetworkStatusProvider>
-              <TanstackMutationToast />
-              <Suspense fallback={<Loading />}>
-                <Routes>
-                  {/* Public routes */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/onboarding/welcome" element={<OnboardingPage />} />
-                  <Route path="/onboarding/intro" element={<OnboardingIntro />} />
-                  <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
-                  <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
-                  <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
-                  <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
-                  <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
 
-                  {/* Protected routes */}
-                  <Route
-                    element={
-                      <ProtectedRoute>
-                        <SidebarProvider defaultOpen={true}>
-                          <AuthenticatedLayout />
-                        </SidebarProvider>
-                      </ProtectedRoute>
-                    }
-                  >
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/library" element={<LibraryPage />}/>
-                    <Route path="/online-services" element={<OnlineServicesPage />} />
-                    <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
-                    <Route path="/wishlist" element={<WishListPage />} />
-                    <Route path="/spend-tracking" element={<SpendTrackingPage />} />
-                    <Route path="/notifications" element={<NotificationsPage /> } />
-                    <Route path="/settings" element={<SettingsPage />} />
-                  </Route>
-                </Routes>
-              </Suspense>
-            </NetworkStatusProvider>
-          </TooltipProvider>
-        </ThemeProvider>
+      <BrowserRouter>
+        <ErrorBoundaryProvider>
+          <ThemeProvider enableSystemPreference>
+            <TooltipProvider delayDuration={300}>
+              <NetworkStatusProvider>
+                <TanstackMutationToast />
+                <Suspense fallback={<Loading />}>
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/onboarding/welcome" element={<OnboardingPage />} />
+                    <Route path="/onboarding/intro" element={<OnboardingIntro />} />
+                    <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
+                    <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
+                    <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
+                    <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
+                    <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
+
+                    {/* Protected routes */}
+                    <Route
+                      element={
+                        <ProtectedRoute>
+                          <SidebarProvider defaultOpen={true}>
+                            <AuthenticatedLayout />
+                          </SidebarProvider>
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route path="/" element={<HomePage />} />
+                      <Route path="/library" element={<LibraryPage />}/>
+                      <Route path="/online-services" element={<OnlineServicesPage />} />
+                      <Route path="/physical-locations" element={<PhysicalLocationsPage />} />
+                      <Route path="/wishlist" element={<WishListPage />} />
+                      <Route path="/spend-tracking" element={<SpendTrackingPage />} />
+                      <Route path="/notifications" element={<NotificationsPage /> } />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Route>
+                  </Routes>
+                </Suspense>
+              </NetworkStatusProvider>
+            </TooltipProvider>
+          </ThemeProvider>
+        </ErrorBoundaryProvider>
       </BrowserRouter>
-    </ErrorBoundaryProvider>
   );
 }
 
