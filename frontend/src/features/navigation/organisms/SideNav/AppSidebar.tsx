@@ -7,14 +7,14 @@ import {
 } from '@/shared/components/ui/sidebar';
 import { NavGroup } from '@/features/navigation/organisms/SideNav/NavGroup';
 import { NavUser } from '@/features/navigation/organisms/SideNav/NavUser';
-import { DomainSwitcher } from '@/features/navigation/organisms/SideNav/DomainSwitcher';
+import { BrandLogo } from '@/features/navigation/organisms/SideNav/BrandLogo';
 import { sidebarData } from '@/features/navigation/organisms/SideNav/sideNav.data';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible='icon' variant='floating' {...props}>
       <SidebarHeader>
-        <DomainSwitcher domains={sidebarData.domains} />
+        <BrandLogo />
       </SidebarHeader>
       <SidebarContent>
         {sidebarData.navGroups.map((props) => (
@@ -22,7 +22,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

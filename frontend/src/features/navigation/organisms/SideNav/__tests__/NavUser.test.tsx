@@ -69,7 +69,7 @@ describe('NavUser', () => {
     expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.getByText('Billing')).toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
-    expect(screen.getByText('Log out')).toBeInTheDocument();
+    expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
   it('renders navigation links correctly', async () => {
