@@ -3,6 +3,7 @@ import type { ApiError } from '@/types/api/response';
 
 import { logger } from '@/core/utils/logger/logger';
 import { toCamelCase, toSnakeCase } from '@/core/api/utils/serialization';
+import { getAuth0Token } from '@/core/api/utils/auth.utils';
 
 // Helper to check for plain objects
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -85,13 +86,18 @@ const handleAxiosError = (error: AxiosError<ApiError>): Promise<never> => {
 
 // Request interceptor: attach auth token, log requests
 axiosInstance.interceptors.request.use(
-  config => {
-    // NOTE: REPLACE WITH ACTUAL AUTH0 TOKEN
-    // const token = getAuthToken();
-    // if (token) {
-    //   config.headers = config.headers || {};
-    //   config.headers['Authorization'] = `Bearer ${token}`;
-    // }
+  async config => {
+    // Add Auth0 token to all requests
+    try {
+      const token = await getAuth0Token();
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    } catch {
+      // If we can't get a token, continue without it
+      // The backend will handle unauthorized requests
+      logger.debug('No auth token available for request', { url: config.url });
+    }
+
     logger.debug('❓ INTERCEPTOR Request 📢', {
       method: config.method,
       url: config.url,

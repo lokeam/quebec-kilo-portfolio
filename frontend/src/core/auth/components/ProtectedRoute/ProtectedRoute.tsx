@@ -1,5 +1,6 @@
 import { useAuth } from '@/core/auth/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
+import { Loading } from '@/shared/components/ui/loading/Loading';
 
 interface ProtectedRouteProps {
   children: JSX.Element;
@@ -10,7 +11,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // Show loading while Auth0 is initializing
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Loading />;
   }
 
   // Redirect to login if not authenticated

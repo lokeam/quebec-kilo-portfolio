@@ -219,6 +219,6 @@ export const deleteLibraryGame = (id: string): Promise<LibraryOperationResponse>
 export const deleteLibraryGameVersions = (data: BatchDeleteLibraryGameRequest): Promise<LibraryOperationResponse> =>
   apiRequest('deleteLibraryGameVersions', () =>
     axiosInstance
-      .delete<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${data.gameId}/versions`, { data })
+      .delete<LibraryOperationResponseWrapper>(`${LIBRARY_ENDPOINT}/${data.gameId}`, { data })
       .then(response => response.data.library)
   );
