@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 -- Create users table
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id VARCHAR(255) PRIMARY KEY,  -- Auth0 user ID
     email VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -73,7 +73,7 @@ CREATE TABLE game_themes (
 -- Create user_games table
 CREATE TABLE user_games (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     game_id BIGINT NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     platform_id BIGINT NOT NULL REFERENCES platforms(id) ON DELETE CASCADE,
     game_type VARCHAR(50) NOT NULL CHECK (game_type IN ('physical', 'digital')),
@@ -87,7 +87,7 @@ CREATE TABLE user_games (
 -- Create physical_locations table
 CREATE TABLE physical_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     label VARCHAR(255),
     location_type VARCHAR(50) NOT NULL CHECK (location_type IN ('house', 'apartment', 'office', 'warehouse', 'vehicle')),
@@ -100,7 +100,7 @@ CREATE TABLE physical_locations (
 -- Create sublocations table
 CREATE TABLE sublocations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
     physical_location_id UUID REFERENCES physical_locations(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     location_type VARCHAR(50) NOT NULL CHECK (location_type IN ('shelf', 'console', 'cabinet', 'closet', 'drawer', 'box', 'device')),
@@ -123,7 +123,7 @@ CREATE TABLE physical_game_locations (
 -- Create digital_locations table
 CREATE TABLE digital_locations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     is_subscription BOOLEAN NOT NULL DEFAULT false,
     is_active BOOLEAN NOT NULL DEFAULT true,
@@ -194,7 +194,7 @@ CREATE TABLE spending_categories (
 -- Create one_time_purchases table
 CREATE TABLE one_time_purchases (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     purchase_date TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -210,7 +210,7 @@ CREATE TABLE one_time_purchases (
 -- Create monthly_spending_aggregates table
 CREATE TABLE monthly_spending_aggregates (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id),
     year INTEGER NOT NULL CHECK (year > 1900 AND year < 2100),
     month INTEGER NOT NULL CHECK (month BETWEEN 1 AND 12),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
@@ -225,7 +225,7 @@ CREATE TABLE monthly_spending_aggregates (
 -- Create yearly_spending_aggregates table
 CREATE TABLE yearly_spending_aggregates (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id VARCHAR(255) NOT NULL REFERENCES users(id),
     year INTEGER NOT NULL CHECK (year > 1900 AND year < 2100),
     total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
     subscription_amount DECIMAL(10,2) NOT NULL CHECK (subscription_amount >= 0),
@@ -238,7 +238,7 @@ CREATE TABLE yearly_spending_aggregates (
 -- Create wishlist table
 CREATE TABLE wishlist (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    user_id VARCHAR(255) REFERENCES users(id) ON DELETE CASCADE,
     game_id BIGINT REFERENCES games(id) ON DELETE CASCADE,
     platform_id BIGINT NOT NULL,
     release_date BIGINT,
