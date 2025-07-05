@@ -11,6 +11,10 @@ const (
 	// IGDB
 	EnvIGDBClientID       = "IGDB_CLIENT_ID"
 	EnvIGDBClientSecret   = "IGDB_CLIENT_SECRET"
+
+	// Auth0
+	EnvAuth0Domain = "AUTH0_DOMAIN"
+	EnvAuth0Audience = "AUTH0_AUDIENCE"
 )
 
 // IGDB API endpoints

@@ -23,7 +23,6 @@ import (
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
 	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
-	authMiddleware "github.com/lokeam/qko-beta/server/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -85,12 +84,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		})
 	})
 
-	// Add mock authentication middleware
-	mux.Use(authMiddleware.MockAuthMiddleware(appContext))
-
-	// Create library handler
-	//libraryHandler := library.NewLibraryHandler(appContext, svc.LibraryMap)
-
 	// Create digital services catalog handler
 	digitalServicesCatalogHandler := digital.GetDigitalServicesCatalog(appContext)
 
@@ -119,105 +112,110 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		// Health
 		r.Get("/health", healthHandler)
 
-		// Search
-		r.Route("/search", func(r chi.Router) {
-			appContext.Logger.Info("Registering search routes", map[string]any{
-				"path": "/api/v1/search",
-			})
+		// Protect routes with Auth0
+		r.Group(func(r chi.Router) {
+			r.Use(customMiddleware.EnsureValidToken())
 
-			search.RegisterSearchRoutes(
-				r,
-				appContext,
-				gameSearchService,
-				svc.Library,
-				svc.Wishlist,
-			)
-		})
-
-		// Library
-		r.Route("/library", func(r chi.Router) {
-			appContext.Logger.Info("Registering library routes", map[string]any{
-				"path": "/api/v1/library",
-			})
-
-			// Register routes using the new pattern
-			library.RegisterLibraryRoutes(r, appContext, svc.Library, svc.Analytics)
-		})
-
-		// Physical Locations
-		r.Route("/locations/physical", func(r chi.Router) {
-			appContext.Logger.Info("Registering physical location routes", map[string]any{
-        "path": "/api/v1/locations/physical",
-			})
-
-			// Register routes using the new pattern
-			physical.RegisterPhysicalRoutes(r, appContext, svc.Physical, svc.Analytics)
-		})
-
-		// Sublocations
-		r.Route("/locations/sublocations", func(r chi.Router) {
-			appContext.Logger.Info("Registering sublocation routes", map[string]any{
-        "path": "/api/v1/locations/sublocations",
-			})
-
-			// Register routes using the new pattern
-			sublocation.RegisterSublocationRoutes(r, appContext, svc.Sublocation, svc.Analytics)
-		})
-
-		// Digital Locations
-		r.Route("/locations/digital", func(r chi.Router) {
-			if err == nil {
-				log.Debug("Setting up digital locations routes", map[string]interface{}{
-					"path": "/api/v1/locations/digital",
+			// Search
+			r.Route("/search", func(r chi.Router) {
+				appContext.Logger.Info("Registering search routes", map[string]any{
+					"path": "/api/v1/search",
 				})
-			}
 
-			// Register routes using the new pattern
-			digital.RegisterDigitalRoutes(r, appContext, svc.Digital)
-
-			// Services Catalog
-			r.Get("/services/catalog", digitalServicesCatalogHandler)
-		})
-
-		// Spend Tracking
-		r.Route("/spend-tracking", func(r chi.Router) {
-			appContext.Logger.Info("Registering spend tracking routes", map[string]any{
-				"path": "/api/v1/spend-tracking",
+				search.RegisterSearchRoutes(
+					r,
+					appContext,
+					gameSearchService,
+					svc.Library,
+					svc.Wishlist,
+				)
 			})
 
-			// Register routes using new pattern
-			spend_tracking.RegisterSpendTrackingRoutes(r, appContext, svc.SpendTracking)
-		})
+			// Library
+			r.Route("/library", func(r chi.Router) {
+				appContext.Logger.Info("Registering library routes", map[string]any{
+					"path": "/api/v1/library",
+				})
 
-		// Dashboard
-		r.Route("/dashboard", func(r chi.Router) {
-			appContext.Logger.Info("Registering dashboard routes", map[string]any{
-				"path": "/api/v1/dashboard",
+				// Register routes using the new pattern
+				library.RegisterLibraryRoutes(r, appContext, svc.Library, svc.Analytics)
 			})
 
-			dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
-		})
+			// Physical Locations
+			r.Route("/locations/physical", func(r chi.Router) {
+				appContext.Logger.Info("Registering physical location routes", map[string]any{
+					"path": "/api/v1/locations/physical",
+				})
 
-		// Analytics
-		r.Route("/analytics", func(r chi.Router) {
-			appContext.Logger.Info("Registering analytics routes", map[string]any{
-				"path": "/api/v1/analytics",
+				// Register routes using the new pattern
+				physical.RegisterPhysicalRoutes(r, appContext, svc.Physical, svc.Analytics)
 			})
 
-			// Register routes using the service from the Services struct
-			analytics.RegisterRoutes(r, appContext, svc.Analytics)
-		})
+			// Sublocations
+			r.Route("/locations/sublocations", func(r chi.Router) {
+				appContext.Logger.Info("Registering sublocation routes", map[string]any{
+					"path": "/api/v1/locations/sublocations",
+				})
 
-		appContext.Logger.Info("Routes registered", map[string]any{
-			"health":         "/api/v1/health",
-			"search":         "/api/v1/search",
-			"library":        "/api/v1/library",
-			"physical":       "/api/v1/locations/physical",
-			"sublocations":   "/api/v1/locations/sublocations",
-			"digital":        "/api/v1/locations/digital",
-			"spend-tracking": "/api/v1/spend-tracking",
-			"dashboard":      "/api/v1/dashboard",
-			"analytics":      "/api/v1/analytics",
+				// Register routes using the new pattern
+				sublocation.RegisterSublocationRoutes(r, appContext, svc.Sublocation, svc.Analytics)
+			})
+
+			// Digital Locations
+			r.Route("/locations/digital", func(r chi.Router) {
+				if err == nil {
+					log.Debug("Setting up digital locations routes", map[string]interface{}{
+						"path": "/api/v1/locations/digital",
+					})
+				}
+
+				// Register routes using the new pattern
+				digital.RegisterDigitalRoutes(r, appContext, svc.Digital)
+
+				// Services Catalog
+				r.Get("/services/catalog", digitalServicesCatalogHandler)
+			})
+
+			// Spend Tracking
+			r.Route("/spend-tracking", func(r chi.Router) {
+				appContext.Logger.Info("Registering spend tracking routes", map[string]any{
+					"path": "/api/v1/spend-tracking",
+				})
+
+				// Register routes using new pattern
+				spend_tracking.RegisterSpendTrackingRoutes(r, appContext, svc.SpendTracking)
+			})
+
+			// Dashboard
+			r.Route("/dashboard", func(r chi.Router) {
+				appContext.Logger.Info("Registering dashboard routes", map[string]any{
+					"path": "/api/v1/dashboard",
+				})
+
+				dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
+			})
+
+			// Analytics
+			r.Route("/analytics", func(r chi.Router) {
+				appContext.Logger.Info("Registering analytics routes", map[string]any{
+					"path": "/api/v1/analytics",
+				})
+
+				// Register routes using the service from the Services struct
+				analytics.RegisterRoutes(r, appContext, svc.Analytics)
+			})
+
+			appContext.Logger.Info("Routes registered", map[string]any{
+				"health":         "/api/v1/health",
+				"search":         "/api/v1/search",
+				"library":        "/api/v1/library",
+				"physical":       "/api/v1/locations/physical",
+				"sublocations":   "/api/v1/locations/sublocations",
+				"digital":        "/api/v1/locations/digital",
+				"spend-tracking": "/api/v1/spend-tracking",
+				"dashboard":      "/api/v1/dashboard",
+				"analytics":      "/api/v1/analytics",
+			})
 		})
 	})
 

@@ -68,7 +68,7 @@ const (
 
   // Get total monthly online services costs and last updated
   getSubscriptionStatsQuery = `
-      SELECT 'Online Service Costs' AS title, 'coin' AS icon,
+      SELECT 'Subscription Costs' AS title, 'coin' AS icon,
            COALESCE(ROUND(SUM(
                CASE
                    WHEN dls.billing_cycle = '1 month' THEN dls.cost_per_cycle
@@ -85,7 +85,7 @@ const (
 
   // Get digital storage locations count and last updated
   getDigitalLocationStatsQuery = `
-      SELECT 'Digital Storage Locations' AS title, 'onlineServices' AS icon,
+      SELECT 'Digital Storage' AS title, 'onlineServices' AS icon,
              COUNT(*) AS value, MAX(updated_at) AS last_updated
       FROM digital_locations
       WHERE user_id = $1
@@ -94,7 +94,7 @@ const (
   // Get physical storage locations count and last updated
   getPhysicalLocationStatsQuery = `
       SELECT
-        'Physical Storage Locations' AS title,
+        'Physical Storage' AS title,
         'package' AS icon,
         COUNT(DISTINCT pl.id) AS value,
         COUNT(s.id) AS secondary_value,
