@@ -4,8 +4,7 @@ import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsol
 import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
 import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
 import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
-//import type { LocationIconBgColor } from '@/types/domain/location-types';
-import { useLocationBgColor } from './getLocationBgColor';
+import { LOCATION_ICON_COLORS, DEFAULT_COLORS } from '../constants/location-icon-colors';
 
 interface SublocationIconProps {
   type: string;
@@ -43,7 +42,11 @@ export type SublocationType = typeof SublocationType[keyof typeof SublocationTyp
  * ```
  */
 export function SublocationIcon({ type, bgColor }: SublocationIconProps) {
-  const { background } = useLocationBgColor(bgColor);
+  // Use dark mode colors consistently for better visibility in both themes
+  const background = bgColor
+    ? LOCATION_ICON_COLORS[bgColor as keyof typeof LOCATION_ICON_COLORS].dark.background
+    : DEFAULT_COLORS.dark.background;
+
   const wrapperStyle = {
     backgroundColor: background,
     display: 'inline-flex',

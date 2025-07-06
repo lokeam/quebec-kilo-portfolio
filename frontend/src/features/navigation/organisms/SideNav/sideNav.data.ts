@@ -1,7 +1,7 @@
 import {
   IconHelp,
   IconLayoutDashboard,
-  IconPackages,
+  // IconPackages,
   IconSettings,
   IconCloudDataConnection,
   IconShoppingCartHeart,

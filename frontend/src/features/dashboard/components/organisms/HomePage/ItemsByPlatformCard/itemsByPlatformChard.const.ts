@@ -5,7 +5,7 @@ type ChartConfigEntry = {
 
 export const chartConfig: Record<string, ChartConfigEntry> = {
   itemCount: {
-    label: "Visitors",
+    label: "Games",
     color: "hsl(var(--chart-pc))"
   },
   ps1: {

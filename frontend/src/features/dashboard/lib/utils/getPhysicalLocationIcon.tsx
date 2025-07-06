@@ -2,7 +2,7 @@ import { Home, Building2, Warehouse, Building } from 'lucide-react';
 import { IconCar } from '@tabler/icons-react';
 import type { PhysicalLocationType } from '@/types/domain/location-types';
 import type { LocationIconBgColor } from '@/types/domain/location-types';
-import { useLocationBgColor } from './getLocationBgColor';
+import { LOCATION_ICON_COLORS, DEFAULT_COLORS } from '../constants/location-icon-colors';
 
 interface PhysicalLocationIconProps {
   type: PhysicalLocationType | string | undefined;
@@ -22,7 +22,11 @@ interface PhysicalLocationIconProps {
  * ```
  */
 export function PhysicalLocationIcon({ type, bgColor }: PhysicalLocationIconProps) {
-  const { background } = useLocationBgColor(bgColor);
+  // Use dark mode colors consistently for better visibility in both themes
+  const background = bgColor
+    ? LOCATION_ICON_COLORS[bgColor].dark.background
+    : DEFAULT_COLORS.dark.background;
+
   const wrapperStyle = {
     backgroundColor: background,
     display: 'inline-flex',

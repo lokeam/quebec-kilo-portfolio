@@ -30,7 +30,7 @@ import { HomePageSkeleton } from './HomePageSkeleton';
 //import { homePageMockData } from './Homepage.mockdata';
 
 export function HomePageContent() {
-  const { data: dashboardData, isLoading, error } = useGetDashboardBFFResponse();
+  const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
 
   // Replace with query hook
   //const isLoading = false;
@@ -88,12 +88,12 @@ export function HomePageContent() {
           newItemsThisMonth={dashboardData!.newItemsThisMonth}
         />
 
-        <WishListDealsCard
+        {/* <WishListDealsCard
           starredItem={wishlistDealsCardMockData.starredItem}
           starredItemCurrentPrice={wishlistDealsCardMockData.starredItemCurrentPrice}
           itemsOnSale={wishlistDealsCardMockData.itemsOnSale}
           cheapestSaleItemPercentage={wishlistDealsCardMockData.cheapestSaleItemPercentage}
-        />
+        /> */}
 
         <MonthlySpendingCard
           mediaTypeDomains={dashboardData!.mediaTypeDomains}

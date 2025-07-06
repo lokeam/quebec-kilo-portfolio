@@ -14,10 +14,18 @@ import {
 // Auth hook
 import { useAuth } from '@/core/auth/hooks/useAuth';
 
+// Navigation hook
+import { useNavigate } from 'react-router-dom';
+
 export function AvatarDropDownMenu() {
   const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   console.log('AvatarDropDownMenu Debug:', { user, isAuthenticated, isLoading });
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
 
   if (user) {
     return (
@@ -50,7 +58,7 @@ export function AvatarDropDownMenu() {
               Billing
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
             </DropdownMenuItem> */}
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSettingsClick}>
               Settings
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>

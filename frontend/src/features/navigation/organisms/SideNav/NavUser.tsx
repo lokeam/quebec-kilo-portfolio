@@ -3,8 +3,9 @@ import {
   Bell,
   ChevronsUpDown,
   LogOut,
-  Sparkles,
+  // Sparkles,
 } from 'lucide-react'
+import { IconSettings } from '@tabler/icons-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import {
   DropdownMenu,
@@ -25,11 +26,19 @@ import {
 // Auth hook
 import { useAuth } from '@/core/auth/hooks/useAuth'
 
+// Navigation hook
+import { useNavigate } from 'react-router-dom';
+
 export function NavUser() {
-  const { user, logout, isAuthenticated, isLoading } = useAuth()
-  const { isMobile } = useSidebar()
+  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { isMobile } = useSidebar();
+  const navigate = useNavigate();
 
   console.log('NavUser Debug:', { user, isAuthenticated, isLoading });
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  }
 
   if (!user) {
     return null
@@ -78,12 +87,12 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+            {/* <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
                 Upgrade to Pro
               </DropdownMenuItem>
-            </DropdownMenuGroup>
+            </DropdownMenuGroup> */}
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               {/* <DropdownMenuItem asChild>
@@ -93,9 +102,9 @@ export function NavUser() {
                 </Link>
               </DropdownMenuItem> */}
               <DropdownMenuItem asChild>
-                <Link to='/settings/notifications'>
-                  <Bell />
-                  Notifications
+                <Link to='/settings'>
+                  <IconSettings />
+                  Settings
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>

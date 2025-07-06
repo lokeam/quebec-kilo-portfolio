@@ -55,7 +55,7 @@ export function ItemsByPlatformCard({
   }, [platformList]);
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col col-span-full lg:col-span-2">
       <CardHeader className="items-center pb-0">
         <CardTitle>Games by Platform</CardTitle>
       </CardHeader>

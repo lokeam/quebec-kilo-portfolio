@@ -2,7 +2,7 @@ export default function EpicGamesLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      fill="#fff"
+      fill="currentColor"
       viewBox="0 0 815 815"
       className={className}
     >
