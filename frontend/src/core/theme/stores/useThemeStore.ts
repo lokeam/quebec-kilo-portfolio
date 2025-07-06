@@ -1,88 +1,94 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { ThemeMode } from '../constants/themeConstants'
-import { DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '../constants/themeConstants'
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { ThemeMode } from '@/core/theme/constants/themeConstants';
+import { DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
 import { themeConfig } from '@/core/theme/theme.config';
 
 interface ThemeState {
   mode: ThemeMode;
   isSystemPreference: boolean;
   actions: {
-    toggleTheme: () => void;
-    setTheme: (mode: ThemeMode) => void;
-    enableSystemPreference: () => (() => void) | void; // Return cleanup function OR void
+    changeTheme: (mode: ThemeMode) => void;
+    enableSystemPreference: () => (() => void) | void;
     disableSystemPreference: () => void;
-    applyTheme: (mode: ThemeMode) => void;
+    updateDOM: (mode: ThemeMode) => void;
   }
 };
 
 export const useThemeStore = create<ThemeState>()(
+  // Save theme choice to local storage
   persist(
     (set, get) => ({
       mode: DEFAULT_THEME_MODE,
       isSystemPreference: false,
 
       actions: {
-        toggleTheme: () => {
-          const currentMode = get().mode
-          set({
-            mode: currentMode === 'light' ? 'dark' : 'light',
-            isSystemPreference: false,
-          })
-        },
 
-        setTheme: (mode: ThemeMode) => {
-          set({
-            mode,
-            isSystemPreference: false,
-          })
+        changeTheme: (mode: ThemeMode) => {
+          if (mode === 'system') {
+            set({
+              mode: 'system',
+              isSystemPreference: true,
+            });
+
+            // Get current system preference
+            const darkModeMediaQuery = window.matchMedia(SYSTEM_DARK_MODE_QUERY);
+            const isSystemSetToDarkMode = darkModeMediaQuery.matches;
+            const currentTheme = isSystemSetToDarkMode ? 'dark' : 'light';
+
+            get().actions.updateDOM(currentTheme);
+          } else {
+            set({
+              mode,
+              isSystemPreference: false,
+            });
+            get().actions.updateDOM(mode);
+          }
         },
 
         enableSystemPreference: () => {
-          const darkModeMediaQuery = window.matchMedia(SYSTEM_DARK_MODE_QUERY)
-          const systemPrefersDark = darkModeMediaQuery.matches
+          const darkModeMediaQuery = window.matchMedia(SYSTEM_DARK_MODE_QUERY);
+          const isSystemSetToDarkMode = darkModeMediaQuery.matches;
 
           set({
-            mode: systemPrefersDark ? 'dark' : 'light',
+            mode: isSystemSetToDarkMode ? 'dark' : 'light',
             isSystemPreference: true,
           });
 
           const handler = (event: MediaQueryListEvent) => {
             if (get().isSystemPreference) {
-              set({ mode: event.matches ? 'dark' : 'light'});
+              const newMode = event.matches ? 'dark' : 'light';
+              set({ mode: newMode });
+              get().actions.updateDOM(newMode);
             }
           };
 
-          // Listen for system theme changes
           darkModeMediaQuery.addEventListener('change', handler);
-
-          // Return cleanup function
           return () => darkModeMediaQuery.removeEventListener('change', handler);
         },
 
         disableSystemPreference: () => {
-          set({ isSystemPreference: false })
+          set({ isSystemPreference: false });
         },
 
-        applyTheme: (mode: ThemeMode) => {
-          const root = window.document.documentElement;
+        updateDOM: (mode: ThemeMode) => {
+          const windowDocumentElement = window.document.documentElement;
 
-          // Remove old theme
-          root.classList.remove('light', 'dark');
+          // Update CSS classes
+          windowDocumentElement.classList.remove('light', 'dark');
+          windowDocumentElement.classList.add(mode);
 
-          // Add new theme
-          root.classList.add(mode);
-
-          // Apply theme variables
-          Object.entries(themeConfig[mode]).forEach(([key, value]) => {
-            root.style.setProperty(`--${key}`, value)
-          });
+          // Update CSS variables
+          const config = themeConfig[mode];
+          for (const key in config) {
+            const value = config[key as keyof typeof config];
+            windowDocumentElement.style.setProperty(`--${key}`, value);
+          }
         }
       },
     }),
     {
       name: 'theme-storage',
-      // Only persist the mode and isSystemPreference
       partialize: (state) => ({
         mode: state.mode,
         isSystemPreference: state.isSystemPreference,
@@ -91,7 +97,7 @@ export const useThemeStore = create<ThemeState>()(
   )
 );
 
-// Decouple selector hooks for better performance
+// Selector hooks for better performance
 export const useThemeMode = () => useThemeStore((state) => state.mode);
 export const useThemeActions = () => useThemeStore((state) => state.actions);
 export const useIsSystemPreference = () => useThemeStore((state) => state.isSystemPreference);

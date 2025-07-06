@@ -11,7 +11,7 @@ describe('useThemeStore', () => {
    beforeEach(() => {
     // Clear store before each test
     const { actions } = useThemeStore.getState();
-    actions.setTheme('light');
+    actions.changeTheme('light');
     actions.disableSystemPreference();
 
     // Clear localStorage
@@ -44,19 +44,6 @@ describe('useThemeStore', () => {
   });
 
   describe('theme actions', () => {
-    it('should toggle theme', () => {
-      const { result } = renderHook(() => ({
-        mode: useThemeMode(),
-        actions: useThemeActions(),
-      }));
-
-      act(() => {
-        result.current.actions.toggleTheme();
-      });
-
-      expect(result.current.mode).toBe('dark');
-    });
-
     it('should set a specific theme', () => {
       const { result } = renderHook(() => ({
         mode: useThemeMode(),
@@ -64,7 +51,7 @@ describe('useThemeStore', () => {
       }));
 
       act(() => {
-        result.current.actions.setTheme('dark');
+        result.current.actions.changeTheme('dark');
       });
 
       expect(result.current.mode).toBe('dark');

@@ -1,5 +1,5 @@
 // Theme mode type
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'system';
 
 // Media query system theme preference
 export const SYSTEM_DARK_MODE_QUERY = '(prefers-color-scheme: dark)';

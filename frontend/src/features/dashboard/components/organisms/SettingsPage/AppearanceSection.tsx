@@ -1,5 +1,5 @@
 import { useFormContext } from 'react-hook-form';
-import { Monitor, Moon, Sun, Type } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,
@@ -17,10 +17,14 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 
 import type { FormValues } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
+import { useThemeStore } from '@/core/theme/stores/useThemeStore';
+
 
 export function AppearanceSection() {
-  const form = useFormContext<FormValues>()
-  const { watch, setValue } = form
+  const form = useFormContext<FormValues>();
+  const { watch, setValue } = form;
+
+  const { actions } = useThemeStore();
 
   return (
     <Card>
@@ -49,7 +53,16 @@ export function AppearanceSection() {
             <DropdownMenuContent align="end">
               <DropdownMenuRadioGroup
                 value={watch("theme")}
-                onValueChange={(value) => setValue("theme", value as FormValues["theme"])}
+                onValueChange={(value) => {
+                  setValue('theme', value as FormValues['theme']);
+
+                  if (value === 'system') {
+                    actions.enableSystemPreference();
+                  } else {
+                    actions.disableSystemPreference();
+                    actions.changeTheme(value as 'light' | 'dark');
+                  }
+                }}
               >
                 <DropdownMenuRadioItem value="light">
                   <Sun className="h-4 w-4 mr-2" />

@@ -97,10 +97,9 @@ const LoginPage = lazy(() => import(
 
 function App() {
   return (
-
       <BrowserRouter>
         <ErrorBoundaryProvider>
-          <ThemeProvider enableSystemPreference>
+          <ThemeProvider enableSystemPreference={true}>
             <TooltipProvider delayDuration={300}>
               <NetworkStatusProvider>
                 <TanstackMutationToast />
