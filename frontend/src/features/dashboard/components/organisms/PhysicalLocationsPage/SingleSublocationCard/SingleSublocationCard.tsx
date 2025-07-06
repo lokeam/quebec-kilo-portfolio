@@ -75,10 +75,10 @@ export const SingleSublocationCard = memo(({
     <>
       <Card
         className={cn(
-          "flex flex-col relative cursor-pointer group w-full min-h-[180px] max-h-[180px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
+          "flex flex-col relative cursor-pointer group w-full min-h-[180px] max-h-[180px] p-4",
           "transition-all duration-200",
-          "hover:ring-1 hover:ring-white/20 hover:ring-inset",
-          "hover:shadow-[0_0_4px_0_rgba(95,99,104,0.6),0_0_6px_2px_rgba(95,99,104,0.6)]",
+          "hover:ring-1 hover:ring-ring hover:ring-inset",
+          "hover:shadow-lg",
           isWatchedByResizeObserver && 'data-card-sentinel'
         )}
       >
@@ -117,7 +117,7 @@ export const SingleSublocationCard = memo(({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
+                  className="h-10 w-10 p-0"
                   onClick={handleDeleteClick}
                 >
                   <IconTrash className="h-5 w-5" />
@@ -132,7 +132,7 @@ export const SingleSublocationCard = memo(({
             {/* Sublocation Name */}
             <div className="flex mb-2">
               <span
-                className="font-bold text-lg text-white truncate overflow-hidden"
+                className="font-bold text-lg text-foreground truncate overflow-hidden"
                 style={{
                   maxWidth: 'var(--label-max-width)',
                   display: 'block',
@@ -145,7 +145,7 @@ export const SingleSublocationCard = memo(({
             {/* Parent Location Name */}
             <div className="flex">
               <span
-                className="font-medium text-sm text-gray-500 truncate overflow-hidden"
+                className="font-medium text-sm text-muted-foreground truncate overflow-hidden"
                 style={{
                   maxWidth: 'var(--label-max-width)',
                   display: 'block',
@@ -164,10 +164,10 @@ export const SingleSublocationCard = memo(({
           <DialogHeader>
             <DialogTitle>Delete {location.sublocationName}</DialogTitle>
             <DialogDescription>
-              {deleteError ? (
-                <div className="text-red-500">
-                  {deleteError}
-                </div>
+                              {deleteError ? (
+                  <div className="text-destructive">
+                    {deleteError}
+                  </div>
               ) : (
                 <SublocationDeleteWarning location={location} />
               )}

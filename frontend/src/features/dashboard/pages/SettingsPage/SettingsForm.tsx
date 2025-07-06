@@ -6,6 +6,9 @@ import { AppearanceSection } from '@/features/dashboard/components/organisms/Set
 import { NotificationSection } from '@/features/dashboard/components/organisms/SettingsPage/NotificationSection';
 import { DangerZoneSection } from '@/features/dashboard/components/organisms/SettingsPage/DangerZoneSection';
 
+import { useThemeStore } from '@/core/theme/stores/useThemeStore';
+import { useTheme } from '@/core/theme/hooks/useTheme';
+
 
 const formSchema = z.object({
   notificationLevel: z.enum(["everything", "available", "ignoring"]),
@@ -15,16 +18,27 @@ const formSchema = z.object({
 export type FormValues = z.infer<typeof formSchema>;
 
 export function SettingsForm() {
+  const { mode, isSystemPreference } = useThemeStore();
+  const { actions } = useThemeStore();
+
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      notificationLevel: "available",
-      theme: "light",
+      notificationLevel: 'available',
+      theme: isSystemPreference ? 'system' : mode,
     },
   })
 
   function onSubmit(data: FormValues) {
-    console.log("Submitting form data:", data)
+    console.log("Submitting form data:", data);
+
+    // Apply theme changes based on form data
+    if (data.theme === 'system') {
+      actions.enableSystemPreference();
+    } else {
+      actions.disableSystemPreference();
+      actions.changeTheme(data.theme as 'light' | 'dark');
+    }
   }
 
   return (

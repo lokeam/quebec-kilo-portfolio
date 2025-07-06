@@ -17,7 +17,6 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { Power } from 'lucide-react'
 import { IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
 
 // Utils
@@ -100,21 +99,21 @@ export const SingleOnlineServiceCard = memo(({
     <>
       <Card
         className={cn(
-          "flex relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
+          "flex relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4",
           "transition-all duration-200",
-          "hover:ring-1 hover:ring-white/20 hover:ring-inset",
-          "hover:shadow-[0_0_4px_0_rgba(95,99,104,0.6),0_0_6px_2px_rgba(95,99,104,0.6)]",
+          "hover:ring-1 hover:ring-ring hover:ring-inset",
+          "hover:shadow-lg",
           isWatchedByResizeObserver && 'data-card-sentinel'
         )}
       >
         <div className="flex items-center justify-between min-w-0 w-full">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 shrink-0 text-white flex items-center justify-center">
+            <div className="w-10 h-10 shrink-0 text-foreground flex items-center justify-center">
               <DigitalLocationIcon name={service.name} className="w-full h-full" />
             </div>
             <div className="flex flex-col">
               <span
-                className="font-medium text-sm text-white truncate overflow-hidden"
+                className="font-medium text-sm text-foreground truncate overflow-hidden"
                 style={{
                   maxWidth: 'var(--label-max-width)',
                   display: 'block',
@@ -136,12 +135,12 @@ export const SingleOnlineServiceCard = memo(({
             {/* Show on no hover */}
             <div className="absolute inset-0 flex justify-end items-center gap-1 text-sm shrink-0 transition-opacity duration-200 group-hover:opacity-0 group-hover:pointer-events-none">
               {!isPaidService(service) ? (
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-foreground">
                     --
                   </span>
                 ) : (
                 <>
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-foreground">
                     {formatServicePrice(service.monthlyCost)}
                   </span>
                   <span className="text-muted-foreground text-xs">/ 1 mo</span>
@@ -152,10 +151,10 @@ export const SingleOnlineServiceCard = memo(({
               )} */}
               {showRenewalBadge && (
                 <Badge
-                  variant="default"
-                  className="ml-1 bg-red-900 absolute top-3 right-2"
+                  variant="destructive"
+                  className="ml-1 absolute top-3 right-2"
                 >
-                  <IconCalendarDollar className="h-5 w-5 ml-1 text-white" />
+                  <IconCalendarDollar className="h-5 w-5 ml-1" />
                   <span className="ml-1">Renews this month</span>
                 </Badge>
               )}
@@ -177,7 +176,7 @@ export const SingleOnlineServiceCard = memo(({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
+                className="h-10 w-10 p-0"
                 onClick={handleDeleteClick}
               >
                 <IconTrash className="h-5 w-5" />
@@ -194,10 +193,10 @@ export const SingleOnlineServiceCard = memo(({
           <DialogHeader>
             <DialogTitle>Delete {service.name}</DialogTitle>
             <DialogDescription>
-              {deleteError ? (
-                <div className="text-red-500">
-                  {deleteError}
-                </div>
+                              {deleteError ? (
+                  <div className="text-destructive">
+                    {deleteError}
+                  </div>
               ) : (
                 "Are you sure you want to delete this service? This action cannot be undone."
               )}

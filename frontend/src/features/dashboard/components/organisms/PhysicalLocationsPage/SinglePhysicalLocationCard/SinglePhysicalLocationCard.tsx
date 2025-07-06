@@ -93,11 +93,11 @@ export const SinglePhysicalLocationCard = memo(({
     <>
       <Card
         className={cn(
-          "flex flex-col relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4 bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800",
+          "flex flex-col relative cursor-pointer group w-full min-h-[100px] max-h-[100px] p-4",
           "transition-all duration-200",
           isSelectionMode
             ? "hover:ring-2 hover:ring-blue-500"
-            : "hover:ring-1 hover:ring-white/20 hover:ring-inset",
+            : "hover:ring-1 hover:ring-ring hover:ring-inset",
           isSelected && "ring-2 ring-blue-500",
           isWatchedByResizeObserver && 'data-card-sentinel'
         )}
@@ -110,7 +110,7 @@ export const SinglePhysicalLocationCard = memo(({
           <div className="flex items-center justify-between w-full mb-8">
             <div className="flex items-center">
               <span
-                className="font-bold text-lg text-white truncate overflow-hidden"
+                className="font-bold text-lg text-foreground truncate overflow-hidden"
                 style={{
                   maxWidth: 'var(--label-max-width)',
                   display: 'block',
@@ -151,7 +151,7 @@ export const SinglePhysicalLocationCard = memo(({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-10 w-10 p-0 text-red-500 hover:text-red-600 hover:bg-red-100"
+                    className="h-10 w-10 p-0"
                     onClick={handleDeleteClick}
                   >
                     <IconTrash className="h-5 w-5" />

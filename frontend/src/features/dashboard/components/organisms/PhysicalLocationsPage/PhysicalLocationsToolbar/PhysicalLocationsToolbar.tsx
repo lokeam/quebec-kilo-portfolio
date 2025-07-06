@@ -69,7 +69,7 @@ export function PhysicalLocationsToolbar({ sublocationTypes, parentTypes }: Phys
           placeholder="Filter Services..."
           onChange={handleSearchChange}
         />
-        <span className="text-sm text-gray-500">Filter by</span>
+        <span className="text-sm text-muted-foreground">Filter by</span>
 
         <FilterDropdown
           label="Storage Type"
@@ -87,8 +87,8 @@ export function PhysicalLocationsToolbar({ sublocationTypes, parentTypes }: Phys
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-500">View</span>
-        <div className="flex bg-black rounded-md p-1 gap-1">
+        <span className="text-sm text-muted-foreground">View</span>
+        <div className="flex bg-muted rounded-md p-1 gap-1">
           <Button
             variant={viewMode === 'grid' ? 'default' : 'ghost'}
             size="icon"
