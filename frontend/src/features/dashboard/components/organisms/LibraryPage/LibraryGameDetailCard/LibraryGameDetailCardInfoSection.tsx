@@ -42,7 +42,7 @@ export const LibraryGameDetailCardInfoSection = memo(({
       {/* Physical Versions */}
       {totalPhysicalVersions > 0 && (
         <div className="flex flex-col gap-2 w-96">
-          <div className="flex flex-row items-center justify-between text-white">
+          <div className="flex flex-row items-center justify-between text-foreground">
             <div className="text-lg font-semibold leading-none tracking-tight">
               Copies in Physical Storage
               <span className="mr-2 text-sm uppercase"> {` (${totalPhysicalVersions})`}</span>
@@ -64,7 +64,7 @@ export const LibraryGameDetailCardInfoSection = memo(({
       {/* Digital Versions */}
       {totalDigitalVersions > 0 && (
         <div className="flex flex-col gap-2 w-96">
-          <div className="flex flex-row items-center justify-between text-white">
+          <div className="flex flex-row items-center justify-between text-foreground">
             <div className="text-lg font-semibold leading-none tracking-tight">
               Copies in Digital Storage
               <span className="mr-2 text-xs uppercase"> {` (${totalDigitalVersions})`}</span>

@@ -21,19 +21,19 @@ export const DigitalLocationDisplay = memo(({
           name={location.digitalLocationName}
           className="h-7 w-7"
         />
-        <span className="text-xs text-white/80">{location.digitalLocationName}</span>
+        <span className="text-xs text-muted-foreground">{location.digitalLocationName}</span>
       </div>
       <div className="flex flex-wrap gap-1">
         {displayPlatforms.map((platform, index) => (
           <span
             key={`${platform}-${index}`}
-            className="text-xs bg-white/20 px-1 rounded text-white"
+            className="text-xs bg-muted px-1 rounded text-muted-foreground"
           >
             {platform}
           </span>
         ))}
         {overflowCount > 0 && (
-          <span className="text-xs text-white/60">
+          <span className="text-xs text-muted-foreground">
             +{overflowCount} more
           </span>
         )}

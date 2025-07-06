@@ -177,7 +177,7 @@ function LibraryGameDetailCard({
             {totalLocations > 1 && (
               <Badge
                 variant="secondary"
-                className="bg-purple-500/20 text-purple-500 hover:bg-purple-500/30"
+                className="bg-accent text-accent-foreground hover:bg-accent/80"
               >
                 {totalLocations} versions
               </Badge>
@@ -211,7 +211,7 @@ function LibraryGameDetailCard({
             variant={favorite ? "default" : "secondary"}
             size="sm"
             onClick={handleAddToFavorites}
-            className={`transition-colors hover:bg-[#5bf563] ${!favorite ? 'bg-muted' : ''}`}
+            className={`transition-colors ${favorite ? 'hover:bg-primary/90' : 'hover:bg-secondary/80'}`}
           >
             {favorite ? (
               <IconStarFilled className="h-4 w-4" />

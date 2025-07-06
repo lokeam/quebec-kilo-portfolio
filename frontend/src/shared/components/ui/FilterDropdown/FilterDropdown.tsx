@@ -44,7 +44,7 @@ export function FilterDropdown({
         aria-label={`Filter online services by ${label}`}
         aria-expanded={isOpen}
       >
-        <Button variant="outline" className={`bg-black w-[${width}] justify-between`}>
+        <Button variant="outline" className={`w-[${width}] justify-between`}>
           {label}
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>

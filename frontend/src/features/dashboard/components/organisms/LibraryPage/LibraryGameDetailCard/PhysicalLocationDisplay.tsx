@@ -23,26 +23,26 @@ export const PhysicalLocationDisplay = memo(({
           type={location.parentLocationType}
           bgColor={location.parentLocationBgColor as LocationIconBgColor}
         />
-        <span className="text-xs text-white/80">{location.parentLocationName}</span>
+        <span className="text-xs text-muted-foreground">{location.parentLocationName}</span>
       </div>
       <div className="flex items-center gap-1">
         <SublocationIcon
           type={location.sublocationType}
           bgColor={location.parentLocationBgColor as LocationIconBgColor}
         />
-        <span className="text-xs text-white/80">{location.sublocationName}</span>
+        <span className="text-xs text-muted-foreground">{location.sublocationName}</span>
       </div>
       <div className="flex flex-wrap gap-1">
         {displayPlatforms.map((platform, index) => (
           <span
             key={`${platform}-${index}`}
-            className="text-xs bg-white/20 px-1 rounded text-white"
+            className="text-xs bg-muted px-1 rounded text-muted-foreground"
           >
             {platform}
           </span>
         ))}
         {overflowCount > 0 && (
-          <span className="text-xs text-white/60">
+          <span className="text-xs text-muted-foreground">
             +{overflowCount} more
           </span>
         )}
