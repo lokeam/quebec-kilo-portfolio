@@ -120,14 +120,14 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
 
   return (
     <>
-      <Card className="bg-[#0A0A0A] text-white border-none mb-4">
+      <Card className="mb-4">
         <CardHeader className="space-y-1.5">
           <div className="flex flex-row items-center justify-between space-y-4">
             <div className="flex flex-col">
               <div className="flex flex-row gap-4">
                 <MemoizedDashboardBadge
                   variant="outline"
-                  className="bg-purple-900/50 text-purple-300 border-purple-700 w-auto"
+                  className="bg-accent text-accent-foreground border-border w-auto"
                   data-testid="media-type-badge"
                 >
                   {normalizeOneTimePurchaseMediaType(item.mediaType)}
@@ -155,13 +155,13 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
               <div className="flex xs:flex-col flex-row gap-4">
                 <MemoizedDashboardBadge
                   variant="outline"
-                  className="bg-blue-900/50 text-blue-300 border-blue-700"
+                  className="bg-accent text-accent-foreground border-border"
                 >
                   {item.billingCycle}
                 </MemoizedDashboardBadge>
                 <MemoizedDashboardBadge
                   variant="outline"
-                  className="bg-green-900/50 text-green-300 border-green-700"
+                  className="bg-accent text-accent-foreground border-border"
                 >
                   {new Intl.NumberFormat('en-US', {
                     style: 'currency',
@@ -182,7 +182,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
           <div>
             <h3 className="text-lg font-semibold mb-4">Payment method</h3>
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
                 <PaymentIcon
                   type={item.paymentMethod as PaymentMethodType}
                   format="flatRounded"
@@ -190,7 +190,7 @@ export const MonthlySpendingItemDetails = memo(function MonthlySpendingItemDetai
               </div>
               <div>
                 <div className="font-semibold">{item.paymentMethod}</div>
-                <div className="text-sm text-gray-400">{formatCurrency(item.amount)}</div>
+                <div className="text-sm text-muted-foreground">{formatCurrency(item.amount)}</div>
               </div>
             </div>
           </div>

@@ -42,10 +42,10 @@ export function TotalMonthlySpendingCard({
   };
 
   return (
-    <Card className="col-span-full lg:col-span-2 bg-[#0B0F13] border-[#1D2127] text-white">
+    <Card className="col-span-full lg:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold text-[#c0c4cf]">Net this month</CardTitle>
-        <button className="inline-flex items-center text-xs text-[#8B949E] hover:text-white">
+        <CardTitle className="text-xl font-bold text-foreground">Net this month</CardTitle>
+        <button className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
           DOWNLOAD REPORT
           <ArrowUpRight className="ml-1 h-3 w-3" />
         </button>
@@ -53,11 +53,11 @@ export function TotalMonthlySpendingCard({
       <CardContent>
         <div className="space-y-3">
           <div>
-            <div className="text-2xl font-bold text-[#3FB950]">{formatCurrency(currentMonthTotal)}</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(currentMonthTotal)}</div>
             <div className="inline-flex items-center text-sm">
               <TrendingDown className="mr-1 h-4 w-4 text-red-500" />
               <span className="text-red-500">{percentageChange}%</span>
-              <span className="ml-1 text-[#8B949E]">
+              <span className="ml-1 text-muted-foreground">
                 vs {formatCurrency(lastMonthTotal)} in {comparisonDateRange}
               </span>
             </div>
@@ -98,7 +98,7 @@ export function TotalMonthlySpendingCard({
                 />
                 <div className="flex flex-col">
                   <span className="text-sm">{GRAPH_CATEGORY_DISPLAY_NAMES[item.name] ?? item.name}</span>
-                  <span className="text-sm text-[#8B949E]">
+                  <span className="text-sm text-muted-foreground">
                     {formatCurrency(item.value)}
                   </span>
                 </div>

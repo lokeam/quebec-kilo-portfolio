@@ -47,11 +47,11 @@ export const sidebarData: SidebarData = {
           url: '/notifications',
           icon: Bell,
         },
-        {
-          title: 'Apps',
-          url: '/apps',
-          icon: IconPackages,
-        },
+        // {
+        //   title: 'Apps',
+        //   url: '/apps',
+        //   icon: IconPackages,
+        // },
       ],
     },
     {

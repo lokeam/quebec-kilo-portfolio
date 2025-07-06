@@ -61,7 +61,7 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
     <>
       <Accordion type="multiple" defaultValue={["this-month"]} className="col-span-full flex flex-col h-full space-y-4">
         <AccordionItem value="this-month" className="border-none">
-          <AccordionTrigger className="flex gap-2 text-xl font-semibold text-slate-200 hover:no-underline justify-start">
+          <AccordionTrigger className="flex gap-2 text-xl font-semibold text-foreground hover:no-underline justify-start">
             This month
           </AccordionTrigger>
           <AccordionContent className="pt-4">
@@ -80,7 +80,7 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
         <Separator />
 
         <AccordionItem value="future" className="border-none">
-          <AccordionTrigger className="flex gap-2 text-xl font-semibold text-slate-200 hover:no-underline justify-start">
+          <AccordionTrigger className="flex gap-2 text-xl font-semibold text-foreground hover:no-underline justify-start">
             Next month
           </AccordionTrigger>
           <AccordionContent className="pt-4">

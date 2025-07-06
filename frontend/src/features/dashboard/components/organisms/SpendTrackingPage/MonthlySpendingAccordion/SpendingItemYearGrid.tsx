@@ -19,7 +19,7 @@ export const SpendingItemYearGrid = memo(function SpendingItemYearGrid({
     <div className={className}>
       {data.map((yearData, index) => (
         <Fragment key={`${yearData.year}-${index}`}>
-          <div className="text-gray-400">{yearData.year}</div>
+          <div className="text-muted-foreground">{yearData.year}</div>
         </Fragment>
       ))}
       {data.map((yearData) => (

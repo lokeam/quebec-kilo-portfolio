@@ -92,6 +92,9 @@ interface DrawerContainerProps {
   desktopBreakpoint?: string;
   triggerBtnIcon?: 'location' | 'digital' | 'spend';
   onTriggerClick?: () => void;
+  modal?: boolean;
+  dismissible?: boolean;
+  overlay?: boolean;
 }
 
 /**
@@ -157,6 +160,9 @@ export function DrawerContainer({
   desktopBreakpoint = '(min-width: 768px)',
   triggerBtnIcon,
   onTriggerClick,
+  modal = true,
+  dismissible = true,
+  overlay = true,
   ...rest /* <-- This collects any additional props to pass to DrawerContent */
 }: DrawerContainerProps) {
   const { positionStyles, currentPosition } = useDrawerPosition({
@@ -184,8 +190,9 @@ export function DrawerContainer({
       onOpenChange={onOpenChange}
       direction={currentPosition}
       data-testid="drawer-container"
-      modal={true} /* <-- This is the default value, but we're explicitly setting it here to handle focus management properly */
+      modal={modal} /* <-- This is the default value, but we're explicitly setting it here to handle focus management properly */
       aria-modal="true"
+      dismissible={dismissible}
     >
       {/* Add Location Trigger */}
       {triggerAddLocation && (

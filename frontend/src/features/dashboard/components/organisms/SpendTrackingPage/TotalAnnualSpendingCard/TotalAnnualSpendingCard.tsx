@@ -29,10 +29,10 @@ export function TotalAnnualSpendingCard({
   const { dateRange, monthlyExpenditures, medianMonthlyCost } = totalAnnualSpending;
 
   return (
-    <Card className="dark col-span-full lg:col-span-2">
+    <Card className="col-span-full lg:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold text-[#c0c4cf]">Net This Year</CardTitle>
-        <button className="inline-flex items-center text-xs text-[#8B949E] hover:text-white">
+        <CardTitle className="text-xl font-bold text-foreground">Net This Year</CardTitle>
+        <button className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
           DOWNLOAD REPORT
           <ArrowUpRight className="ml-1 h-3 w-3" />
         </button>
