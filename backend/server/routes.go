@@ -2,8 +2,11 @@ package server
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -219,6 +222,9 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		})
 	})
 
+	// Add Sentry tunnel endpoint to avoid ad blockers
+	mux.HandleFunc("/tunnel", SentryTunnelHandler)
+
 	// Add metrics endpoint with basic security
 	if appContext.Config.Env == "production" {
 		// In production, require API key
@@ -243,6 +249,23 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 
 
 	return mux
+}
+
+// extractSentryKey extracts the key from a Sentry DSN
+// DSN format: https://key@host/project
+func extractSentryKey(dsn string) string {
+	// Remove the https:// prefix
+	if strings.HasPrefix(dsn, "https://") {
+		dsn = dsn[8:] // Remove "https://"
+	}
+
+	// Find the @ symbol and extract the key part
+	for i, char := range dsn {
+		if char == '@' {
+			return dsn[:i]
+		}
+	}
+	return ""
 }
 
 func (s *Server) setupMiddleware(mux *chi.Mux) {
@@ -272,4 +295,63 @@ func (s *Server) setupCORS(mux *chi.Mux) {
 		AllowCredentials: s.AppContext.Config.CORS.AllowCredentials,
 		MaxAge:           s.AppContext.Config.CORS.MaxAge,
 	}))
+}
+
+// SentryTunnelHandler forwards Sentry envelopes from the frontend to Sentry's API.
+func SentryTunnelHandler(w http.ResponseWriter, r *http.Request) {
+	// Only allow POST
+	if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+	}
+
+	sentryDSN := os.Getenv("SENTRY_DSN_FRNT")
+	if sentryDSN == "" {
+			http.Error(w, "Sentry DSN not configured", http.StatusServiceUnavailable)
+			return
+	}
+
+	// Parse DSN: "https://key@host/projectId"
+	dsnNoProtocol := strings.TrimPrefix(sentryDSN, "https://")
+	dsnParts := strings.SplitN(dsnNoProtocol, "/", 2)
+	if len(dsnParts) != 2 {
+			log.Printf("Invalid Sentry DSN format: %q", sentryDSN)
+			http.Error(w, "Invalid Sentry DSN format", http.StatusInternalServerError)
+			return
+	}
+	hostPart, projectId := dsnParts[0], dsnParts[1]
+	keyAndHost := strings.SplitN(hostPart, "@", 2)
+	if len(keyAndHost) != 2 {
+			log.Printf("Invalid Sentry DSN host: %q", hostPart)
+			http.Error(w, "Invalid Sentry DSN host", http.StatusInternalServerError)
+			return
+	}
+	host := keyAndHost[1]
+
+	// Build Sentry envelope URL
+	sentryURL := "https://" + host + "/api/" + projectId + "/envelope/"
+
+	// Create HTTP client with timeout
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequest("POST", sentryURL, r.Body)
+	if err != nil {
+			log.Printf("Failed to create Sentry request: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+	}
+	req.Header.Set("Content-Type", r.Header.Get("Content-Type"))
+	req.Header.Set("User-Agent", r.Header.Get("User-Agent"))
+
+	// Forward to Sentry
+	resp, err := client.Do(req)
+	if err != nil {
+			log.Printf("Failed to forward Sentry request: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+	}
+	defer resp.Body.Close()
+
+	// Return Sentry's response
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }

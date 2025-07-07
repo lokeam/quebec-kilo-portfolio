@@ -1,3 +1,6 @@
+// Sentry initialization - Recommended to be imported first
+import '@/instrument';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react';
@@ -8,6 +11,10 @@ import { logger } from '@/core/utils/logger/logger';
 
 import App from './App.tsx'
 import './index.css'
+
+// Sentry init code
+const container = document.getElementById("root");
+const root = createRoot(container!);
 
 // Debug
 logger.configure({
@@ -24,7 +31,7 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById('root')!).render(
+root.render(
   <StrictMode>
     <Auth0Provider
       domain={import.meta.env.VITE_AUTH0_DOMAIN}

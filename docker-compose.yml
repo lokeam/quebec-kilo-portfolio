@@ -32,7 +32,8 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      SENTRY_BACKEND_DSN: ${SENTRY_BACKEND_DSN}
+      SENTRY_DSN_BACK: ${SENTRY_DSN_BACK}
+      SENTRY_DSN_FRNT: ${SENTRY_DSN_FRNT}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
     labels:
       - traefik.enable=true
