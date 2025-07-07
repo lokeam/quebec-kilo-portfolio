@@ -1,12 +1,19 @@
-import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+// Sentry error boundary
+import * as Sentry from '@sentry/react';
+
+//import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { DefaultErrorFallbackPage } from '../pages/DefaultErrorFallbackPage';
-import { QueryErrorResetBoundary } from '@tanstack/react-query';
-// import type { ErrorInfo } from 'react';
-// import { sendToSentry } from '@/services/monitoring'; // Assuming you have monitoring
+
+// Note: Removed Tanstack Query error boundary in favor of Sentry
+// import { QueryErrorResetBoundary } from '@tanstack/react-query';
+
 
 interface ErrorBoundaryProviderProps {
   children: React.ReactNode;
-  FallbackComponent?: React.ComponentType<FallbackProps>;
+  FallbackComponent?: React.ComponentType<{
+    error: Error;
+    resetErrorBoundary: () => void;
+  }>;
 }
 
 /**
@@ -17,34 +24,19 @@ export const ErrorBoundaryProvider = ({
   children,
   FallbackComponent = DefaultErrorFallbackPage
 }: ErrorBoundaryProviderProps) => {
-  /**
-   * Handles logging of caught errors
-   * @param error - The error that was thrown
-   * @param errorInfo - React's error info object containing component stack
-   * Patterns from:
-   * https://github.com/bvaughn/react-error-boundary#error-boundary
-   * https://github.com/bvaughn/react-error-boundary#reset-keys
-   */
-  //const handleError = (error: Error, errorInfo: ErrorInfo) => {
-    // TODO: Wire into monitoring service
-    // sendToSentry(error, {
-    //   extra: {
-    //     componentStack: info.componentStack,
-    //   },
-    // });
-  //};
-
   return (
-    <QueryErrorResetBoundary>
-      {({ reset }) => (
-        <ErrorBoundary
-          FallbackComponent={FallbackComponent}
-          onReset={reset}
-          resetKeys={[]}
-        >
-          {children}
-        </ErrorBoundary>
+    <Sentry.ErrorBoundary
+      fallback={({ error, resetError }) => (
+        <FallbackComponent
+          error={error as Error}
+          resetErrorBoundary={resetError}
+        />
       )}
-    </QueryErrorResetBoundary>
+      beforeCapture={(scope) => {
+        scope.setLevel("error");
+      }}
+    >
+      {children}
+    </Sentry.ErrorBoundary>
   );
 };

@@ -1,5 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { User } from '@auth0/auth0-react';
 
 /**
@@ -69,6 +69,25 @@ export const useAuth = (): UseAuthReturn => {
     userEmail: user?.email
   });
 
+  // Listen for authentication state changes to backup theme data on automatic logout
+  useEffect(() => {
+    // If user was authenticated but is now not authenticated, backup theme data
+    if (!isAuthenticated && !isLoading) {
+      console.log('🚪 Detected automatic logout - backing up theme data');
+
+      // Backup theme data before Auth0 clears localStorage
+      const themeData = localStorage.getItem('qko-theme-storage');
+      console.log('🔍 Current theme data in localStorage:', themeData);
+
+      if (themeData) {
+        sessionStorage.setItem('qko-theme-backup', themeData);
+        console.log('🎨 Theme data backed up due to automatic logout');
+      } else {
+        console.log('⚠️ No theme data found to backup during automatic logout');
+      }
+    }
+  }, [isAuthenticated, isLoading]);
+
   /**
    * Initiates the login process by redirecting to Auth0's login page
    * User will be redirected back to the application after login
@@ -80,10 +99,22 @@ export const useAuth = (): UseAuthReturn => {
 
   /**
    * Logs user out + redirects them to home page
-   * Clears all authentication state and local storage
+   * Preserves theme preferences before Auth0 clears localStorage
    */
   const logout = useCallback(async () => {
     console.log('🚪 Initiating logout...');
+
+    // Backup theme data before Auth0 clears localStorage
+    const themeData = localStorage.getItem('qko-theme-storage');
+    console.log('🔍 Current theme data in localStorage:', themeData);
+
+    if (themeData) {
+      sessionStorage.setItem('qko-theme-backup', themeData);
+      console.log('🎨 Theme data backed up before logout');
+    } else {
+      console.log('⚠️ No theme data found to backup');
+    }
+
     await auth0Logout({
       logoutParams: {
         returnTo: window.location.origin,

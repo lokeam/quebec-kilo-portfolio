@@ -1,14 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ThemeMode } from '@/core/theme/constants/themeConstants';
-import { DEFAULT_THEME_MODE, SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
+import type { ThemeMode, UIMode } from '@/core/theme/constants/themeConstants';
+import { DEFAULT_THEME_MODE, DEFAULT_UI_MODE, SYSTEM_DARK_MODE_QUERY } from '@/core/theme/constants/themeConstants';
 import { themeConfig } from '@/core/theme/theme.config';
+
+// Import restoration module to ensure it runs before store creation
+import '@/core/theme/hooks/useThemeRestoration';
 
 interface ThemeState {
   mode: ThemeMode;
+  uiMode: UIMode;
   isSystemPreference: boolean;
   actions: {
     changeTheme: (mode: ThemeMode) => void;
+    changeUIMode: (uiMode: UIMode) => void;
     enableSystemPreference: () => (() => void) | void;
     disableSystemPreference: () => void;
     updateDOM: (mode: ThemeMode) => void;
@@ -19,12 +24,16 @@ export const useThemeStore = create<ThemeState>()(
   // Save theme choice to local storage
   persist(
     (set, get) => ({
-      mode: DEFAULT_THEME_MODE,
-      isSystemPreference: false,
+        mode: DEFAULT_THEME_MODE,
+        uiMode: DEFAULT_UI_MODE,
+        isSystemPreference: false,
 
       actions: {
 
         changeTheme: (mode: ThemeMode) => {
+          console.log('🎨 Theme changing to:', mode);
+          console.log('🔍 Current localStorage before change:', localStorage.getItem('qko-theme-storage'));
+
           if (mode === 'system') {
             set({
               mode: 'system',
@@ -44,6 +53,15 @@ export const useThemeStore = create<ThemeState>()(
             });
             get().actions.updateDOM(mode);
           }
+
+          // Check if data was saved after a short delay
+          setTimeout(() => {
+            console.log('🔍 localStorage after theme change:', localStorage.getItem('qko-theme-storage'));
+          }, 100);
+        },
+
+        changeUIMode: (uiMode: UIMode) => {
+          set({ uiMode });
         },
 
         enableSystemPreference: () => {
@@ -87,10 +105,11 @@ export const useThemeStore = create<ThemeState>()(
         }
       },
     }),
-    {
-      name: 'theme-storage',
+            {
+      name: 'qko-theme-storage',
       partialize: (state) => ({
         mode: state.mode,
+        uiMode: state.uiMode,
         isSystemPreference: state.isSystemPreference,
       }),
     }
@@ -99,5 +118,6 @@ export const useThemeStore = create<ThemeState>()(
 
 // Selector hooks for better performance
 export const useThemeMode = () => useThemeStore((state) => state.mode);
+export const useUIMode = () => useThemeStore((state) => state.uiMode);
 export const useThemeActions = () => useThemeStore((state) => state.actions);
 export const useIsSystemPreference = () => useThemeStore((state) => state.isSystemPreference);

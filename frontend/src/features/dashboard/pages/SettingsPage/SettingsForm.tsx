@@ -3,15 +3,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { AppearanceSection } from '@/features/dashboard/components/organisms/SettingsPage/AppearanceSection';
-//import { NotificationSection } from '@/features/dashboard/components/organisms/SettingsPage/NotificationSection';
 import { DangerZoneSection } from '@/features/dashboard/components/organisms/SettingsPage/DangerZoneSection';
-import { ExperimentalSection } from '@/features/dashboard/components/organisms/SettingsPage/Experimental';
 
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
 
 
 const formSchema = z.object({
-  notificationLevel: z.enum(["everything", "available", "ignoring"]),
+  notifications: z.boolean(),
   theme: z.enum(["light", "dark", "system"]),
   ui: z.enum(["web", "console"]),
 });
@@ -25,7 +23,7 @@ export function SettingsForm() {
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      notificationLevel: 'available',
+      notifications: false,
       theme: isSystemPreference ? 'system' : mode,
       ui: uiMode,
     },
@@ -54,8 +52,6 @@ export function SettingsForm() {
       >
 
         <AppearanceSection />
-        {/* <NotificationSection /> */}
-        <ExperimentalSection />
         <DangerZoneSection />
 
         <button

@@ -28,3 +28,9 @@ export const Z_INDEX = {
   TOOLTIP: 1500,
   DRAWER: 1200,
 } as const;
+
+// UI mode type
+export type UIMode = 'web' | 'console';
+
+// Default UI mode
+export const DEFAULT_UI_MODE: UIMode = 'web';

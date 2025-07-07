@@ -81,17 +81,6 @@ export function AppearanceSection() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        {/* UI */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium leading-none">Game Inspired User Interface</p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Elaborate animations, larger fonts, buttons and icons.
-            </p>
-          </div>
-          <Switch />
-        </div>
-
       </CardContent>
     </Card>
   )
