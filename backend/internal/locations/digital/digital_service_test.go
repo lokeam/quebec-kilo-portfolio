@@ -12,6 +12,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/models"
 	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 	"github.com/lokeam/qko-beta/internal/testutils"
+	"github.com/lokeam/qko-beta/internal/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -85,6 +86,9 @@ type MockDigitalDbAdapter struct {
 	AddGameToDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
 	RemoveGameFromDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
 	GetGamesByDigitalLocationIDFunc func(ctx context.Context, userID string, locationID string) ([]models.Game, error)
+
+	// BFF Response
+	GetAllDigitalLocationsBFFFunc func(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
 }
 
 func (m *MockDigitalDbAdapter) GetAllDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
@@ -154,6 +158,70 @@ func (m *MockDigitalDbAdapter) GetGamesByDigitalLocationID(ctx context.Context, 
 	return m.GetGamesByDigitalLocationIDFunc(ctx, userID, locationID)
 }
 
+// BFF Response
+func (m *MockDigitalDbAdapter) GetAllDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error) {
+	if m.GetAllDigitalLocationsBFFFunc != nil {
+		return m.GetAllDigitalLocationsBFFFunc(ctx, userID)
+	}
+	return types.DigitalLocationsBFFResponse{}, nil
+}
+
+// MockDashboardCacheWrapper is a mock implementation of interfaces.DashboardCacheWrapper
+type MockDashboardCacheWrapper struct {
+	GetCachedDashboardBFFFunc func(ctx context.Context, userID string) (types.DashboardBFFResponse, error)
+	SetCachedDashboardBFFFunc func(ctx context.Context, userID string, response types.DashboardBFFResponse) error
+	InvalidateUserCacheFunc   func(ctx context.Context, userID string) error
+}
+
+func (m *MockDashboardCacheWrapper) GetCachedDashboardBFF(ctx context.Context, userID string) (types.DashboardBFFResponse, error) {
+	if m.GetCachedDashboardBFFFunc != nil {
+		return m.GetCachedDashboardBFFFunc(ctx, userID)
+	}
+	return types.DashboardBFFResponse{}, nil
+}
+
+func (m *MockDashboardCacheWrapper) SetCachedDashboardBFF(ctx context.Context, userID string, response types.DashboardBFFResponse) error {
+	if m.SetCachedDashboardBFFFunc != nil {
+		return m.SetCachedDashboardBFFFunc(ctx, userID, response)
+	}
+	return nil
+}
+
+func (m *MockDashboardCacheWrapper) InvalidateUserCache(ctx context.Context, userID string) error {
+	if m.InvalidateUserCacheFunc != nil {
+		return m.InvalidateUserCacheFunc(ctx, userID)
+	}
+	return nil
+}
+
+// MockSpendTrackingCacheWrapper is a mock implementation of interfaces.SpendTrackingCacheWrapper
+type MockSpendTrackingCacheWrapper struct {
+	GetCachedSpendTrackingBFFFunc func(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error)
+	SetCachedSpendTrackingBFFFunc func(ctx context.Context, userID string, response types.SpendTrackingBFFResponseFINAL) error
+	InvalidateUserCacheFunc       func(ctx context.Context, userID string) error
+}
+
+func (m *MockSpendTrackingCacheWrapper) GetCachedSpendTrackingBFF(ctx context.Context, userID string) (types.SpendTrackingBFFResponseFINAL, error) {
+	if m.GetCachedSpendTrackingBFFFunc != nil {
+		return m.GetCachedSpendTrackingBFFFunc(ctx, userID)
+	}
+	return types.SpendTrackingBFFResponseFINAL{}, nil
+}
+
+func (m *MockSpendTrackingCacheWrapper) SetCachedSpendTrackingBFF(ctx context.Context, userID string, response types.SpendTrackingBFFResponseFINAL) error {
+	if m.SetCachedSpendTrackingBFFFunc != nil {
+		return m.SetCachedSpendTrackingBFFFunc(ctx, userID, response)
+	}
+	return nil
+}
+
+func (m *MockSpendTrackingCacheWrapper) InvalidateUserCache(ctx context.Context, userID string) error {
+	if m.InvalidateUserCacheFunc != nil {
+		return m.InvalidateUserCacheFunc(ctx, userID)
+	}
+	return nil
+}
+
 // MockDigitalCacheWrapper is a mock implementation of interfaces.DigitalCacheWrapper
 type MockDigitalCacheWrapper struct {
 	GetCachedDigitalLocationsFunc      func(ctx context.Context, userID string) ([]models.DigitalLocation, error)
@@ -173,6 +241,11 @@ type MockDigitalCacheWrapper struct {
 	GetCachedPaymentsFunc              func(ctx context.Context, locationID string) ([]models.Payment, error)
 	SetCachedPaymentsFunc              func(ctx context.Context, locationID string, payments []models.Payment) error
 	InvalidatePaymentsCacheFunc        func(ctx context.Context, locationID string) error
+
+	// BFF Response caching
+	GetCachedDigitalLocationsBFFFunc       func(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
+	SetCachedDigitalLocationsBFFFunc       func(ctx context.Context, userID string, response types.DigitalLocationsBFFResponse) error
+	InvalidateDigitalLocationsBFFCacheFunc func(ctx context.Context, userID string) error
 }
 
 func (m *MockDigitalCacheWrapper) GetCachedDigitalLocations(ctx context.Context, userID string) ([]models.DigitalLocation, error) {
@@ -230,6 +303,28 @@ func (m *MockDigitalCacheWrapper) SetCachedPayments(ctx context.Context, locatio
 
 func (m *MockDigitalCacheWrapper) InvalidatePaymentsCache(ctx context.Context, locationID string) error {
 	return m.InvalidatePaymentsCacheFunc(ctx, locationID)
+}
+
+// BFF Response caching
+func (m *MockDigitalCacheWrapper) GetCachedDigitalLocationsBFF(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error) {
+	if m.GetCachedDigitalLocationsBFFFunc != nil {
+		return m.GetCachedDigitalLocationsBFFFunc(ctx, userID)
+	}
+	return types.DigitalLocationsBFFResponse{}, nil
+}
+
+func (m *MockDigitalCacheWrapper) SetCachedDigitalLocationsBFF(ctx context.Context, userID string, response types.DigitalLocationsBFFResponse) error {
+	if m.SetCachedDigitalLocationsBFFFunc != nil {
+		return m.SetCachedDigitalLocationsBFFFunc(ctx, userID, response)
+	}
+	return nil
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationsBFFCache(ctx context.Context, userID string) error {
+	if m.InvalidateDigitalLocationsBFFCacheFunc != nil {
+		return m.InvalidateDigitalLocationsBFFCacheFunc(ctx, userID)
+	}
+	return nil
 }
 
 func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDigitalService {
@@ -345,14 +440,29 @@ func newMockGameDigitalServiceWithDefaults(logger *testutils.TestLogger) *GameDi
 	mockSanitizer, _ := security.NewSanitizer()
 	mockValidator, _ := NewDigitalValidator(mockSanitizer)
 
+	// Create mock dashboard and spend tracking cache wrappers
+	mockDashboardCacheWrapper := &MockDashboardCacheWrapper{
+		InvalidateUserCacheFunc: func(ctx context.Context, userID string) error {
+			return nil
+		},
+	}
+
+	mockSpendTrackingCacheWrapper := &MockSpendTrackingCacheWrapper{
+		InvalidateUserCacheFunc: func(ctx context.Context, userID string) error {
+			return nil
+		},
+	}
+
 	// Directly create the service with mocks instead of using NewGameDigitalService
 	return &GameDigitalService{
-		dbAdapter:    mockDbAdapter,
-		cacheWrapper: mockCacheWrapper,
-		logger:       logger,
-		config:       mockConfig,
-		sanitizer:    mockSanitizer,
-		validator:    mockValidator,
+		dbAdapter:                 mockDbAdapter,
+		cacheWrapper:              mockCacheWrapper,
+		dashboardCacheWrapper:     mockDashboardCacheWrapper,
+		spendTrackingCacheWrapper: mockSpendTrackingCacheWrapper,
+		logger:                    logger,
+		config:                    mockConfig,
+		sanitizer:                 mockSanitizer,
+		validator:                 mockValidator,
 	}
 }
 
@@ -470,7 +580,7 @@ func TestGameDigitalService(t *testing.T) {
 	t.Run("CreateDigitalLocation - Success", func(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
-		newLocation := models.DigitalLocation{
+		newLocation := types.DigitalLocationRequest{
 			Name:        "Test Location",
 			URL:         "http://example.com",
 			IsSubscription: false,
@@ -494,7 +604,7 @@ func TestGameDigitalService(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
 		expectedErr := errors.New("test error")
-		newLocation := models.DigitalLocation{
+		newLocation := types.DigitalLocationRequest{
 			Name:        "Test Location",
 			URL:         "http://example.com",
 			IsSubscription: false,
@@ -528,7 +638,7 @@ func TestGameDigitalService(t *testing.T) {
 	t.Run("UpdateDigitalLocation - Success", func(t *testing.T) {
 		// Setup
 		service := newMockGameDigitalServiceWithDefaults(logger)
-		location := models.DigitalLocation{
+		location := types.DigitalLocationRequest{
 			ID:          "test-location",
 			Name:        "Updated Location",
 			URL:         "http://example.com",
@@ -719,7 +829,7 @@ func TestGameDigitalService_AddDigitalLocation(t *testing.T) {
 	// Setup
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := errors.New("test error")
-	location := models.DigitalLocation{
+	location := types.DigitalLocationRequest{
 		Name:        "Test Location",
 		URL:         "http://example.com",
 		IsSubscription: false,
@@ -777,7 +887,7 @@ func TestGameDigitalService_UpdateDigitalLocation(t *testing.T) {
 	// Setup
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 	expectedErr := sql.ErrNoRows
-	location := models.DigitalLocation{
+	location := types.DigitalLocationRequest{
 		ID:          "test-location",
 		Name:        "Updated Location",
 		URL:         "http://example.com",

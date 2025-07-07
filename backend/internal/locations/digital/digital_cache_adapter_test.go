@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -374,6 +375,7 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		// GIVEN
 		mockCache := new(MockCacheWrapper)
 		mockCache.On("SetCachedResults", mock.Anything, "digital:test-user-id", nil).Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "digital:bff:test-user-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 
@@ -403,8 +405,11 @@ func TestDigitalCacheAdapter(t *testing.T) {
 		err := adapter.InvalidateUserCache(context.Background(), testUserID)
 
 		// THEN
-		if err != testError {
-			t.Errorf("Expected error %v, got %v", testError, err)
+		if err == nil {
+			t.Error("Expected an error, got nil")
+		}
+		if !strings.Contains(err.Error(), testError.Error()) {
+			t.Errorf("Expected error containing %v, got %v", testError, err)
 		}
 		mockCache.AssertExpectations(t)
 	})

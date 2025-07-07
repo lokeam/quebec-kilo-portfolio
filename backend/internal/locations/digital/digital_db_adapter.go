@@ -95,11 +95,12 @@ func (da *DigitalDbAdapter) GetSingleDigitalLocation(
 		GetSingleDigitalLocationSubscriptionQuery,
 		locationID,
 	)
-	if err == nil {
+	switch {
+	case err == nil:
 		digitalLocation.Subscription = &subscription
-	} else if err == sql.ErrNoRows {
+	case err == sql.ErrNoRows:
 		digitalLocation.Subscription = nil
-	} else {
+	default:
 		return models.DigitalLocation{}, fmt.Errorf("error getting subscription: %w", err)
 	}
 
@@ -210,34 +211,6 @@ func (da *DigitalDbAdapter) GetAllDigitalLocations(
 
 
 // POST
-func (a *DigitalDbAdapter) ensureUserExists(ctx context.Context, userID string) error {
-	a.logger.Debug("Ensuring user exists", map[string]any{"userID": userID})
-
-	// Check if user exists
-	var exists bool
-	err := a.db.QueryRowContext(
-		ctx,
-		CheckIfUserExistsQuery,
-		userID,
-	).Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("error checking if user exists: %w", err)
-	}
-
-	// NOTE: There must be a better way to do this
-	if !exists {
-		// Create user with all required fields
-		_, err = a.db.ExecContext(ctx, `
-			INSERT INTO users (id, email, created_at, updated_at)
-			VALUES ($1, $2, NOW(), NOW())
-		`, userID, fmt.Sprintf("%s@example.com", userID))
-		if err != nil {
-			return fmt.Errorf("error creating user: %w", err)
-		}
-	}
-
-	return nil
-}
 
 func (a *DigitalDbAdapter) CreateDigitalLocation(
 	ctx context.Context,

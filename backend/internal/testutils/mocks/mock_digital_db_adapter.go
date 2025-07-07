@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 
@@ -14,6 +15,7 @@ type MockDigitalDbAdapter struct {
 	UpdateDigitalLocationFunc func(ctx context.Context, userID string, digitalLocation models.DigitalLocation) error
 	RemoveDigitalLocationFunc func(ctx context.Context, userID string, locationIDs []string) (int64, error)
 	FindDigitalLocationByNameFunc func(ctx context.Context, userID string, name string) (models.DigitalLocation, error)
+	GetAllDigitalLocationsBFFFunc func(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
 
 	// Game Management Operations
 	AddGameToDigitalLocationFunc func(ctx context.Context, userID string, locationID string, gameID int64) error
@@ -48,6 +50,16 @@ func (m *MockDigitalDbAdapter) GetAllDigitalLocations(
 	userID string,
 ) ([]models.DigitalLocation, error) {
 	return m.GetDigitalLocationsFunc(ctx, userID)
+}
+
+func (m *MockDigitalDbAdapter) GetAllDigitalLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.DigitalLocationsBFFResponse, error) {
+	if m.GetAllDigitalLocationsBFFFunc != nil {
+		return m.GetAllDigitalLocationsBFFFunc(ctx, userID)
+	}
+	return types.DigitalLocationsBFFResponse{}, nil
 }
 
 // POST

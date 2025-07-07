@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 
@@ -15,6 +16,11 @@ type MockDigitalCacheWrapper struct {
 	InvalidateUserCacheFunc                 func(ctx context.Context, userID string) error
 	InvalidateDigitalLocationCacheFunc      func(ctx context.Context, userID, digitalLocationID string) error
 	InvalidateDigitalLocationsBulkFunc      func(ctx context.Context, userID string, locationIDs []string) error
+
+	// BFF Response caching
+	GetCachedDigitalLocationsBFFFunc       func(ctx context.Context, userID string) (types.DigitalLocationsBFFResponse, error)
+	SetCachedDigitalLocationsBFFFunc       func(ctx context.Context, userID string, response types.DigitalLocationsBFFResponse) error
+	InvalidateDigitalLocationsBFFCacheFunc func(ctx context.Context, userID string) error
 
 	// Subscription caching
 	GetCachedSubscriptionFunc               func(ctx context.Context, locationID string) (*models.Subscription, bool, error)
@@ -82,6 +88,38 @@ func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationsBulk(
 	locationIDs []string,
 ) error {
 	return m.InvalidateDigitalLocationsBulkFunc(ctx, userID, locationIDs)
+}
+
+// BFF Response caching
+func (m *MockDigitalCacheWrapper) GetCachedDigitalLocationsBFF(
+	ctx context.Context,
+	userID string,
+) (types.DigitalLocationsBFFResponse, error) {
+	if m.GetCachedDigitalLocationsBFFFunc != nil {
+		return m.GetCachedDigitalLocationsBFFFunc(ctx, userID)
+	}
+	return types.DigitalLocationsBFFResponse{}, nil
+}
+
+func (m *MockDigitalCacheWrapper) SetCachedDigitalLocationsBFF(
+	ctx context.Context,
+	userID string,
+	response types.DigitalLocationsBFFResponse,
+) error {
+	if m.SetCachedDigitalLocationsBFFFunc != nil {
+		return m.SetCachedDigitalLocationsBFFFunc(ctx, userID, response)
+	}
+	return nil
+}
+
+func (m *MockDigitalCacheWrapper) InvalidateDigitalLocationsBFFCache(
+	ctx context.Context,
+	userID string,
+) error {
+	if m.InvalidateDigitalLocationsBFFCacheFunc != nil {
+		return m.InvalidateDigitalLocationsBFFCacheFunc(ctx, userID)
+	}
+	return nil
 }
 
 // Subscription caching
