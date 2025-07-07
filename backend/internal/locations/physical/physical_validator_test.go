@@ -236,7 +236,7 @@ func TestPhysicalValidator(t *testing.T) {
 			Name:           "", // Empty name
 			Label:          strings.Repeat("a", MaxLabelLength+1), // Label too long
 			LocationType:   "Invalid", // Invalid type
-			MapCoordinates: "invalid-format", // Invalid coordinates
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "invalid-format"}, // Invalid coordinates
 		}
 
 		validatedLocation, testErr := testValidator.ValidatePhysicalLocation(testLocation)
@@ -262,7 +262,7 @@ func TestPhysicalValidator(t *testing.T) {
 
 		// Check that the returned location is empty
 		if validatedLocation.Name != "" || validatedLocation.Label != "" ||
-			 validatedLocation.LocationType != "" || validatedLocation.MapCoordinates != "" {
+			 validatedLocation.LocationType != "" || validatedLocation.MapCoordinates.Coords != "" {
 			t.Errorf("expected validated location to be empty on error, but got %+v", validatedLocation)
 		}
 	})
@@ -278,7 +278,7 @@ func TestPhysicalValidator(t *testing.T) {
 			Name:           "My Home",
 			Label:          "Primary",
 			LocationType:   "Home",
-			MapCoordinates: "40.7128,-74.0060",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "40.7128,-74.0060"},
 		}
 
 		validatedLocation, testErr := testValidator.ValidatePhysicalLocation(testLocation)

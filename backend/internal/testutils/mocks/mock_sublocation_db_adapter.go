@@ -133,3 +133,22 @@ func (m *MockSublocationDbAdapter) DeleteSublocation(
 		SublocationIDs: sublocationIDs,
 	}, nil
 }
+
+func (m *MockSublocationDbAdapter) CheckDuplicateSublocation(
+	ctx context.Context,
+	userID string,
+	physicalLocationID string,
+	name string,
+) (bool, error) {
+	// If you want to customize, add a CheckDuplicateSublocationFunc field and use it here
+	return false, nil
+}
+
+func (m *MockSublocationDbAdapter) GetSingleSublocation(
+	ctx context.Context,
+	userID string,
+	sublocationID string,
+) (models.Sublocation, error) {
+	// If you want to customize, add a GetSingleSublocationFunc field and use it here
+	return models.Sublocation{}, nil
+}

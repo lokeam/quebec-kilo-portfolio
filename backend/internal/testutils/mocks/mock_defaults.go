@@ -127,6 +127,11 @@ func DefaultPhysicalCacheWrapper() *MockPhysicalCacheWrapper {
 	return m
 }
 
+// DefaultPhysicalService returns a MockPhysicalService with default behavior
+func DefaultPhysicalService() *MockPhysicalService {
+	return &MockPhysicalService{}
+}
+
 // ---------- Sublocation ----------
 func DefaultSublocationValidator() *MockSublocationValidator {
 	return &MockSublocationValidator{

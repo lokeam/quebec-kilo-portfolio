@@ -84,3 +84,11 @@ func (m *MockPhysicalCacheWrapper) InvalidateLocationCache(
 	args := m.Called(ctx, userID, locationID)
 	return args.Error(0)
 }
+
+func (m *MockPhysicalCacheWrapper) InvalidateCache(
+	ctx context.Context,
+	cacheKey string,
+) error {
+	args := m.Called(ctx, cacheKey)
+	return args.Error(0)
+}

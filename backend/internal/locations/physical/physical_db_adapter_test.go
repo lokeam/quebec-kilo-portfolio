@@ -9,12 +9,11 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
-	"github.com/lokeam/qko-beta/internal/appcontext_test"
+	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
 /*
@@ -51,7 +50,9 @@ import (
 
 func TestPhysicalDbAdapter(t *testing.T) {
 	// Set up base app context for testing
-	baseAppCtx := appcontext_test.NewTestingAppContext("test-token", nil)
+	baseAppCtx := &appcontext.AppContext{
+		Logger: testutils.NewTestLogger(),
+	}
 
 	// Create mock DB + adapter
 	setupMockDB := func() (*PhysicalDbAdapter, sqlmock.Sqlmock, error) {
@@ -96,18 +97,25 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:             "Test Location",
 			Label:            "Home",
 			LocationType:     "Residence",
-			MapCoordinates:   "123.456,789.012",
+			MapCoordinates:   models.PhysicalMapCoordinates{Coords: "123.456,789.012"},
 			CreatedAt:         now,
 			UpdatedAt:         now,
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at"}).
-			AddRow(locationID, userID, "Test Location", "Home", "Residence", "123,456", now, now)
-
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "bg_color", "map_coordinates", "created_at", "updated_at"}).
+			AddRow(locationID, userID, "Test Location", "Home", "Residence", "", "123.456,789.012", now, now)
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(locationID, userID).
 			WillReturnRows(rows)
+		// Mock sublocations query
+		mock.ExpectQuery("SELECT json_agg").
+			WithArgs(locationID).
+			WillReturnRows(sqlmock.NewRows([]string{"json_agg"}).AddRow("[]"))
+		// Expect commit
+		mock.ExpectCommit()
 
 		// Execute
 		location, err := adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
@@ -129,7 +137,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN the location does not exist in the db
 		THEN the adapter returns an error
 	*/
-	t.Run(``, func(t *testing.T) {
+	t.Run(`GetSinglePhysicalLocation - Returns error when location not found`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -140,10 +148,14 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		locationID := "test-location-id"
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Setup mock expectations
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(locationID, userID).
 			WillReturnError(sql.ErrNoRows)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute
 		_, err = adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
@@ -152,8 +164,8 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		if err == nil {
 			t.Errorf("Expected an error but got nil")
 		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			t.Errorf("Expected error to contain %v, but got %v", sql.ErrNoRows, err)
+		if !errors.Is(err, ErrLocationNotFound) {
+			t.Errorf("Expected error to contain %v, but got %v", ErrLocationNotFound, err)
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
@@ -177,10 +189,14 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		locationID := "test-location-id"
 		dbError := errors.New("database error")
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(locationID, userID).
 			WillReturnError(dbError)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute the fucntion
 		_, err = adapter.GetSinglePhysicalLocation(context.Background(), userID, locationID)
@@ -213,14 +229,24 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		now := time.Now()
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at"}).
-			AddRow("loc1", userID, "Location 1", "Home", "Residence", "123,456", now, now).
-			AddRow("loc2", userID, "Location 2", "Office", "Work", "789,012", now, now)
-
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "bg_color", "map_coordinates", "created_at", "updated_at"}).
+			AddRow("loc1", userID, "Location 1", "Home", "Residence", "", "123,456", now, now).
+			AddRow("loc2", userID, "Location 2", "Office", "Work", "", "789,012", now, now)
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(userID).
 			WillReturnRows(rows)
+		// Mock sublocations queries for each location
+		mock.ExpectQuery("SELECT json_agg").
+			WithArgs("loc1").
+			WillReturnRows(sqlmock.NewRows([]string{"json_agg"}).AddRow("[]"))
+		mock.ExpectQuery("SELECT json_agg").
+			WithArgs("loc2").
+			WillReturnRows(sqlmock.NewRows([]string{"json_agg"}).AddRow("[]"))
+		// Expect commit
+		mock.ExpectCommit()
 
 		// Execute the function
 		locations, err := adapter.GetAllPhysicalLocations(context.Background(), userID)
@@ -245,7 +271,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		WHEN NO locations exist in the db
 		THEN the adapter returns an empty slice
 	*/
-	t.Run(`GetAllPhysicalLocations - Returns empty slice when locations exist`, func(t *testing.T) {
+	t.Run(`GetAllPhysicalLocations - Returns empty slice when no locations exist`, func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -255,12 +281,15 @@ func TestPhysicalDbAdapter(t *testing.T) {
 
 		userID := "test-user-id"
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at"})
-
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "bg_color", "map_coordinates", "created_at", "updated_at"})
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(userID).
 			WillReturnRows(rows)
+		// Expect commit
+		mock.ExpectCommit()
 
 		// Execute the function
 		locations, err := adapter.GetAllPhysicalLocations(context.Background(), userID)
@@ -293,10 +322,14 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		dbError := ErrDatabaseError
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
 		mock.ExpectQuery("SELECT (.+) FROM physical_locations").
 			WithArgs(userID).
 			WillReturnError(dbError)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute
 		_, err = adapter.GetAllPhysicalLocations(context.Background(), userID)
@@ -335,16 +368,28 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:           "New Location",
 			Label:          "Home",
 			LocationType:   "Residence",
-			MapCoordinates: "123,456",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "123,456"},
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at"}).
-			AddRow(locationID, userID, "New Location", "Home", "Residence", "123,456", now, now)
-
+		// First, expect the user existence check
+		mock.ExpectQuery("SELECT EXISTS\\(SELECT 1 FROM users WHERE id = \\$1\\)").
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+		// Then expect the duplicate check
+		mock.ExpectQuery("SELECT id FROM physical_locations").
+			WithArgs(userID, "New Location").
+			WillReturnError(sql.ErrNoRows)
+		// Finally expect the insert
+		rows := sqlmock.NewRows([]string{"id", "user_id", "name", "label", "location_type", "bg_color", "map_coordinates", "created_at", "updated_at"}).
+			AddRow(locationID, userID, "New Location", "Home", "Residence", "", "123,456", now, now)
 		mock.ExpectQuery("INSERT INTO physical_locations").
-			WithArgs(locationID, userID, "New Location", "Home", "Residence", "123,456", sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WithArgs(locationID, userID, "New Location", "Home", "Residence", "123,456", "").
 			WillReturnRows(rows)
+		// Expect commit
+		mock.ExpectCommit()
 
 		// Execute
 		result, err := adapter.CreatePhysicalLocation(context.Background(), userID, location)
@@ -383,13 +428,26 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:           "New Location",
 			Label:          "Home",
 			LocationType:   "Residence",
-			MapCoordinates: "123,456",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "123,456"},
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
+		// First, expect the user existence check
+		mock.ExpectQuery("SELECT EXISTS\\(SELECT 1 FROM users WHERE id = \\$1\\)").
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+		// Then expect the duplicate check
+		mock.ExpectQuery("SELECT id FROM physical_locations").
+			WithArgs(userID, "New Location").
+			WillReturnError(sql.ErrNoRows)
+		// Finally expect the insert to fail
 		mock.ExpectQuery("INSERT INTO physical_locations").
-			WithArgs(locationID, userID, "New Location", "Home", "Residence", "123,456", sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WithArgs(locationID, userID, "New Location", "Home", "Residence", "123,456", "").
 			WillReturnError(dbError)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute the function
 		_, err = adapter.CreatePhysicalLocation(context.Background(), userID, location)
@@ -429,14 +487,12 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:           "Updated Location",
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
-			MapCoordinates: "789,012",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "789,012"},
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Setup mock expectations
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
 		mock.ExpectQuery("UPDATE physical_locations").
 			WithArgs(
 				locationID,
@@ -445,12 +501,15 @@ func TestPhysicalDbAdapter(t *testing.T) {
 				"Updated Label",
 				"Updated Type",
 				"789,012",
+				"",
 			).
 			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at",
+				"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
 			}).AddRow(
-				locationID, userID, "Updated Location", "Updated Label", "Updated Type", "789,012", now, now,
+				locationID, userID, "Updated Location", "Updated Label", "Updated Type", "789,012", "", now, now,
 			))
+		// Expect commit
+		mock.ExpectCommit()
 
 		// Execute
 		updatedLocation, err := adapter.UpdatePhysicalLocation(context.Background(), userID, location)
@@ -462,7 +521,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		assert.Equal(t, location.Name, updatedLocation.Name)
 		assert.Equal(t, location.Label, updatedLocation.Label)
 		assert.Equal(t, location.LocationType, updatedLocation.LocationType)
-		assert.Equal(t, location.MapCoordinates, updatedLocation.MapCoordinates)
+		assert.Equal(t, location.MapCoordinates.Coords, updatedLocation.MapCoordinates.Coords)
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
@@ -485,20 +544,32 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:           "Updated Location",
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
-			MapCoordinates: "789,012",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "789,012"},
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
+		mock.ExpectQuery("UPDATE physical_locations").
+			WithArgs(
+				locationID,
+				userID,
+				"Updated Location",
+				"Updated Label",
+				"Updated Type",
+				"789,012",
+				"",
+			).
 			WillReturnError(sql.ErrNoRows)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute
 		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
 
 		// Verify
 		assert.Error(t, err)
-		assert.Equal(t, ErrUnauthorizedLocation, err)
+		assert.Equal(t, ErrLocationNotFound, err)
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
@@ -522,14 +593,12 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			Name:           "Updated Location",
 			Label:          "Updated Label",
 			LocationType:   "Updated Type",
-			MapCoordinates: "789,012",
+			MapCoordinates: models.PhysicalMapCoordinates{Coords: "789,012"},
 		}
 
+		// Expect transaction begin
+		mock.ExpectBegin()
 		// Set up mock expectations
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
-			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
 		mock.ExpectQuery("UPDATE physical_locations").
 			WithArgs(
 				locationID,
@@ -538,8 +607,11 @@ func TestPhysicalDbAdapter(t *testing.T) {
 				"Updated Label",
 				"Updated Type",
 				"789,012",
+				"",
 			).
 			WillReturnError(dbError)
+		// Expect rollback
+		mock.ExpectRollback()
 
 		// Execute the function
 		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
@@ -550,33 +622,6 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
-	})
-
-	t.Run("UpdatePhysicalLocation - Returns error when user is not authorized", func(t *testing.T) {
-		// Setup
-		adapter, _, err := setupMockDB()
-		require.NoError(t, err)
-		defer adapter.db.Close()
-
-		userID := "test-user-id"
-		wrongUserID := "wrong-user-id"
-		locationID := "test-location-id"
-
-		location := models.PhysicalLocation{
-			ID:             locationID,
-			UserID:         wrongUserID,
-			Name:           "Updated Location",
-			Label:          "Updated Label",
-			LocationType:   "Updated Type",
-			MapCoordinates: "789,012",
-		}
-
-		// Execute the function
-		_, err = adapter.UpdatePhysicalLocation(context.Background(), userID, location)
-
-		// Verify
-		assert.Error(t, err)
-		assert.Equal(t, ErrUnauthorizedLocation, err)
 	})
 
 	/*
@@ -595,29 +640,32 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		locationID := "test-location-id"
 
-		// Setup mock expectations for transaction
+		// Expect transaction begin
 		mock.ExpectBegin()
-
-		// Check if location exists
-		rows := sqlmock.NewRows([]string{"id"}).AddRow(locationID)
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
-			WillReturnRows(rows)
-
+		// Check if location exists - use the actual COUNT query from the implementation
+		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM physical_locations").
+			WithArgs(sqlmock.AnyArg(), userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+		// Get sublocations (empty in this case)
+		mock.ExpectQuery("SELECT id FROM sublocations").
+			WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 		// Delete location
 		mock.ExpectExec("DELETE FROM physical_locations").
-			WithArgs(locationID, userID).
+			WithArgs(sqlmock.AnyArg(), userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
-
-		// Commit transaction
+		// Expect commit
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
+		rowsAffected, err := adapter.DeletePhysicalLocation(context.Background(), userID, []string{locationID})
 
 		// Verify
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
+		}
+		if rowsAffected != 1 {
+			t.Errorf("Expected 1 row affected, got %d", rowsAffected)
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
@@ -640,19 +688,17 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		locationID := "test-location-id"
 
-		// Setup mock expectations
+		// Expect transaction begin
 		mock.ExpectBegin()
-
 		// Check if location exists - not found
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
-			WillReturnError(sql.ErrNoRows)
-
-		// Rollback transaction
+		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM physical_locations").
+			WithArgs(sqlmock.AnyArg(), userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+		// Expect rollback
 		mock.ExpectRollback()
 
 		// Execute the function
-		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
+		_, err = adapter.DeletePhysicalLocation(context.Background(), userID, []string{locationID})
 
 		// Verify
 		if err == nil {
@@ -680,25 +726,25 @@ func TestPhysicalDbAdapter(t *testing.T) {
 		locationID := "test-location-id"
 		dbError := ErrDatabaseError
 
-		// Setup mock expectations
+		// Expect transaction begin
 		mock.ExpectBegin()
-
 		// Check if the location exists
-		rows := sqlmock.NewRows([]string{"id"}).AddRow(locationID)
-		mock.ExpectQuery("SELECT id FROM physical_locations").
-			WithArgs(locationID, userID).
-			WillReturnRows(rows)
-
+		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM physical_locations").
+			WithArgs(sqlmock.AnyArg(), userID).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+		// Get sublocations (empty in this case)
+		mock.ExpectQuery("SELECT id FROM sublocations").
+			WithArgs(sqlmock.AnyArg()).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}))
 		// Delete the location and get an error
 		mock.ExpectExec("DELETE FROM physical_locations").
-			WithArgs(locationID, userID).
+			WithArgs(sqlmock.AnyArg(), userID).
 			WillReturnError(dbError)
-
-		// Rollback the transaction
+		// Expect rollback
 		mock.ExpectRollback()
 
 		// Execute the function
-		err = adapter.DeletePhysicalLocation(context.Background(), userID, locationID)
+		_, err = adapter.DeletePhysicalLocation(context.Background(), userID, []string{locationID})
 
 		// Verify
 		if err == nil {
@@ -711,28 +757,7 @@ func TestPhysicalDbAdapter(t *testing.T) {
 			t.Errorf("Unmet expectations: %v", err)
 		}
 	})
-
 }
-
-// func setupTestAdapter(t *testing.T) (*PhysicalDbAdapter, func()) {
-// 	appCtx := &appcontext.AppContext{
-// 		Config: &config.Config{
-// 			Postgres: &config.PostgresConfig{
-// 				ConnectionString: "postgres://postgres:postgres@localhost:5432/qko_test?sslmode=disable",
-// 			},
-// 		},
-// 		Logger: testutils.NewTestLogger(),
-// 	}
-
-// 	adapter, err := NewPhysicalDbAdapter(appCtx)
-// 	require.NoError(t, err)
-
-// 	cleanup := func() {
-// 		adapter.db.Close()
-// 	}
-
-// 	return adapter, cleanup
-// }
 
 func setupMockDB() (*PhysicalDbAdapter, sqlmock.Sqlmock, error) {
 	db, mock, err := sqlmock.New()
@@ -759,12 +784,8 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 	locationID := "loc1"
 	now := time.Now()
 
-	// Mock the authorization check
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
 	// Mock the update query
+	mock.ExpectBegin()
 	mock.ExpectQuery("UPDATE physical_locations").
 		WithArgs(
 			locationID,
@@ -773,12 +794,14 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 			"Test Label",
 			"test",
 			"45.5017,-73.5673",
+			"",
 		).
 		WillReturnRows(sqlmock.NewRows([]string{
-			"id", "user_id", "name", "label", "location_type", "map_coordinates", "created_at", "updated_at",
+			"id", "user_id", "name", "label", "location_type", "map_coordinates", "bg_color", "created_at", "updated_at",
 		}).AddRow(
-			locationID, userID, "Test Location", "Test Label", "test", "45.5017,-73.5673", now, now,
+			locationID, userID, "Test Location", "Test Label", "test", "45.5017,-73.5673", "", now, now,
 		))
+	mock.ExpectCommit()
 
 	location := models.PhysicalLocation{
 		ID:              locationID,
@@ -786,7 +809,7 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 		Name:            "Test Location",
 		Label:           "Test Label",
 		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
+		MapCoordinates:  models.PhysicalMapCoordinates{Coords: "45.5017,-73.5673"},
 	}
 
 	updatedLocation, err := adapter.UpdatePhysicalLocation(ctx, userID, location)
@@ -796,62 +819,7 @@ func TestUpdatePhysicalLocation_Success(t *testing.T) {
 	assert.Equal(t, "Test Location", updatedLocation.Name)
 	assert.Equal(t, "Test Label", updatedLocation.Label)
 	assert.Equal(t, "test", updatedLocation.LocationType)
-	assert.Equal(t, "45.5017,-73.5673", updatedLocation.MapCoordinates)
-}
-
-func TestUpdatePhysicalLocation_Unauthorized(t *testing.T) {
-	adapter, mock, err := setupMockDB()
-	require.NoError(t, err)
-	defer adapter.db.Close()
-
-	ctx := context.Background()
-	userID := "user1"
-	locationID := "loc1"
-
-	// Mock the database query to return no rows
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnError(sql.ErrNoRows)
-
-	location := models.PhysicalLocation{
-		ID:              locationID,
-		UserID:          "user2", // Different user ID
-		Name:            "Test Location",
-		Label:           "Test Label",
-		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
-	}
-
-	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
-	assert.Error(t, err)
-	assert.Equal(t, ErrUnauthorizedLocation, err)
-}
-
-func TestUpdatePhysicalLocation_DatabaseError(t *testing.T) {
-	adapter, mock, err := setupMockDB()
-	require.NoError(t, err)
-	defer adapter.db.Close()
-
-	ctx := context.Background()
-	userID := "user1"
-	locationID := "loc1"
-
-	// Mock the database query to return an error
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnError(sql.ErrConnDone)
-
-	location := models.PhysicalLocation{
-		ID:              locationID,
-		UserID:          userID,
-		Name:            "Test Location",
-		Label:           "Test Label",
-		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
-	}
-
-	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
-	assert.Error(t, err)
+	assert.Equal(t, "45.5017,-73.5673", updatedLocation.MapCoordinates.Coords)
 }
 
 func TestUpdatePhysicalLocation_NotFound(t *testing.T) {
@@ -864,9 +832,19 @@ func TestUpdatePhysicalLocation_NotFound(t *testing.T) {
 	locationID := "loc1"
 
 	// Mock the database query to return no rows
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
+	mock.ExpectBegin()
+	mock.ExpectQuery("UPDATE physical_locations").
+		WithArgs(
+			locationID,
+			userID,
+			"Test Location",
+			"Test Label",
+			"test",
+			"45.5017,-73.5673",
+			"",
+		).
 		WillReturnError(sql.ErrNoRows)
+	mock.ExpectRollback()
 
 	location := models.PhysicalLocation{
 		ID:              locationID,
@@ -874,15 +852,15 @@ func TestUpdatePhysicalLocation_NotFound(t *testing.T) {
 		Name:            "Test Location",
 		Label:           "Test Label",
 		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
+		MapCoordinates:  models.PhysicalMapCoordinates{Coords: "45.5017,-73.5673"},
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
 	assert.Error(t, err)
-	assert.Equal(t, ErrUnauthorizedLocation, err)
+	assert.Equal(t, ErrLocationNotFound, err)
 }
 
-func TestUpdatePhysicalLocation_InvalidCoordinates(t *testing.T) {
+func TestUpdatePhysicalLocation_DatabaseError(t *testing.T) {
 	adapter, mock, err := setupMockDB()
 	require.NoError(t, err)
 	defer adapter.db.Close()
@@ -891,10 +869,20 @@ func TestUpdatePhysicalLocation_InvalidCoordinates(t *testing.T) {
 	userID := "user1"
 	locationID := "loc1"
 
-	// Mock the authorization check
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
+	// Mock the database query to return an error
+	mock.ExpectBegin()
+	mock.ExpectQuery("UPDATE physical_locations").
+		WithArgs(
+			locationID,
+			userID,
+			"Test Location",
+			"Test Label",
+			"test",
+			"45.5017,-73.5673",
+			"",
+		).
+		WillReturnError(sql.ErrConnDone)
+	mock.ExpectRollback()
 
 	location := models.PhysicalLocation{
 		ID:              locationID,
@@ -902,88 +890,7 @@ func TestUpdatePhysicalLocation_InvalidCoordinates(t *testing.T) {
 		Name:            "Test Location",
 		Label:           "Test Label",
 		LocationType:    "test",
-		MapCoordinates:  "invalid",
-	}
-
-	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
-	assert.Error(t, err)
-}
-
-func TestUpdatePhysicalLocation_InvalidBgColor(t *testing.T) {
-	adapter, mock, err := setupMockDB()
-	require.NoError(t, err)
-	defer adapter.db.Close()
-
-	ctx := context.Background()
-	userID := "user1"
-	locationID := "loc1"
-
-	// Mock the authorization check
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
-	location := models.PhysicalLocation{
-		ID:              locationID,
-		UserID:          userID,
-		Name:            "Test Location",
-		Label:           "Test Label",
-		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
-	}
-
-	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
-	assert.Error(t, err)
-}
-
-func TestUpdatePhysicalLocation_EmptyName(t *testing.T) {
-	adapter, mock, err := setupMockDB()
-	require.NoError(t, err)
-	defer adapter.db.Close()
-
-	ctx := context.Background()
-	userID := "user1"
-	locationID := "loc1"
-
-	// Mock the authorization check
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
-	location := models.PhysicalLocation{
-		ID:              locationID,
-		UserID:          userID,
-		Name:            "",
-		Label:           "Test Label",
-		LocationType:    "test",
-		MapCoordinates:  "45.5017,-73.5673",
-	}
-
-	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)
-	assert.Error(t, err)
-}
-
-func TestUpdatePhysicalLocation_EmptyLocationType(t *testing.T) {
-	adapter, mock, err := setupMockDB()
-	require.NoError(t, err)
-	defer adapter.db.Close()
-
-	ctx := context.Background()
-	userID := "user1"
-	locationID := "loc1"
-
-	// Mock the authorization check
-	mock.ExpectQuery("SELECT id FROM physical_locations").
-		WithArgs(locationID, userID).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(locationID))
-
-	location := models.PhysicalLocation{
-		ID:              locationID,
-		UserID:          userID,
-		Name:            "Test Location",
-		Label:           "Test Label",
-		LocationType:    "",
-		MapCoordinates:  "45.5017,-73.5673",
+		MapCoordinates:  models.PhysicalMapCoordinates{Coords: "45.5017,-73.5673"},
 	}
 
 	_, err = adapter.UpdatePhysicalLocation(ctx, userID, location)

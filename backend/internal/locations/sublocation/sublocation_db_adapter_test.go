@@ -8,39 +8,41 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/postgres"
 )
 
 /*
 	Behavior:
-	- Retrieving a single physical location for a user
-	- Retrieving all physical locations for a user
-	- Adding a new physical location
-	- Updating an existing physical location
-	- Removing a physical location
+	- Retrieving a single sublocation for a user
+	- Retrieving all sublocations for a user
+	- Adding a new sublocation
+	- Updating an existing sublocation
+	- Removing a sublocation
 	- Handling db errors
-	- Ensuring user may only access their own locations
+	- Ensuring user may only access their own sublocations
 
 	Scenarios:
-	- GetSinglePhysicalLocation:
-		- Successfully retrieves a valid location
-		- Returns error when location not found
+	- GetSingleSublocation:
+		- Successfully retrieves a valid sublocation
+		- Returns error when sublocation not found
 		- Handles db errors
-	- GetAllPhysicalLocations:
-		- Successfully retrieves all locations for a user
-		- Returns empty slice when no locations exist
+	- GetAllSublocations:
+		- Successfully retrieves all sublocations for a user
+		- Returns empty slice when no sublocations exist
 		- Handles db errors
-	- CreatePhysicalLocation:
-		- Successfully adds new location
+	- CreateSublocation:
+		- Successfully adds new sublocation
 		- Handles db errors
-	- UpdatePhysicalLocation:
-		- Successfully updates a location
-		- Returns error when location not found
+	- UpdateSublocation:
+		- Successfully updates a sublocation
+		- Returns error when sublocation not found
 		- Handles db errors
-	- DeletePhysicalLocation:
-		- Successfully removes a location
-		- Returns errors when location not found
+	- DeleteSublocation:
+		- Successfully removes a sublocation
+		- Returns errors when sublocation not found
 		- Handles db errors
 */
 
@@ -57,10 +59,14 @@ func TestSublocationDbAdapter(t *testing.T) {
 		// Create a sqlx wrapper around mock data
 		sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 
+		// Create a mock PostgresClient
+		mockClient := &postgres.PostgresClient{}
+
 		// Create the adapter with the mock DB
 		adapter := &SublocationDbAdapter{
-			db:        sqlxDB,
-			logger:    baseAppCtx.Logger,
+			client: mockClient,
+			db:     sqlxDB,
+			logger: baseAppCtx.Logger,
 		}
 
 		return adapter, mock, nil
@@ -86,12 +92,12 @@ func TestSublocationDbAdapter(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"id", "user_id", "physical_location_id", "name",
-			"location_type", "bg_color", "stored_items",
+			"location_type", "stored_items",
 			"created_at", "updated_at",
 		}).
 			AddRow(
 				sublocationID, userID, physicalLocationID,
-				"Test Sublocation", "shelf", "blue", 20,
+				"Test Sublocation", "shelf", 20,
 				now, now,
 			)
 
@@ -234,13 +240,13 @@ func TestSublocationDbAdapter(t *testing.T) {
 		// Set up mock expectations for sublocations query
 		rows := sqlmock.NewRows([]string{
 			"id", "user_id", "physical_location_id", "name",
-			"location_type", "bg_color", "stored_items",
+			"location_type", "stored_items",
 			"created_at", "updated_at",
 		}).
 			AddRow("subloc-1", userID, "physical-loc-1", "Sublocation 1",
-			"shelf", "red", 20, now, now).
+			"shelf", 20, now, now).
 			AddRow("subloc-2", userID, "physical-loc-1", "Sublocation 2",
-			"cabinet", "blue", 30, now, now)
+			"cabinet", 30, now, now)
 
 		mock.ExpectQuery("SELECT (.+) FROM sublocations").
 			WithArgs(userID).
@@ -368,12 +374,12 @@ func TestSublocationDbAdapter(t *testing.T) {
 			UserID:       userID,
 			Name:         "Updated Sublocation",
 			LocationType: "cabinet",
-			StoredItems:     40,
+			StoredItems:  40,
 		}
 
 		// Set up mock expectations - no rows affected
 		mock.ExpectExec("UPDATE sublocations").
-			WithArgs("Updated Sublocation", "cabinet", "purple", 40, sqlmock.AnyArg(), sublocationID, userID).
+			WithArgs("Updated Sublocation", "cabinet", 40, sqlmock.AnyArg(), sublocationID, userID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Execute
@@ -427,7 +433,7 @@ func TestSublocationDbAdapter(t *testing.T) {
 				sqlmock.AnyArg(), // Use AnyArg() for timestamps to avoid precision issues
 				sqlmock.AnyArg(),
 			).
-			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "physical_location_id", "name", "location_type", "bg_color", "stored_items", "created_at", "updated_at"}).
+			WillReturnRows(sqlmock.NewRows([]string{"id", "user_id", "physical_location_id", "name", "location_type", "stored_items", "created_at", "updated_at"}).
 				AddRow(sublocation.ID, sublocation.UserID, sublocation.PhysicalLocationID, sublocation.Name, sublocation.LocationType, sublocation.StoredItems, sublocation.CreatedAt, sublocation.UpdatedAt))
 
 		result, err := adapter.CreateSublocation(context.Background(), userID, sublocation)
@@ -458,24 +464,42 @@ func TestSublocationDbAdapter(t *testing.T) {
 		userID := "test-user-id"
 		sublocationID := "test-subloc-id"
 
-		// Set up mock expectations
+		// Set up mock expectations for transaction
 		mock.ExpectBegin()
 
-		// Check if sublocation exists
-		rows := sqlmock.NewRows([]string{"id"}).AddRow(sublocationID)
-		mock.ExpectQuery("SELECT id FROM sublocations").
-			WithArgs(sublocationID, userID).
-			WillReturnRows(rows)
+		// Get user_game_ids in this sublocation
+		userGameRows := sqlmock.NewRows([]string{"user_game_id"}).AddRow(123)
+		mock.ExpectQuery("SELECT pgl.user_game_id FROM physical_game_locations pgl WHERE pgl.sublocation_id = \\$1").
+			WithArgs(sublocationID).
+			WillReturnRows(userGameRows)
+
+		// Check if game exists in other locations
+		existsRows := sqlmock.NewRows([]string{"exists"}).AddRow(false)
+		mock.ExpectQuery("SELECT EXISTS").
+			WithArgs(123, sublocationID).
+			WillReturnRows(existsRows)
+
+		// Get game details before deletion
+		gameDetailsRows := sqlmock.NewRows([]string{"user_game_id", "game_id", "game_name", "platform_name"}).
+			AddRow(123, 123, "Test Game", "PS5")
+		mock.ExpectQuery("SELECT ug.id as user_game_id, g.id as game_id, g.name as game_name, p.name as platform_name FROM user_games ug JOIN games g ON ug.game_id = g.id JOIN platforms p ON ug.platform_id = p.id WHERE ug.id = \\$1").
+			WithArgs(123).
+			WillReturnRows(gameDetailsRows)
+
+		// Delete the orphaned game
+		mock.ExpectExec("DELETE FROM user_games WHERE id = ANY\\(\\$1\\)").
+			WithArgs(123).
+			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		// Delete the sublocation
-		mock.ExpectExec("DELETE FROM sublocations").
-			WithArgs(sublocationID, userID).
+		mock.ExpectExec("DELETE FROM sublocations WHERE id = ANY\\(\\$1\\) AND user_id = \\$2").
+			WithArgs(pq.Array([]string{sublocationID}), userID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.DeleteSublocation(context.Background(), userID, sublocationID)
+		_, err = adapter.DeleteSublocation(context.Background(), userID, []string{sublocationID})
 
 		// Verify
 		if err != nil {
@@ -504,15 +528,18 @@ func TestSublocationDbAdapter(t *testing.T) {
 		// Set up mock expectations
 		mock.ExpectBegin()
 
-		// Check if sublocation exists - return no rows
-		mock.ExpectQuery("SELECT id FROM sublocations").
-			WithArgs(sublocationID, userID).
-			WillReturnError(sql.ErrNoRows)
+		// Get user_game_ids in this sublocation - return no rows
+		userGameRows := sqlmock.NewRows([]string{"user_game_id"})
+		mock.ExpectQuery("SELECT pgl.user_game_id FROM physical_game_locations pgl WHERE pgl.sublocation_id = \\$1").
+			WithArgs(sublocationID).
+			WillReturnRows(userGameRows)
+
+		// No need to expect DELETE FROM sublocations if no user_game_ids are found and code does not execute it
 
 		mock.ExpectRollback()
 
 		// Execute
-		err = adapter.DeleteSublocation(context.Background(), userID, sublocationID)
+		_, err = adapter.DeleteSublocation(context.Background(), userID, []string{sublocationID})
 
 		// Verify
 		if err == nil {
@@ -624,33 +651,26 @@ func TestSublocationDbAdapter(t *testing.T) {
 		defer adapter.db.Close()
 
 		userID := "test-user-id"
-		gameID := "test-game-id"
-		sublocationID := "test-subloc-id"
+		userGameID := "test-user-game-id"
 
 		// Set up mock expectations
 		mock.ExpectBegin()
 
 		// Check if game exists
-		gameRows := sqlmock.NewRows([]string{"id"}).AddRow(gameID)
-		mock.ExpectQuery("SELECT id FROM games").
-			WithArgs(gameID, userID).
+		gameRows := sqlmock.NewRows([]string{"id"}).AddRow(userGameID)
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userGameID, userID).
 			WillReturnRows(gameRows)
 
-		// Check if sublocation exists
-		sublocRows := sqlmock.NewRows([]string{"id"}).AddRow(sublocationID)
-		mock.ExpectQuery("SELECT id FROM sublocations").
-			WithArgs(sublocationID, userID).
-			WillReturnRows(sublocRows)
-
 		// Remove the relationship
-		mock.ExpectExec("DELETE FROM game_sub_locations").
-			WithArgs(gameID, sublocationID).
+		mock.ExpectExec("DELETE FROM physical_game_locations").
+			WithArgs(userGameID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.RemoveGameFromSublocation(context.Background(), userID, gameID, sublocationID)
+		err = adapter.RemoveGameFromSublocation(context.Background(), userID, userGameID)
 
 		// Verify
 		if err != nil {
@@ -674,33 +694,26 @@ func TestSublocationDbAdapter(t *testing.T) {
 		defer adapter.db.Close()
 
 		userID := "test-user-id"
-		gameID := "test-game-id"
-		sublocationID := "test-subloc-id"
+		userGameID := "test-user-game-id"
 
 		// Set up mock expectations
 		mock.ExpectBegin()
 
 		// Check if game exists
-		gameRows := sqlmock.NewRows([]string{"id"}).AddRow(gameID)
-		mock.ExpectQuery("SELECT id FROM games").
-			WithArgs(gameID, userID).
+		gameRows := sqlmock.NewRows([]string{"id"}).AddRow(userGameID)
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userGameID, userID).
 			WillReturnRows(gameRows)
 
-		// Check if sublocation exists
-		sublocRows := sqlmock.NewRows([]string{"id"}).AddRow(sublocationID)
-		mock.ExpectQuery("SELECT id FROM sublocations").
-			WithArgs(sublocationID, userID).
-			WillReturnRows(sublocRows)
-
 		// Remove the relationship - no rows affected
-		mock.ExpectExec("DELETE FROM game_sub_locations").
-			WithArgs(gameID, sublocationID).
+		mock.ExpectExec("DELETE FROM physical_game_locations").
+			WithArgs(userGameID).
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectRollback()
 
 		// Execute
-		err = adapter.RemoveGameFromSublocation(context.Background(), userID, gameID, sublocationID)
+		err = adapter.RemoveGameFromSublocation(context.Background(), userID, userGameID)
 
 		// Verify
 		if err == nil {

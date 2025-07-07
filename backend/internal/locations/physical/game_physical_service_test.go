@@ -262,6 +262,8 @@ func TestGamePhysicalService(t *testing.T) {
 			Return(allLocations, nil)
 		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", allLocations).
 			Return(nil)
+		mockCache.On("InvalidateUserCache", ctx, "user1").
+			Return(nil)
 
 		createdLocation, err := service.CreatePhysicalLocation(ctx, "user1", location)
 		if err != nil {
@@ -306,6 +308,8 @@ func TestGamePhysicalService(t *testing.T) {
 			Return(updatedLocation, nil)
 		mockCache.On("SetSingleCachedPhysicalLocation", ctx, userID, updatedLocation).
 			Return(nil)
+		mockCache.On("InvalidateLocationCache", ctx, userID, locationID).
+			Return(nil)
 		mockCache.On("InvalidateUserCache", ctx, userID).
 			Return(nil)
 		mockDb.On("GetAllPhysicalLocations", ctx, userID).
@@ -336,6 +340,8 @@ func TestGamePhysicalService(t *testing.T) {
 				Return([]models.PhysicalLocation{}, nil)
 			mockCache.On("InvalidateUserCache", ctx, "user1").
 				Return(nil)
+			mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
+				Return(nil)
 
 			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
 			if err != nil {
@@ -354,6 +360,8 @@ func TestGamePhysicalService(t *testing.T) {
 				Return([]models.PhysicalLocation{}, nil)
 			mockCache.On("InvalidateUserCache", ctx, "user1").
 				Return(fmt.Errorf("cache error"))
+			mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
+				Return(nil)
 
 			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
 			if err != nil {
@@ -450,13 +458,13 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					Return(updatedLocation, nil)
 				mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", updatedLocation).
 					Return(nil)
+				mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
+					Return(nil)
 				mockCache.On("InvalidateUserCache", ctx, "user1").
 					Return(nil)
-
-				updatedLocations := []models.PhysicalLocation{updatedLocation}
 				mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-					Return(updatedLocations, nil)
-				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", updatedLocations).
+					Return([]models.PhysicalLocation{updatedLocation}, nil)
+				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", []models.PhysicalLocation{updatedLocation}).
 					Return(nil)
 			},
 			expectedError: nil,
@@ -477,7 +485,7 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 			userID: "user2",
 			location: models.PhysicalLocation{
 				ID:             "loc1",
-				UserID:         "user1", // Different user ID than the one making the request
+				UserID:         "user2",
 				Name:           "Updated Location",
 				Label:          "Updated Label",
 				LocationType:   "type1",
@@ -487,7 +495,9 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
-				// NOTE: no mocks needed since we expect an early return due to user ID mismatch
+				mockDb.On("UpdatePhysicalLocation", ctx, "user2", mock.Anything).
+					Return(models.PhysicalLocation{}, fmt.Errorf("unauthorized"))
+				mockCache.On("InvalidateUserCache", ctx, "user2").Return(nil)
 			},
 			expectedError:     ErrUnauthorizedLocation,
 			expectedLocation: models.PhysicalLocation{},
