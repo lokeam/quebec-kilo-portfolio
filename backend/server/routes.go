@@ -223,7 +223,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 	})
 
 	// Add Sentry tunnel endpoint to avoid ad blockers
-	mux.HandleFunc("/tunnel", SentryTunnelHandler)
+	mux.HandleFunc("/api/events", SentryTunnelHandler)
 
 	// Add metrics endpoint with basic security
 	if appContext.Config.Env == "production" {

@@ -13,7 +13,7 @@ Sentry.init({
   },
 
   // Use tunneling to avoid ad blockers
-  tunnel: import.meta.env.VITE_SENTRY_TUNNEL,
+  tunnel: import.meta.env.VITE_SENTRY_TUNNEL_URL,
 
   // Console logging integration - sends console.log, console.error, and console.warn calls as logs to Sentry
   integrations: [
