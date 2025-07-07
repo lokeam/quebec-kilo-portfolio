@@ -10,6 +10,7 @@ import (
 	"github.com/lokeam/qko-beta/internal/search/searchdef"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
+	"github.com/lokeam/qko-beta/internal/types"
 )
 
 /*
@@ -57,6 +58,13 @@ func newMockGameSearchServiceWithDefaults(logger *testutils.TestLogger) *GameSea
 		sanitizer:      mocks.DefaultSanitizer(),
 		cacheWrapper:   mocks.DefaultCacheWrapper(),
 	}
+}
+
+// mockSearchAddGameFormDbAdapter implements the SearchAddGameFormDbAdapter interface for testing
+type mockSearchAddGameFormDbAdapter struct{}
+
+func (m *mockSearchAddGameFormDbAdapter) GetAllGameStorageLocationsBFF(ctx context.Context, userID string) (types.AddGameFormStorageLocationsResponse, error) {
+	return types.AddGameFormStorageLocationsResponse{}, nil
 }
 
 func TestGameSearchService(t *testing.T) {
@@ -234,8 +242,13 @@ func TestGameSearchService(t *testing.T) {
                     return errors.New("token refresh failed")
                 },
             },
-            appContext: mockAppContext,
-            logger:     testLogger,
+            dbAdapter: &mockSearchAddGameFormDbAdapter{},
+            config:       mockConfig,
+            logger:       testLogger,
+            validator:    mocks.DefaultValidator(),
+            sanitizer:    mocks.DefaultSanitizer(),
+            cacheWrapper: mocks.DefaultCacheWrapper(),
+            appContext:   mockAppContext,
         }
 
         // Execute the search
@@ -247,7 +260,7 @@ func TestGameSearchService(t *testing.T) {
         if err == nil {
             t.Error("Expected error when adapter returns 401, got nil")
         }
-        if err.Error() != "token refresh failed" {
+        if err.Error() != "failed to update token in IGDB client: token refresh failed" {
             t.Errorf("Expected token refresh error, got: %v", err)
         }
     },

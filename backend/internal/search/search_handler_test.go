@@ -92,6 +92,14 @@ func (mls *mockLibraryService) IsGameInLibraryBFF(ctx context.Context, userID st
 	return mls.isInLibrary, mls.err
 }
 
+func (mls *mockLibraryService) DeleteGameVersions(ctx context.Context, userID string, gameID int64, request types.BatchDeleteLibraryGameRequest) (types.BatchDeleteLibraryGameResponse, error) {
+	return types.BatchDeleteLibraryGameResponse{}, nil
+}
+
+func (mls *mockLibraryService) GetLibraryRefactoredBFFResponse(ctx context.Context, userID string) (types.LibraryBFFRefactoredResponse, error) {
+	return types.LibraryBFFRefactoredResponse{}, nil
+}
+
 // mockWishlistService implements the WishlistService interface for testing
 type mockWishlistService struct {
 	wishlistItems []models.GameToSave
@@ -207,12 +215,29 @@ func TestSearchHandler(t *testing.T) {
 			t.Errorf("Expected query 'dark souls', got %s", mockSearchService.mostRecentRequest.Query)
 		}
 
-		// Verify the response
-		var response searchdef.SearchResponse
-		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		// Verify the response - it's wrapped in APIResponse structure
+		var apiResponse struct {
+			Success bool `json:"success"`
+			UserID  string `json:"user_id"`
+			Data    searchdef.SearchResponse `json:"data"`
+			Metadata struct {
+				Timestamp string `json:"timestamp"`
+				RequestID string `json:"request_id"`
+			} `json:"metadata"`
+		}
+		if err := json.Unmarshal(recorder.Body.Bytes(), &apiResponse); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
 		}
 
+		if !apiResponse.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if apiResponse.UserID != "test-user-id" {
+			t.Errorf("Expected user_id to be 'test-user-id', got %s", apiResponse.UserID)
+		}
+
+		response := apiResponse.Data
 		if len(response.Games) != 1 {
 			t.Errorf("Expected 1 game in response, got %d", len(response.Games))
 		}
@@ -255,12 +280,29 @@ func TestSearchHandler(t *testing.T) {
 			t.Fatalf("Expected status 200, got %d", recorder.Code)
 		}
 
-		var response map[string]interface{}
-		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		// Verify the response - it's wrapped in APIResponse structure
+		var apiResponse struct {
+			Success bool `json:"success"`
+			UserID  string `json:"user_id"`
+			Data    map[string]interface{} `json:"data"`
+			Metadata struct {
+				Timestamp string `json:"timestamp"`
+				RequestID string `json:"request_id"`
+			} `json:"metadata"`
+		}
+		if err := json.Unmarshal(recorder.Body.Bytes(), &apiResponse); err != nil {
 			t.Fatalf("Failed to unmarshal response: %v", err)
 		}
 
-		storageLocations, ok := response["storage_locations"].(map[string]interface{})
+		if !apiResponse.Success {
+			t.Error("Expected success to be true")
+		}
+
+		if apiResponse.UserID != "test-user-id" {
+			t.Errorf("Expected user_id to be 'test-user-id', got %s", apiResponse.UserID)
+		}
+
+		storageLocations, ok := apiResponse.Data["storage_locations"].(map[string]interface{})
 		if !ok {
 			t.Fatal("Expected storage_locations in response")
 		}

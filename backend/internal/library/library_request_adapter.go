@@ -54,12 +54,3 @@ func (a *LibraryRequestAdapter) transformPlatformLocations(
 	}
 	return platformLocations
 }
-
-func (a *LibraryRequestAdapter) getLocationID(
-	location types.GameLocation,
-) string {
-	if location.DigitalLocationID != "" {
-		return location.DigitalLocationID
-	}
-	return location.SublocationID
-}
