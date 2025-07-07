@@ -15,6 +15,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/shared/components/ui/dropdown-menu';
+import { Switch } from '@/shared/components/ui/switch';
 
 import type { FormValues } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
@@ -36,9 +37,9 @@ export function AppearanceSection() {
         {/* Theme */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium leading-none">Theme</p>
+            <p className="text-sm font-medium leading-none">Color Scheme</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Customize how Q-KO looks on your device.
+              Available in light or dark mode. Disabled if Game Inspired User Interface is active.
             </p>
           </div>
           <DropdownMenu>
@@ -79,6 +80,16 @@ export function AppearanceSection() {
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+        {/* UI */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium leading-none">Game Inspired User Interface</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Elaborate animations, larger fonts, buttons and icons.
+            </p>
+          </div>
+          <Switch />
         </div>
 
       </CardContent>

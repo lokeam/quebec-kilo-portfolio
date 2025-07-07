@@ -30,11 +30,14 @@ createRoot(document.getElementById('root')!).render(
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
       authorizationParams={{
-
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
         scope: 'openid profile email'
       }}
+      useRefreshTokens={true}
+      cacheLocation="localstorage"
+      sessionCheckExpiryDays={30}
+      skipRedirectCallback={window.location.pathname === '/login'}
     >
       <AuthInitializer>
         <QueryClientProvider client={queryClient}>

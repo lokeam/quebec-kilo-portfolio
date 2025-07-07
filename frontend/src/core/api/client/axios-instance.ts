@@ -1,4 +1,4 @@
-import axios, { type AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { ApiError } from '@/types/api/response';
 
 import { logger } from '@/core/utils/logger/logger';
@@ -92,10 +92,13 @@ axiosInstance.interceptors.request.use(
       const token = await getAuth0Token();
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
-    } catch {
+    } catch (error) {
       // If we can't get a token, continue without it
       // The backend will handle unauthorized requests
-      logger.debug('No auth token available for request', { url: config.url });
+      logger.debug('No auth token available for request', {
+        url: config.url,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
 
     logger.debug('❓ INTERCEPTOR Request 📢', {
@@ -109,16 +112,42 @@ axiosInstance.interceptors.request.use(
   handleAxiosError
 );
 
-// Response interceptor: log responses and handle errors
+// Response interceptor: handle token refresh and retry
 axiosInstance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    logger.debug('❗️ INTERCEPTOR Response 🔊', {
-      status: response.status,
-      url: response.config.url,
-    });
+  (response) => {
+    // Successful response, just return it
     return response;
   },
-  handleAxiosError
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If we get a 401 and haven't already retried this request
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // Try to get a fresh token
+        logger.debug('Attempting to refresh token after 401 error');
+        const newToken = await getAuth0Token();
+
+        // Update the original request with the new token
+        originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+
+        // Retry the original request
+        logger.debug('Retrying request with fresh token');
+        return axiosInstance(originalRequest);
+      } catch (refreshError) {
+        logger.error('Failed to refresh token', {
+          error: refreshError instanceof Error ? refreshError.message : 'Unknown error'
+        });
+        // If token refresh fails, let the error propagate
+        return Promise.reject(error);
+      }
+    }
+
+    // For other errors, just propagate them
+    return Promise.reject(error);
+  }
 );
 
 export { axiosInstance };

@@ -61,11 +61,20 @@ export const useAuth = (): UseAuthReturn => {
     getAccessTokenSilently,
   } = useAuth0();
 
+  // Debug authentication state changes
+  console.log('🔐 Auth State:', {
+    isAuthenticated,
+    isLoading,
+    hasUser: !!user,
+    userEmail: user?.email
+  });
+
   /**
    * Initiates the login process by redirecting to Auth0's login page
    * User will be redirected back to the application after login
    */
   const login = useCallback(async () => {
+    console.log('🔑 Initiating login...');
     await loginWithRedirect();
   }, [loginWithRedirect]);
 
@@ -74,6 +83,7 @@ export const useAuth = (): UseAuthReturn => {
    * Clears all authentication state and local storage
    */
   const logout = useCallback(async () => {
+    console.log('🚪 Initiating logout...');
     await auth0Logout({
       logoutParams: {
         returnTo: window.location.origin,
@@ -88,7 +98,14 @@ export const useAuth = (): UseAuthReturn => {
    * @returns {Promise<string>} The access token
    */
   const getAccessToken = useCallback(async () => {
-    return await getAccessTokenSilently();
+    try {
+      const token = await getAccessTokenSilently();
+      console.log('✅ Token retrieved successfully');
+      return token;
+    } catch (error) {
+      console.error('❌ Failed to get access token:', error);
+      throw error;
+    }
   }, [getAccessTokenSilently]);
 
   return {

@@ -44,7 +44,7 @@ export default function AuthenticatedLayout() {
               <GameSearchAndSelectDialog />
 
               {/* Notifications */}
-              <NotifyPopover />
+              {/* <NotifyPopover /> */}
 
               {/* User Login Avatar */}
               <AvatarDropDownMenu />
