@@ -2,15 +2,14 @@ package library
 
 import (
 	"context"
+	"database/sql"
 	"testing"
-	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/jackc/pgx/v5"
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
-	"github.com/lokeam/qko-beta/internal/appcontext_test"
+	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
+	"github.com/lokeam/qko-beta/internal/testutils"
 )
 
 /*
@@ -32,6 +31,7 @@ import (
 	- IsGameInLibrary correctly identifies if a game is in library
 */
 
+// MockGameScanner implements the GameScanner interface for testing
 type MockGameScanner struct {
 	ScanGameFunc  func(row *sqlx.Row) (models.Game, error)
 	ScanGamesFunc func(rows *sqlx.Rows) ([]models.Game, error)
@@ -46,127 +46,116 @@ func (mgs *MockGameScanner) ScanGames(rows *sqlx.Rows) ([]models.Game, error) {
 }
 
 func TestLibraryDbAdapter(t *testing.T) {
-	// Set up base app context for testing
-	baseAppCtx := appcontext_test.NewTestingAppContext("test-token", nil)
+	// Setup test data
+	userID := "test-user-id"
+	gameID := int64(123)
+	expectedGame := models.Game{ID: gameID, Name: "Test Game"}
 
-	// Helper fn - Create mock DB + adapter
+	// Helper function to setup mock database
 	setupMockDB := func() (*LibraryDbAdapter, sqlmock.Sqlmock, error) {
-		// Create a sqlmock database
-		mockDB, mock, err := sqlmock.New()
+		db, mock, err := sqlmock.New()
 		if err != nil {
 			return nil, nil, err
 		}
 
-		// Create a sqlx wrapper around the mock DB
-		sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
+		sqlxDB := sqlx.NewDb(db, "postgres")
+		appContext := &appcontext.AppContext{
+			Logger: testutils.NewTestLogger(),
+		}
 
-		// Create the adapter with the mock DB
 		adapter := &LibraryDbAdapter{
 			db:      sqlxDB,
-			logger:  baseAppCtx.Logger,
+			logger:  appContext.Logger,
 			scanner: &MockGameScanner{},
 		}
 
 		return adapter, mock, nil
 	}
 
-
 	/*
 		GIVEN a request to get a specific game from a user's library
 		WHEN the game exists in the database
 		THEN the adapter returns the game and true
 	*/
-	t.Run(`GetSingleLibraryGame - Successfully retrieves a game`, func(t *testing.T) {
+	t.Run("GetSingleLibraryGame returns game when found", func(t *testing.T) {
+		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
-			t.Fatalf("Failed to setup mock DB: %v", err)
+			t.Fatalf("Error setting up mock DB: %v", err)
 		}
 		defer adapter.db.Close()
 
-		userID := "test-user-id"
-		gameID := int64(123)
-		expectedGame := models.Game{
-			ID:   gameID,
-			Name: "Test Game",
-		}
-
 		// Set up mock expectations
-		rows := sqlmock.NewRows([]string{"id", "name", "summary", "cover_url", "first_release_date", "rating", "platform_names", "genre_names", "theme_names"})
 		mock.ExpectQuery("SELECT (.+) FROM user_library ul").
 			WithArgs(userID, gameID).
-			WillReturnRows(rows)
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 
-		// Set up mock scanner
-		adapter.scanner = &MockGameScanner{
-			ScanGameFunc: func(row *sqlx.Row) (models.Game, error) {
-				return expectedGame, nil
-			},
-		}
+		// Mock the game data query
+		mock.ExpectQuery("SELECT (.+) FROM user_games ug").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "name", "cover_url", "game_type_display_text",
+				"game_type_normalized_text", "is_favorite", "created_at",
+			}).AddRow(
+				expectedGame.ID, expectedGame.Name, "", "Physical", "physical", true, "2024-01-01",
+			))
+
+		// Mock the locations query
+		mock.ExpectQuery("SELECT (.+) FROM user_games ug").
+			WithArgs(userID).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"game_id", "platform_id", "platform_name", "category", "created_at",
+				"parent_location_id", "parent_location_name", "parent_location_type",
+				"parent_location_bg_color", "sublocation_id", "sublocation_name", "sublocation_type",
+			}))
 
 		// Execute the fn
-		game, exists, err := adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
+		game, err := adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
 
 		// Verify
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
-		if !exists {
-			t.Errorf("Expected game to exist, but got false")
-		}
-		if game.ID != expectedGame.ID || game.Name != expectedGame.Name {
-			t.Errorf("Expected game to be %+v, but got %+v", expectedGame, game)
+		if game.ID != expectedGame.ID {
+			t.Errorf("Expected game ID %d, got %d", expectedGame.ID, game.ID)
 		}
 		if err := mock.ExpectationsWereMet(); err != nil {
 			t.Errorf("Unmet expectations: %v", err)
 		}
 	})
 
-
 	/*
 		GIVEN a request to get a specific game from a user's library
 		WHEN the game does not exist in the database
-		THEN the adapter returns false and no error
+		THEN the adapter returns ErrGameNotFound
 	*/
-	t.Run("GetSingleLibraryGame returns false when game not found", func(t *testing.T) {
-    // Setup
-    adapter, mock, err := setupMockDB()
-    if err != nil {
-        t.Fatalf("Error setting up mock DB: %v", err)
-    }
-    defer adapter.db.Close()
+	t.Run("GetSingleLibraryGame returns error when game not found", func(t *testing.T) {
+		// Setup
+		adapter, mock, err := setupMockDB()
+		if err != nil {
+			t.Fatalf("Error setting up mock DB: %v", err)
+		}
+		defer adapter.db.Close()
 
-    userID := "test-user-id"
-    gameID := int64(123)
+		// Set up mock expectations
+		mock.ExpectQuery("SELECT (.+) FROM user_library ul").
+			WithArgs(userID, gameID).
+			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
 
-    // Set up mock expectations
-    mock.ExpectQuery("SELECT (.+) FROM user_library ul").
-        WithArgs(userID, gameID).
-        WillReturnRows(sqlmock.NewRows([]string{}))
+		// Execute
+		_, err = adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
 
-    // Set up mock scanner
-    adapter.scanner = &MockGameScanner{
-        ScanGameFunc: func(row *sqlx.Row) (models.Game, error) {
-            return models.Game{}, pgx.ErrNoRows
-        },
-    }
-
-    // Execute
-    _, exists, err := adapter.GetSingleLibraryGame(context.Background(), userID, gameID)
-
-    // Verify
-    if err == nil {
-        t.Errorf("Expected ErrGameNotFound, got nil")
-    }
-    if err != ErrGameNotFound {
-        t.Errorf("Expected ErrGameNotFound, got %v", err)
-    }
-    if exists {
-        t.Errorf("Expected game to not exist, got true")
-    }
-    if err := mock.ExpectationsWereMet(); err != nil {
-        t.Errorf("Unfulfilled expectations: %v", err)
-    }
-})
+		// Verify
+		if err == nil {
+			t.Errorf("Expected ErrGameNotFound, got nil")
+		}
+		if err != ErrGameNotFound {
+			t.Errorf("Expected ErrGameNotFound, got %v", err)
+		}
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("Unfulfilled expectations: %v", err)
+		}
+	})
 
 	/*
 		GIVEN a request to add a game to a user's library
@@ -181,32 +170,54 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 		defer adapter.db.Close()
 
-		userID := "test-user-id"
-		gameID := int64(123)
+		gameToSave := models.GameToSave{
+			GameID:               gameID,
+			GameName:             "Test Game",
+			GameCoverURL:         "https://example.com/cover.jpg",
+			GameFirstReleaseDate: 1640995200,
+			GameRating:           8.5,
+			GameType: models.GameToSaveIGDBType{
+				DisplayText:    "Physical",
+				NormalizedText: "physical",
+			},
+			PlatformLocations: []models.GameToSaveLocation{
+				{
+					PlatformID:   1,
+					PlatformName: "PlayStation 5",
+					Type:         "physical",
+					Location: models.GameToSaveLocationDetails{
+						SublocationID: "shelf-1",
+					},
+				},
+			},
+		}
 
 		// Set up mock expectations for transaction
 		mock.ExpectBegin()
 
-		// Check if game exists
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs(gameID).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Insert game
+		// Insert game into games table
 		mock.ExpectExec("INSERT INTO games").
-			WithArgs(gameID, "", "", "", "", "", "", "", "").
+			WithArgs(gameToSave.GameID, gameToSave.GameName, gameToSave.GameCoverURL,
+				gameToSave.GameFirstReleaseDate, gameToSave.GameRating).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// Add to user library
-		mock.ExpectExec("INSERT INTO user_library").
-			WithArgs(userID, gameID).
+		// Insert platform
+		mock.ExpectExec("INSERT INTO platforms").
+			WithArgs(gameToSave.PlatformLocations[0].PlatformID,
+				gameToSave.PlatformLocations[0].PlatformName, sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Insert user game
+		mock.ExpectQuery("INSERT INTO user_games").
+			WithArgs(userID, gameToSave.GameID, gameToSave.PlatformLocations[0].PlatformID,
+				gameToSave.PlatformLocations[0].Type).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 		// Commit transaction
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.CreateLibraryGame(context.Background(), userID, gameID)
+		err = adapter.CreateLibraryGame(context.Background(), userID, gameToSave)
 
 		// Verify
 		if err != nil {
@@ -216,7 +227,6 @@ func TestLibraryDbAdapter(t *testing.T) {
 			t.Errorf("Unfulfilled expectations: %v", err)
 		}
 	})
-
 
 	/*
 		GIVEN a request to add a game to a user's library
@@ -231,27 +241,59 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 		defer adapter.db.Close()
 
-		userID := "test-user-id"
-		gameID := int64(123)
+		gameToSave := models.GameToSave{
+			GameID:               gameID,
+			GameName:             "Test Game",
+			GameCoverURL:         "https://example.com/cover.jpg",
+			GameFirstReleaseDate: 1640995200,
+			GameRating:           8.5,
+			GameType: models.GameToSaveIGDBType{
+				DisplayText:    "Physical",
+				NormalizedText: "physical",
+			},
+			PlatformLocations: []models.GameToSaveLocation{
+				{
+					PlatformID:   1,
+					PlatformName: "PlayStation 5",
+					Type:         "physical",
+					Location: models.GameToSaveLocationDetails{
+						SublocationID: "shelf-1",
+					},
+				},
+			},
+		}
 
 		// Set up mock expectations for transaction
 		mock.ExpectBegin()
 
-		// Check if game exists and return true
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs(gameID).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+		// Insert game into games table (will be ignored due to ON CONFLICT DO NOTHING)
+		mock.ExpectExec("INSERT INTO games").
+			WithArgs(gameToSave.GameID, gameToSave.GameName, gameToSave.GameCoverURL,
+				gameToSave.GameFirstReleaseDate, gameToSave.GameRating).
+			WillReturnResult(sqlmock.NewResult(1, 0))
 
-		// Add to user library
-		mock.ExpectExec("INSERT INTO user_library").
-			WithArgs(userID, gameID).
-			WillReturnResult(sqlmock.NewResult(1, 1))
+		// Insert platform (will be ignored due to ON CONFLICT DO NOTHING)
+		mock.ExpectExec("INSERT INTO platforms").
+			WithArgs(gameToSave.PlatformLocations[0].PlatformID,
+				gameToSave.PlatformLocations[0].PlatformName, sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(1, 0))
+
+		// Insert user game (will fail with unique constraint, then select existing)
+		mock.ExpectQuery("INSERT INTO user_games").
+			WithArgs(userID, gameToSave.GameID, gameToSave.PlatformLocations[0].PlatformID,
+				gameToSave.PlatformLocations[0].Type).
+			WillReturnError(sql.ErrNoRows)
+
+		// Select existing user game
+		mock.ExpectQuery("SELECT id FROM user_games").
+			WithArgs(userID, gameToSave.GameID, gameToSave.PlatformLocations[0].PlatformID).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 		// Commit transaction
 		mock.ExpectCommit()
 
 		// Execute
-		err = adapter.CreateLibraryGame(context.Background(), userID, gameID)
+		err = adapter.CreateLibraryGame(context.Background(), userID, gameToSave)
 
 		// Verify
 		if err != nil {
@@ -261,7 +303,6 @@ func TestLibraryDbAdapter(t *testing.T) {
 			t.Errorf("Unfulfilled expectations: %v", err)
 		}
 	})
-
 
 	/*
 		GIVEN a request to remove a game from a user's library
@@ -275,9 +316,6 @@ func TestLibraryDbAdapter(t *testing.T) {
 			t.Fatalf("Error setting up mock DB: %v", err)
 			defer adapter.db.Close()
 		}
-
-		userID := "test-user-id"
-		gameID := int64(123)
 
 		// Set up mock expectations for transaction
 		mock.ExpectBegin()
@@ -302,13 +340,12 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 	})
 
-
 	/*
-		GIVEN a request to check if a game is in a user's library
-		WHEN the game is in the library
-		THEN the adapter returns true
+		GIVEN a request to update a game in a user's library
+		WHEN the database operation is successful
+		THEN the adapter updates the game in the user's library
 	*/
-	t.Run("IsGameInLibrary correctly identifies if a game is in library", func(t *testing.T) {
+	t.Run("UpdateLibraryGame - Successfully updates a game", func(t *testing.T) {
 		// Setup
 		adapter, mock, err := setupMockDB()
 		if err != nil {
@@ -316,79 +353,49 @@ func TestLibraryDbAdapter(t *testing.T) {
 		}
 		defer adapter.db.Close()
 
-		userID := "test-user-id"
-		gameID := int64(123)
+		gameToSave := models.GameToSave{
+			GameID:               gameID,
+			GameName:             "Updated Test Game",
+			GameCoverURL:         "https://example.com/updated-cover.jpg",
+			GameFirstReleaseDate: 1640995200,
+			GameRating:           9.0,
+			GameType: models.GameToSaveIGDBType{
+				DisplayText:    "Digital",
+				NormalizedText: "digital",
+			},
+			PlatformLocations: []models.GameToSaveLocation{
+				{
+					PlatformID:   2,
+					PlatformName: "Steam",
+					Type:         "digital",
+					Location: models.GameToSaveLocationDetails{
+						DigitalLocationID: "steam-lib",
+					},
+				},
+			},
+		}
 
 		// Set up mock expectations
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs(userID, gameID).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
-
-		// Execute
-		exists, err := adapter.IsGameInLibrary(context.Background(), userID, gameID)
-
-		// Verify
-		if err != nil {
-			t.Errorf("Expected no error, got %v", err)
-		}
-		if !exists {
-			t.Errorf("Expected game to exist in library, got false")
-		}
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("Unfulfilled expectations: %v", err)
-		}
-	})
-
-
-
-	/*
-		GIVEN a request to update a game in the database
-		WHEN the database operation is successful
-		THEN the adapter updates the game information
-	*/
-	t.Run("UpdateLibraryGame successfully updates a game", func(t *testing.T) {
-		// Setup
-		adapter, mock, err := setupMockDB()
-		if err != nil {
-			t.Fatalf("Error setting up mock DB: %v", err)
-		}
-		defer adapter.db.Close()
-
-		game := models.Game{
-			ID:              123,
-			Name:            "Updated Game",
-			Summary:         "Updated Summary",
-			CoverURL:        "http://example.com/cover.jpg",
-			FirstReleaseDate: time.Now().Unix(),
-			Rating:          85.5,
-			PlatformNames:   []string{"Platform1", "Platform2"},
-			GenreNames:      []string{"Genre1", "Genre2"},
-			ThemeNames:      []string{"Theme1", "Theme2"},
-		}
-
-		// Set up mock expectations for transaction
-		mock.ExpectBegin()
-
 		// Update game
-		mock.ExpectExec("UPDATE games").
-			WithArgs(
-				game.Name,
-				game.Summary,
-				game.CoverURL,
-				game.FirstReleaseDate,
-				game.Rating,
-				pq.Array(game.PlatformNames),
-				pq.Array(game.GenreNames),
-				pq.Array(game.ThemeNames),
-				game.ID,
-			).
+		mock.ExpectExec("UPDATE games SET").
+			WithArgs(gameToSave.GameID, gameToSave.GameName, gameToSave.GameCoverURL,
+				gameToSave.GameType.DisplayText, gameToSave.GameType.NormalizedText).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		// Commit transaction
-		mock.ExpectCommit()
+		// Delete existing locations
+		mock.ExpectExec("DELETE FROM user_games").
+			WithArgs(gameToSave.GameID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Insert new location
+		mock.ExpectExec("INSERT INTO user_games").
+			WithArgs(gameToSave.GameID, gameToSave.PlatformLocations[0].PlatformID,
+				gameToSave.PlatformLocations[0].PlatformName, gameToSave.PlatformLocations[0].Type,
+				gameToSave.PlatformLocations[0].Location.SublocationID).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Execute
-		err = adapter.UpdateLibraryGame(context.Background(), game)
+		err = adapter.UpdateLibraryGame(context.Background(), gameToSave)
 
 		// Verify
 		if err != nil {

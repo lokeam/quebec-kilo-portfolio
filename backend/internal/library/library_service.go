@@ -117,6 +117,50 @@ func (ls *GameLibraryService) DeleteLibraryGame(
 	return nil
 }
 
+// DeleteGameVersions handles batch deletion of specific platform versions of a game
+func (ls *GameLibraryService) DeleteGameVersions(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+	request types.BatchDeleteLibraryGameRequest,
+) (types.BatchDeleteLibraryGameResponse, error) {
+	ls.logger.Info("GameLibraryService - DeleteGameVersions called", map[string]any{
+		"userID":    userID,
+		"gameID":    gameID,
+		"deleteAll": request.DeleteAll,
+		"versions":  request.Versions,
+	})
+
+	// Validate inputs
+	if err := ls.validator.ValidateUserID(userID); err != nil {
+		return types.BatchDeleteLibraryGameResponse{}, err
+	}
+	if err := ls.validator.ValidateGameID(gameID); err != nil {
+		return types.BatchDeleteLibraryGameResponse{}, err
+	}
+
+	// Validate request
+	if !request.DeleteAll && len(request.Versions) == 0 {
+		return types.BatchDeleteLibraryGameResponse{}, fmt.Errorf("no versions specified for deletion")
+	}
+
+	// Remove from database
+	response, err := ls.dbAdapter.DeleteGameVersions(ctx, userID, gameID, request)
+	if err != nil {
+		return types.BatchDeleteLibraryGameResponse{}, err
+	}
+
+	// Invalidate cache
+	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+	}
+	if err := ls.cacheWrapper.InvalidateGameCache(ctx, userID, gameID); err != nil {
+		ls.logger.Error("Failed to invalidate game cache", map[string]any{"error": err})
+	}
+
+	return response, nil
+}
+
 func (ls *GameLibraryService) GetSingleLibraryGame(
 	ctx context.Context,
 	userID string,

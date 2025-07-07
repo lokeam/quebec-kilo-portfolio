@@ -691,3 +691,188 @@ func (la *LibraryDbAdapter) GetLibraryRefactoredBFFResponse(
 
 	return response, nil
 }
+
+// DeleteGameVersions handles batch deletion of specific platform versions of a game
+func (la *LibraryDbAdapter) DeleteGameVersions(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+	request types.BatchDeleteLibraryGameRequest,
+) (types.BatchDeleteLibraryGameResponse, error) {
+	la.logger.Debug("DeleteGameVersions called", map[string]any{
+		"userID":    userID,
+		"gameID":    gameID,
+		"deleteAll": request.DeleteAll,
+		"versions":  request.Versions,
+	})
+
+	// Validate input parameters
+	if userID == "" {
+		return types.BatchDeleteLibraryGameResponse{}, fmt.Errorf("user ID cannot be empty")
+	}
+
+	if gameID <= 0 {
+		return types.BatchDeleteLibraryGameResponse{}, fmt.Errorf("game ID must be positive")
+	}
+
+	// Check if game exists in user's library
+	var exists bool
+	err := la.db.QueryRowContext(
+		ctx,
+		CheckIfGameIsInLibraryQuery,
+		userID,
+		gameID,
+	).Scan(&exists)
+	if err != nil {
+		return types.BatchDeleteLibraryGameResponse{}, fmt.Errorf("error checking if game exists in library: %w", err)
+	}
+
+	if !exists {
+		return types.BatchDeleteLibraryGameResponse{}, ErrGameNotFound
+	}
+
+	var deletedCount int
+	var deletedVersions []types.BatchDeleteLibraryGameVersion
+
+	// Use transaction for atomicity
+	err = postgres.WithTransaction(ctx, la.db, la.logger, func(tx *sqlx.Tx) error {
+		if request.DeleteAll {
+			// Delete all versions of the game
+			la.logger.Debug("Deleting all versions of game", map[string]any{
+				"userID": userID,
+				"gameID": gameID,
+			})
+
+			// Get all versions before deletion for response
+			var versions []struct {
+				UserGameID   int64  `db:"user_game_id"`
+				PlatformID   int64  `db:"platform_id"`
+				PlatformName string `db:"platform_name"`
+				Type         string `db:"type"`
+				LocationID   *string `db:"location_id"`
+			}
+
+			err := tx.SelectContext(
+				ctx,
+				&versions,
+				GetGameVersionsForBatchDeleteQuery,
+				userID,
+				gameID,
+			)
+			if err != nil {
+				return fmt.Errorf("error getting game versions: %w", err)
+			}
+
+			// Delete all user_game entries for this game (cascades to location tables)
+			result, err := tx.ExecContext(
+				ctx,
+				CascadingDeleteLibraryGameQuery,
+				userID,
+				gameID,
+			)
+			if err != nil {
+				return fmt.Errorf("error deleting all game versions: %w", err)
+			}
+
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("error getting rows affected: %w", err)
+			}
+
+			deletedCount = int(rowsAffected)
+
+			// Build deleted versions list for response
+			for _, version := range versions {
+				deletedVersions = append(deletedVersions, types.BatchDeleteLibraryGameVersion{
+					Type:       version.Type,
+					PlatformID: version.PlatformID,
+					LocationID: func() string {
+						if version.LocationID != nil {
+							return *version.LocationID
+						}
+						return ""
+					}(),
+				})
+			}
+
+		} else {
+			// Delete specific versions
+			if len(request.Versions) == 0 {
+				return fmt.Errorf("no versions specified for deletion")
+			}
+
+			la.logger.Debug("Deleting specific versions", map[string]any{
+				"userID":   userID,
+				"gameID":   gameID,
+				"versions": request.Versions,
+			})
+
+			// Separate physical and digital location IDs
+			var physicalLocationIDs []string
+			var digitalLocationIDs []string
+			var platformIDs []int64
+
+			for _, version := range request.Versions {
+				platformIDs = append(platformIDs, version.PlatformID)
+				if version.Type == "physical" {
+					physicalLocationIDs = append(physicalLocationIDs, version.LocationID)
+				} else if version.Type == "digital" {
+					digitalLocationIDs = append(digitalLocationIDs, version.LocationID)
+				}
+			}
+
+			// Delete specific versions
+			result, err := tx.ExecContext(
+				ctx,
+				DeleteSpecificGameVersionsQuery,
+				userID,
+				gameID,
+				pq.Array(platformIDs),
+				pq.Array(physicalLocationIDs),
+				pq.Array(digitalLocationIDs),
+			)
+			if err != nil {
+				return fmt.Errorf("error deleting specific game versions: %w", err)
+			}
+
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("error getting rows affected: %w", err)
+			}
+
+			deletedCount = int(rowsAffected)
+			deletedVersions = request.Versions
+
+			// Verify deletion was successful
+			if deletedCount == 0 {
+				return fmt.Errorf("no versions were deleted - check if specified versions exist")
+			}
+		}
+
+		la.logger.Debug("DeleteGameVersions success", map[string]any{
+			"deletedCount": deletedCount,
+			"deleteAll":    request.DeleteAll,
+		})
+
+		return nil
+	})
+
+	if err != nil {
+		la.logger.Error("DeleteGameVersions failed", map[string]any{
+			"error":        err,
+			"deletedCount": deletedCount,
+			"deleteAll":    request.DeleteAll,
+		})
+		return types.BatchDeleteLibraryGameResponse{}, err
+	}
+
+	response := types.BatchDeleteLibraryGameResponse{
+		Success:        true,
+		GameID:         gameID,
+		DeletedCount:   deletedCount,
+		Message:        fmt.Sprintf("Successfully deleted %d version(s)", deletedCount),
+		DeletedVersions: deletedVersions,
+	}
+
+	return response, nil
+}

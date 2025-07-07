@@ -30,6 +30,15 @@ type SingleGameResponse struct {
 	Game      LibraryGameResponse `json:"game"`
 }
 
+// BatchDeleteLibraryGameResponse represents the response for batch deletion operations
+type BatchDeleteLibraryGameResponse struct {
+	Success      bool     `json:"success"`
+	GameID       int64    `json:"game_id"`
+	DeletedCount int      `json:"deleted_count"`
+	Message      string   `json:"message"`
+	DeletedVersions []BatchDeleteLibraryGameVersion `json:"deleted_versions,omitempty"`
+}
+
 // Database result types for library games
 type LibraryGameDBResult struct {
 	ID                    int64     `db:"id"`

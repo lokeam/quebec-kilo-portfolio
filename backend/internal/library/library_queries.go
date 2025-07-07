@@ -151,4 +151,49 @@ const (
 			GROUP BY g.id, g.name, g.cover_url, g.first_release_date, g.rating, ug.game_type, ug.favorite, ug.created_at, ug.id
 			ORDER BY g.id, ug.id
 	`
+
+	// Batch deletion queries
+	// Get all versions of a game for a user (used when deleteAll = true)
+	GetGameVersionsForBatchDeleteQuery = `
+		SELECT
+			ug.id as user_game_id,
+			ug.game_id,
+			ug.platform_id,
+			p.name as platform_name,
+			ug.game_type as type,
+			COALESCE(pgl.sublocation_id, dgl.digital_location_id) as location_id
+		FROM user_games ug
+		JOIN platforms p ON ug.platform_id = p.id
+		LEFT JOIN physical_game_locations pgl ON ug.id = pgl.user_game_id
+		LEFT JOIN digital_game_locations dgl ON ug.id = dgl.user_game_id
+		WHERE ug.user_id = $1 AND ug.game_id = $2
+	`
+
+	// Delete specific user_game entries (this will cascade to location tables)
+	DeleteSpecificGameVersionsQuery = `
+		DELETE FROM user_games
+		WHERE user_id = $1
+		AND game_id = $2
+		AND platform_id = ANY($3)
+		AND (
+			(game_type = 'physical' AND id IN (
+				SELECT pgl.user_game_id
+				FROM physical_game_locations pgl
+				WHERE pgl.sublocation_id = ANY($4)
+			))
+			OR
+			(game_type = 'digital' AND id IN (
+				SELECT dgl.user_game_id
+				FROM digital_game_locations dgl
+				WHERE dgl.digital_location_id = ANY($5)
+			))
+		)
+	`
+
+		// Count deleted versions for response
+	CountDeletedGameVersionsQuery = `
+		SELECT COUNT(*)
+		FROM user_games
+		WHERE user_id = $1 AND game_id = $2
+	`
 )

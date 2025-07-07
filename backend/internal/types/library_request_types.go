@@ -15,6 +15,20 @@ type UpdateLibraryGameRequest struct {
 	GamesByPlatformAndLocation    []LibraryRequestGameLocation    `json:"games_by_platform_and_location"`
 }
 
+// BatchDeleteLibraryGameRequest represents a request to delete specific platform versions of a game
+type BatchDeleteLibraryGameRequest struct {
+	GameID    int64                           `json:"game_id"`
+	DeleteAll bool                            `json:"delete_all"`
+	Versions  []BatchDeleteLibraryGameVersion `json:"versions"`
+}
+
+// BatchDeleteLibraryGameVersion represents a specific version to delete
+type BatchDeleteLibraryGameVersion struct {
+	Type        string `json:"type"`         // "physical" or "digital"
+	LocationID  string `json:"location_id"`  // sublocation_id or digital_location_id
+	PlatformID  int64  `json:"platform_id"`  // platform ID
+}
+
 type LibraryRequestGameType struct {
 	DisplayText     string `json:"display_text"`
 	NormalizedText  string `json:"normalized_text"`

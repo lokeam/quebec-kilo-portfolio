@@ -290,6 +290,7 @@ func UpdateLibraryGame(
 }
 
 // DeleteGameFromLibrary handles DELETE requests for deleting a game from the library
+// Supports both single game deletion (no request body) and batch version deletion (with request body)
 func DeleteGameFromLibrary(
 	appCtx *appcontext.AppContext,
 	libraryService services.LibraryService,
@@ -334,43 +335,100 @@ func DeleteGameFromLibrary(
 			return
 		}
 
-		appCtx.Logger.Info("Deleting game from library", map[string]any{
-			"requestID": requestID,
-			"userID":    userID,
-			"gameID":    gameIDint64,
-		})
+		// Check if request has a body (batch deletion) or no body (single game deletion)
+		contentLength := r.ContentLength
+		if contentLength > 0 {
+			// Batch deletion - parse request body
+			appCtx.Logger.Info("Batch deleting game versions from library", map[string]any{
+				"requestID": requestID,
+				"userID":    userID,
+				"gameID":    gameIDint64,
+			})
 
-		if err := libraryService.DeleteLibraryGame(
-			r.Context(),
-			userID,
-			gameIDint64,
-		); err != nil {
-			if errors.Is(err, ErrGameNotFound) {
+			var batchDeleteRequest types.BatchDeleteLibraryGameRequest
+			if err := json.NewDecoder(r.Body).Decode(&batchDeleteRequest); err != nil {
+				handleError(w, appCtx.Logger, requestID, errors.New("invalid request body"))
+				return
+			}
+
+			// Set the game ID from the URL path
+			batchDeleteRequest.GameID = gameIDint64
+
+			// Call batch deletion service method
+			response, err := libraryService.DeleteGameVersions(
+				r.Context(),
+				userID,
+				gameIDint64,
+				batchDeleteRequest,
+			)
+			if err != nil {
 				handleError(w, appCtx.Logger, requestID, err)
 				return
 			}
-			handleError(w, appCtx.Logger, requestID, err)
-			return
-		}
 
-		// Invalidate analytics cache for inventory domain
-		if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
-			appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+			// Invalidate analytics cache for inventory domain
+			if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+				appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+					"requestID": requestID,
+					"userID":    userID,
+					"error":     err,
+				})
+			}
+
+			// Use standard response format
+			apiResponse := httputils.NewAPIResponse(r, userID, map[string]any{
+				"library": response,
+			})
+
+			httputils.RespondWithJSON(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				http.StatusOK,
+				apiResponse,
+			)
+
+		} else {
+			// Single game deletion - no request body
+			appCtx.Logger.Info("Deleting entire game from library", map[string]any{
 				"requestID": requestID,
 				"userID":    userID,
-				"error":     err,
+				"gameID":    gameIDint64,
 			})
+
+			if err := libraryService.DeleteLibraryGame(
+				r.Context(),
+				userID,
+				gameIDint64,
+			); err != nil {
+				if errors.Is(err, ErrGameNotFound) {
+					handleError(w, appCtx.Logger, requestID, err)
+					return
+				}
+				handleError(w, appCtx.Logger, requestID, err)
+				return
+			}
+
+			// Invalidate analytics cache for inventory domain
+			if err := analyticsService.InvalidateDomain(r.Context(), userID, analytics.DomainInventory); err != nil {
+				appCtx.Logger.Warn("Failed to invalidate analytics cache", map[string]any{
+					"requestID": requestID,
+					"userID":    userID,
+					"error":     err,
+				})
+			}
+
+			response := httputils.NewAPIResponse(r, userID, map[string]any{
+				"message": "Game removed from library successfully",
+			})
+
+			httputils.RespondWithJSON(
+				httputils.NewResponseWriterAdapter(w),
+				appCtx.Logger,
+				http.StatusOK,
+				response,
+			)
 		}
-
-		response := httputils.NewAPIResponse(r, userID, map[string]any{
-			"message": "Game removed from library successfully",
-		})
-
-		httputils.RespondWithJSON(
-			httputils.NewResponseWriterAdapter(w),
-			appCtx.Logger,
-			http.StatusOK,
-			response,
-		)
 	}
 }
+
+

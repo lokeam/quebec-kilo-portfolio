@@ -28,6 +28,16 @@ func (m *MockLibraryService) DeleteLibraryGame(
 	return nil
 }
 
+func (m *MockLibraryService) DeleteGameVersions(
+	ctx context.Context,
+	userID string,
+	gameID int64,
+	request types.BatchDeleteLibraryGameRequest,
+) (types.BatchDeleteLibraryGameResponse, error) {
+	args := m.Called(ctx, userID, gameID, request)
+	return args.Get(0).(types.BatchDeleteLibraryGameResponse), args.Error(1)
+}
+
 func (m *MockLibraryService) GetSingleLibraryGame(
 	ctx context.Context,
 	userID string,

@@ -13,6 +13,7 @@ type LibraryDbAdapter interface {
 	UpdateLibraryGame(ctx context.Context, game models.GameToSave) error
 	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
+	DeleteGameVersions(ctx context.Context, userID string, gameID int64, request types.BatchDeleteLibraryGameRequest) (types.BatchDeleteLibraryGameResponse, error)
 	IsGameInLibrary(ctx context.Context, userID string, gameID int64) (bool, error)
 
 	// REFACTORED RESPONSE WITH HELPER METHODS

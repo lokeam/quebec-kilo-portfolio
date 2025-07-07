@@ -70,6 +70,7 @@ type LibraryService interface {
 	CreateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	UpdateLibraryGame(ctx context.Context, userID string, game models.GameToSave) error
 	DeleteLibraryGame(ctx context.Context, userID string, gameID int64) error
+	DeleteGameVersions(ctx context.Context, userID string, gameID int64, request types.BatchDeleteLibraryGameRequest) (types.BatchDeleteLibraryGameResponse, error)
 	InvalidateUserCache(ctx context.Context, userID string) error
 	IsGameInLibraryBFF(ctx context.Context, userID string, gameID int64) (bool, error)
 }

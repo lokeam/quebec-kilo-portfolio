@@ -34,6 +34,15 @@ type GameToSaveLocationDetails struct {
 	DigitalLocationID string  `json:"digital_location_id,omitempty"`
 }
 
+// BatchDeleteGameVersion represents a specific version to delete for batch operations
+type BatchDeleteGameVersion struct {
+	UserGameID   int64  `db:"user_game_id"`
+	GameID       int64  `db:"game_id"`
+	PlatformID   int64  `db:"platform_id"`
+	PlatformName string `db:"platform_name"`
+	Type         string `db:"type"` // "physical" or "digital"
+	LocationID   string `db:"location_id"` // sublocation_id or digital_location_id
+}
 
 // LibraryLocationDB represents the database model for library BFF operations
 type GameLocationDatabaseEntry struct {
