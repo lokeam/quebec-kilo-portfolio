@@ -1,8 +1,8 @@
 /**
  * HTTP Constants for API Communication
  *
- * This file contains all HTTP-related constants used throughout the API layer.
- * Centralizing these constants improves maintainability and reduces magic strings.
+ * Contains all HTTP-related constants used throughout the API layer.
+ * Improves maintainability and reduces magic strings.
  *
  * USAGE:
  * import { HTTP_STATUS, HTTP_HEADERS, HTTP_METHODS } from '@/core/api/constants/http-constants';

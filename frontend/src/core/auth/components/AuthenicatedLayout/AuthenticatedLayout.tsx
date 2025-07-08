@@ -1,11 +1,12 @@
 // Components
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
-import { NotifyPopover } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotifyPopover';
+//import { NotifyPopover } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotifyPopover';
 //import { AddItemSearchDialog } from '@/features/dashboard/components/organisms/AddItemSearchDialog/AddItemSearchDialog';
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 import { GameSearchAndSelectDialog } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/GameSearchAndSelectDialog';
+import { FeedbackButton } from '@/shared/components/ui/feedback-button/FeedbackButton';
 
 // ShadCN UI Components
 //import { Toaster } from '@/shared/components/ui/sonner';
@@ -45,6 +46,9 @@ export default function AuthenticatedLayout() {
 
               {/* Notifications */}
               {/* <NotifyPopover /> */}
+
+              {/* Feedback Button */}
+              <FeedbackButton variant="outline" size="sm" />
 
               {/* User Login Avatar */}
               <AvatarDropDownMenu />

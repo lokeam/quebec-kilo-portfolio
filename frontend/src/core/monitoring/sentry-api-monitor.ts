@@ -128,22 +128,22 @@ export function logAuthError(error: Error, context: AuthErrorContext): void {
  *
  * WHAT:
  * Adds a note to the timeline showing what happened during an API call.
- * Breadcrumbs are like a trail of breadcrumbs showing the path the user took.
- * They help you understand what happened before an error occurred.
+ * Breadcrumbs create a list of actions that describe the path the user took.
+ * Used to understand what happened before an error occurred.
  *
  * WHEN:
  * Use this to track API events that aren't errors but are important to know about.
- * For example: when an API call starts, when it succeeds, or when something interesting happens.
+ * Example: when an API call starts, when it succeeds, or when something noteworthy happens.
  *
  * INFO DISPLAYED IN SENTRY:
- * - What happened (your custom message)
+ * - What happened (some custom message)
  * - Which API endpoint was involved
  * - What type of request it was
  * - Any extra data you want to include
  * - When it happened
  *
  * EXAMPLE:
- * User starts uploading a file, you want to track it.
+ * User starts uploading a file, we want to track it.
  * In Sentry we should see: "File upload started for /api/upload" in the breadcrumb trail
  *
  * DIFFERENCE FROM logApiError:
@@ -167,11 +167,11 @@ export function logApiBreadcrumb(context: ApiBreadcrumbContext): void {
  * Log a successful API call (optional - for performance monitoring)
  *
  * WHAT:
- * Records successful API calls so you can track how fast your APIs are responding.
- * This helps you identify slow endpoints before users complain.
+ * Records successful API calls so we may track how fast the APIs are responding.
+ * Ideally helps identify slow endpoints before users complain.
  *
  * WHEN:
- * You can call this manually after successful API calls, or add it to the axios interceptor.
+ * Call this manually after successful API calls, or add it to the axios interceptor.
  *
  * INFO DISPLAYED IN SENTRY:
  * - Which API call succeeded
