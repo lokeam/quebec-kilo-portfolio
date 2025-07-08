@@ -5,9 +5,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react';
 import { AuthInitializer } from '@/core/api/components/AuthInitializer';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { logger } from '@/core/utils/logger/logger';
+import { createSentryQueryClient } from '@/core/api/sentryQueryClient';
 
 import App from './App.tsx'
 import './index.css'
@@ -22,14 +23,7 @@ logger.configure({
   level: process.env.NODE_ENV === 'development' ? 'debug' : 'error'
 });
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 90 * 60 * 1000, // 90 minutes
-    },
-  },
-});
+const queryClient = createSentryQueryClient();
 
 root.render(
   <StrictMode>

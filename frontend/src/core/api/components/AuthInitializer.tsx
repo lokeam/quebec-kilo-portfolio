@@ -1,10 +1,11 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect } from 'react';
+import * as Sentry from '@sentry/react';
 import { setAuth0TokenFn } from '@/core/api/utils/auth.utils';
 
 /**
  * AuthInitializer is a crucial component that bridges Auth0 authentication
- * with the API layer. It ensures that every API request has access to
+ * with the API layer. Ensures that every API request has access to
  * the latest auth token.
  *
  * Why this exists:
@@ -42,13 +43,38 @@ import { setAuth0TokenFn } from '@/core/api/utils/auth.utils';
  * @param props.children - Child components that need access to authenticated API calls
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { getAccessTokenSilently } = useAuth0();
+  const { getAccessTokenSilently, user, isAuthenticated } = useAuth0();
 
   useEffect(() => {
     // Register token getter function with API layer
     // This function will be called whenever we need a fresh token
     setAuth0TokenFn(() => getAccessTokenSilently());
   }, [getAccessTokenSilently]);
+
+  // Set Sentry user context when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Set user context in Sentry for error tracking
+
+      // Auth0 user ID (e.g., "auth0|123456")
+      Sentry.setUser({
+        id: user.sub,
+        email: user.email,
+        username: user.name || user.email,
+      });
+
+      // Add user properties for better error context
+      Sentry.setContext('user', {
+        email: user.email,
+        name: user.name,
+        email_verified: user.email_verified,
+        sub: user.sub,
+      });
+    } else {
+      // Clear user context when not authenticated
+      Sentry.setUser(null);
+    }
+  }, [isAuthenticated, user]);
 
   return <>{children}</>;
 }

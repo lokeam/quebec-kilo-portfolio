@@ -10,15 +10,12 @@ import { ItemsByPlatformCard } from '@/features/dashboard/components/organisms/H
 import { SingleStatisticsCard } from '@/features/dashboard/components/organisms/HomePage/SingleStatisticsCard/SingleStatisticsCard';
 import { OnlineServicesCard } from '@/features/dashboard/components/organisms/HomePage/OnlineServicesCard/OnlineServicesCard';
 import { StorageLocationsTabCard } from '@/features/dashboard/components/organisms/HomePage/StorageLocationsTabCard/StorageLocationsTabCard';
-import { WishListDealsCard } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/WishListDealsCard';
 import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/MonthlySpendingCard';
 
 // Mock Data
-//import { onlineServicesData } from '@/features/dashboard/components/organisms/HomePage/OnlineServicesCard/onlineServicesCard.mockdata';
-//import { storageLocationsData } from '@/features/dashboard/components/organisms/HomePage/StorageLocationsTabCard/storageLocationsTabCard.mockdata';
-//import { itemsByPlatformData } from '@/features/dashboard/components/organisms/HomePage/ItemsByPlatformCard/itemsByPlatformCard.mock.data';
-import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/wishlistDealsCard.mockdata';
-//import { monthlySpendingData } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/monthlySpendingCard.mockdata';
+
+//import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/wishlistDealsCard.mockdata';
+
 
 // API Layer hooks
 import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries';
@@ -26,11 +23,15 @@ import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries
 // Skeleton UI
 import { HomePageSkeleton } from './HomePageSkeleton';
 
+// Sentry tracking
+import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
+
 // Page mock data
 //import { homePageMockData } from './Homepage.mockdata';
 
 export function HomePageContent() {
   const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
+  const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
 
   // Replace with query hook
   //const isLoading = false;
@@ -46,8 +47,39 @@ export function HomePageContent() {
     <PageMain>
       <PageHeadline>
         <h1 className='text-2xl font-bold tracking-tight'>Home Page Dashboard</h1>
-        <div className='flex items-center space-x-2'>
+                <div className='flex items-center space-x-2'>
             <Button>Download Dashboard Summary</Button>
+                        <Button
+              variant="destructive"
+              onClick={() => {
+                const startTime = performance.now();
+
+                // Track the test action
+                trackAction('test_sentry_tunnel', {
+                  purpose: 'testing_sentry_implementation',
+                  timestamp: new Date().toISOString()
+                });
+
+                // Track user interaction with performance
+                const duration = performance.now() - startTime;
+                trackUserInteraction('test_button_click', duration, {
+                  buttonType: 'test',
+                  purpose: 'sentry_testing'
+                });
+
+                // Throw test error
+                const testError = new Error("Sentry Test Error - Testing Phase 4 implementation");
+                trackError(testError, {
+                  testType: 'manual_test',
+                  userInitiated: true,
+                  phase: 'phase_4'
+                });
+
+                throw testError;
+              }}
+            >
+              Test Sentry Phase 4
+            </Button>
           </div>
       </PageHeadline>
 

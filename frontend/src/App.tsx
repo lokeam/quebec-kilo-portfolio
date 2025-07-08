@@ -1,5 +1,6 @@
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute';
 
 // Pages
@@ -94,6 +95,35 @@ const LoginPage = lazy(() => import(
   '@/features/login/pages/LoginPage'
 ));
 
+// Route monitoring component
+function RouteMonitor() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Track route changes in Sentry
+    Sentry.addBreadcrumb({
+      category: 'navigation',
+      message: `Route changed to: ${location.pathname}`,
+      level: 'info',
+      data: {
+        from: location.pathname,
+        to: location.pathname,
+        search: location.search,
+        hash: location.hash,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
+    // Set route context for error reporting
+    Sentry.setContext('navigation', {
+      currentRoute: location.pathname,
+      search: location.search,
+      hash: location.hash,
+    });
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
 
 function App() {
   return (
@@ -103,6 +133,7 @@ function App() {
             <TooltipProvider delayDuration={300}>
               <NetworkStatusProvider>
                 <TanstackMutationToast />
+                <RouteMonitor />
                 <Suspense fallback={<Loading />}>
                   <Routes>
                     {/* Public routes */}
