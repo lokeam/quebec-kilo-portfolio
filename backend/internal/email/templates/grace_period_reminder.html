@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Reminder: Account Deletion</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; }
+        .urgent { background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .button { background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚠️ Final Reminder: Account Deletion</h1>
+        </div>
+
+        <div class="content">
+            <p>Hello,</p>
+
+            <p>This is your final reminder that your QKO account deletion request is about to be processed.</p>
+
+            <div class="urgent">
+                <h3>🚨 URGENT: {{.DaysLeft}} days remaining</h3>
+                <p><strong>Your account will be permanently deleted in {{.DaysLeft}} days.</strong></p>
+                <p>After this period, all your data including games, locations, and preferences will be permanently removed and cannot be recovered.</p>
+            </div>
+
+            <h3>What will be deleted?</h3>
+            <ul>
+                <li>All your game collections and libraries</li>
+                <li>Physical and digital location data</li>
+                <li>Spending tracking information</li>
+                <li>Wishlist items</li>
+                <li>Account preferences and settings</li>
+                <li>All associated data and metadata</li>
+            </ul>
+
+            <h3>How to cancel the deletion</h3>
+            <p>If you want to keep your account and data:</p>
+            <ol>
+                <li>Log into your QKO account</li>
+                <li>Go to Account Settings</li>
+                <li>Click "Cancel Deletion Request"</li>
+                <li>Your account will be immediately reactivated</li>
+            </ol>
+
+            <p><strong>This is your last chance to save your data.</strong></p>
+
+            <h3>Need your data before deletion?</h3>
+            <p>If you want a copy of your data before deletion, you can request a data export from your account settings. This will provide you with a JSON file containing all your data.</p>
+
+            <h3>Questions or concerns?</h3>
+            <p>If you have any questions about this deletion or need assistance, please contact our support team immediately.</p>
+
+            <p>Best regards,<br>The QKO Team</p>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated reminder about your account deletion request. If you did not request this deletion, please contact our support team immediately.</p>
+            <p>QKO respects your privacy and complies with GDPR regulations.</p>
+        </div>
+    </div>
+</body>
+</html>

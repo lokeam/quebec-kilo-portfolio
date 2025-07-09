@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Confirmed</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #6c757d; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; }
+        .info { background-color: #e9ecef; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account Deletion Confirmed</h1>
+        </div>
+
+        <div class="content">
+            <p>Hello,</p>
+
+            <p>This email confirms that your QKO account has been permanently deleted as requested.</p>
+
+            <div class="info">
+                <h3>✅ Deletion Completed</h3>
+                <p><strong>Date:</strong> {{.DeletionDate}}</p>
+                <p><strong>Account ID:</strong> {{.UserID}}</p>
+            </div>
+
+            <h3>What was deleted?</h3>
+            <ul>
+                <li>Your account profile and settings</li>
+                <li>All game collections and libraries</li>
+                <li>Physical and digital location data</li>
+                <li>Spending tracking information</li>
+                <li>Wishlist items and preferences</li>
+                <li>All associated metadata and analytics</li>
+            </ul>
+
+            <h3>Data retention policy</h3>
+            <p>In accordance with GDPR and our data retention policy:</p>
+            <ul>
+                <li><strong>Audit logs:</strong> Retained for 7 years for compliance purposes</li>
+                <li><strong>User data:</strong> Permanently deleted</li>
+                <li><strong>Analytics:</strong> Anonymized and retained for service improvement</li>
+            </ul>
+
+            <h3>Your rights under GDPR</h3>
+            <p>As per GDPR Article 17 (Right to Erasure):</p>
+            <ul>
+                <li>✅ Your personal data has been permanently deleted</li>
+                <li>✅ We have notified any third parties who may have processed your data</li>
+                <li>✅ Audit logs are maintained for legal compliance only</li>
+            </ul>
+
+            <h3>If you didn't request this deletion</h3>
+            <p>If you believe this deletion was made in error or without your consent, please contact our support team immediately. We will investigate the matter thoroughly.</p>
+
+            <h3>Starting fresh?</h3>
+            <p>If you decide to use QKO again in the future, you can create a new account at any time. Your new account will start completely fresh with no connection to your previous data.</p>
+
+            <p>Thank you for using QKO. We're sorry to see you go.</p>
+
+            <p>Best regards,<br>The QKO Team</p>
+        </div>
+
+        <div class="footer">
+            <p>This email confirms the permanent deletion of your account as requested. If you have any questions about this deletion, please contact our support team.</p>
+            <p>QKO complies with GDPR regulations and respects your privacy rights.</p>
+        </div>
+    </div>
+</body>
+</html>

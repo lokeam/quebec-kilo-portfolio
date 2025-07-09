@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Data Export is Ready</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #17a2b8; color: white; padding: 20px; border-radius: 5px; }
+        .content { padding: 20px; }
+        .download { background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .button { background-color: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Your Data Export is Ready</h1>
+        </div>
+
+        <div class="content">
+            <p>Hello,</p>
+
+            <p>Your data export request has been processed and is ready for download. This export contains all your personal data from QKO.</p>
+
+            <div class="download">
+                <h3>📥 Download Your Data</h3>
+                <p><strong>Download Link:</strong> <a href="{{.ExportURL}}" class="button">Download Data Export</a></p>
+                <p><strong>Expires:</strong> This link will expire in 7 days for security reasons</p>
+                <p><strong>Format:</strong> JSON file containing all your data</p>
+            </div>
+
+            <h3>What's included in your export?</h3>
+            <ul>
+                <li><strong>Account Information:</strong> Profile data, settings, and preferences</li>
+                <li><strong>Game Collections:</strong> All your games, platforms, and library data</li>
+                <li><strong>Physical Locations:</strong> Storage locations, sublocations, and game placements</li>
+                <li><strong>Digital Locations:</strong> Digital platforms, subscriptions, and payment history</li>
+                <li><strong>Spending Data:</strong> Purchase history, spending tracking, and financial data</li>
+                <li><strong>Wishlist:</strong> All your wishlist items and preferences</li>
+                <li><strong>Audit Logs:</strong> Account activity and data processing history</li>
+            </ul>
+
+            <h3>Your data rights (GDPR)</h3>
+            <p>Under GDPR Article 20 (Right to Data Portability), you have the right to:</p>
+            <ul>
+                <li>✅ Receive your personal data in a structured, commonly used format</li>
+                <li>✅ Transfer your data to another service provider</li>
+                <li>✅ Have your data transmitted directly between controllers</li>
+            </ul>
+
+            <h3>Data security</h3>
+            <p>Your data export is:</p>
+            <ul>
+                <li>🔒 <strong>Securely generated</strong> with your account credentials</li>
+                <li>⏰ <strong>Temporarily available</strong> (7-day expiration)</li>
+                <li>📁 <strong>Complete and accurate</strong> as of the export date</li>
+                <li>🔐 <strong>Encrypted in transit</strong> when downloading</li>
+            </ul>
+
+            <h3>Need help?</h3>
+            <p>If you have trouble downloading your data or need assistance with the export format, please contact our support team.</p>
+
+            <p>Best regards,<br>The QKO Team</p>
+        </div>
+
+        <div class="footer">
+            <p>This data export was generated in response to your GDPR data portability request. The download link will expire in 7 days for security reasons.</p>
+            <p>QKO respects your privacy and complies with GDPR regulations.</p>
+        </div>
+    </div>
+</body>
+</html>
