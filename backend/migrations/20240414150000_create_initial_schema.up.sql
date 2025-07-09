@@ -12,7 +12,21 @@ CREATE TABLE users (
     id VARCHAR(255) PRIMARY KEY,  -- Auth0 user ID
     email VARCHAR(255) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    -- User deletion tracking fields
+    deletion_requested_at TIMESTAMP WITH TIME ZONE,
+    deletion_reason TEXT,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Create audit_logs table for compliance and tracking
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    details JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create games table
@@ -278,6 +292,11 @@ CREATE INDEX idx_one_time_purchases_digital_location ON one_time_purchases(digit
 CREATE INDEX idx_one_time_purchases_category ON one_time_purchases(spending_category_id);
 CREATE INDEX idx_monthly_aggregates_user_year_month ON monthly_spending_aggregates(user_id, year, month);
 CREATE INDEX idx_yearly_aggregates_user_year ON yearly_spending_aggregates(user_id, year);
+
+-- Create indexes for audit_logs table
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX idx_audit_logs_action ON audit_logs(action);
 
 -- Create trigger function for maintaining stored_items count
 CREATE OR REPLACE FUNCTION update_stored_items_count()
