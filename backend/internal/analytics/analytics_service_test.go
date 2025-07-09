@@ -45,6 +45,7 @@ type MockCacheWrapper struct {
 	GetCachedResultsFunc func(ctx context.Context, key string, result any) (bool, error)
 	SetCachedResultsFunc func(ctx context.Context, key string, data any) error
 	DeleteCacheKeyFunc   func(ctx context.Context, key string) error
+	InvalidateCacheFunc  func(ctx context.Context, pattern string) error
 }
 
 func (m *MockCacheWrapper) GetCachedResults(ctx context.Context, key string, result any) (bool, error) {
@@ -57,6 +58,10 @@ func (m *MockCacheWrapper) SetCachedResults(ctx context.Context, key string, dat
 
 func (m *MockCacheWrapper) DeleteCacheKey(ctx context.Context, key string) error {
 	return m.DeleteCacheKeyFunc(ctx, key)
+}
+
+func (m *MockCacheWrapper) InvalidateCache(ctx context.Context, pattern string) error {
+	return m.InvalidateCacheFunc(ctx, pattern)
 }
 
 func newMockAnalyticsServiceWithDefaults(logger *testutils.TestLogger) Service {
@@ -125,6 +130,9 @@ func newMockAnalyticsServiceWithDefaults(logger *testutils.TestLogger) Service {
 			return nil
 		},
 		DeleteCacheKeyFunc: func(ctx context.Context, key string) error {
+			return nil
+		},
+		InvalidateCacheFunc: func(ctx context.Context, pattern string) error {
 			return nil
 		},
 	}

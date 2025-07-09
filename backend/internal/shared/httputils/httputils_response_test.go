@@ -1,7 +1,6 @@
 package httputils
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -163,11 +162,3 @@ func TestRespondWithJSON(t *testing.T) {
 
 }
 
-func TestRespondWithError(t *testing.T) {
-
-}
-
-// Helper fn to check if substring is in string
-func contains(str, subStr string) bool {
-	return bytes.Contains([]byte(str), []byte(subStr))
-}

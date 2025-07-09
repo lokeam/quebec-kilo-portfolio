@@ -689,9 +689,9 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 		{
 			name: "valid subscription",
 			subscription: models.Subscription{
-				BillingCycle:    "monthly",
+				BillingCycle:    "1 month",
 				CostPerCycle:    9.99,
-				PaymentMethod:   "Visa",
+				PaymentMethod:   "visa",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0), // 1 month in future
 			},
 			wantErr: false,
@@ -699,9 +699,9 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 		{
 			name: "valid subscription with past payment date",
 			subscription: models.Subscription{
-				BillingCycle:    "monthly",
+				BillingCycle:    "1 month",
 				CostPerCycle:    9.99,
-				PaymentMethod:   "Visa",
+				PaymentMethod:   "visa",
 				NextPaymentDate: fixedTime.AddDate(0, -1, 0), // 1 month in past (should be accepted)
 			},
 			wantErr: false,
@@ -720,9 +720,9 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 		{
 			name: "invalid cost per cycle",
 			subscription: models.Subscription{
-				BillingCycle:    "monthly",
+				BillingCycle:    "1 month",
 				CostPerCycle:    -1.00,
-				PaymentMethod:   "Visa",
+				PaymentMethod:   "visa",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
 			},
 			wantErr:     true,
@@ -731,7 +731,7 @@ func TestDigitalValidator_ValidateSubscription(t *testing.T) {
 		{
 			name: "invalid payment method",
 			subscription: models.Subscription{
-				BillingCycle:    "monthly",
+				BillingCycle:    "1 month",
 				CostPerCycle:    9.99,
 				PaymentMethod:   "invalid",
 				NextPaymentDate: fixedTime.AddDate(0, 1, 0),
@@ -806,7 +806,7 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error for empty location ID")
 		}
-		if !strings.Contains(err.Error(), "location ID cannot be empty") {
+		if !strings.Contains(err.Error(), "no valid location IDs after sanitization and deduplication") {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
@@ -816,19 +816,23 @@ func TestValidateRemoveDigitalLocation(t *testing.T) {
 		if err == nil {
 			t.Error("Expected error for invalid UUID format")
 		}
-		if !strings.Contains(err.Error(), "invalid location ID format") {
+		if !strings.Contains(err.Error(), "failed to sanitize location ID") {
 			t.Errorf("Unexpected error message: %v", err)
 		}
 	})
 
 	t.Run("duplicate location IDs", func(t *testing.T) {
 		duplicateID := "123e4567-e89b-12d3-a456-426614174000"
-		_, err := validator.ValidateRemoveDigitalLocation("user1", []string{duplicateID, duplicateID})
-		if err == nil {
-			t.Error("Expected error for duplicate location IDs")
+		validatedIDs, err := validator.ValidateRemoveDigitalLocation("user1", []string{duplicateID, duplicateID})
+		if err != nil {
+			t.Errorf("Unexpected error for duplicate location IDs: %v", err)
 		}
-		if !strings.Contains(err.Error(), "duplicate location ID") {
-			t.Errorf("Unexpected error message: %v", err)
+		// The validator should deduplicate automatically, so we should get only 1 ID
+		if len(validatedIDs) != 1 {
+			t.Errorf("Expected 1 validated ID after deduplication, got %d", len(validatedIDs))
+		}
+		if validatedIDs[0] != duplicateID {
+			t.Errorf("Expected validated ID to be %s, got %s", duplicateID, validatedIDs[0])
 		}
 	})
 

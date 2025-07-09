@@ -1106,8 +1106,8 @@ func TestRemoveDigitalLocation_Performance(t *testing.T) {
 	service := newMockGameDigitalServiceWithDefaults(testutils.NewTestLogger())
 
 	t.Run("large number of locations", func(t *testing.T) {
-		// Setup
-		locationIDs := make([]string, 100)
+		// Setup - use 10 locations instead of 100 to stay within the 12 limit
+		locationIDs := make([]string, 10)
 		for i := range locationIDs {
 			locationIDs[i] = fmt.Sprintf("123e4567-e89b-12d3-a456-426614174%03d", i)
 		}
@@ -1126,6 +1126,6 @@ func TestRemoveDigitalLocation_Performance(t *testing.T) {
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
-		assert.Equal(t, int64(100), count)
+		assert.Equal(t, int64(10), count)
 	})
 }
