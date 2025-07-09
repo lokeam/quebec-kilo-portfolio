@@ -22,6 +22,7 @@ type Config struct {
 	IGDB   *IGDBConfig
 	Redis  RedisConfig
 	Postgres *PostgresConfig
+	Email  *EmailConfig
 	HealthStatus string
 }
 
@@ -64,6 +65,13 @@ type PostgresConfig struct {
 	MaxConnections   int
 	MaxIdleTime      time.Duration
 	MaxLifetime      time.Duration
+}
+
+type EmailConfig struct {
+	ResendAPIKey string
+	FromAddress  string
+	FromName     string
+	TemplateDir  string
 }
 
 func Load() (*Config, error) {
@@ -155,6 +163,14 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DATABASE_URL is required")
 	}
 
+	// Email Configuration
+	emailConfig := &EmailConfig{
+		ResendAPIKey: os.Getenv(EnvResendAPIKey),
+		FromAddress:  getEnvOrDefault(EnvEmailFromAddress, "noreply@resend.dev"),
+		FromName:     getEnvOrDefault(EnvEmailFromName, "Quebec Kilo"),
+		TemplateDir:  "internal/email/templates",
+	}
+
 	return &Config{
 		Server: ServerConfig{
 				Port: port,
@@ -166,6 +182,7 @@ func Load() (*Config, error) {
 		IGDB:         &igdbConfig,
 		Redis:        redisConfig,
 		Postgres:     postgresConfig,
+		Email:        emailConfig,
 		HealthStatus: healthStatus,
 	}, nil
 }

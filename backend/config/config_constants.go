@@ -15,6 +15,11 @@ const (
 	// Auth0
 	EnvAuth0Domain = "AUTH0_DOMAIN"
 	EnvAuth0Audience = "AUTH0_AUDIENCE"
+
+	// Email
+	EnvResendAPIKey    = "RESEND_API_KEY"
+	EnvEmailFromAddress = "EMAIL_FROM_ADDRESS"
+	EnvEmailFromName   = "EMAIL_FROM_NAME"
 )
 
 // IGDB API endpoints
