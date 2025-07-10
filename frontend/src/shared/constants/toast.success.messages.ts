@@ -23,6 +23,10 @@ export const TOAST_SUCCESS_MESSAGES = {
     ADD_ITEM: 'Spend item added successfully',
     UPDATE_ITEM: 'Spend item updated successfully',
     DELETE_ITEM: 'Spend item deleted successfully'
+  },
+  USER: {
+    DELETION_REQUESTED: 'Account deletion requested successfully',
+    DELETION_CANCELLED: 'Account deletion cancelled successfully'
   }
 } as const;
 

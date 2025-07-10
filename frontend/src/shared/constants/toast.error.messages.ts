@@ -86,6 +86,18 @@ export const TOAST_ERROR_MESSAGES = {
       NOT_FOUND: 'The spend item you\'re trying to delete doesn\'t exist',
       SERVER: 'Server error occurred while deleting spend item',
     }
+  },
+  USER: {
+    DELETION_REQUEST: {
+      DEFAULT: 'Failed to request account deletion',
+      PERMISSION: 'You don\'t have permission to delete this account',
+      SERVER: 'Server error occurred while requesting deletion',
+    },
+    DELETION_CANCEL: {
+      DEFAULT: 'Failed to cancel account deletion',
+      PERMISSION: 'You don\'t have permission to cancel account deletion',
+      SERVER: 'Server error occurred while cancelling deletion',
+    }
   }
 } as const;
 
