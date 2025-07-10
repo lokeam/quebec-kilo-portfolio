@@ -5,11 +5,13 @@ import (
 )
 
 type User struct {
-	ID        int        `json:"id" db:"id"`
-	UserID    string     `json:"user_id" db:"user_id"`
-	Email     string     `json:"email" db:"email"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	ID                   int        `json:"id" db:"id"`
+	UserID               string     `json:"user_id" db:"user_id"`
+	Email                string     `json:"email" db:"email"`
+	FirstName            string     `json:"first_name" db:"first_name"`
+	LastName             string     `json:"last_name" db:"last_name"`
+	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
 	// User deletion tracking fields
 	DeletionRequestedAt *time.Time `json:"deletion_requested_at" db:"deletion_requested_at"`
 	DeletionReason      *string    `json:"deletion_reason" db:"deletion_reason"`
