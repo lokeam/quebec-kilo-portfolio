@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/appcontext"
+	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
+	security "github.com/lokeam/qko-beta/internal/shared/security/sanitizer"
 )
 
 type UserDeletionService struct {
-	appCtx *appcontext.AppContext
-	db     *sqlx.DB
+	appCtx     *appcontext.AppContext
+	dbAdapter  interfaces.UserDeletionDbAdapter
+	sanitizer  interfaces.Sanitizer
+	validator  interfaces.UserDeletionValidator
 }
 
 func NewUserDeletionService(appCtx *appcontext.AppContext) (*UserDeletionService, error) {
@@ -19,45 +22,106 @@ func NewUserDeletionService(appCtx *appcontext.AppContext) (*UserDeletionService
 		return nil, fmt.Errorf("app context cannot be nil")
 	}
 
-	// Create sqlx connection following the pattern of other services
-	db, err := sqlx.Connect("pgx", appCtx.Config.Postgres.ConnectionString)
+	// Create DB adapter
+	dbAdapter, err := NewUserDeletionDbAdapter(appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create database connection: %w", err)
+		appCtx.Logger.Error("Failed to create user deletion db adapter", map[string]any{"error": err})
+		return nil, fmt.Errorf("failed to create user deletion db adapter: %w", err)
 	}
+	appCtx.Logger.Info("User deletion db adapter created successfully", nil)
+
+	// Create sanitizer
+	sanitizer, err := security.NewSanitizer()
+	if err != nil {
+		appCtx.Logger.Error("Failed to create sanitizer", map[string]any{"error": err})
+		return nil, fmt.Errorf("failed to create sanitizer: %w", err)
+	}
+	appCtx.Logger.Info("User deletion sanitizer created successfully", nil)
+
+	// Create validator
+	validator, err := NewUserDeletionValidator(sanitizer)
+	if err != nil {
+		appCtx.Logger.Error("Failed to create user deletion validator", map[string]any{"error": err})
+		return nil, fmt.Errorf("failed to create user deletion validator: %w", err)
+	}
+	appCtx.Logger.Info("User deletion validator created successfully", nil)
 
 	return &UserDeletionService{
-		appCtx: appCtx,
-		db:     db,
+		appCtx:    appCtx,
+		dbAdapter: dbAdapter,
+		sanitizer: sanitizer,
+		validator: validator,
 	}, nil
 }
 
 // RequestDeletion marks a user for deletion (soft delete)
-func (uds *UserDeletionService) RequestDeletion(ctx context.Context, userID string, reason string) error {
-	query := `
-		UPDATE users
-		SET deletion_requested_at = NOW(),
-		    deletion_reason = $2,
-		    updated_at = NOW()
-		WHERE id = $1 AND deleted_at IS NULL
-	`
+func (uds *UserDeletionService) RequestDeletion(
+	ctx context.Context,
+	userID string,
+	reason string,
+) error {
+	uds.appCtx.Logger.Debug("RequestDeletion called", map[string]any{
+		"userID": userID,
+		"reason": reason,
+	})
 
-	result, err := uds.db.ExecContext(ctx, query, userID, reason)
+	// Validate user ID
+	validatedUserID, err := uds.validator.ValidateUserID(userID)
 	if err != nil {
+		uds.appCtx.Logger.Error("User ID validation failed", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Validate deletion reason
+	validatedReason, err := uds.validator.ValidateDeletionRequest(reason)
+	if err != nil {
+		uds.appCtx.Logger.Error("Deletion reason validation failed", map[string]any{
+			"reason": reason,
+			"error":  err,
+		})
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Get user to validate they exist and aren't already deleted
+	user, err := uds.dbAdapter.GetUser(ctx, validatedUserID)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to get user for deletion request", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Validate user exists and isn't already deleted
+	if err := uds.validator.ValidateGracePeriod(user); err != nil {
+		uds.appCtx.Logger.Error("User validation failed", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("user validation failed: %w", err)
+	}
+
+	// Request deletion through DB adapter
+	err = uds.dbAdapter.RequestDeletion(
+		ctx,
+		validatedUserID,
+		validatedReason,
+	)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to request deletion", map[string]any{
+			"userID": validatedUserID,
+			"reason": validatedReason,
+			"error":  err,
+		})
 		return fmt.Errorf("failed to request deletion: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("user not found or already deleted")
-	}
-
-	uds.appCtx.Logger.Info("User deletion requested", map[string]any{
-		"user_id": userID,
-		"reason":  reason,
+	uds.appCtx.Logger.Info("User deletion requested successfully", map[string]any{
+		"userID": validatedUserID,
+		"reason": validatedReason,
 	})
 
 	return nil
@@ -65,30 +129,50 @@ func (uds *UserDeletionService) RequestDeletion(ctx context.Context, userID stri
 
 // CancelDeletionRequest cancels a pending deletion request
 func (uds *UserDeletionService) CancelDeletionRequest(ctx context.Context, userID string) error {
-	query := `
-		UPDATE users
-		SET deletion_requested_at = NULL,
-		    deletion_reason = NULL,
-		    updated_at = NOW()
-		WHERE id = $1 AND deletion_requested_at IS NOT NULL AND deleted_at IS NULL
-	`
+	uds.appCtx.Logger.Debug("CancelDeletionRequest called", map[string]any{
+		"userID": userID,
+	})
 
-	result, err := uds.db.ExecContext(ctx, query, userID)
+	// Validate user ID
+	validatedUserID, err := uds.validator.ValidateUserID(userID)
 	if err != nil {
-		return fmt.Errorf("failed to cancel deletion request: %w", err)
+		uds.appCtx.Logger.Error("User ID validation failed", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	// Get user to validate they have a pending deletion request
+	user, err := uds.dbAdapter.GetUser(ctx, validatedUserID)
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		uds.appCtx.Logger.Error("Failed to get user for cancellation", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	if rowsAffected == 0 {
+	// Validate user has a pending deletion request (simplified validation)
+	if user.DeletionRequestedAt == nil {
+		uds.appCtx.Logger.Error("No pending deletion request found", map[string]any{
+			"userID": validatedUserID,
+		})
 		return fmt.Errorf("no pending deletion request found")
 	}
 
-	uds.appCtx.Logger.Info("User deletion request cancelled", map[string]any{
-		"user_id": userID,
+	// Cancel deletion request through DB adapter
+	err = uds.dbAdapter.CancelDeletionRequest(ctx, validatedUserID)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to cancel deletion request", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to cancel deletion request: %w", err)
+	}
+
+	uds.appCtx.Logger.Info("User deletion request cancelled successfully", map[string]any{
+		"userID": validatedUserID,
 	})
 
 	return nil
@@ -96,66 +180,104 @@ func (uds *UserDeletionService) CancelDeletionRequest(ctx context.Context, userI
 
 // GetUser retrieves a user by ID
 func (uds *UserDeletionService) GetUser(ctx context.Context, userID string) (*models.User, error) {
-	var user models.User
-	query := `
-		SELECT id, user_id, email, user_type, created_at, updated_at,
-		       deleted_at, deletion_requested_at, deletion_reason
-		FROM users
-		WHERE id = $1
-	`
+	uds.appCtx.Logger.Debug("GetUser called", map[string]any{
+		"userID": userID,
+	})
 
-	err := uds.db.GetContext(ctx, &user, query, userID)
+	// Validate user ID
+	validatedUserID, err := uds.validator.ValidateUserID(userID)
 	if err != nil {
+		uds.appCtx.Logger.Error("User ID validation failed", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return nil, fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Get user through DB adapter
+	user, err := uds.dbAdapter.GetUser(ctx, validatedUserID)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to get user", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
+
+	uds.appCtx.Logger.Debug("User retrieved successfully", map[string]any{
+		"userID": validatedUserID,
+	})
 
 	return &user, nil
 }
 
 // GetUsersPendingDeletion returns users who have requested deletion and are past the grace period
 func (uds *UserDeletionService) GetUsersPendingDeletion(ctx context.Context) ([]string, error) {
-	var userIDs []string
-	query := `
-		SELECT id
-		FROM users
-		WHERE deletion_requested_at IS NOT NULL
-		  AND deletion_requested_at < NOW() - INTERVAL '30 days'
-		  AND deleted_at IS NULL
-	`
+	uds.appCtx.Logger.Debug("GetUsersPendingDeletion called", map[string]any{})
 
-	err := uds.db.SelectContext(ctx, &userIDs, query)
+	// Get users pending deletion through DB adapter
+	userIDs, err := uds.dbAdapter.GetUsersPendingDeletion(ctx)
 	if err != nil {
+		uds.appCtx.Logger.Error("Failed to get users pending deletion", map[string]any{
+			"error": err,
+		})
 		return nil, fmt.Errorf("failed to get users pending deletion: %w", err)
 	}
+
+	uds.appCtx.Logger.Info("Users pending deletion retrieved", map[string]any{
+		"count": len(userIDs),
+	})
 
 	return userIDs, nil
 }
 
 // PermanentlyDeleteUser marks a user as permanently deleted
 func (uds *UserDeletionService) PermanentlyDeleteUser(ctx context.Context, userID string) error {
-	query := `
-		UPDATE users
-		SET deleted_at = NOW(),
-		    updated_at = NOW()
-		WHERE id = $1 AND deletion_requested_at IS NOT NULL
-	`
+	uds.appCtx.Logger.Debug("PermanentlyDeleteUser called", map[string]any{
+		"userID": userID,
+	})
 
-	result, err := uds.db.ExecContext(ctx, query, userID)
+	// Validate user ID
+	validatedUserID, err := uds.validator.ValidateUserID(userID)
 	if err != nil {
+		uds.appCtx.Logger.Error("User ID validation failed", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Get user to validate they are eligible for permanent deletion
+	user, err := uds.dbAdapter.GetUser(ctx, validatedUserID)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to get user for permanent deletion", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Validate grace period has expired
+	if err := uds.validator.ValidateGracePeriod(user); err != nil {
+		uds.appCtx.Logger.Error("Grace period validation failed", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
+		return fmt.Errorf("grace period validation failed: %w", err)
+	}
+
+	// Permanently delete user through DB adapter
+	err = uds.dbAdapter.PermanentlyDeleteUser(ctx, validatedUserID)
+	if err != nil {
+		uds.appCtx.Logger.Error("Failed to permanently delete user", map[string]any{
+			"userID": validatedUserID,
+			"error":  err,
+		})
 		return fmt.Errorf("failed to permanently delete user: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("user not found or not eligible for permanent deletion")
-	}
-
-	uds.appCtx.Logger.Info("User permanently deleted", map[string]any{
-		"user_id": userID,
+	uds.appCtx.Logger.Info("User permanently deleted successfully", map[string]any{
+		"userID": validatedUserID,
 	})
 
 	return nil

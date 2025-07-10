@@ -102,13 +102,17 @@ func RequireActiveUserMiddleware(appCtx *appcontext.AppContext, service *UserDel
 				appCtx.Logger.Warn("Access denied to user with pending deletion", map[string]any{
 					"user_id": userIDStr,
 				})
-				httputils.RespondWithJSON(w, appCtx.Logger, http.StatusForbidden, httputils.APIResponse{
-					Success: false,
-					UserID:  userIDStr,
-					Data: map[string]interface{}{
-						"message": "Account deletion has been requested. Access is restricted.",
-						"grace_period_end": user.GetDeletionGracePeriodEnd(),
-					},
+				httputils.RespondWithJSON(
+					w,
+					appCtx.Logger,
+					http.StatusForbidden,
+					httputils.APIResponse{
+						Success: false,
+						UserID:  userIDStr,
+						Data: map[string]any{
+							"message": "Account deletion has been requested. Access is restricted.",
+							"grace_period_end": user.GetDeletionGracePeriodEnd(),
+						},
 				})
 				return
 			}

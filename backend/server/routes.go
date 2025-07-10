@@ -26,6 +26,7 @@ import (
 	customMiddleware "github.com/lokeam/qko-beta/internal/shared/middleware"
 	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
+	"github.com/lokeam/qko-beta/internal/users"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -198,6 +199,35 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 				dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
 			})
 
+						// Users - Profile Management & Account Deletion
+			r.Route("/users", func(r chi.Router) {
+				appContext.Logger.Info("Registering user routes", map[string]any{
+					"path": "/api/v1/users",
+				})
+
+				// Create user service for profile management
+				userService, err := users.NewUserService(appContext)
+				if err != nil {
+					appContext.Logger.Error("Failed to create user service", map[string]any{
+						"error": err,
+					})
+				} else {
+					// Register user profile routes
+					users.RegisterUserProfileRoutes(r, appContext, userService)
+				}
+
+				// Separated out user deletion service for account deletion
+				userDeletionService, err := users.NewUserDeletionService(appContext)
+				if err != nil {
+					appContext.Logger.Error("Failed to create user deletion service", map[string]any{
+						"error": err,
+					})
+				} else {
+					// Register user deletion routes
+					users.RegisterUserRoutes(r, appContext, userDeletionService)
+				}
+			})
+
 			// Analytics
 			r.Route("/analytics", func(r chi.Router) {
 				appContext.Logger.Info("Registering analytics routes", map[string]any{
@@ -217,6 +247,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 				"digital":        "/api/v1/locations/digital",
 				"spend-tracking": "/api/v1/spend-tracking",
 				"dashboard":      "/api/v1/dashboard",
+				"users":          "/api/v1/users",
 				"analytics":      "/api/v1/analytics",
 			})
 		})
