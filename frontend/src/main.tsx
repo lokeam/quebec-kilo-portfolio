@@ -33,7 +33,7 @@ root.render(
       authorizationParams={{
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email'
+        scope: 'openid profile email read:user_metadata update:user_metadata offline_access'
       }}
       useRefreshTokens={true}
       cacheLocation="localstorage"

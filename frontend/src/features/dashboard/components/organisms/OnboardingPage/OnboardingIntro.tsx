@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 
 // Components
-import { OnboardingIntroContent } from '@/features/dashboard/components/organisms/OnboardingPage/OnboardingIntroContent';
 import { ErrorBoundary } from 'react-error-boundary';
 import { OnlineServicesPageErrorFallback } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageErrorFallback';
 import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSkeleton'
@@ -13,19 +12,27 @@ import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 // Hooks
 import { useNavigate } from 'react-router-dom';
 import { useOnboardingStore } from '@/features/dashboard/lib/stores/onboarding/onboardingStore';
+import { useAuth } from '@/core/auth/hooks/useAuth';
 
-// Consts
-import { NAVIGATION_ROUTES } from '@/features/dashboard/lib/types/onboarding/constants';
+// Constants
+import { NAVIGATION_ROUTES } from '@/types/domain/onboarding';
 export default function OnboardingIntro() {
   const navigate = useNavigate();
   const setWantsSetup = useOnboardingStore((state) => state.setWantsSetup);
+  const { user } = useAuth();
 
-  const handleStartOnboardFlow = () => {
+  const handleStartOnboardFlow = async () => {
+    if (user) {
+      await user.updateUserMetadata({ wantsIntroToasts: true });
+    }
     setWantsSetup(true);
     navigate(NAVIGATION_ROUTES.ONBOARDING_SELECT_STORAGE);
   }
 
-  const handleSkipOnboardFlow = () => {
+  const handleSkipOnboardFlow = async () => {
+    if (user) {
+      await user.updateUserMetadata({ wantsIntroToasts: false });
+    }
     setWantsSetup(false);
     navigate(NAVIGATION_ROUTES.ONBOARDING_COMPLETE);
   }
@@ -41,13 +48,16 @@ export default function OnboardingIntro() {
         <div className="mx-auto flex h-screen max-w-3xl flex-col items-center justify-center overflow-x-hidden">
           <Card className="w-full max-w-3xl">
             <CardHeader>
-              <h1 className="text-3xl font-bold text-center">Welcome to Q-Ko</h1>
+              <h1 className="text-3xl font-bold text-center">Is this your first time here?</h1>
             </CardHeader>
             <CardContent className="space-y-8">
-              <div className="text-center text-muted-foreground">Here&apos;s what to expect:</div>
 
               {/* Display component copy */}
-              <OnboardingIntroContent />
+              {/* <OnboardingIntroContent /> */}
+              <div className="mt-3 text-lg text-center">
+                <p className="mb-3">Shall we show helper messages to guide you after logging in?</p>
+                <p className="italic text-muted-foreground">You'll only see them once.</p>
+              </div>
 
               <div className="flex flex-col items-center gap-4 pt-4">
                 <Button
@@ -55,7 +65,7 @@ export default function OnboardingIntro() {
                   className="w-full max-w-md"
                   onClick={handleStartOnboardFlow}
                 >
-                  Let&apos;s go!
+                  Yes, please!
                 </Button>
                 <Button
                   variant="outline"
@@ -63,7 +73,7 @@ export default function OnboardingIntro() {
                   className="w-full max-w-md text-muted-foreground"
                   onClick={handleSkipOnboardFlow}
                 >
-                  No thanks, I&apos;ll figure out Q-ko by myself
+                  No thanks, I&apos;ll figure QKO out myself
                 </Button>
               </div>
             </CardContent>

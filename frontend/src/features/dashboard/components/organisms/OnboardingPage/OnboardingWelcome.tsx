@@ -3,8 +3,9 @@
 import { Button, } from '@/shared/components/ui/button';
 
 import { motion } from 'framer-motion';
-import { STAGGER_CHILD_VARIANTS } from '@/features/dashboard/lib/types/onboarding/constants';
+import { STAGGER_CHILD_VARIANTS } from '@/types/domain/onboarding';
 import { useNavigate } from 'react-router-dom';
+import { NAVIGATION_ROUTES } from '@/types/domain/onboarding';
 
 export function OnboardingWelcome() {
   const navigate = useNavigate();
@@ -32,19 +33,13 @@ export function OnboardingWelcome() {
           variants={STAGGER_CHILD_VARIANTS}
         >
           Welcome to{" "}
-          <span className="font-bold tracking-tighter">Q-Ko</span>
+          <span className="font-bold tracking-tighter">QKO</span>
         </motion.h1>
         <motion.p
           className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
           variants={STAGGER_CHILD_VARIANTS}
         >
           Your personal game management assistant that helps:
-        </motion.p>
-        <motion.p
-          className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
-          variants={STAGGER_CHILD_VARIANTS}
-        >
-          Find discounts and deals on wishlisted games, consoles and hardware.
         </motion.p>
         <motion.p
           className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
@@ -64,7 +59,7 @@ export function OnboardingWelcome() {
         >
           <Button
             className="px-10 text-base font-medium"
-            onClick={() => navigate('/onboarding/intro')}
+            onClick={() => navigate(NAVIGATION_ROUTES.ONBOARDING_NAME)}
           >
             Get Started
           </Button>

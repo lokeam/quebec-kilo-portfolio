@@ -17,8 +17,13 @@ import { SidebarProvider } from './shared/components/ui/sidebar';
 import { NetworkStatusProvider } from '@/core/network-status/providers/NetworkStatusProvider';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { TanstackMutationToast } from '@/shared/components/ui/TanstackMutationToast/TanstackMutationToast';
+import OnboardingProtectedRoute from './core/auth/components/OnboardingProtectedRoute/OnboardingProtectedRoute';
+import OnboardingLayout from './core/auth/components/OnboardingLayout/OnboardingLayout';
 
-// TODO: Lazy load secondary routes
+// Debug Panel (development only)
+import { OnboardingDebugPanel } from '@/core/utils/debug/OnboardingDebugPanel';
+
+// Lazy load secondary routes
 const OnlineServicesPage = lazy(() => import(
   /* webpackChunkName: "OnlineServicesPage" */
   '@/features/dashboard/pages/OnlineServices/OnlineServicesPage'
@@ -59,40 +64,38 @@ const OnboardingPage = lazy(() => import(
   '@/features/dashboard/pages/Onboarding/OnboardingPage'
 ));
 
+const OnboardingName = lazy(() => import(
+  /* webpackChunkName: "OnboardingName" */
+  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingName'
+));
+
 const OnboardingIntro = lazy(() => import(
   /* webpackChunkName: "OnboardingIntro" */
   '@/features/dashboard/components/organisms/OnboardingPage/OnboardingIntro'
-));
-
-const OnboardingPageComplete = lazy(() => import(
-  /* webpackChunkName: "OnboardingPageComplete" */
-  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPageComplete'
-));
-
-const OnboardingLocationSelection = lazy(() => import(
-  /* webpackChunkName: "OnboardingLocationSelection" */
-  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingLocationSelection'
-));
-
-const OnboardingPagePhysicalLocations = lazy(() => import(
-  /* webpackChunkName: "OnboardingPagePhysicalLocations" */
-  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPagePhysicalLocations'
-));
-
-const OnboardingPagePhysicalSublocations = lazy(() => import(
-  /* webpackChunkName: "OnboardingPagePhysicalSublocations" */
-  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingPagePhysicalSublocations'
-));
-
-const OnboardingPageDigital = lazy(() => import(
-  /* webpackChunkName: "OnboardingPageDigital" */
-  '@/features/dashboard/components/organisms/OnboardingPage/OnboardingDigital'
 ));
 
 // Login
 const LoginPage = lazy(() => import(
   /* webpackChunkName: "LoginPage" */
   '@/features/login/pages/LoginPage'
+));
+
+// Account Recovery
+const AccountRecoveryPage = lazy(() => import(
+  /* webpackChunkName: "AccountRecoveryPage" */
+  '@/features/login/pages/AccountRecoveryPage'
+));
+
+// Deleted Account
+const DeletedAccountPage = lazy(() => import(
+  /* webpackChunkName: "DeletedAccountPage" */
+  '@/features/login/pages/DeletedAccountPage'
+));
+
+// Deletion Protected Route
+const MarkedForDeletionProtectedRoute = lazy(() => import(
+  /* webpackChunkName: "MarkedForDeletionProtectedRoute" */
+  '@/core/auth/components/MarkedForDeletionProtectedRoute/MarkedForDeletionProtectedRoute'
 ));
 
 // Route monitoring component
@@ -138,13 +141,7 @@ function App() {
                   <Routes>
                     {/* Public routes */}
                     <Route path="/login" element={<LoginPage />} />
-                    <Route path="/onboarding/welcome" element={<OnboardingPage />} />
-                    <Route path="/onboarding/intro" element={<OnboardingIntro />} />
-                    <Route path="/onboarding/locations" element={<OnboardingLocationSelection />} />
-                    <Route path="/onboarding/physical/location" element={<OnboardingPagePhysicalLocations />} />
-                    <Route path="/onboarding/physical/sublocation" element={<OnboardingPagePhysicalSublocations />} />
-                    <Route path="/onboarding/digital" element={<OnboardingPageDigital />} />
-                    <Route path="/onboarding/complete" element={<OnboardingPageComplete />} />
+                    <Route path="/deleted" element={<DeletedAccountPage />} />
 
                     {/* Protected routes */}
                     <Route
@@ -165,8 +162,28 @@ function App() {
                       <Route path="/notifications" element={<NotificationsPage /> } />
                       <Route path="/settings" element={<SettingsPage />} />
                     </Route>
+
+                    {/* Onboarding Routes - New users only */}
+                    <Route path="/onboarding/*" element={
+                      <OnboardingProtectedRoute>
+                        <OnboardingLayout />
+                      </OnboardingProtectedRoute>
+                    } >
+                      <Route path="welcome" element={<OnboardingPage />} />
+                      <Route path="name" element={<OnboardingName />} />
+                      <Route path="intro" element={<OnboardingIntro />} />
+                    </Route>
+                    {/* Marked For Deletion Protected Routes */}
+                    <Route path="/account-recovery" element={
+                      <MarkedForDeletionProtectedRoute>
+                        <AccountRecoveryPage />
+                      </MarkedForDeletionProtectedRoute>
+                    }/>
                   </Routes>
                 </Suspense>
+
+                {/* Debug Panel - Development Only */}
+                <OnboardingDebugPanel />
               </NetworkStatusProvider>
             </TooltipProvider>
           </ThemeProvider>

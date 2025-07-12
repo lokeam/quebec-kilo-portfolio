@@ -4,14 +4,18 @@ import { z } from 'zod';
 
 import { AppearanceSection } from '@/features/dashboard/components/organisms/SettingsPage/AppearanceSection';
 import { DangerZoneSection } from '@/features/dashboard/components/organisms/SettingsPage/DangerZoneSection';
+import { ProfileSection } from '@/features/dashboard/components/organisms/SettingsPage/ProfileSection';
 
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
+import { useAuth } from '@/core/auth/hooks/useAuth';
 
 
 const formSchema = z.object({
   notifications: z.boolean(),
   theme: z.enum(["light", "dark", "system"]),
   ui: z.enum(["web", "console"]),
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().optional(),
 });
 
 export type FormValues = z.infer<typeof formSchema>;
@@ -19,6 +23,7 @@ export type FormValues = z.infer<typeof formSchema>;
 export function SettingsForm() {
   const { mode, uiMode, isSystemPreference } = useThemeStore();
   const { actions } = useThemeStore();
+  const { user } = useAuth();
 
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -26,6 +31,8 @@ export function SettingsForm() {
       notifications: false,
       theme: isSystemPreference ? 'system' : mode,
       ui: uiMode,
+      firstName: user?.user_metadata?.firstName || '',
+      lastName: user?.user_metadata?.lastName || '',
     },
   })
 
@@ -51,6 +58,7 @@ export function SettingsForm() {
         className="col-span-full space-y-6 p-6"
       >
 
+        <ProfileSection />
         <AppearanceSection />
         <DangerZoneSection />
 

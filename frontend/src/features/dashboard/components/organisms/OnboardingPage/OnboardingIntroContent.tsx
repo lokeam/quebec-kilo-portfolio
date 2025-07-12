@@ -14,7 +14,7 @@ export const OnboardingIntroContent = () => (
         1
       </div>
       <p className="text-center text-sm">
-        Tell us a bit about your game library so we can customize Q-Ko to you
+        Tell us a bit about your library
       </p>
     </div>
 
@@ -23,7 +23,7 @@ export const OnboardingIntroContent = () => (
         2
       </div>
       <p className="text-center text-sm">
-        Based on your answers, we&apos;ll show you how to track everything you own
+        Based on your answers, we&apos;ll show you how to track your games and spending
       </p>
     </div>
 
@@ -32,8 +32,7 @@ export const OnboardingIntroContent = () => (
         3
       </div>
       <p className="text-center text-sm">
-        Choose what games or hardware you&apos;d like us to track deals for and we&apos;ll guide you the rest
-        of the way
+        That's it! You'll be ready to go.
       </p>
     </div>
   </div>

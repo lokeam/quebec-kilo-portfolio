@@ -12,7 +12,7 @@
  * 3. Make it available everywhere
  *
  * Flow:
- * 1. App.tsx calls setAuth0TokenFn(getAccessTokenSilently)
+ * 1. App.tsx calls saveAuth0Token(getAccessTokenSilently)
  * 2. Other code calls getAuth0Token() to get tokens
  *
  * @example
@@ -20,7 +20,7 @@
  * function App() {
  *   const { getAccessTokenSilently } = useAuth0();
  *   useEffect(() => {
- *     setAuth0TokenFn(() => getAccessTokenSilently());
+ *     saveAuth0Token(() => getAccessTokenSilently());
  *   }, [getAccessTokenSilently]);
  * }
  *
@@ -32,25 +32,31 @@
  */
 
 /**
- * Global storage for Auth0's token getter function.
- * Null until initialized by setAuth0TokenFn.
+ * Stores the function that grabs tokens from Auth0.
+ * Empty until we set it up by calling saveAuth0Token
  */
 let getTokenFn: (() => Promise<string>) | null = null;
 
 /**
- * Stores Auth0's getAccessTokenSilently function globally.
- * Must be called once at app initialization.
+ * Saves the function that gets tokens from Auth0
  *
- * @param fn - Auth0's getAccessTokenSilently function
+ * Why we need this:
+ * - Auth0's function only works in React components
+ * - We need to use it in axios interceptors (not React components)
+ * - We need to be able to pass options to the function
+ *
+ * Call this once when the app starts
+ *
+ * @param fn - The function that gets tokens from Auth0
  */
-export function setAuth0TokenFn(fn: () => Promise<string>) {
+export function saveAuth0Token(fn: () => Promise<string>) {
   getTokenFn = fn;
 }
 
 /**
  * Gets an Auth0 access token from anywhere in the app.
  *
- * @throws Error if setAuth0TokenFn hasn't been called
+ * @throws Error if saveAuth0Token hasn't been called
  * @returns Promise<string> A valid Auth0 access token
  */
 export async function getAuth0Token() {

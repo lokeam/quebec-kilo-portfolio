@@ -1,7 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect } from 'react';
 import * as Sentry from '@sentry/react';
-import { setAuth0TokenFn } from '@/core/api/utils/auth.utils';
+import { saveAuth0Token } from '@/core/api/utils/auth.utils';
 
 /**
  * AuthInitializer is a crucial component that bridges Auth0 authentication
@@ -17,7 +17,7 @@ import { setAuth0TokenFn } from '@/core/api/utils/auth.utils';
  * Component Hierarchy:
  * ```
  * <Auth0Provider>
- *   <AuthInitializer>     <--- You are here
+ *   <AuthInitializer>     <--- We are here
  *     <QueryClientProvider>
  *       <App />
  *     </QueryClientProvider>
@@ -46,24 +46,23 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const { getAccessTokenSilently, user, isAuthenticated } = useAuth0();
 
   useEffect(() => {
-    // Register token getter function with API layer
-    // This function will be called whenever we need a fresh token
-    setAuth0TokenFn(() => getAccessTokenSilently());
+    // Save Auth0's getAccessTokenSilently fn so that we may use tokens anywhere.
+    // Needed bc getAccessTokenSilently only works in React components.
+    // Fn wrapper used to pass different options later if needed.
+    saveAuth0Token(() => getAccessTokenSilently());
   }, [getAccessTokenSilently]);
 
   // Set Sentry user context when authentication state changes
   useEffect(() => {
     if (isAuthenticated && user) {
       // Set user context in Sentry for error tracking
-
-      // Auth0 user ID (e.g., "auth0|123456")
       Sentry.setUser({
         id: user.sub,
         email: user.email,
         username: user.name || user.email,
       });
 
-      // Add user properties for better error context
+      // Add user properties for better errors
       Sentry.setContext('user', {
         email: user.email,
         name: user.name,

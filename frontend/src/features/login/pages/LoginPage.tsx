@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/core/auth/hooks/useAuth';
 
-//import GoogleLogo from '@/shared/components/ui/LogoMap/brand/google_logo';
 import QkoLogo from '@/shared/components/ui/LogoMap/brand/qko_logo';
 
 export default function LoginPage() {
@@ -43,7 +42,7 @@ export default function LoginPage() {
               type="button"
             >
               <QkoLogo className="w-4 h-4 me-2" />
-              {isLoading ? 'Logging in...' : 'Continue with Auth0'}
+              {isLoading ? 'Logging in...' : 'Create a QKO account'}
               </button>
           </form>
         </div>

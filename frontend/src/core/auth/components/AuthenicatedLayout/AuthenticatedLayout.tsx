@@ -1,23 +1,16 @@
 // Components
 import { TopNavigation } from '@/features/navigation/organisms/TopNav/TopNavigation';
-//import { NotifyPopover } from '@/features/navigation/organisms/TopNav/NotifyPopover/NotifyPopover';
-//import { AddItemSearchDialog } from '@/features/dashboard/components/organisms/AddItemSearchDialog/AddItemSearchDialog';
 import { AppSidebar } from '@/features/navigation/organisms/SideNav/AppSidebar';
 import { AvatarDropDownMenu } from '@/features/navigation/molecules/AvatarDropDownMenu/AvatarDropDownMenu';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 import { GameSearchAndSelectDialog } from '@/features/dashboard/components/organisms/GameSearchAndSelectDialog/GameSearchAndSelectDialog';
 import { FeedbackButton } from '@/shared/components/ui/feedback-button/FeedbackButton';
 
-// ShadCN UI Components
-//import { Toaster } from '@/shared/components/ui/sonner';
-
 // Utils
 import { Outlet } from 'react-router-dom';
 import { cn } from '@/shared/components/ui/utils';
 
 export default function AuthenticatedLayout() {
-
-
   return (
     <>
       {/* Shadcn UI Sidebar */}
@@ -55,13 +48,9 @@ export default function AuthenticatedLayout() {
             </div>
           </TopNavigation>
 
-
-
+          {/* Main content area */}
           <Outlet />
       </div>
-
-      {/* Toaster */}
-      {/* <Toaster /> */}
     </>
   );
 };

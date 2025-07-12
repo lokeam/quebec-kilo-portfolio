@@ -17,6 +17,9 @@ import {
   requestUserDeletion,
   cancelUserDeletion,
   getUserDeletionStatus,
+  createUserProfile,
+  updateUserProfile,
+  getUserProfile,
 } from '@/core/api/services/user.service';
 
 // Utils
@@ -27,6 +30,9 @@ import { logger } from '@/core/utils/logger/logger';
 import type { ApiError } from '@/types/api/response';
 import type {
   UserDeletionStatus,
+  UserProfile,
+  CreateUserProfileRequest,
+  UpdateUserProfileRequest,
 } from '@/types/domain/user';
 
 // Constants
@@ -40,10 +46,56 @@ import { TOAST_ERROR_MESSAGES } from '@/shared/constants/toast.error.messages';
  */
 export const userKeys = {
   all: ['user'] as const,
+  profile: () => [...userKeys.all, 'profile'] as const,
   deletion: () => [...userKeys.all, 'deletion'] as const,
   deletionStatus: () => [...userKeys.deletion(), 'status'] as const,
 };
 
+/**
+ * Get user profile
+ *
+*/
+export const useGetUserProfile = () => {
+  return useAPIQuery<UserProfile>({
+    queryKey: userKeys.profile(),
+    queryFn: async () => {
+
+      const profile = await getUserProfile();
+      return profile;
+    },
+    staleTime: 30000, // 30 seconds - profile doesn't change frequently
+  })
+}
+
+/**
+ * Hook to create user profile
+ */
+export const useCreateUserProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateUserProfileRequest) => createUserProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.profile() });
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+};
+
+/**
+ * Hook to update user profile
+ */
+export const useUpdateUserProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: UpdateUserProfileRequest) => updateUserProfile(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userKeys.profile() });
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+};
 
 /**
  * Hook to request user account deletion
