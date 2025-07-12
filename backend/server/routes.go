@@ -167,11 +167,9 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 
 			// Digital Locations
 			r.Route("/locations/digital", func(r chi.Router) {
-				if err == nil {
-					log.Debug("Setting up digital locations routes", map[string]interface{}{
-						"path": "/api/v1/locations/digital",
-					})
-				}
+				appContext.Logger.Debug("Setting up digital locations routes", map[string]interface{}{
+					"path": "/api/v1/locations/digital",
+				})
 
 				// Register routes using the new pattern
 				digital.RegisterDigitalRoutes(r, appContext, svc.Digital)
@@ -192,39 +190,52 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 
 			// Dashboard
 			r.Route("/dashboard", func(r chi.Router) {
+				appContext.Logger.Debug("ENTERED dashboard route block", nil)
 				appContext.Logger.Info("Registering dashboard routes", map[string]any{
 					"path": "/api/v1/dashboard",
 				})
 
+				appContext.Logger.Debug("Before RegisterDashboardRoutes", nil)
 				dashboard.RegisterDashboardRoutes(r, appContext, svc.Dashboard)
+				appContext.Logger.Debug("After RegisterDashboardRoutes", nil)
 			})
 
-						// Users - Profile Management & Account Deletion
+			appContext.Logger.Debug("After dashboard, before users", nil)
+			appContext.Logger.Debug("About to register /users route", nil)
+			// Users - Profile Management & Account Deletion
 			r.Route("/users", func(r chi.Router) {
+				appContext.Logger.Debug("ENTERED users route block", nil)
 				appContext.Logger.Info("Registering user routes", map[string]any{
 					"path": "/api/v1/users",
 				})
 
 				// Create user service for profile management
+				appContext.Logger.Debug("Attempting to create user service", nil)
 				userService, err := users.NewUserService(appContext)
 				if err != nil {
 					appContext.Logger.Error("Failed to create user service", map[string]any{
 						"error": err,
+						"error_type": fmt.Sprintf("%T", err),
 					})
 				} else {
-					// Register user profile routes
-					users.RegisterUserProfileRoutes(r, appContext, userService)
+					appContext.Logger.Info("User service created successfully", nil)
 				}
 
-				// Separated out user deletion service for account deletion
+				// Create user deletion service for account deletion
+				appContext.Logger.Debug("Attempting to create user deletion service", nil)
 				userDeletionService, err := users.NewUserDeletionService(appContext)
 				if err != nil {
 					appContext.Logger.Error("Failed to create user deletion service", map[string]any{
 						"error": err,
+						"error_type": fmt.Sprintf("%T", err),
 					})
 				} else {
-					// Register user deletion routes
-					users.RegisterUserRoutes(r, appContext, userDeletionService)
+					appContext.Logger.Info("User deletion service created successfully", nil)
+				}
+
+				// Register unified user routes (profile + deletion)
+				if userService != nil && userDeletionService != nil {
+					users.RegisterUserRoutes(r, appContext, userService, userDeletionService)
 				}
 			})
 

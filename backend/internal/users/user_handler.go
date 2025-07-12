@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -11,36 +12,54 @@ import (
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
+// RequestDeletionRequest represents a request to delete a user account
+type RequestDeletionRequest struct {
+	Reason string `json:"reason"`
+}
+
+// RequestDeletionResponse represents the response to a deletion request
+type RequestDeletionResponse struct {
+	Message     string     `json:"message"`
+	GracePeriod *time.Time `json:"grace_period_end,omitempty"`
+}
+
 type UserHandler struct {
 	appContext *appcontext.AppContext
 	userService *UserService
+	userDeletionService *UserDeletionService
 }
 
 func NewUserHandler(
 	appCtx *appcontext.AppContext,
 	userService *UserService,
+	userDeletionService *UserDeletionService,
 ) *UserHandler {
 	return &UserHandler{
 		appContext: appCtx,
 		userService: userService,
+		userDeletionService: userDeletionService,
 	}
 }
 
-// RegisterUserProfileRoutes registers all user profile routes
-func RegisterUserProfileRoutes(
+// RegisterUserRoutes registers all user-related routes (profile + deletion)
+func RegisterUserRoutes(
 	r chi.Router,
 	appCtx *appcontext.AppContext,
 	userService *UserService,
+	userDeletionService *UserDeletionService,
 ) {
-	handler := NewUserHandler(appCtx, userService)
+	handler := NewUserHandler(appCtx, userService, userDeletionService)
 
-		// Base routes
+	// Profile routes
 	r.Get("/profile", handler.GetUserProfile)
 	r.Put("/profile", handler.UpdateUserProfile)
 	r.Post("/", handler.CreateUser)
-
-	// Profile completion check
 	r.Get("/profile/complete", handler.CheckProfileComplete)
+
+	// Deletion routes
+	r.Post("/deletion/request", handler.RequestDeletion)
+	r.Post("/deletion/cancel", handler.CancelDeletionRequest)
+	r.Get("/deletion/status", handler.GetDeletionStatus)
 }
 
 func (uh *UserHandler) handleError(
@@ -283,6 +302,191 @@ func (uh *UserHandler) CheckProfileComplete(w http.ResponseWriter, r *http.Reque
 			"has_complete_profile": hasComplete,
 			"user_id":             userID,
 		},
+	})
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		uh.appContext.Logger,
+		http.StatusOK,
+		response,
+	)
+}
+
+// RequestDeletion handles POST requests for requesting user account deletion
+func (uh *UserHandler) RequestDeletion(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracing
+	requestID := httputils.GetRequestID(r)
+	userID := httputils.GetUserID(r)
+
+	if userID == "" {
+		uh.appContext.Logger.Error("userID NOT FOUND in request context", map[string]any{
+			"request_id": requestID,
+		})
+		uh.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	uh.appContext.Logger.Info("Requesting user account deletion", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+	})
+
+	var req RequestDeletionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		uh.appContext.Logger.Error("Failed to decode deletion request body", map[string]any{"error": err})
+		uh.handleError(w, requestID, errors.New("invalid request body"), http.StatusBadRequest)
+		return
+	}
+
+	// Validate reason
+	if req.Reason == "" {
+		uh.handleError(w, requestID, errors.New("deletion reason is required"), http.StatusBadRequest)
+		return
+	}
+
+	err := uh.userDeletionService.RequestDeletion(r.Context(), userID, req.Reason)
+	if err != nil {
+		uh.appContext.Logger.Error("Failed to request user account deletion", map[string]any{
+			"error":      err,
+			"request_id": requestID,
+			"userID":     userID,
+		})
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, errors.New("user not found")) {
+			statusCode = http.StatusNotFound
+		}
+		uh.handleError(w, requestID, err, statusCode)
+		return
+	}
+
+	// Get user to calculate grace period
+	user, err := uh.userDeletionService.GetUser(r.Context(), userID)
+	if err != nil {
+		uh.appContext.Logger.Error("Failed to get user after deletion request", map[string]any{
+			"user_id": userID,
+			"error":   err.Error(),
+		})
+		// Don't fail the request, just don't include grace period
+	}
+
+	response := RequestDeletionResponse{
+		Message: "Account deletion requested. Your account will be permanently deleted in 30 days unless you cancel the request.",
+	}
+
+	if user != nil {
+		gracePeriod := user.GetDeletionGracePeriodEnd()
+		if gracePeriod != nil {
+			response.GracePeriod = gracePeriod
+		}
+	}
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		uh.appContext.Logger,
+		http.StatusOK,
+		response,
+	)
+}
+
+// CancelDeletionRequest handles POST requests for canceling a user account deletion request
+func (uh *UserHandler) CancelDeletionRequest(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracing
+	requestID := httputils.GetRequestID(r)
+	userID := httputils.GetUserID(r)
+
+	if userID == "" {
+		uh.appContext.Logger.Error("userID NOT FOUND in request context", map[string]any{
+			"request_id": requestID,
+		})
+		uh.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	uh.appContext.Logger.Info("Cancelling user account deletion request", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+	})
+
+	err := uh.userDeletionService.CancelDeletionRequest(r.Context(), userID)
+	if err != nil {
+		uh.appContext.Logger.Error("Failed to cancel user account deletion request", map[string]any{
+			"error":      err,
+			"request_id": requestID,
+			"userID":     userID,
+		})
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, errors.New("user not found")) {
+			statusCode = http.StatusNotFound
+		}
+		uh.handleError(w, requestID, err, statusCode)
+		return
+	}
+
+	response := httputils.NewAPIResponse(r, userID, map[string]any{
+		"message": "Deletion request cancelled",
+	})
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		uh.appContext.Logger,
+		http.StatusOK,
+		response,
+	)
+}
+
+// GetDeletionStatus handles GET requests for retrieving the status of a user account deletion request
+func (uh *UserHandler) GetDeletionStatus(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracing
+	requestID := httputils.GetRequestID(r)
+	userID := httputils.GetUserID(r)
+
+	if userID == "" {
+		uh.appContext.Logger.Error("userID NOT FOUND in request context", map[string]any{
+			"request_id": requestID,
+		})
+		uh.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	uh.appContext.Logger.Info("Getting user account deletion status", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+	})
+
+	user, err := uh.userDeletionService.GetUser(r.Context(), userID)
+	if err != nil {
+		uh.appContext.Logger.Error("Failed to get user account deletion status", map[string]any{
+			"error":      err,
+			"request_id": requestID,
+			"userID":     userID,
+		})
+		statusCode := http.StatusInternalServerError
+		if errors.Is(err, errors.New("user not found")) {
+			statusCode = http.StatusNotFound
+		}
+		uh.handleError(w, requestID, err, statusCode)
+		return
+	}
+
+	status := map[string]interface{}{
+		"is_active":              user.IsActive(),
+		"is_deleted":             user.IsDeleted(),
+		"is_deletion_requested":  user.IsDeletionRequested(),
+		"is_in_grace_period":     user.IsInGracePeriod(),
+	}
+
+	if user.IsDeletionRequested() {
+		gracePeriod := user.GetDeletionGracePeriodEnd()
+		if gracePeriod != nil {
+			status["grace_period_end"] = gracePeriod
+		}
+		if user.DeletionReason != nil {
+			status["deletion_reason"] = *user.DeletionReason
+		}
+	}
+
+	response := httputils.NewAPIResponse(r, userID, map[string]any{
+		"status": status,
 	})
 
 	httputils.RespondWithJSON(

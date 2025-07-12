@@ -12,39 +12,52 @@ import (
 )
 
 type UserService struct {
-	appCtx     *appcontext.AppContext
-	dbAdapter  interfaces.UserDbAdapter
-	sanitizer  interfaces.Sanitizer
-	validator  interfaces.UserValidator
+	appCtx      *appcontext.AppContext
+	dbAdapter   interfaces.UserDbAdapter
+	sanitizer   interfaces.Sanitizer
+	validator   interfaces.UserValidator
+	auth0Adapter *Auth0Adapter
 }
 
 func NewUserService(appCtx *appcontext.AppContext) (*UserService, error) {
+	appCtx.Logger.Debug("UserService: constructor entered", nil)
+	appCtx.Logger.Debug("UserService: Starting creation", nil)
+
 	dbAdapter, err := NewUserDbAdapter(appCtx)
 	if err != nil {
-		appCtx.Logger.Error("Failed to create dbAdapter", map[string]any{"error": err})
+		appCtx.Logger.Error("UserService: Failed to create dbAdapter", map[string]any{"error": err})
 		return nil, err
 	}
-	appCtx.Logger.Info("User dbAdapter created successfully", nil)
+	appCtx.Logger.Debug("UserService: dbAdapter created", nil)
 
 	sanitizer, err := security.NewSanitizer()
 	if err != nil {
-		appCtx.Logger.Error("Failed to create sanitizer", map[string]any{"error": err})
+		appCtx.Logger.Error("UserService: Failed to create sanitizer", map[string]any{"error": err})
 		return nil, err
 	}
-	appCtx.Logger.Info("User sanitizer created successfully", nil)
+	appCtx.Logger.Debug("UserService: sanitizer created", nil)
 
 	validator, err := NewUserValidator(sanitizer)
 	if err != nil {
-		appCtx.Logger.Error("Failed to create validator", map[string]any{"error": err})
+		appCtx.Logger.Error("UserService: Failed to create validator", map[string]any{"error": err})
 		return nil, err
 	}
-	appCtx.Logger.Info("User validator created successfully", nil)
+	appCtx.Logger.Debug("UserService: validator created", nil)
 
+	auth0Adapter, err := NewAuth0Adapter(appCtx)
+	if err != nil {
+		appCtx.Logger.Error("UserService: Failed to create auth0Adapter", map[string]any{"error": err})
+		return nil, fmt.Errorf("failed to create auth0 adapter: %w", err)
+	}
+	appCtx.Logger.Debug("UserService: auth0Adapter created", nil)
+
+	appCtx.Logger.Debug("UserService: Successfully created", nil)
 	return &UserService{
-		appCtx:    appCtx,
-		dbAdapter: dbAdapter,
-		sanitizer: sanitizer,
-		validator: validator,
+		appCtx:       appCtx,
+		dbAdapter:    dbAdapter,
+		sanitizer:    sanitizer,
+		validator:    validator,
+		auth0Adapter: auth0Adapter,
 	}, nil
 }
 
@@ -105,6 +118,23 @@ func (s *UserService) CreateUser(ctx context.Context, req types.CreateUserReques
 		return models.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
 
+	// Sync user metadata with Auth0
+	auth0Metadata := map[string]any{
+		"firstName": createdUser.FirstName,
+		"lastName":  createdUser.LastName,
+		"email":     createdUser.Email,
+	}
+
+	if err := s.auth0Adapter.PatchUserMetadata(ctx, createdUser.UserID, auth0Metadata); err != nil {
+		s.appCtx.Logger.Error("Failed to sync user metadata with Auth0", map[string]any{
+			"userID": createdUser.UserID,
+			"error":  err,
+		})
+		// Note: We don't fail the entire operation if Auth0 sync fails
+		// The user is still created in our database, but we log the error
+		// You could choose to fail here if Auth0 sync is critical
+	}
+
 	s.appCtx.Logger.Info("User created successfully", map[string]any{
 		"userID": createdUser.ID,
 		"email":  createdUser.Email,
@@ -146,6 +176,23 @@ func (s *UserService) UpdateUserProfile(
 			"error":  err,
 		})
 		return models.User{}, fmt.Errorf("failed to update user profile: %w", err)
+	}
+
+	// Sync user metadata with Auth0
+	auth0Metadata := map[string]any{
+		"firstName": updatedUser.FirstName,
+		"lastName":  updatedUser.LastName,
+		"email":     updatedUser.Email,
+	}
+
+	if err := s.auth0Adapter.PatchUserMetadata(ctx, userID, auth0Metadata); err != nil {
+		s.appCtx.Logger.Error("Failed to sync user metadata with Auth0", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		// Note: We don't fail the entire operation if Auth0 sync fails
+		// The user profile is still updated in our database, but we log the error
+		// You could choose to fail here if Auth0 sync is critical
 	}
 
 	s.appCtx.Logger.Info("User profile updated successfully", map[string]any{

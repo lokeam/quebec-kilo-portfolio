@@ -14,6 +14,14 @@ const (
 	HealthStatus = "health_status"
 )
 
+type Auth0Config struct {
+	Domain              string
+	ClientID            string
+	ClientSecret        string
+	Audience            string
+	ManagementAudience  string
+}
+
 type Config struct {
 	Server ServerConfig
 	Env    string
@@ -24,6 +32,7 @@ type Config struct {
 	Postgres *PostgresConfig
 	Email  *EmailConfig
 	HealthStatus string
+	Auth0  Auth0Config
 }
 
 type ServerConfig struct {
@@ -171,6 +180,14 @@ func Load() (*Config, error) {
 		TemplateDir:  "internal/email/templates",
 	}
 
+	auth0Config := Auth0Config{
+		Domain:              os.Getenv("AUTH0_DOMAIN"),
+		ClientID:            os.Getenv("AUTH0_CLIENT_ID"),
+		ClientSecret:        os.Getenv("AUTH0_CLIENT_SECRET"),
+		Audience:            os.Getenv("AUTH0_AUDIENCE"),
+		ManagementAudience:  os.Getenv("AUTH0_MANAGEMENT_AUDIENCE"),
+	}
+
 	return &Config{
 		Server: ServerConfig{
 				Port: port,
@@ -184,6 +201,7 @@ func Load() (*Config, error) {
 		Postgres:     postgresConfig,
 		Email:        emailConfig,
 		HealthStatus: healthStatus,
+		Auth0:        auth0Config,
 	}, nil
 }
 
