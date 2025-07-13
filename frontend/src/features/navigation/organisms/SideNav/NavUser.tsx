@@ -24,13 +24,13 @@ import {
 } from '@/shared/components/ui/sidebar'
 
 // Auth hook
-import { useAuth } from '@/core/auth/hooks/useAuth'
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext'
 
 // Navigation hook
 import { useNavigate } from 'react-router-dom';
 
 export function NavUser() {
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, logout, isAuthenticated, isLoading } = useAuthContext();
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
 

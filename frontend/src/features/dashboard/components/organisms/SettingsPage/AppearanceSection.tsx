@@ -15,7 +15,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/shared/components/ui/dropdown-menu';
-import { Switch } from '@/shared/components/ui/switch';
 
 import type { FormValues } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
@@ -31,7 +30,7 @@ export function AppearanceSection() {
     <Card>
       <CardHeader>
         <CardTitle>Appearance</CardTitle>
-        <CardDescription>Choose your preferred theme and font size.</CardDescription>
+        <CardDescription>Choose your preferred color scheme.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
         {/* Theme */}
@@ -39,7 +38,7 @@ export function AppearanceSection() {
           <div className="space-y-1">
             <p className="text-sm font-medium leading-none">Color Scheme</p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Available in light or dark mode. Disabled if Game Inspired User Interface is active.
+              Available in light or dark mode.
             </p>
           </div>
           <DropdownMenu>

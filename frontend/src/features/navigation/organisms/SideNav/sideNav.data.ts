@@ -4,7 +4,7 @@ import {
   // IconPackages,
   IconSettings,
   IconCloudDataConnection,
-  IconShoppingCartHeart,
+  // IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
 import { Bell, Building2, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
@@ -42,11 +42,11 @@ export const sidebarData: SidebarData = {
           url: '/',
           icon: IconLayoutDashboard,
         },
-        {
-          title: 'Notifications',
-          url: '/notifications',
-          icon: Bell,
-        },
+        // {
+        //   title: 'Notifications',
+        //   url: '/notifications',
+        //   icon: Bell,
+        // },
         // {
         //   title: 'Apps',
         //   url: '/apps',
@@ -68,12 +68,12 @@ export const sidebarData: SidebarData = {
           badge: '5',
           icon: CircleDollarSign,
         },
-        {
-          title: 'Wishlist',
-          url: '/wishlist',
-          badge: '3',
-          icon: IconShoppingCartHeart,
-        },
+        // {
+        //   title: 'Wishlist',
+        //   url: '/wishlist',
+        //   badge: '3',
+        //   icon: IconShoppingCartHeart,
+        // },
         {
           title: 'Physical Locations',
           icon: Building2,

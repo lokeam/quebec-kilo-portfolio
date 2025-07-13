@@ -19,15 +19,12 @@ import { Input } from '@/shared/components/ui/input';
 
 import type { FormValues } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
 import { useUpdateUserProfile } from '@/core/api/queries/user.queries';
-import { useIntroToasts } from '@/core/hooks/useIntroToasts';
 import { useState } from 'react';
 
 export function ProfileSection() {
   const form = useFormContext<FormValues>();
   const updateUserProfileMutation = useUpdateUserProfile();
-  const { wantsIntroToasts, updatePreference } = useIntroToasts();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isUpdatingToasts, setIsUpdatingToasts] = useState(false);
 
   const handleUpdateProfile = async () => {
     setIsUpdating(true);
@@ -49,27 +46,15 @@ export function ProfileSection() {
     }
   };
 
-  const handleToggleIntroToasts = async () => {
-    setIsUpdatingToasts(true);
-    try {
-      await updatePreference(!wantsIntroToasts);
-    } catch (error) {
-      console.error('Failed to update intro toasts preference:', error);
-    } finally {
-      setIsUpdatingToasts(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
             Profile Information
           </CardTitle>
           <CardDescription>
-            Update your personal information. Changes will be saved to both your account and Auth0.
+            Update your name displayed within QKO.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
@@ -82,6 +67,7 @@ export function ProfileSection() {
                   <FormLabel>First Name *</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-background text-foreground w-1/2"
                       placeholder="Enter your first name"
                       {...field}
                     />
@@ -99,6 +85,7 @@ export function ProfileSection() {
                   <FormLabel>Last Name (Optional)</FormLabel>
                   <FormControl>
                     <Input
+                      className="bg-background text-foreground w-1/2"
                       placeholder="Enter your last name"
                       {...field}
                     />
@@ -118,32 +105,6 @@ export function ProfileSection() {
                 {isUpdating ? 'Updating...' : 'Update Profile'}
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Intro Toasts</CardTitle>
-          <CardDescription>
-            Show helpful tips and guidance when using new features
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Enable Intro Toasts</p>
-              <p className="text-xs text-muted-foreground">
-                Show contextual help when using features for the first time
-              </p>
-            </div>
-            <Button
-              variant={wantsIntroToasts ? "default" : "outline"}
-              onClick={handleToggleIntroToasts}
-              disabled={isUpdatingToasts}
-            >
-              {isUpdatingToasts ? "Updating..." : wantsIntroToasts ? "Enabled" : "Disabled"}
-            </Button>
           </div>
         </CardContent>
       </Card>

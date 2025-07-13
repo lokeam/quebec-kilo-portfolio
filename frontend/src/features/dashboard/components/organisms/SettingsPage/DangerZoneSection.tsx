@@ -54,7 +54,7 @@ export function DangerZoneSection() {
             <p className="text-sm font-medium leading-none">
               Once you delete your account, there is no going back.
             </p>
-            <p className="text-sm text-gray-400">Please be certain.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Please be certain.</p>
           </div>
 
           <Dialog>

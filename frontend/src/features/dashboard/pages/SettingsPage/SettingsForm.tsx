@@ -7,7 +7,8 @@ import { DangerZoneSection } from '@/features/dashboard/components/organisms/Set
 import { ProfileSection } from '@/features/dashboard/components/organisms/SettingsPage/ProfileSection';
 
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
-import { useAuth } from '@/core/auth/hooks/useAuth';
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
+import { NotificationSection } from '../../components/organisms/SettingsPage/NotificationSection';
 
 
 const formSchema = z.object({
@@ -23,7 +24,7 @@ export type FormValues = z.infer<typeof formSchema>;
 export function SettingsForm() {
   const { mode, uiMode, isSystemPreference } = useThemeStore();
   const { actions } = useThemeStore();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   const formMethods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -59,6 +60,7 @@ export function SettingsForm() {
       >
 
         <ProfileSection />
+        <NotificationSection />
         <AppearanceSection />
         <DangerZoneSection />
 
