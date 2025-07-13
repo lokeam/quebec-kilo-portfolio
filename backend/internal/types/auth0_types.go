@@ -15,30 +15,29 @@ type Auth0TokenResponse struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-// Auth0UserMetadataPatchRequest represents the PATCH request body to update user_metadata
+// Auth0AppMetadataPatchRequest represents the PATCH request body to update app_metadata
 // https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id
 // Example:
 // {
-//   "user_metadata": {
-//     "firstName": "John",
-//     "lastName": "Doe",
-//     "hasCompletedOnboarding": true
+//   "app_metadata": {
+//     "hasCompletedOnboarding": true,
+//     "wantsIntroToasts": true
 //   }
 // }
-type Auth0UserMetadataPatchRequest struct {
-	UserMetadata map[string]interface{} `json:"user_metadata"`
+type Auth0AppMetadataPatchRequest struct {
+	AppMetadata map[string]any `json:"app_metadata"`
 }
 
-// Auth0UserMetadataPatchResponse represents the response from Auth0 after PATCHing user_metadata
+// Auth0AppMetadataPatchResponse represents the response from Auth0 after PATCHing app_metadata
 // Only relevant fields included
 // https://auth0.com/docs/api/management/v2#!/Users/patch_users_by_id
 // Example:
 // {
 //   "user_id": "auth0|...",
-//   "user_metadata": { ... },
+//   "app_metadata": { ... },
 //   ...
 // }
-type Auth0UserMetadataPatchResponse struct {
-	UserID      string                 `json:"user_id"`
-	UserMetadata map[string]interface{} `json:"user_metadata"`
+type Auth0AppMetadataPatchResponse struct {
+	UserID      string           `json:"user_id"`
+	AppMetadata map[string]any   `json:"app_metadata"`
 }

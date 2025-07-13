@@ -55,6 +55,7 @@ func RegisterUserRoutes(
 	r.Put("/profile", handler.UpdateUserProfile)
 	r.Post("/", handler.CreateUser)
 	r.Get("/profile/complete", handler.CheckProfileComplete)
+	r.Patch("/metadata", handler.UpdateAppMetadata)
 
 	// Deletion routes
 	r.Post("/deletion/request", handler.RequestDeletion)
@@ -113,7 +114,7 @@ func (uh *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to frontend format (only return safe fields)
 	frontendUser := map[string]any{
-		"id":         user.ID,
+		"id":         user.UserID,
 		"email":      user.Email,
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
@@ -180,7 +181,7 @@ func (uh *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Convert to frontend format
 	frontendUser := map[string]any{
-		"id":         createdUser.ID,
+		"id":         createdUser.UserID,
 		"email":      createdUser.Email,
 		"first_name": createdUser.FirstName,
 		"last_name":  createdUser.LastName,
@@ -228,7 +229,11 @@ func (uh *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Call service method
-	updatedUser, err := uh.userService.UpdateUserProfile(r.Context(), userID, req)
+	updatedUser, err := uh.userService.UpdateUserProfile(
+		r.Context(),
+		userID,
+		req,
+	)
 	if err != nil {
 		uh.appContext.Logger.Error("Failed to update user profile", map[string]any{
 			"error":      err,
@@ -245,7 +250,7 @@ func (uh *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request)
 
 	// Convert to frontend format
 	frontendUser := map[string]any{
-		"id":         updatedUser.ID,
+		"id":         updatedUser.UserID,
 		"email":      updatedUser.Email,
 		"first_name": updatedUser.FirstName,
 		"last_name":  updatedUser.LastName,
@@ -265,7 +270,59 @@ func (uh *UserHandler) UpdateUserProfile(w http.ResponseWriter, r *http.Request)
 	)
 }
 
+// UpdateAppMetadata handles PATCH requests for updating app metadata
+func (uh *UserHandler) UpdateAppMetadata(w http.ResponseWriter, r *http.Request) {
+	// Get Request ID for tracing
+	requestID := httputils.GetRequestID(r)
 
+	userID := httputils.GetUserID(r)
+	if userID == "" {
+		uh.appContext.Logger.Error("userID NOT FOUND in request context", map[string]any{
+			"request_id": requestID,
+		})
+		uh.handleError(w, requestID, errors.New("userID not found in request context"), http.StatusUnauthorized)
+		return
+	}
+
+	uh.appContext.Logger.Info("Updating app metadata", map[string]any{
+		"requestID": requestID,
+		"userID":    userID,
+	})
+
+	// Parse request
+	var metadata map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&metadata); err != nil {
+		uh.appContext.Logger.Error("Failed to decode request body", map[string]any{"error": err})
+		uh.handleError(w, requestID, errors.New("invalid request body"), http.StatusBadRequest)
+		return
+	}
+
+	// Call service method instead of adapter directly
+	if err := uh.userService.UpdateAppMetadata(
+		r.Context(),
+		userID,
+		metadata,
+	); err != nil {
+		uh.appContext.Logger.Error("Failed to update app metadata", map[string]any{
+			"error":      err,
+			"request_id": requestID,
+			"userID":     userID,
+		})
+		uh.handleError(w, requestID, err, http.StatusInternalServerError)
+		return
+	}
+
+	response := httputils.NewAPIResponse(r, userID, map[string]any{
+		"message": "App metadata updated successfully",
+	})
+
+	httputils.RespondWithJSON(
+		httputils.NewResponseWriterAdapter(w),
+		uh.appContext.Logger,
+		http.StatusOK,
+		response,
+	)
+}
 
 // CheckProfileComplete handles GET requests for checking if user profile is complete
 func (uh *UserHandler) CheckProfileComplete(w http.ResponseWriter, r *http.Request) {
@@ -468,7 +525,7 @@ func (uh *UserHandler) GetDeletionStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	status := map[string]interface{}{
+	status := map[string]any{
 		"is_active":              user.IsActive(),
 		"is_deleted":             user.IsDeleted(),
 		"is_deletion_requested":  user.IsDeletionRequested(),

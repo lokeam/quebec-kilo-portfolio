@@ -68,7 +68,7 @@ func (ua *UserDbAdapter) CreateUser(ctx context.Context, user models.User) (mode
 		ctx,
 		&user,
 		CreateUserQuery,
-		user.ID,
+		user.UserID,
 		user.Email,
 		user.FirstName,
 		user.LastName,
@@ -81,7 +81,7 @@ func (ua *UserDbAdapter) CreateUser(ctx context.Context, user models.User) (mode
 	}
 
 	ua.logger.Debug("User created successfully", map[string]any{
-		"user_id":  user.ID,
+		"user_id":  user.UserID,
 		"email":    user.Email,
 	})
 
@@ -114,11 +114,11 @@ func (ua *UserDbAdapter) UpdateUserProfile(
 		if err == sql.ErrNoRows {
 			return models.User{}, fmt.Errorf("user not found: %w", err)
 		}
-		return models.User{}, fmt.Errorf("failed to update user profile: %w")
+		return models.User{}, fmt.Errorf("failed to update user profile: %w", err)
 	}
 
 	ua.logger.Info("User profile updated", map[string]any{
-		"user_id": user.ID,
+		"user_id": user.UserID,
 		"first_name": firstName,
 		"last_name": lastName,
 	})
@@ -170,9 +170,35 @@ func (ua *UserDbAdapter) GetSingleUserByEmail(ctx context.Context, email string)
 	}
 
 	ua.logger.Debug("User retrieved successfully", map[string]any{
-		"user_id": user.ID,
+		"user_id": user.UserID,
 		"email": user.Email,
 	})
 
 	return user, nil
+}
+
+// CheckUserExists checks if a user exists by their Auth0 user ID
+func (ua *UserDbAdapter) CheckUserExists(ctx context.Context, userID string) (bool, error) {
+	ua.logger.Debug("CheckUserExists called", map[string]any{"userID": userID})
+
+	var exists bool
+	err := ua.db.QueryRowContext(
+		ctx,
+		CheckUserExistsQuery,
+		userID,
+	).Scan(&exists)
+	if err != nil {
+		ua.logger.Error("Failed to check user existence", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return false, fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	ua.logger.Debug("CheckUserExists result", map[string]any{
+		"userID": userID,
+		"exists": exists,
+	})
+
+	return exists, nil
 }

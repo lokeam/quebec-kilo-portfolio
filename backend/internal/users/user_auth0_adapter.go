@@ -42,6 +42,16 @@ func NewAuth0Adapter(appCtx *appcontext.AppContext) (*Auth0Adapter, error) {
 		"audience": cfg.Audience,
 	})
 
+	// Log Auth0 Management API configuration
+	appCtx.Logger.Info("Auth0Adapter: Management API configuration", map[string]any{
+		"domain": cfg.Domain,
+		"clientID": cfg.ClientID,
+		"audience": cfg.Audience,
+		"managementAudience": cfg.ManagementAudience,
+		"baseURL": fmt.Sprintf("https://%s/api/v2", cfg.Domain),
+		"apiVersion": "v2",
+	})
+
 	return &Auth0Adapter{
 		appCtx:     appCtx,
 		HTTPClient: &http.Client{Timeout: 10 * time.Second},
@@ -105,8 +115,8 @@ func (a *Auth0Adapter) getManagementToken(ctx context.Context) (string, error) {
 }
 
 
-// PatchUserMetadata updates user_metadata for a user in Auth0
-func (a *Auth0Adapter) PatchUserMetadata(
+// PatchAppMetadata updates app_metadata for a user in Auth0
+func (a *Auth0Adapter) PatchAppMetadata(
 	ctx context.Context,
 	userID string,
 	metadata map[string]any,
@@ -119,6 +129,14 @@ func (a *Auth0Adapter) PatchUserMetadata(
 		return fmt.Errorf("metadata cannot be nil")
 	}
 
+	// Log the metadata payload being sent to Auth0
+	a.appCtx.Logger.Info("Auth0Adapter: Patching app metadata", map[string]any{
+		"userID": userID,
+		"metadata": metadata,
+		"metadataType": "app_metadata", // This method updates app_metadata
+		"metadataKeys": getMapKeys(metadata),
+	})
+
 	token, err := a.getManagementToken(ctx)
 	if err != nil {
 		a.appCtx.Logger.Error("Auth0Adapter: failed to get management token", map[string]any{"error": err})
@@ -127,14 +145,22 @@ func (a *Auth0Adapter) PatchUserMetadata(
 
 	cfg := a.appCtx.Config.Auth0
 	url := fmt.Sprintf("https://%s/api/v2/users/%s", cfg.Domain, userID)
-	reqBody := types.Auth0UserMetadataPatchRequest{
-		UserMetadata: metadata,
+	reqBody := types.Auth0AppMetadataPatchRequest{
+		AppMetadata: metadata,
 	}
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		a.appCtx.Logger.Error("Auth0Adapter: failed to marshal PATCH request", map[string]any{"error": err})
 		return fmt.Errorf("failed to marshal PATCH request: %w", err)
 	}
+
+	// Log the Auth0 API endpoint being called
+	a.appCtx.Logger.Info("Auth0Adapter: Making API call", map[string]any{
+		"method": "PATCH",
+		"url": url,
+		"payload": string(body),
+		"metadataType": "app_metadata",
+	})
 
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -156,6 +182,14 @@ func (a *Auth0Adapter) PatchUserMetadata(
 	}
 	defer resp.Body.Close()
 
+	// Log the response from Auth0
+	a.appCtx.Logger.Info("Auth0Adapter: Received response", map[string]any{
+		"status": resp.Status,
+		"statusCode": resp.StatusCode,
+		"userID": userID,
+		"metadataType": "app_metadata",
+	})
+
 	if resp.StatusCode != http.StatusOK {
 		// Read error response body for better debugging
 		var errorBody []byte
@@ -166,19 +200,31 @@ func (a *Auth0Adapter) PatchUserMetadata(
 			"status": resp.Status,
 			"userID": userID,
 			"body":   string(errorBody),
+			"metadataType": "app_metadata",
 		})
 		return fmt.Errorf("auth0 PATCH failed with status %s for user %s: %s", resp.Status, userID, string(errorBody))
 	}
 
 	// Optionally parse response if you want to use it
-	// var patchResp types.Auth0UserMetadataPatchResponse
+	// var patchResp types.Auth0AppMetadataPatchResponse
 	// if err := json.NewDecoder(resp.Body).Decode(&patchResp); err != nil {
 	//     return err
 	// }
 
-	a.appCtx.Logger.Info("Auth0Adapter: successfully updated user metadata", map[string]any{
+	a.appCtx.Logger.Info("Auth0Adapter: successfully updated app metadata", map[string]any{
 		"userID": userID,
 		"status": resp.Status,
+		"metadataType": "app_metadata",
+		"updatedFields": getMapKeys(metadata),
 	})
 	return nil
+}
+
+// Helper function to get map keys for logging
+func getMapKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

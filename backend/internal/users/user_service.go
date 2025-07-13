@@ -23,6 +23,7 @@ func NewUserService(appCtx *appcontext.AppContext) (*UserService, error) {
 	appCtx.Logger.Debug("UserService: constructor entered", nil)
 	appCtx.Logger.Debug("UserService: Starting creation", nil)
 
+	// Create all dependencies
 	dbAdapter, err := NewUserDbAdapter(appCtx)
 	if err != nil {
 		appCtx.Logger.Error("UserService: Failed to create dbAdapter", map[string]any{"error": err})
@@ -50,8 +51,8 @@ func NewUserService(appCtx *appcontext.AppContext) (*UserService, error) {
 		return nil, fmt.Errorf("failed to create auth0 adapter: %w", err)
 	}
 	appCtx.Logger.Debug("UserService: auth0Adapter created", nil)
-
 	appCtx.Logger.Debug("UserService: Successfully created", nil)
+
 	return &UserService{
 		appCtx:       appCtx,
 		dbAdapter:    dbAdapter,
@@ -89,6 +90,8 @@ func (s *UserService) CreateUser(ctx context.Context, req types.CreateUserReques
 	s.appCtx.Logger.Debug("CreateUser called", map[string]any{
 		"auth0UserID": req.Auth0UserID,
 		"email":       req.Email,
+		"firstName":   req.FirstName,
+		"lastName":    req.LastName,
 	})
 
 	// Validate the request
@@ -100,7 +103,82 @@ func (s *UserService) CreateUser(ctx context.Context, req types.CreateUserReques
 		return models.User{}, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Create user model
+	// Create When Complete" approach to ENSURE WE HAVE COMPLETE DATA
+	if validatedReq.FirstName == "" || validatedReq.LastName == "" {
+		s.appCtx.Logger.Error("CreateUser failed - incomplete data", map[string]any{
+			"auth0UserID": validatedReq.Auth0UserID,
+			"firstName":    validatedReq.FirstName,
+			"lastName":     validatedReq.LastName,
+		})
+		return models.User{}, fmt.Errorf("first name and last name are required for user creation")
+	}
+
+	// Check if user already exists
+	userExists, err := s.dbAdapter.CheckUserExists(ctx, validatedReq.Auth0UserID)
+	if err != nil {
+		s.appCtx.Logger.Error("Failed to check if user exists", map[string]any{
+			"auth0UserID": validatedReq.Auth0UserID,
+			"error":        err,
+		})
+		return models.User{}, fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	// If user already exists, update them with complete data
+	if userExists {
+		s.appCtx.Logger.Info("User already exists, updating with complete data", map[string]any{
+			"auth0UserID": validatedReq.Auth0UserID,
+			"firstName":    validatedReq.FirstName,
+			"lastName":     validatedReq.LastName,
+		})
+
+		updatedUser, err := s.dbAdapter.UpdateUserProfile(
+			ctx,
+			validatedReq.Auth0UserID,
+			validatedReq.FirstName,
+			validatedReq.LastName,
+		)
+		if err != nil {
+			s.appCtx.Logger.Error("Failed to update existing user", map[string]any{
+				"auth0UserID": validatedReq.Auth0UserID,
+				"error":        err,
+			})
+			return models.User{}, fmt.Errorf("failed to update existing user: %w", err)
+		}
+
+		// Sync updated app metadata with Auth0
+		auth0Metadata := map[string]any{
+			"hasCompletedOnboarding": true,
+		}
+
+		// Log the metadata payload before sending to Auth0
+		s.appCtx.Logger.Info("UserService: Syncing app metadata with Auth0 after user update", map[string]any{
+			"userID": updatedUser.UserID,
+			"metadata": auth0Metadata,
+			"metadataKeys": getMapKeys(auth0Metadata),
+			"hasCompletedOnboarding": true,
+		})
+
+		if err := s.auth0Adapter.PatchAppMetadata(
+			ctx,
+			updatedUser.UserID,
+			auth0Metadata,
+		); err != nil {
+					s.appCtx.Logger.Error("Failed to sync app metadata with Auth0", map[string]any{
+			"userID": updatedUser.UserID,
+			"error":  err,
+		})
+			// NOTE: See below note about failing entire operation
+		}
+
+		s.appCtx.Logger.Info("Existing user updated successfully", map[string]any{
+			"userID": updatedUser.UserID,
+			"email":  updatedUser.Email,
+		})
+
+		return updatedUser, nil
+	}
+
+	// Create new user with complete data
 	user := models.User{
 		UserID:    validatedReq.Auth0UserID,
 		Email:     validatedReq.Email,
@@ -118,25 +196,35 @@ func (s *UserService) CreateUser(ctx context.Context, req types.CreateUserReques
 		return models.User{}, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// Sync user metadata with Auth0
+	// Sync app metadata with Auth0
 	auth0Metadata := map[string]any{
-		"firstName": createdUser.FirstName,
-		"lastName":  createdUser.LastName,
-		"email":     createdUser.Email,
+		"hasCompletedOnboarding": true,
 	}
 
-	if err := s.auth0Adapter.PatchUserMetadata(ctx, createdUser.UserID, auth0Metadata); err != nil {
-		s.appCtx.Logger.Error("Failed to sync user metadata with Auth0", map[string]any{
+			// Log the metadata payload before sending to Auth0
+		s.appCtx.Logger.Info("UserService: Syncing app metadata with Auth0 after user creation", map[string]any{
+			"userID": createdUser.UserID,
+			"metadata": auth0Metadata,
+			"metadataKeys": getMapKeys(auth0Metadata),
+			"hasCompletedOnboarding": true,
+		})
+
+	if err := s.auth0Adapter.PatchAppMetadata(
+		ctx,
+		createdUser.UserID,
+		auth0Metadata,
+	); err != nil {
+		s.appCtx.Logger.Error("Failed to sync app metadata with Auth0", map[string]any{
 			"userID": createdUser.UserID,
 			"error":  err,
 		})
-		// Note: We don't fail the entire operation if Auth0 sync fails
+		// NOTE: We don't fail the entire operation if Auth0 sync fails
 		// The user is still created in our database, but we log the error
-		// You could choose to fail here if Auth0 sync is critical
+		// We may choose to fail here if Auth0 sync is critical
 	}
 
 	s.appCtx.Logger.Info("User created successfully", map[string]any{
-		"userID": createdUser.ID,
+		"userID": createdUser.UserID,
 		"email":  createdUser.Email,
 	})
 
@@ -169,7 +257,12 @@ func (s *UserService) UpdateUserProfile(
 	}
 
 	// Update user profile in database
-	updatedUser, err := s.dbAdapter.UpdateUserProfile(ctx, userID, validatedReq.FirstName, validatedReq.LastName)
+	updatedUser, err := s.dbAdapter.UpdateUserProfile(
+		ctx,
+		userID,
+		validatedReq.FirstName,
+		validatedReq.LastName,
+	)
 	if err != nil {
 		s.appCtx.Logger.Error("Failed to update user profile", map[string]any{
 			"userID": userID,
@@ -178,21 +271,29 @@ func (s *UserService) UpdateUserProfile(
 		return models.User{}, fmt.Errorf("failed to update user profile: %w", err)
 	}
 
-	// Sync user metadata with Auth0
+	// Sync app metadata with Auth0
 	auth0Metadata := map[string]any{
-		"firstName": updatedUser.FirstName,
-		"lastName":  updatedUser.LastName,
-		"email":     updatedUser.Email,
+		"hasCompletedOnboarding": true,
 	}
 
-	if err := s.auth0Adapter.PatchUserMetadata(ctx, userID, auth0Metadata); err != nil {
-		s.appCtx.Logger.Error("Failed to sync user metadata with Auth0", map[string]any{
+			// Log the metadata payload before sending to Auth0
+		s.appCtx.Logger.Info("UserService: Syncing app metadata with Auth0 after profile update", map[string]any{
+			"userID": userID,
+			"metadata": auth0Metadata,
+			"metadataKeys": getMapKeys(auth0Metadata),
+			"hasCompletedOnboarding": true,
+		})
+
+	if err := s.auth0Adapter.PatchAppMetadata(
+		ctx,
+		userID,
+		auth0Metadata,
+	); err != nil {
+		s.appCtx.Logger.Error("Failed to sync app metadata with Auth0", map[string]any{
 			"userID": userID,
 			"error":  err,
 		})
-		// Note: We don't fail the entire operation if Auth0 sync fails
-		// The user profile is still updated in our database, but we log the error
-		// You could choose to fail here if Auth0 sync is critical
+		// NOTE: See above note about failing entire operation in CreateUser method. To review later
 	}
 
 	s.appCtx.Logger.Info("User profile updated successfully", map[string]any{
@@ -229,4 +330,53 @@ func (s *UserService) HasCompleteProfile(ctx context.Context, userID string) (bo
 	})
 
 	return hasComplete, nil
+}
+
+// UpdateAppMetadata updates app metadata in Auth0
+func (s *UserService) UpdateAppMetadata(
+	ctx context.Context,
+	userID string,
+	metadata map[string]any,
+) error {
+	s.appCtx.Logger.Debug("UpdateAppMetadata called", map[string]any{
+		"userID":   userID,
+		"metadata": metadata,
+		"metadataKeys": getMapKeys(metadata),
+	})
+
+	if userID == "" {
+		return fmt.Errorf("user ID cannot be empty")
+	}
+
+	// Validate user exists first
+	user, err := s.GetSingleUser(ctx, userID)
+	if err != nil {
+		s.appCtx.Logger.Error("Failed to get user for metadata update", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Update metadata through Auth0 adapter
+	if err := s.auth0Adapter.PatchAppMetadata(
+		ctx,
+		userID,
+		metadata,
+	); err != nil {
+		s.appCtx.Logger.Error("Failed to update app metadata with Auth0", map[string]any{
+			"userID": userID,
+			"error":  err,
+		})
+		return fmt.Errorf("failed to update app metadata: %w", err)
+	}
+
+	s.appCtx.Logger.Info("App metadata updated successfully", map[string]any{
+		"userID":   userID,
+		"email":    user.Email,
+		"metadata": metadata,
+		"metadataKeys": getMapKeys(metadata),
+	})
+
+	return nil
 }

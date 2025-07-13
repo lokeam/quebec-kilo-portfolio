@@ -47,7 +47,6 @@ func (uv *UserValidator) ValidateUserProfile(user models.User) (models.User, err
 	var violations []string
 
 	// Copy ID and timestamps - these are required and thus don't need validation
-	validatedUser.ID = user.ID
 	validatedUser.UserID = user.UserID
 	validatedUser.Email = user.Email
 	validatedUser.CreatedAt = user.CreatedAt
@@ -277,6 +276,7 @@ func (uv *UserValidator) validateFirstName(firstName string) (string, error) {
 }
 
 func (uv *UserValidator) validateLastName(lastName string) (string, error) {
+	// Last name is now required for complete user creation
 	if lastName == "" {
 		return "", &validationErrors.ValidationError{
 			Field:   "last_name",

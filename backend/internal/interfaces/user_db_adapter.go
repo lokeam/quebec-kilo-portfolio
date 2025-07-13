@@ -15,4 +15,5 @@ type UserDbAdapter interface {
 
 	// User Management Operations
 	GetSingleUserByEmail(ctx context.Context, email string) (models.User, error)
+	CheckUserExists(ctx context.Context, userID string) (bool, error)
 }
