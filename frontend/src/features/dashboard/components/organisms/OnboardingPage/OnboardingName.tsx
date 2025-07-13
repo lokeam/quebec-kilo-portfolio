@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/shared/components/ui/input';
 
 // Hooks
-import { useAuth } from '@/core/auth/hooks/useAuth';
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
 import { useCreateUserProfile } from '@/core/api/queries/user.queries';
 
 // Constants
@@ -31,20 +31,20 @@ import { motion } from 'framer-motion';
 // Form Schema
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().optional(),
+  lastName: z.string().min(1, 'Last name is required'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export default function OnboardingName() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Only get auth data
-  const createUserProfileMutation = useCreateUserProfile(); // Get the mutation
+  const { user } = useAuthContext();
+  const createUserProfileMutation = useCreateUserProfile();
 
-  // Check if user already has a complete profile (has firstName and lastName)
+  // Simple check: if user already has complete profile in Auth0 metadata, redirect
   useEffect(() => {
-    if (user?.user_metadata?.firstName && user?.user_metadata?.lastName) {
-      console.log('🚫 User already has complete profile, redirecting to intro');
+    if (user?.app_metadata?.hasCompletedOnboarding) {
+      console.log('🚫 User already has complete onboarding, redirecting to intro');
       navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO, { replace: true });
     }
   }, [user, navigate]);
@@ -61,15 +61,15 @@ export default function OnboardingName() {
     console.log('📝 Form submitted:', data);
 
     try {
-      // Create user profile ONLY when user explicitly submits the form
+      // Backend handles everything - new user, existing user, updates
       await createUserProfileMutation.mutateAsync({
         email: user?.email || '',
         auth0UserID: user?.sub || '',
         firstName: data.firstName,
-        lastName: data.lastName || '',
+        lastName: data.lastName,
       });
 
-      console.log('✅ User profile created successfully');
+      console.log('✅ User profile created/updated successfully');
 
       // Navigate to next onboarding step
       navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO);
@@ -146,7 +146,7 @@ export default function OnboardingName() {
                           name="lastName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Last Name (Optional)</FormLabel>
+                              <FormLabel>Last Name *</FormLabel>
                               <FormControl>
                                 <Input
                                   placeholder="Enter your last name"

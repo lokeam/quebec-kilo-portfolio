@@ -20,6 +20,7 @@ import {
   createUserProfile,
   updateUserProfile,
   getUserProfile,
+  updateUserMetadata,
 } from '@/core/api/services/user.service';
 
 // Utils
@@ -212,5 +213,21 @@ export const useGetUserDeletionStatus = () => {
     },
     staleTime: 30000, // 30 seconds - status doesn't change frequently
     refetchOnMount: true,
+  });
+};
+
+/**
+ * Hook to update user metadata
+ */
+export const useUpdateUserMetadata = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (metadata: Record<string, unknown>) => updateUserMetadata(metadata),
+    onSuccess: () => {
+      // Invalidate user profile queries to refresh data
+      queryClient.invalidateQueries({ queryKey: userKeys.profile() });
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
   });
 };

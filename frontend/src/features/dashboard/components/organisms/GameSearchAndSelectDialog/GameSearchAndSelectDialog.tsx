@@ -8,7 +8,7 @@ import { DialogTrigger } from '@/shared/components/ui/dialog';
 import { SearchDialog, SearchDialogSkeleton } from '@/shared/components/ui/SearchDialog';
 import { ResultsSection } from './ResultsSection/ResultsSection';
 import { ActionsSection } from './ActionsSection/ActionsSection';
-import { Loading } from '@/shared/components/ui/loading/Loading';
+import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
 
 // Hooks
 import { useDebounce } from '@/shared/hooks/useDebounce';
@@ -63,7 +63,7 @@ export function GameSearchAndSelectDialog() {
     setIsOpen(false);
   }, []);
 
-  if (isStorageLocationsLoading) return <Loading />;
+  if (isStorageLocationsLoading) return <LoadingPage />;
   if (storageLocationsError) return <div>Error loading storage locations</div>;
 
   return (

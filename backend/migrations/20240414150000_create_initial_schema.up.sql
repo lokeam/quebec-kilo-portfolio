@@ -21,6 +21,17 @@ CREATE TABLE users (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
+-- Fix existing NULL values and add NOT NULL constraints
+-- This ensures we never have NULL name values again
+UPDATE users
+SET first_name = 'Unknown', last_name = 'User'
+WHERE first_name IS NULL OR last_name IS NULL;
+
+-- Add NOT NULL constraints to prevent future NULL values
+ALTER TABLE users
+ALTER COLUMN first_name SET NOT NULL,
+ALTER COLUMN last_name SET NOT NULL;
+
 -- Create audit_logs table for compliance and tracking
 CREATE TABLE audit_logs (
     id SERIAL PRIMARY KEY,

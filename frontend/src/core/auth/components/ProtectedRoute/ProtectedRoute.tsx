@@ -1,6 +1,7 @@
-import { useAuth } from '@/core/auth/hooks/useAuth';
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
+import { useOnboardingStatus } from '@/core/auth/hooks/useOnboardingStatus';
 import { Navigate } from 'react-router-dom';
-import { Loading } from '@/shared/components/ui/loading/Loading';
+import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
 import { getOnboardingDebugState, logDebugInfo } from '@/core/utils/debug/onboardingDebug';
 
 interface ProtectedRouteProps {
@@ -11,15 +12,19 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   const {
     isAuthenticated,
     isLoading,
-    hasCompletedOnboarding,
-    isProfileLoading
-  } = useAuth();
+  } = useAuthContext();
+
+  const { hasCompletedOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
   const debugState = getOnboardingDebugState();
 
-  // Show loading while Auth0 is initializing or profile is loading
-  if (isLoading || isProfileLoading) {
-    return <Loading />;
+  // Show loading while Auth0 is initializing
+  if (isLoading || onboardingLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LoadingPage />
+      </div>
+    );
   }
 
   // Redirect to login if not authenticated

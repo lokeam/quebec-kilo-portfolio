@@ -1,21 +1,32 @@
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/core/auth/hooks/useAuth';
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
 import { useOnboardingStatus } from '@/core/auth/hooks/useOnboardingStatus';
 import { getOnboardingDebugState, logDebugInfo } from '@/core/utils/debug/onboardingDebug';
-import { Loading } from '@/shared/components/ui/loading/Loading';
+import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
 
 interface OnboardingProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export default function OnboardingProtectedRoute({ children }: OnboardingProtectedRouteProps) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth(); // Only get auth data
-  const { hasCompletedOnboarding } = useOnboardingStatus(); // Safe, no API calls
+  const { isAuthenticated, isLoading: authLoading } = useAuthContext(); // Only get auth data
+  const { hasCompletedOnboarding, isLoading: onboardingLoading } = useOnboardingStatus(); // Safe, no API calls
   const debugState = getOnboardingDebugState();
 
+  console.log(
+    'OnboardingProtectedRoute:',
+    'isAuthenticated =', isAuthenticated,
+    'authLoading =', authLoading,
+    'hasCompletedOnboarding =', hasCompletedOnboarding
+  );
+
   // Show loading while Auth0 is loading
-  if (authLoading) {
-    return <Loading />;
+  if (authLoading || onboardingLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <LoadingPage />
+      </div>
+    );
   }
 
   // Redirect to login if not authenticated

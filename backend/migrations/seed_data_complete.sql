@@ -12,8 +12,8 @@ BEGIN;
 
 -- 1. USERS
 -- --------
-INSERT INTO users (id, email) VALUES
-    ('auth0|6866ca863a5f54c1e40be745', 'test@example.com');
+INSERT INTO users (id, email, first_name, last_name) VALUES
+    ('auth0|6866ca863a5f54c1e40be745', 'qkotest0001@gmail.com', 'Test', 'User');
 
 -- 2. SPENDING CATEGORIES
 -- ----------------------

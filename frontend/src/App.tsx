@@ -5,7 +5,8 @@ import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute
 
 // Pages
 import HomePage from '@/features/dashboard/pages/HomePage/HomePage';
-import { Loading } from '@/shared/components/ui/loading/Loading';
+import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
+
 
 // Layouts
 import AuthenticatedLayout from '@/core/auth/components/AuthenicatedLayout/AuthenticatedLayout';
@@ -22,6 +23,7 @@ import OnboardingLayout from './core/auth/components/OnboardingLayout/Onboarding
 
 // Debug Panel (development only)
 import { OnboardingDebugPanel } from '@/core/utils/debug/OnboardingDebugPanel';
+import { ClaimsDebugger } from '@/core/auth/components/ClaimsDebugger';
 
 // Lazy load secondary routes
 const OnlineServicesPage = lazy(() => import(
@@ -137,7 +139,7 @@ function App() {
               <NetworkStatusProvider>
                 <TanstackMutationToast />
                 <RouteMonitor />
-                <Suspense fallback={<Loading />}>
+                <Suspense fallback={<LoadingPage />}>
                   <Routes>
                     {/* Public routes */}
                     <Route path="/login" element={<LoginPage />} />
@@ -184,6 +186,7 @@ function App() {
 
                 {/* Debug Panel - Development Only */}
                 <OnboardingDebugPanel />
+                {/* <ClaimsDebugger /> */}
               </NetworkStatusProvider>
             </TooltipProvider>
           </ThemeProvider>

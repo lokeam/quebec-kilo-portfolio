@@ -5,6 +5,8 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Auth0Provider } from '@auth0/auth0-react';
 import { AuthInitializer } from '@/core/api/components/AuthInitializer';
+import { AuthProvider } from '@/core/auth/context-provider/AuthProvider';
+
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { logger } from '@/core/utils/logger/logger';
@@ -24,7 +26,7 @@ logger.configure({
 });
 
 const queryClient = createSentryQueryClient();
-
+// Note: We removed skipRedirectCallback logic to prevent white flash during Auth0 redirects
 root.render(
   <StrictMode>
     <Auth0Provider
@@ -33,19 +35,22 @@ root.render(
       authorizationParams={{
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email read:user_metadata update:user_metadata offline_access'
+        scope: 'openid profile email read:user_metadata update:user_metadata app_metadata offline_access'
       }}
       useRefreshTokens={true}
       cacheLocation="localstorage"
       sessionCheckExpiryDays={30}
-      skipRedirectCallback={window.location.pathname === '/login'}
+      skipRedirectCallback={false} // Always process redirects to prevent white flash
     >
-      <AuthInitializer>
-        <QueryClientProvider client={queryClient}>
-          <App />
-          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
-        </QueryClientProvider>
-      </AuthInitializer>
+
+      <AuthProvider>
+        <AuthInitializer>
+          <QueryClientProvider client={queryClient}>
+            <App />
+            {process.env.NODE_ENV === 'development' && <ReactQueryDevtools />}
+          </QueryClientProvider>
+        </AuthInitializer>
+      </AuthProvider>
     </Auth0Provider>
   </StrictMode>,
 );

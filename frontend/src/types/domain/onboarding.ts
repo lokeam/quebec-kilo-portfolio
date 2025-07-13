@@ -22,11 +22,7 @@ export const NAVIGATION_ROUTES = {
   ONBOARDING_WELCOME: '/onboarding/welcome',
   ONBOARDING_NAME: '/onboarding/name',
   ONBOARDING_INTRO: '/onboarding/intro',
-  ONBOARDING_SELECT_STORAGE: '/onboarding/locations',
-  ONBOARDING_PHYSICAL_LOCATION: '/onboarding/location',
-  ONBOARDING_PHYSICAL_SUBLOCATION: '/onboarding/sublocation',
-  ONBOARDING_DIGITAL: '/onboarding/digital',
-  ONBOARDING_COMPLETE: '/onboarding/complete',
+  ONBOARDING_COMPLETE: '/',
 } as const;
 
 /**

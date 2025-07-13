@@ -12,18 +12,31 @@ import { Card, CardContent, CardHeader } from '@/shared/components/ui/card';
 // Hooks
 import { useNavigate } from 'react-router-dom';
 import { useOnboardingStore } from '@/features/dashboard/lib/stores/onboarding/onboardingStore';
-import { useAuth } from '@/core/auth/hooks/useAuth';
+import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
+
+// API
+import { useUpdateUserMetadata } from '@/core/api/queries/user.queries';
 
 // Constants
 import { NAVIGATION_ROUTES } from '@/types/domain/onboarding';
+
 export default function OnboardingIntro() {
   const navigate = useNavigate();
   const setWantsSetup = useOnboardingStore((state) => state.setWantsSetup);
-  const { user } = useAuth();
+  const { user } = useAuthContext();
+  const updateUserMetadataMutation = useUpdateUserMetadata();
 
   const handleStartOnboardFlow = async () => {
     if (user) {
-      await user.updateUserMetadata({ wantsIntroToasts: true });
+      try {
+        // Call our backend endpoint to update Auth0 metadata
+        await updateUserMetadataMutation.mutateAsync({
+          wantsIntroToasts: true
+        });
+      } catch (error) {
+        console.error('Failed to update user metadata:', error);
+        // Continue with onboarding even if metadata update fails
+      }
     }
     setWantsSetup(true);
     navigate(NAVIGATION_ROUTES.ONBOARDING_SELECT_STORAGE);
@@ -31,7 +44,15 @@ export default function OnboardingIntro() {
 
   const handleSkipOnboardFlow = async () => {
     if (user) {
-      await user.updateUserMetadata({ wantsIntroToasts: false });
+      try {
+        // Call our backend endpoint to update Auth0 metadata
+        await updateUserMetadataMutation.mutateAsync({
+          wantsIntroToasts: false
+        });
+      } catch (error) {
+        console.error('Failed to update user metadata:', error);
+        // Continue with onboarding even if metadata update fails
+      }
     }
     setWantsSetup(false);
     navigate(NAVIGATION_ROUTES.ONBOARDING_COMPLETE);

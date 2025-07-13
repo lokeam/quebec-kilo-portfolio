@@ -39,7 +39,7 @@ const detectNewUserSignup = (user: User): boolean => {
 /**
  * Interface for the return value of useAuth hook
  */
-interface UseAuthReturn {
+export interface UseAuthReturn {
   /** Whether the user is currently authenticated */
   isAuthenticated: boolean;
 
@@ -70,17 +70,19 @@ interface UseAuthReturn {
  * only the necessary functionality for our use case.
  *
  * IMPORTANT: This hook ONLY handles authentication state.
- * For user profile data, use useUserProfile() hook instead.
  * For onboarding status, use useOnboardingStatus() hook instead.
+ *
+ * IMPORTANT: DO NOT USE THIS HOOK DIRECTLY.
+ * Instead, use useAuthContext() hook from AuthContext.tsx
  *
  * @returns {UseAuthReturn} Object containing authentication state and methods
  *
  * @example
  * ```typescript
  * function ProtectedComponent() {
- *   const { isAuthenticated, isLoading, user, logout } = useAuth();
+ *   const { isAuthenticated, isLoading, user, logout } = useAuthContext();
  *
- *   if (isLoading) return <Loading />;
+ *   if (isLoading) return <LoadingPage />;
  *   if (!isAuthenticated) return <LoginPrompt />;
  *
  *   return (
@@ -101,6 +103,8 @@ export const useAuth = (): UseAuthReturn => {
     logout: auth0Logout,
     getAccessTokenSilently,
   } = useAuth0();
+
+  console.log('-- useAuth rendered --');
 
   // Get debug state
   const debugState = getOnboardingDebugState();
@@ -150,7 +154,7 @@ export const useAuth = (): UseAuthReturn => {
 
     await auth0Logout({
       logoutParams: {
-        returnTo: window.location.origin,
+        returnTo: `${window.location.origin}/login`,
       }
     });
   }, [auth0Logout]);
