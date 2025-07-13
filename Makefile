@@ -539,6 +539,7 @@ help:
 	@echo " make spend-tracking-db-seed-down - Remove spend tracking seed data"
 	@echo " make seed-data-complete - Seed complete data set"
 	@echo " make debug-migration - Debug migration and seeding issues"
+	@echo " make reset-test-data - Clear test users from database and Auth0"
 
 # ---------------------------------------------------------------------------
 # Restore: Restore database from backup
@@ -635,3 +636,28 @@ nuclear:
 	@echo "$(GREEN)Starting backend fresh...$(RESET)"
 	docker compose --env-file .env.dev up -d traefik api postgres redis mailhog
 	@echo "$(GREEN)Nuclear cleanup complete. Backend services should be fresh and clean.$(RESET)"
+
+# ---------------------------------------------------------------------------
+# Reset Test Data: Clear test users from database and Auth0
+#
+# This target clears test data for development testing.
+# Requires AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TEST_EMAIL in .env.dev
+#
+# Usage: make reset-test-data
+# ---------------------------------------------------------------------------
+reset-test-data:
+	@echo "$(BLUE)Resetting test data...$(RESET)"
+	@if [ -z "$$AUTH0_DOMAIN" ] || [ -z "$$AUTH0_CLIENT_ID" ] || [ -z "$$AUTH0_CLIENT_SECRET" ] || [ -z "$$AUTH0_TEST_EMAIL" ]; then \
+		echo "$(RED)Error: Missing required environment variables$(RESET)"; \
+		echo "Please ensure AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_TEST_EMAIL are set in .env.dev"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Clearing test users from database...$(RESET)"
+	@docker compose exec -T postgres psql -U postgres -d qkoapi -c "DELETE FROM users WHERE email LIKE '%test%';"
+	@echo "$(BLUE)Clearing Auth0 test user: $$AUTH0_TEST_EMAIL$(RESET)"
+	@curl -X DELETE "https://$$AUTH0_DOMAIN/api/v2/users-by-email?email=$$AUTH0_TEST_EMAIL" \
+		-H "Authorization: Bearer $$(curl -s -X POST https://$$AUTH0_DOMAIN/oauth/token \
+		-H "Content-Type: application/json" \
+		-d '{"client_id":"$$AUTH0_CLIENT_ID","client_secret":"$$AUTH0_CLIENT_SECRET","audience":"https://$$AUTH0_DOMAIN/api/v2/","grant_type":"client_credentials"}' | jq -r '.access_token')" \
+		-H "Content-Type: application/json" || echo "$(YELLOW)Warning: Could not delete Auth0 user (may not exist)$(RESET)"
+	@echo "$(GREEN)Test data reset complete$(RESET)"
