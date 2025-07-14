@@ -54,12 +54,59 @@ export function saveAuth0Token(fn: () => Promise<string>) {
 }
 
 /**
+ * Stores the function that logs the user out of Auth0.
+ *
+ * Why we need this:
+ * - See explanation in saveAuth0Token
+ *
+ * Call this once when the app starts.
+ *
+ * @param fn - The function that logs the user out of Auth0
+ */
+let logoutFn: ((options?: { returnTo?: string }) => void) | null = null;
+
+export function saveAuth0Logout(fn: (options?: { returnTo?: string }) => void) {
+  logoutFn = fn;
+}
+
+/**
+ * Gets the logout function for Auth0.
+ *
+ * @throws Error if saveAuth0Logout hasn't been called
+ * @returns The logout function
+ */
+export function getAuth0Logout() {
+  if (!logoutFn) throw new Error('Logout not initialized');
+  return logoutFn;
+}
+
+/**
  * Gets an Auth0 access token from anywhere in the app.
  *
- * @throws Error if saveAuth0Token hasn't been called
+ * If the refresh token is missing (for example, in private browsing mode),
+ * this will log out the user and redirect them to the login page.
+ *
+ * @throws Error if saveAuth0Token hasn't been called, or if the user is logged out due to a missing refresh token
  * @returns Promise<string> A valid Auth0 access token
  */
 export async function getAuth0Token() {
   if (!getTokenFn) throw new Error('Auth not initialized');
-  return await getTokenFn();
+  try {
+    return await getTokenFn();
+  } catch (error: unknown) {
+    // If the error message indicates the refresh token is missing,
+    // log out the user and redirect to the login page.
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof (error as { message: unknown }).message === 'string' &&
+      ((error as { message: string }).message.toLowerCase().includes('missing refresh token'))
+    ) {
+      const logout = getAuth0Logout();
+      logout({ returnTo: window.location.origin + '/login' });
+      throw new Error('User logged out due to missing refresh token');
+    }
+    throw error;
+  }
 }

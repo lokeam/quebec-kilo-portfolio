@@ -1,7 +1,7 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect } from 'react';
 import * as Sentry from '@sentry/react';
-import { saveAuth0Token } from '@/core/api/utils/auth.utils';
+import { saveAuth0Token, saveAuth0Logout } from '@/core/api/utils/auth.utils';
 
 /**
  * AuthInitializer is a crucial component that bridges Auth0 authentication
@@ -43,14 +43,16 @@ import { saveAuth0Token } from '@/core/api/utils/auth.utils';
  * @param props.children - Child components that need access to authenticated API calls
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { getAccessTokenSilently, user, isAuthenticated } = useAuth0();
+  const { getAccessTokenSilently, logout, user, isAuthenticated } = useAuth0();
 
   useEffect(() => {
     // Save Auth0's getAccessTokenSilently fn so that we may use tokens anywhere.
-    // Needed bc getAccessTokenSilently only works in React components.
-    // Fn wrapper used to pass different options later if needed.
     saveAuth0Token(() => getAccessTokenSilently());
-  }, [getAccessTokenSilently]);
+    // Wrap logout to match the expected signature for saveAuth0Logout
+    saveAuth0Logout((options?: { returnTo?: string }) => {
+      logout({ logoutParams: { returnTo: options?.returnTo } });
+    });
+  }, [getAccessTokenSilently, logout]);
 
   // Set Sentry user context when authentication state changes
   useEffect(() => {
