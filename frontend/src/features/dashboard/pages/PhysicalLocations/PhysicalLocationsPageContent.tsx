@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 
-// Components
+// Custom Components
 import { SinglePhysicalLocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SinglePhysicalLocationCard/SinglePhysicalLocationCard';
 import { SingleSublocationCard } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/SingleSublocationCard/SingleSublocationCard';
 import { PhysicalLocationsToolbar } from '@/features/dashboard/components/organisms/PhysicalLocationsPage/PhysicalLocationsToolbar/PhysicalLocationsToolbar';
@@ -19,6 +19,7 @@ import { DrawerContainer } from '@/features/dashboard/components/templates/Drawe
 import { useOnlineServicesStore } from '@/features/dashboard/lib/stores/onlineServicesStore';
 import { useCardLabelWidth } from '@/features/dashboard/components/organisms/OnlineServicesPage/SingleOnlineServiceCard/useCardLabelWidth';
 import { usePhysicalLocationFilters } from '@/features/dashboard/hooks/usePhysicalLocationFilters';
+import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';
@@ -73,6 +74,8 @@ const getPhysicalLocationsWithoutSublocations = (
 };
 
 export function PhysicalLocationsPageContent() {
+
+  // State
   const [addPhysicalLocationOpen, setAddPhysicalLocationOpen] = useState<boolean>(false);
   const [addSublocationOpen, setAddSublocationOpen] = useState<boolean>(false);
   const [editServiceOpen, setEditServiceOpen] = useState<boolean>(false);
@@ -80,11 +83,16 @@ export function PhysicalLocationsPageContent() {
   const [selectedParentLocation, setSelectedParentLocation] = useState<LocationsBFFPhysicalLocationResponse | null>(null);
   const [isSelectingParentLocation, setIsSelectingParentLocation] = useState<boolean>(false);
 
+  // Store
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
   const { searchQuery, sublocationTypeFilters, parentLocationTypeFilters } = useOnlineServicesStore();
 
   // Fetch physical locations using BFF
-  const { data: storageData, isLoading, error } = useGetPhysicalLocationsBFFResponse();
+  const {
+    data: storageData,
+    isLoading,
+    error
+  } = useGetPhysicalLocationsBFFResponse();
 
   // Get filter options from BFF data
   const filterOptions = usePhysicalLocationFilters(storageData);
@@ -199,6 +207,18 @@ export function PhysicalLocationsPageContent() {
     searchQuery,
     parentLocationTypeFilters.length
   ]);
+
+  // Show Intro toast 2 if user has no physical locations
+  const hasPhysicalLocations = Boolean(storageData?.physicalLocations && storageData.physicalLocations.length > 0);
+
+  // Show Intro toast 3 if physical locations exist but no sublocations
+  const hasSublocations = Boolean(storageData?.sublocations && storageData.sublocations.length > 0);
+
+  // Show toast 2 when user has no physical locations
+  useShowConditionalIntroToasts(2, !hasPhysicalLocations);
+
+  // Show toast 3 when user has physical locations but no sublocations
+  useShowConditionalIntroToasts(3, hasPhysicalLocations && !hasSublocations);
 
   // Render content based on the selected view mode
   const renderContent = () => {
@@ -374,7 +394,7 @@ export function PhysicalLocationsPageContent() {
       );
     }
 
-    return null;
+    return <></>;
   };
 
   return (

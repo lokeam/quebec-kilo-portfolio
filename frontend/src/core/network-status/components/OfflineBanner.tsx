@@ -5,7 +5,7 @@ import { IconCloudOff } from '@tabler/icons-react';
 
 export const OfflineBanner = () => {
   const { isOnline } = useNetworkStatus();
-  if (isOnline) return null;
+  if (isOnline) return <></>;
 
   return (
       <div

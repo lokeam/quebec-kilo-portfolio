@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import {
-  Bell,
   ChevronsUpDown,
   LogOut,
   // Sparkles,
@@ -26,28 +25,20 @@ import {
 // Auth hook
 import { useAuthContext } from '@/core/auth/context-provider/AuthContext'
 
-// Navigation hook
-import { useNavigate } from 'react-router-dom';
-
 export function NavUser() {
   const { user, logout, isAuthenticated, isLoading } = useAuthContext();
   const { isMobile } = useSidebar();
-  const navigate = useNavigate();
 
   console.log('NavUser Debug:', { user, isAuthenticated, isLoading });
 
-  const handleSettingsClick = () => {
-    navigate('/settings');
-  }
-
   if (!user) {
-    return null
+    return <></>
   }
 
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size='lg'
@@ -72,6 +63,7 @@ export function NavUser() {
             side={isMobile ? 'bottom' : 'right'}
             align='end'
             sideOffset={4}
+            avoidCollisions={false}
           >
             <DropdownMenuLabel className='p-0 font-normal'>
               <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
