@@ -5,10 +5,10 @@ import { z } from 'zod';
 import { AppearanceSection } from '@/features/dashboard/components/organisms/SettingsPage/AppearanceSection';
 import { DangerZoneSection } from '@/features/dashboard/components/organisms/SettingsPage/DangerZoneSection';
 import { ProfileSection } from '@/features/dashboard/components/organisms/SettingsPage/ProfileSection';
+import { NotificationSection } from '@/features/dashboard/components/organisms/SettingsPage/NotificationSection';
 
 import { useThemeStore } from '@/core/theme/stores/useThemeStore';
 import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
-import { NotificationSection } from '../../components/organisms/SettingsPage/NotificationSection';
 
 
 const formSchema = z.object({

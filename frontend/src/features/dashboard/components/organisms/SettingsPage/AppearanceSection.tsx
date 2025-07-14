@@ -41,7 +41,7 @@ export function AppearanceSection() {
               Available in light or dark mode.
             </p>
           </div>
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 {watch("theme") === "light" && <Sun className="h-4 w-4 mr-2" />}
@@ -50,7 +50,10 @@ export function AppearanceSection() {
                 {watch("theme")[0].toUpperCase() + watch("theme").slice(1)}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent
+              align="end"
+              avoidCollisions={false}
+            >
               <DropdownMenuRadioGroup
                 value={watch("theme")}
                 onValueChange={(value) => {
