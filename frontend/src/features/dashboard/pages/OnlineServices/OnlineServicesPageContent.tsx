@@ -16,7 +16,10 @@ import { OnlineServiceForm } from '@/features/dashboard/components/organisms/Onl
 import { OnlineServicesPageSkeleton } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageSkeleton';
 
 // API Hooks and Utilities
+import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
 //import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
+
+
 import {
   useGetDigitalLocationsBFFResponse,
   useDeleteDigitalLocation
@@ -94,9 +97,11 @@ export function OnlineServicesPageContent() {
 
   const viewMode = useOnlineServicesStore((state) => state.viewMode);
 
-  // Fetch digital locations using analytics
+  // Show intro toast for adding digital locations
   const { data: storageData, isLoading, error } = useGetDigitalLocationsBFFResponse();
   const deleteDigitalLocation = useDeleteDigitalLocation();
+  const hasDigitalLocations = Boolean(storageData && storageData.length > 0);
+  useShowConditionalIntroToasts(4, !hasDigitalLocations);
 
   //const storageData = {digitalLocations: []};
   console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);

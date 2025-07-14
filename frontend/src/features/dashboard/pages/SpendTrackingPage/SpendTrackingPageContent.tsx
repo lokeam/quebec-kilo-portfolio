@@ -12,8 +12,10 @@ import { TotalMonthlySpendingCard } from '@/features/dashboard/components/organi
 import { TotalAnnualSpendingCard } from '@/features/dashboard/components/organisms/SpendTrackingPage/TotalAnnualSpendingCard/TotalAnnualSpendingCard.tsx';
 import { SpendTrackingPageSkeleton } from '@/features/dashboard/pages/SpendTrackingPage/SpendTrackingPageSkeleton';
 import { SpendTrackingForm } from '@/features/dashboard/components/organisms/SpendTrackingPage/SpendTrackingForm/SpendTrackingForm';
-
 import { DrawerContainer } from '@/features/dashboard/components/templates/DrawerContainer';
+
+// Hooks
+import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
 
 // Queries
 import { useGetSpendTrackingPageBFFResponse } from '@/core/api/queries/spendTracking.queries';
@@ -22,7 +24,6 @@ import { useGetSpendTrackingPageBFFResponse } from '@/core/api/queries/spendTrac
 export function SpendTrackingPageContent() {
   const [addOneTimePurchaseOpen, setAddOneTimePurchaseOpen] = useState<boolean>(false);
 
-  /* QUERIES */
   const {
     data: bffResponse,
     isLoading,
@@ -30,7 +31,12 @@ export function SpendTrackingPageContent() {
   } = useGetSpendTrackingPageBFFResponse();
 
   console.log('🔍 DEBUG: SpendTrackingPage -  bffResponse', bffResponse);
-  /* QUERIES */
+
+  // Show intro toast for adding one time purchases
+  useShowConditionalIntroToasts(5);
+
+  // Show intro toast for tracking spending on sublocations
+  useShowConditionalIntroToasts(6, addOneTimePurchaseOpen);
 
 
   /* HANDLERS */

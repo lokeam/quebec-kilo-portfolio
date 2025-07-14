@@ -10,13 +10,13 @@ import {
 import { Switch } from '@/shared/components/ui/switch';
 
 import type { FormValues } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
-import { useIntroToasts } from '@/core/hooks/useIntroToasts';
+import { useEnableIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useEnableIntroToasts';
 import { useState } from 'react';
 
 export function NotificationSection() {
   const form = useFormContext<FormValues>();
   const { watch, setValue } = form;
-  const { wantsIntroToasts, updatePreference } = useIntroToasts();
+  const { wantsIntroToasts, updatePreference } = useEnableIntroToasts();
   const [isUpdatingToasts, setIsUpdatingToasts] = useState(false);
 
   const handleToggleIntroToasts = async () => {
