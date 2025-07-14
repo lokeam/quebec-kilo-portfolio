@@ -1,9 +1,18 @@
-import { useNavigate } from 'react-router-dom';
-import type { DefaultErrorFallbackProps } from '../types/error.types';
-import { ErrorButton } from '../components/ErrorButton';
-import { isApiError, getErrorMessage } from '../utils/error.utils';
-import { ERROR_ROUTES } from '../constants/error.constants';
 import { AxiosError } from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+// Components
+import { ErrorPage } from '@/core/error/components/ErrorPage';
+
+// Types
+import type { DefaultErrorFallbackProps } from '../types/error.types';
+
+// Utils
+import { isApiError, getErrorMessage } from '@/core/error/utils/error.utils';
+
+// Constants
+import { ERROR_ROUTES } from '@/core/error/constants/error.constants';
+
 
 /**
  * Default error fallback page that handles both runtime and query errors
@@ -23,73 +32,59 @@ export const DefaultErrorFallbackPage = ({
 
   // Handle Axios/Query errors
   if (error instanceof AxiosError) {
-    // Auth errors -> Only redirect for genuine auth failures, not token refresh issues
     if (error.response?.status === 401) {
-      // Check if this is a token refresh issue or genuine auth failure
       const errorMessage = error.response?.data?.message || '';
       const isTokenRefreshIssue = errorMessage.includes('token') ||
                                  errorMessage.includes('expired') ||
                                  errorMessage.includes('refresh');
-
       if (isTokenRefreshIssue) {
-        // For token issues, show retry instead of immediate redirect
         return (
-          <div role="alert" data-testid="error-fallback">
-            <h2>Session expired</h2>
-            <p>Your session has expired. Please try again.</p>
-            <ErrorButton
-              variant="retry"
-              onClick={resetErrorBoundary}
-              label="Retry"
-            />
-            <ErrorButton
-              variant="home"
-              onClick={() => navigate('/')}
-              label="Return Home"
-            />
-          </div>
+          <ErrorPage
+            variant="500"
+            title="Session expired"
+            subtext="Your session has expired. Please try again."
+            buttonText="Retry"
+            onButtonClick={resetErrorBoundary}
+            role="alert"
+            ariaLive="assertive"
+          />
         );
       } else {
-        // For genuine auth failures, redirect to login
         navigate(ERROR_ROUTES.LOGIN, { replace: true });
-        return null;
+        return (
+          <ErrorPage
+            variant="500"
+            title="Redirecting to login..."
+            role="alert"
+            ariaLive="assertive"
+          />
+        );
       }
     }
 
-    // API errors -> Show message with retry
     if (isApiError(error)) {
       return (
-        <div role="alert" data-testid="error-fallback">
-          <h2>{getErrorMessage(error.statusCode)}</h2>
-          <ErrorButton
-            variant="retry"
-            onClick={resetErrorBoundary}
-            label="Try Again"
-          />
-          <ErrorButton
-            variant="home"
-            onClick={() => navigate('/')}
-            label="Return Home"
-          />
-        </div>
+        <ErrorPage
+          variant="500"
+          title={getErrorMessage(error.statusCode)}
+          buttonText="Try Again"
+          onButtonClick={resetErrorBoundary}
+          role="alert"
+          ariaLive="assertive"
+        />
       );
     }
   }
 
   // Runtime errors -> Generic message with retry
   return (
-    <div role="alert" data-testid="error-fallback">
-      <h2>Something went wrong</h2>
-      <ErrorButton
-        variant="retry"
-        onClick={resetErrorBoundary}
-        label="Try Again"
-      />
-      <ErrorButton
-        variant="home"
-        onClick={() => navigate('/')}
-        label="Return Home"
-      />
-    </div>
+    <ErrorPage
+      variant="500"
+      title="Something went wrong"
+      buttonText="Try Again"
+      onButtonClick={resetErrorBoundary}
+      role="alert"
+      ariaLive="assertive"
+    />
   );
 };

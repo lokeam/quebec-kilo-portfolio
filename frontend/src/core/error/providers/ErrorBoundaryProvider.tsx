@@ -1,10 +1,9 @@
 // Sentry error boundary
 import * as Sentry from '@sentry/react';
 import { useLocation } from 'react-router-dom';
-import { categorizeError } from '../categorization';
+import { categorizeError } from '@/core/error/categorization';
 
-//import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { DefaultErrorFallbackPage } from '../pages/DefaultErrorFallbackPage';
+import { DefaultErrorFallbackPage } from '@/core/error/pages/DefaultErrorFallbackPage';
 
 // Note: Removed Tanstack Query error boundary in favor of Sentry
 // import { QueryErrorResetBoundary } from '@tanstack/react-query';

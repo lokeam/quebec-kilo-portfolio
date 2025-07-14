@@ -102,7 +102,7 @@ export function FeedbackButton({
       <DialogTrigger asChild>
         <Button variant={variant} size={size} className={className}>
           <MessageSquare className="h-4 w-4 mr-2" />
-          Report Issue
+          Give feedback or Report an Issue
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

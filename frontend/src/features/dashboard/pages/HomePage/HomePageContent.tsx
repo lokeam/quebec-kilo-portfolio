@@ -12,10 +12,8 @@ import { OnlineServicesCard } from '@/features/dashboard/components/organisms/Ho
 import { StorageLocationsTabCard } from '@/features/dashboard/components/organisms/HomePage/StorageLocationsTabCard/StorageLocationsTabCard';
 import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/HomePage/MonthlySpendingCard/MonthlySpendingCard';
 
-// Mock Data
-
-//import { wishlistDealsCardMockData } from '@/features/dashboard/components/organisms/HomePage/WishlistDealsCard/wishlistDealsCard.mockdata';
-
+// Hooks
+import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
 
 // API Layer hooks
 import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries';
@@ -26,15 +24,13 @@ import { HomePageSkeleton } from './HomePageSkeleton';
 // Sentry tracking
 import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
 
-// Page mock data
-//import { homePageMockData } from './Homepage.mockdata';
 
 export function HomePageContent() {
   const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
   const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
 
-  // Replace with query hook
-  //const isLoading = false;
+  // Show intro toast for adding games to library
+  useShowConditionalIntroToasts(1);
 
 
   if (isLoading) {

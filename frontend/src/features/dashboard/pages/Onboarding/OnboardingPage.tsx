@@ -1,13 +1,13 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import { OnlineServicesPageErrorFallback } from '@/features/dashboard/pages/OnlineServices/OnlineServicesPageErrorFallback';
+import { DashboardErrorFallback } from '@/core/error/pages/DashboardErrorFallback';
 import { OnboardingPageContent } from '@/features/dashboard/pages/Onboarding/OnboardingPageContent';
 import { Suspense } from 'react';
 import { HomePageSkeleton } from '@/features/dashboard/pages/HomePage/HomePageSkeleton';
 
-function OnlineServicesPage() {
+function OnboardingPage() {
   return (
     <ErrorBoundary
-      FallbackComponent={OnlineServicesPageErrorFallback}
+      FallbackComponent={DashboardErrorFallback}
       resetKeys={[location.pathname]}
     >
       <Suspense fallback={<HomePageSkeleton />}>
@@ -16,5 +16,5 @@ function OnlineServicesPage() {
     </ErrorBoundary>
   );
 }
-export default OnlineServicesPage;
+export default OnboardingPage;
 

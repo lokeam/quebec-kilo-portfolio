@@ -13,6 +13,9 @@ import { LibraryPageSkeleton } from '@/features/dashboard/components/organisms/L
 import { useLibraryStore } from '@/features/dashboard/lib/stores/libraryStore';
 import { useGetLibraryPageBFFResponse } from '@/core/api/queries/gameLibrary.queries';
 import { useLibraryFilters } from '@/features/dashboard/lib/hooks/useLibraryFilters';
+import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
+
+// Types
 import type { LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 
 export function LibraryPageContent() {
@@ -30,6 +33,12 @@ export function LibraryPageContent() {
 
   // Get filter options from library data
   const filterOptions = useLibraryFilters(libraryItems);
+
+  // Show intro toast for adding games to library
+  const hasGamesInLibrary = Boolean(services && services.length > 0);
+  useShowConditionalIntroToasts(7, hasGamesInLibrary);
+
+
 
   // Set games in store when page mounts or when library items change
   useEffect(() => {
