@@ -1,24 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import AnimatedBgGradient from '../components/AnimatedBgGradient.astro';
 ---
 
 <Layout title="Marketing Site">
   <main class="min-h-screen">
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl mt-8">
-      <div class="p-8">
-        <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold">
-          Huzzah! Tailwind is working!
-        </div>
-        <button class="mt-4 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Test Button
-        </button>
+    <div class="max-w-md mx-auto rounded-xl shadow-md overflow-hidden md:max-w-2xl mt-8">
+			<AnimatedBgGradient />
 
-        <div class="mt-8 pt-4 border-t border-gray-200">
-          <a href="/about" class="text-cyan-500 hover:text-cyan-400 underline">
-            Test View Transitions → About Page
-          </a>
-        </div>
-      </div>
     </div>
   </main>
 </Layout>

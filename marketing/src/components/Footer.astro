@@ -1,0 +1,101 @@
+---
+// src/components/Footer.astro
+import Logo from './Logo.astro';
+
+const links = [
+  {
+    name: "Signup",
+    href: "/pricing",
+  },
+  {
+    name: "Blog",
+    href: "/blog",
+  },
+  {
+    name: "Contact",
+    href: "/contact",
+  },
+];
+
+const legal = [
+  {
+    name: "Privacy Policy",
+    href: "#",
+  },
+  {
+    name: "Terms of Service",
+    href: "#",
+  },
+  {
+    name: "Refund Policy",
+    href: "#",
+  },
+];
+
+const socials = [
+  {
+    name: "Twitter",
+    href: "https://twitter.com/lokeam",
+  },
+  {
+    name: "LinkedIn",
+    href: "https://linkedin.com/in/lokeam",
+  },
+  {
+    name: "GitHub",
+    href: "https://github.com/lokeam",
+  },
+];
+---
+
+<div class="relative">
+  <div class="border-t border-neutral-900 px-8 pt-20 pb-32 relative bg-primary">
+    <div class="max-w-7xl mx-auto text-sm text-neutral-500 dark:text-neutral-400 flex sm:flex-row flex-col justify-between items-start">
+      <div>
+        <div class="mr-4 md:flex mb-4">
+          <Logo />
+        </div>
+        <div>Copyright &copy; 2025 QKO</div>
+        <div class="mt-2">All rights reserved</div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-10 items-start mt-10 md:mt-0">
+        <!-- Links Column -->
+        <div class="flex justify-center space-y-4 flex-col mt-4">
+          {links.map((link) => (
+            <a
+              href={link.href}
+              class="transition-colors hover:text-black text-muted dark:text-muted-dark dark:hover:text-neutral-400 text-xs sm:text-sm"
+            >
+              {link.name}
+            </a>
+          ))}
+        </div>
+
+        <!-- Legal Column -->
+        <div class="flex justify-center space-y-4 flex-col mt-4">
+          {legal.map((link) => (
+            <a
+              href={link.href}
+              class="transition-colors hover:text-black text-muted dark:text-muted-dark dark:hover:text-neutral-400 text-xs sm:text-sm"
+            >
+              {link.name}
+            </a>
+          ))}
+        </div>
+
+        <!-- Socials Column -->
+        <div class="flex justify-center space-y-4 flex-col mt-4">
+          {socials.map((link) => (
+            <a
+              href={link.href}
+              class="transition-colors hover:text-black text-muted dark:text-muted-dark dark:hover:text-neutral-400 text-xs sm:text-sm"
+            >
+              {link.name}
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

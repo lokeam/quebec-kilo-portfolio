@@ -1,0 +1,50 @@
+---
+// src/components/NavBar.astro
+import DesktopNavbar from './TopNav/DesktopNavbar.astro';
+import MobileNavbar from './TopNav/MobileNavbar.astro';
+
+const navItems = [
+  {
+    title: "Features",
+    link: "/features",
+  },
+  {
+    title: "Pricing",
+    link: "/pricing",
+  },
+  {
+    title: "Blog",
+    link: "/blog",
+  },
+  {
+    title: "Contact",
+    link: "/contact",
+  },
+];
+---
+
+<nav class="max-w-7xl fixed top-4 mx-auto inset-x-0 z-50 w-[95%] lg:w-full" id="navbar">
+  <div class="hidden lg:block w-full">
+    <DesktopNavbar navItems={navItems} />
+  </div>
+  <div class="flex h-full w-full items-center lg:hidden">
+    <MobileNavbar navItems={navItems} />
+  </div>
+</nav>
+
+<script>
+  import { animate } from "motion";
+
+  // Animate navbar on load
+  const navbar = document.getElementById('navbar');
+  if (navbar) {
+    animate(
+      navbar,
+      { y: [0, 0] }, // Start at 0, stay at 0 (no slide down)
+      {
+        duration: 0.8,
+        easing: [0.6, 0.05, 0.1, 0.9]
+      }
+    );
+  }
+</script>
