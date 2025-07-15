@@ -3,7 +3,8 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --clear-cache",
+    "dev:clean": "rm -rf node_modules/.vite && rm -rf .astro && npm run dev",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
