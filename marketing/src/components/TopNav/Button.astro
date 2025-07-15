@@ -1,0 +1,31 @@
+---
+// Button component with variants
+interface Props {
+  variant?: "default" | "simple";
+  href?: string;
+  className?: string;
+}
+
+const { variant = "default", href, className = "" } = Astro.props;
+
+// Base button classes
+const baseClasses = "px-4 py-2 rounded-md font-medium transition duration-200";
+
+// Variant-specific classes
+const variantClasses = {
+  default: "bg-white text-black hover:bg-gray-100",
+  simple: "border border-white text-white hover:bg-white hover:text-black"
+};
+
+const buttonClasses = `${baseClasses} ${variantClasses[variant]} ${className}`;
+---
+
+{href ? (
+  <a href={href} class={buttonClasses}>
+    <slot />
+  </a>
+) : (
+  <button class={buttonClasses}>
+    <slot />
+  </button>
+)}

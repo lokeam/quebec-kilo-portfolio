@@ -1,0 +1,121 @@
+---
+// MobileNavbar component - mobile-specific logic and layout
+import Logo from './Logo.astro';
+import Button from './Button.astro';
+
+interface Props {
+  navItems: {
+    title: string;
+    link: string;
+    target?: "_blank";
+  }[];
+}
+
+const { navItems } = Astro.props;
+---
+
+<div class="flex justify-between bg-transparent items-center w-full rounded-md px-2.5 py-1.5 transition duration-200" id="mobile-nav">
+  <Logo />
+  <button class="text-white h-6 w-6" id="mobile-menu-btn">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
+</div>
+
+<!-- Mobile menu overlay -->
+  <div class="fixed inset-0 bg-black z-50 flex flex-col items-start justify-start space-y-10 pt-5 text-xl text-zinc-600 transition duration-200 hover:text-zinc-800 hidden" id="mobile-menu">
+    <div class="flex items-center justify-between w-full px-5">
+      <Logo />
+    <button class="flex items-center space-x-2" id="mobile-menu-close">
+        <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="flex flex-col items-start justify-start gap-[14px] px-8">
+      {navItems.map((navItem) => (
+        <a
+          href={navItem.link}
+        target={navItem.target}
+          class="relative block text-[26px] text-white hover:text-gray-300 transition-colors"
+        data-menu-item
+        >
+          {navItem.title}
+        </a>
+      ))}
+    </div>
+    <div class="flex flex-row w-full items-start gap-2.5 px-8 py-4">
+    <Button>Book a demo</Button>
+      <Button variant="simple" href="/register">
+      Register
+      </Button>
+  </div>
+</div>
+
+<script>
+  import { animate } from "motion";
+
+  // Mobile navbar functionality
+  const mobileNav = document.getElementById('mobile-nav');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const menuBtn = document.getElementById('mobile-menu-btn');
+  const menuCloseBtn = document.getElementById('mobile-menu-close');
+  const menuItems = document.querySelectorAll('[data-menu-item]');
+
+  let showBackground = false;
+  let isMenuOpen = false;
+
+  // Scroll-based background animation
+  const updateBackground = () => {
+    const scrollY = window.scrollY;
+    const shouldShowBackground = scrollY > 100;
+
+    if (shouldShowBackground !== showBackground) {
+      showBackground = shouldShowBackground;
+
+      if (mobileNav) {
+      if (showBackground) {
+          mobileNav.classList.add('bg-neutral-900');
+          mobileNav.classList.add('shadow-[0px_-2px_0px_0px_var(--neutral-800),0px_2px_0px_0px_var(--neutral-800)]');
+        } else {
+          mobileNav.classList.remove('bg-neutral-900');
+          mobileNav.classList.remove('shadow-[0px_-2px_0px_0px_var(--neutral-800),0px_2px_0px_0px_var(--neutral-800)]');
+        }
+      }
+    }
+  };
+
+  // Mobile menu functionality
+  const toggleMenu = () => {
+    isMenuOpen = !isMenuOpen;
+
+    if (mobileMenu) {
+      if (isMenuOpen) {
+        mobileMenu.classList.remove('hidden');
+        animate(mobileMenu, { opacity: 1 }, { duration: 0.2 });
+      } else {
+        animate(mobileMenu, { opacity: 0 }, { duration: 0.2 }).then(() => {
+          mobileMenu.classList.add('hidden');
+        });
+      }
+    }
+  };
+
+  // Event listeners
+  if (menuBtn) menuBtn.addEventListener('click', toggleMenu);
+  if (menuCloseBtn) menuCloseBtn.addEventListener('click', toggleMenu);
+
+  // Close menu when clicking menu items
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      if (isMenuOpen) toggleMenu();
+  });
+  });
+
+  // Listen for scroll events
+  window.addEventListener('scroll', updateBackground);
+
+  // Initial check
+  updateBackground();
+</script>

@@ -373,8 +373,8 @@ start_astro() {
 
   while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$CONNECTED" = false ]; do
     sleep 1
-    if curl -s http://127.0.0.1:4321 > /dev/null 2>&1; then
-      success "Astro server is ready at http://127.0.0.1:4321"
+    if curl -s http://127.0.0.1:4321 > /dev/null 2>&1 || curl -s http://localhost:4321 > /dev/null 2>&1; then
+      success "Astro server is ready at http://localhost:4321 or http://127.0.0.1:4321"
       CONNECTED=true
     else
       RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -384,11 +384,11 @@ start_astro() {
 
   if [ "$CONNECTED" = false ]; then
     error "Astro server did not start properly in the allocated time"
-    info "You can try accessing http://127.0.0.1:4321 manually"
+    info "You can try accessing http://localhost:4321 or http://127.0.0.1:4321 manually"
   else
     # Open the URL in the default browser on macOS
     if [[ "$OSTYPE" == "darwin"* ]]; then
-      open http://127.0.0.1:4321
+      open http://localhost:4321
     fi
   fi
 

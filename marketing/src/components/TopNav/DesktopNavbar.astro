@@ -1,0 +1,93 @@
+---
+// DesktopNavbar component - desktop-specific logic and layout
+import NavBarItem from './NavBarItem.astro';
+import Logo from './Logo.astro';
+import Button from './Button.astro';
+import BrandButton from '../BrandButton.astro';
+
+interface Props {
+  navItems: {
+    title: string;
+    link: string;
+    target?: "_blank";
+  }[];
+}
+
+const { navItems } = Astro.props;
+---
+
+<div class="w-full flex relative justify-between px-4 py-3 rounded-md transition duration-200 bg-transparent mx-auto" id="desktop-nav">
+  <div class="flex flex-row gap-2 items-center">
+    <Logo />
+    <div class="flex items-center gap-1.5">
+      {navItems.map((item) => (
+        <NavBarItem href={item.link} target={item.target}>
+          {item.title}
+        </NavBarItem>
+      ))}
+    </div>
+  </div>
+  <div class="flex space-x-2 items-center">
+    <BrandButton
+      variant="primary"
+      size="md"
+      href="/register"
+    >
+      Register
+    </BrandButton>
+  </div>
+</div>
+
+<script>
+  import { animate } from "motion";
+
+  // Desktop navbar scroll-based background animation
+  const desktopNav = document.getElementById('desktop-nav');
+  let showBackground = false;
+
+  const updateBackground = () => {
+    const scrollY = window.scrollY;
+    const shouldShowBackground = scrollY > 100;
+
+    if (shouldShowBackground !== showBackground) {
+      showBackground = shouldShowBackground;
+
+      if (desktopNav) {
+        animate(
+          desktopNav,
+          {
+            width: showBackground ? "80%" : "100%",
+            background: showBackground ? "rgb(23 23 23)" : "transparent" // neutral-900
+          },
+          {
+            duration: 0.4
+          }
+        );
+
+        // Add/remove background overlay
+      if (showBackground) {
+          const overlay = document.createElement('div');
+          overlay.className = 'absolute inset-0 h-full w-full bg-neutral-900 pointer-events-none rounded-full';
+          overlay.style.maskImage = 'linear-gradient(to bottom, white, transparent, white)';
+          overlay.id = 'nav-overlay';
+
+          animate(overlay, { opacity: 1 }, { duration: 1 });
+          desktopNav.appendChild(overlay);
+      } else {
+          const overlay = document.getElementById('nav-overlay');
+          if (overlay) {
+            animate(overlay, { opacity: 0 }, { duration: 0.3 }).then(() => {
+              overlay.remove();
+            });
+      }
+    }
+  }
+    }
+  };
+
+  // Listen for scroll events
+  window.addEventListener('scroll', updateBackground);
+
+  // Initial check
+  updateBackground();
+</script>

@@ -1,0 +1,19 @@
+---
+// NavBarItem component - reusable nav item
+interface Props {
+  href: string;
+  target?: "_blank";
+  active?: boolean;
+  className?: string;
+}
+
+const { href, target, active, className = "" } = Astro.props;
+---
+
+<a
+  href={href}
+  target={target}
+  class={`flex items-center justify-center text-sm leading-[110%] px-4 py-2 rounded-md hover:bg-neutral-800 hover:text-white/80 text-white hover:shadow-[0px_1px_0px_0px_#FFFFFF20_inset] transition duration-200 ${className}`}
+>
+  <slot />
+</a>
