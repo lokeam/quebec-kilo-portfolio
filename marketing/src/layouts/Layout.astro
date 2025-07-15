@@ -1,0 +1,61 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = "Proactiv is an all in on marketing automation platform that handles emails, tasks tracking, social media management and everything in between."
+} = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <ViewTransitions />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:image" content="https://proactiv-aceternity.vercel.app/banner.png" />
+    <meta name="theme-color" content="#06b6d4" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-charcoal antialiased h-full w-full font-inter">
+    <!-- NavBar placeholder - will be replaced with actual component -->
+    <nav class="bg-charcoal border-b border-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <span class="text-white font-semibold">Proactiv</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <slot />
+
+    <!-- Footer placeholder - will be replaced with actual component -->
+    <footer class="bg-charcoal border-t border-gray-800 mt-auto">
+      <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div class="text-center text-gray-400">
+          <p>&copy; 2024 Proactiv. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  @import '../styles/global.css';
+
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+</style>
