@@ -1,0 +1,134 @@
+---
+export interface Props {
+  showBeam?: boolean;
+  class?: string;
+}
+
+const { showBeam = true, class: className = '' } = Astro.props;
+---
+
+{showBeam && (
+  <span
+    id="meteor-element"
+    class={`absolute z-[40] -top-4 h-[0.15rem] w-[0.15rem] rounded-[9999px] bg-blue-700 shadow-[0_0_0_1px_#ffffff10] rotate-[180deg] ${className}`}
+  >
+  </span>
+)}
+
+<style>
+  /* Meteor animation with gradient tail */
+  .meteor {
+    transform: rotate(-180deg);
+    animation: meteor 3s linear;
+    animation-delay: var(--meteor-delay, 0s);
+    animation-duration: var(--meteor-duration, 2s);
+  }
+
+  .meteor::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: var(--meteor-width, 130px);
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      #06b6d4,  /* cyan-500 */
+      #3b82f6,  /* blue-500 */
+      transparent
+    );
+  }
+
+  @keyframes meteor {
+    0% {
+      left: 0;
+      opacity: 0;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      left: 100%;
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  // BeamTracer component - Based on Aceternity's Beam component
+  const initializeBeamTracer = () => {
+    const meteor = document.getElementById('meteor-element');
+
+    if (!meteor) {
+      console.warn('BeamTracer element not found');
+      return;
+    }
+
+    // Add the meteor class for CSS animation
+    meteor.classList.add('meteor');
+
+    // Set initial CSS custom properties
+    const initialDelay = Math.floor(Math.random() * (2 - 0) + 0);
+    const initialDuration = Math.floor(Math.random() * (4 - 0) + 0);
+    const initialWidth = Math.floor(Math.random() * (260 - 130) + 130); // Doubled range: 130-260px
+
+    meteor.style.setProperty("--meteor-delay", `${initialDelay}s`);
+    meteor.style.setProperty("--meteor-duration", `${initialDuration}s`);
+    meteor.style.setProperty("--meteor-width", `${initialWidth}px`);
+
+    console.log('BeamTracer initialized with:', {
+      delay: initialDelay,
+      duration: initialDuration,
+      width: initialWidth
+    });
+
+    const restartAnimation = () => {
+      meteor.style.animation = "none";
+      void meteor.offsetWidth; // Force reflow
+      meteor.style.animation = "";
+    };
+
+    const handleAnimationEnd = () => {
+      meteor.style.visibility = "hidden";
+
+      // Set new random parameters to vary the animation speed and tail length
+      const animationDelay = Math.floor(Math.random() * (2 - 0) + 0);
+      const animationDuration = Math.floor(Math.random() * (4 - 0) + 0);
+      const meteorWidth = Math.floor(Math.random() * (260 - 130) + 130);
+
+      meteor.style.setProperty("--meteor-delay", `${animationDelay}s`);
+      meteor.style.setProperty("--meteor-duration", `${animationDuration}s`);
+      meteor.style.setProperty("--meteor-width", `${meteorWidth}px`);
+
+      console.log('BeamTracer restarting with:', {
+        delay: animationDelay,
+        duration: animationDuration,
+        width: meteorWidth
+      });
+
+      restartAnimation();
+    };
+
+    const handleAnimationStart = () => {
+      meteor.style.visibility = "visible";
+      console.log('BeamTracer animation started');
+    };
+
+    // Add event listeners on animation start and end
+    meteor.addEventListener("animationend", handleAnimationEnd);
+    meteor.addEventListener("animationstart", handleAnimationStart);
+
+    // Cleanup function to remove event listeners when unmounted
+    return () => {
+      meteor.removeEventListener("animationend", handleAnimationEnd);
+      meteor.removeEventListener("animationstart", handleAnimationStart);
+    };
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeBeamTracer);
+  } else {
+    initializeBeamTracer();
+  }
+</script>

@@ -1,0 +1,40 @@
+---
+import { cn } from '../utils/cn.js';
+import { buildAttributes } from '../utils/attributes.js';
+
+// Astro component props interface
+export interface Props {
+  className?: string;
+  as?: string;
+  [key: string]: any; // Allow additional HTML attributes
+}
+
+const {
+  className = "",
+  as: Tag = "h2",
+  ...props
+} = Astro.props;
+
+// Build the final className
+const finalClassName = cn(
+  "text-2xl tracking-[1.2] text-[#e5e5e5] max-w-4xl text-left my-4 mx-auto",
+  "text-muted text-center font-normal",
+  className
+);
+
+// Convert props to HTML attributes string
+const attributes = buildAttributes(props);
+---
+
+<Tag class={finalClassName} {attributes}>
+  <span class="inline-block" data-br>
+    <slot />
+  </span>
+</Tag>
+
+<script>
+  import { initTextBalancing } from '../utils/text-balance.js';
+
+  // Initialize text balancing on page load
+  document.addEventListener('DOMContentLoaded', initTextBalancing);
+</script>

@@ -1,13 +1,20 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import MktPageHero from '../components/MktPageHero.astro';
 import AnimatedBgGradient from '../components/AnimatedBgGradient.astro';
+import FAQSection from '../components/FAQSection.astro';
 ---
-
-<Layout title="Marketing Site">
+<!-- Marketing Home Page -->
+<Layout title="QKO Marketing Site">
   <main class="min-h-screen">
+    <MktPageHero />
+
     <div class="max-w-md mx-auto rounded-xl shadow-md overflow-hidden md:max-w-2xl mt-8">
 			<AnimatedBgGradient />
-
+			<!-- Add Features Section here -->
+			<!-- Add Early Access Info Section here -->
+			<!-- Add Some sort of footer call to action here -->
+			<FAQSection />
     </div>
   </main>
 </Layout>

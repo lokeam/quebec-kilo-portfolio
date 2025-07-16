@@ -1,0 +1,64 @@
+---
+import { cn } from '../utils/cn.js';
+import { buildAttributes } from '../utils/attributes.js';
+
+// Astro component props interface
+export interface Props {
+  className?: string;
+  as?: string;
+  size?: "sm" | "md" | "xl" | "2xl";
+  [key: string]: any; // NOTE: We need to allow additional HTML attributes
+}
+
+const {
+  className = "",
+  as: Tag = "h2",
+  size = "md",
+  ...props
+} = Astro.props;
+
+// Size variants mapping
+const sizeVariants = {
+  sm: "text-xl md:text-2xl md:leading-snug",
+  md: "text-3xl md:text-5xl md:leading-tight",
+  xl: "text-4xl md:text-4xl lg:text-8xl lg:leading-[1.3]",
+  "2xl": "text-5xl md:text-7xl md:leading-[1.2]",
+};
+
+// Build the final className
+let finalClassName;
+if (className) {
+  // If we give this component any custom class names, only use the essential styling
+  finalClassName = cn(
+    "mx-auto text-center tracking-tight",
+    "font-semibold",
+    "bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 via-white to-white",
+    className
+  );
+} else {
+  // If no custom className, use the size system
+  finalClassName = cn(
+    "max-w-5xl mx-auto text-center tracking-tight",
+    "font-semibold",
+    "bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 via-white to-white",
+    sizeVariants[size as keyof typeof sizeVariants],
+    "text-3xl md:text-5xl md:leading-tight"
+  );
+}
+
+// Convert props to HTML attributes string
+const attributes = buildAttributes(props);
+---
+
+<Tag class={finalClassName} {attributes}>
+  <span class="inline-block" data-br>
+    <slot />
+  </span>
+</Tag>
+
+<script>
+  import { initTextBalancing } from '../utils/text-balance.js';
+
+  // Initialize text balancing on page load
+  document.addEventListener('DOMContentLoaded', initTextBalancing);
+</script>

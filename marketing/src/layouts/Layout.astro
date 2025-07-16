@@ -1,6 +1,6 @@
 ---
 import { ClientRouter } from 'astro:transitions';
-import TopNav from '../components/TopNav/TopNav.astro';
+import TopNavigation from '../components/TopNav/TopNavigation.astro';
 import Footer from '../components/Footer.astro';
 
 export interface Props {
@@ -15,6 +15,7 @@ const { title, description = "QKO - Your Gaming Library Management Platform" } =
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+		<!-- TODO: Replace with brand logo svg favicon -->
     <link rel="icon" type="image/svg+xml" href="/qko.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
@@ -23,7 +24,7 @@ const { title, description = "QKO - Your Gaming Library Management Platform" } =
     <ClientRouter />
   </head>
   <body class="bg-gray-950 antialiased h-full w-full font-inter">
-    <TopNav />
+    <TopNavigation />
 
     <slot />
 

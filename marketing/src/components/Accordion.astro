@@ -1,0 +1,265 @@
+---
+import { cn } from '../utils/cn.js';
+import { buildAttributes } from '../utils/attributes.js';
+
+// Astro component props interface
+export interface Props {
+  title: string;
+  description: string;
+  isOpen?: boolean;
+  className?: string;
+  [key: string]: any; // Allow additional HTML attributes
+}
+
+const {
+  title,
+  description,
+  isOpen = false,
+  className = "",
+  ...props
+} = Astro.props;
+
+// Build the final className
+const finalClassName = cn("", className);
+
+// Convert props to HTML attributes string
+const attributes = buildAttributes(props);
+---
+
+<div class={`accordion-item bg-neutral-900 rounded-xl p-4 ${finalClassName}`} data-accordion {...props}>
+  <div class="accordion-header">
+    <h3 class="text-lg font-semibold text-white">{title}</h3>
+  </div>
+  <div class="accordion-content">
+    <div class="accordion-inner">
+      <p class="text-gray-300 leading-relaxed">{description}</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .accordion-content {
+    overflow: hidden;
+    height: 0;
+    opacity: 0;
+  }
+
+  .accordion-content.open {
+    opacity: 1;
+  }
+
+  .accordion-inner {
+    padding-bottom: 1rem;
+    padding-top: 1rem;
+  }
+
+  .accordion-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    border: 1px solid rgb(64 64 64);
+  }
+
+  .accordion-item:hover {
+    /* NOTE: TODO - ADD TO TAILWIND CONFIG - neutral-800 border */
+    background-color: rgb(38 38 38);
+  }
+
+  /* Remove pointer-events: none to make the entire item clickable */
+  .accordion-header {
+    /* pointer-events: none; */
+  }
+</style>
+
+<script>
+  import { animate } from "motion";
+  import { debounce } from "../utils";
+
+  // Accordion functionality with Motion's features - runs when component mounts
+  // Use MutationObserver to wait for accordion elements to be available
+  const initializeAccordion = () => {
+    const accordionItems = document.querySelectorAll('[data-accordion]');
+
+    if (!accordionItems || accordionItems.length === 0) {
+      // DOM Elements not ready yet
+      return false;
+    }
+
+    console.log(`Accordion initialized with ${accordionItems.length} items`);
+
+    let isAnimating = false;
+    const clickHandlers: Array<(event: Event) => void> = [];
+
+    // Handle accordion click with Motion's features
+    const handleClick = debounce((event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (isAnimating) return;
+
+      // Find the accordion item by looking for the closest element with data-accordion
+      const target = event.target as HTMLElement;
+      const item = target.closest('[data-accordion]') as HTMLElement;
+
+      if (!item) {
+        console.error('Accordion item not found', { target, eventTarget: event.target });
+        return;
+      }
+
+      console.log('Accordion clicked:', { item, target });
+
+      const content = item.querySelector('.accordion-content') as HTMLElement;
+      const inner = item.querySelector('.accordion-inner') as HTMLElement;
+
+      if (!content || !inner) {
+        console.error('Accordion elements not found', { content: !!content, inner: !!inner });
+        return;
+      }
+
+      const isOpen = content.classList.contains('open');
+      isAnimating = true;
+
+      console.log('Accordion state:', { isOpen, isAnimating });
+
+      try {
+        // Close all other accordions first - using index loop for better performance
+        for (let i = 0; i < accordionItems.length; i++) {
+          const otherItem = accordionItems[i];
+          if (!otherItem) continue;
+
+          const otherContent = otherItem.querySelector('.accordion-content') as HTMLElement;
+          if (otherContent && otherContent !== content && otherContent.classList.contains('open')) {
+            // Use Motion's spring animation for smooth closing
+            animate(
+              otherContent,
+              { height: 0, opacity: 0 },
+              {
+                type: "spring",
+                stiffness: 300,
+                damping: 30,
+                duration: 0.3
+              }
+            ).then(() => {
+              otherContent.classList.remove('open');
+            }).catch((error) => {
+              console.error('Accordion close animation failed:', error);
+            });
+          }
+        }
+
+        if (isOpen) {
+          // Close animation with motion's spring animation
+          animate(
+            content,
+            { height: 0, opacity: 0 },
+            {
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              duration: 0.3
+            }
+          ).then(() => {
+            content.classList.remove('open');
+            isAnimating = false;
+          }).catch((error) => {
+            console.error('Accordion close animation failed:', error);
+            isAnimating = false;
+          });
+        } else {
+          // Open animation - measure height first, then animate
+          content.classList.add('open');
+
+          // Temporarily make content visible to measure height
+          content.style.height = 'auto';
+          content.style.opacity = '1';
+          content.style.visibility = 'visible';
+
+          const targetHeight = inner.scrollHeight;
+
+          // Reset for animation
+          content.style.height = '0px';
+          content.style.opacity = '0';
+
+          // Use Motion's spring animation for smooth opening
+          animate(
+            content,
+            { height: targetHeight, opacity: 1 },
+            {
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              duration: 0.3
+            }
+          ).then(() => {
+            content.style.height = 'auto'; // Allow content to expand naturally
+            isAnimating = false;
+          }).catch((error) => {
+            console.error('Accordion open animation failed:', error);
+            // Fallback to immediate open
+            content.style.height = 'auto';
+            content.style.opacity = '1';
+            isAnimating = false;
+          });
+        }
+      } catch (error) {
+        console.error('Accordion animation error:', error);
+        isAnimating = false;
+      }
+    }, 100);
+
+    // Add click handlers to all accordion items
+    for (let i = 0; i < accordionItems.length; i++) {
+      const item = accordionItems[i];
+      if (!item) continue;
+
+      const handler = (event: Event) => handleClick(event);
+      clickHandlers.push(handler);
+      item.addEventListener('click', handler, { passive: false });
+    }
+
+    // Successfully initialized, we're gtg
+    return true;
+  };
+
+  // Initialize accordion with proper error handling
+  const setupAccordion = () => {
+    // Try to initialize immediately
+    if (initializeAccordion()) {
+      // Successfully initialized
+      return;
+    }
+
+    // If elements aren't ready, use MutationObserver to wait for them
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+          // Check if accordion elements are now available
+          if (initializeAccordion()) {
+            // Stop observing once initialized
+            observer.disconnect();
+            // Clear the fallback timer since we succeeded
+            clearTimeout(fallbackTimer);
+            return;
+          }
+        }
+      }
+    });
+
+    // Start observing the document body for added nodes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Graceful fallback if anything goes wrong with intialization, wait a bit before retrying
+    const fallbackTimer = setTimeout(() => {
+      observer.disconnect();
+      if (!initializeAccordion()) {
+        console.warn('Accordion elements not found after fallback timeout');
+      }
+    }, 50);
+  };
+
+  // Start the accordion setup
+  setupAccordion();
+</script>

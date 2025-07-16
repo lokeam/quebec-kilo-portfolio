@@ -1,0 +1,166 @@
+---
+import BalancedHeading from './BalancedHeading.astro';
+import BalancedSubheading from './BalancedSubheading.astro';
+import BrandButton from './BrandButton.astro';
+import BeamTracer from './BeamTracer/BeamTracer.astro';
+import MktPageHeroCard from './MktPageHeroCard.astro';
+---
+
+<div
+  id="hero-container"
+  class="flex flex-col min-h-[70rem] md:min-h-[100rem] pt-20 md:pt-40 relative overflow-hidden"
+>
+  <div class="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center">
+    <BalancedHeading
+      as="h1"
+      size="xl"
+      class="font-semibold max-w-6xl mx-auto text-center mt-6 relative z-10 py-6 leading-tight md:leading-tight lg:leading-[1.4]"
+    >
+      Level up your Game Library Management
+    </BalancedHeading>
+
+    <BalancedSubheading class="text-center text-lg mt-2 md:mt-6 md:text-xl text-muted dark:text-muted-dark max-w-3xl mx-auto relative z-10">
+      Track all of your games across digital services, physical locations and automate spend tracking,
+      QKO's All-in-One Solution
+    </BalancedSubheading>
+
+    <div class="flex items-center gap-4 justify-center my-10 relative z-10">
+      <BrandButton class="flex space-x-2 items-center group !text-lg" href="/register">
+        <span>Register</span>
+      </BrandButton>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-center relative p-2 md:p-20 cursor-pointer md:-mt-20">
+    <div
+      id="card-container"
+      class="w-full relative"
+      style="perspective: 1000px;"
+    >
+      <MktPageHeroCard id="hero-card" style="transform: rotateX(20deg) translateY(0px) scale(1.05);" >
+        <img
+          src="/dashboard.png"
+          alt="hero"
+          class="mx-auto rounded-md grayscale group-hover:grayscale-0 transition duration-200 object-cover object-left-top h-full md:object-left-top"
+          draggable="false"
+        />
+      </MktPageHeroCard>
+    </div>
+  </div>
+</div>
+
+<script>
+  // MktPageHero component - exact replica of React version
+  const initializeHero = () => {
+    const container = document.getElementById('hero-container');
+    const card = document.getElementById('hero-card');
+
+    if (!container || !card) {
+      console.warn('Hero elements not found');
+      return;
+    }
+
+    // Check if mobile
+    const checkMobile = () => {
+      return window.innerWidth <= 768;
+    };
+
+    const scaleDimensions = () => {
+      return checkMobile() ? [0.7, 0.9] : [1.05, 1.2];
+    };
+
+    // Create scroll-based animations using Motion.js
+    let scrollYProgress = 0;
+    let rotate = 20;
+    let scale = scaleDimensions()[0];
+    let translate = 0;
+
+    // Update scroll progress
+    const updateScrollProgress = () => {
+      const rect = container.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const containerTop = rect.top + scrollTop;
+      const containerHeight = rect.height;
+      const windowHeight = window.innerHeight;
+
+      // Calculate scroll progress more accurately
+      const scrollDistance = scrollTop - containerTop + windowHeight;
+      const totalDistance = containerHeight + windowHeight;
+      scrollYProgress = Math.max(0, Math.min(1, scrollDistance / totalDistance));
+
+      // Calculate transforms based on scroll progress - matching React useTransform behavior
+      // rotate: [0, 0.5] -> [20, 0]
+      rotate = 20 - (scrollYProgress * 0.5) * 20;
+      if (scrollYProgress > 0.5) rotate = 0;
+
+      // scale: [0, 1] -> [scaleDimensions()[0], scaleDimensions()[1]]
+      scale = scaleDimensions()[0] + (scrollYProgress * (scaleDimensions()[1] - scaleDimensions()[0]));
+
+      // translate: [0, 1] -> [0, 100]
+      translate = scrollYProgress * 100;
+    };
+
+    // Apply transforms to card
+    const applyTransforms = () => {
+      const transformStyle = `rotateX(${rotate}deg) translateY(${translate}px) scale(${scale})`;
+      card.style.transform = transformStyle;
+
+      // Debug logging
+      if (scrollYProgress > 0.01) {
+        console.log('Hero Animation:', {
+          rotate: `${rotate.toFixed(2)}deg`,
+          translate: `${translate.toFixed(2)}px`,
+          scale: scale.toFixed(3),
+          scrollYProgress: scrollYProgress.toFixed(3),
+          transform: transformStyle
+        });
+      }
+    };
+
+    // Listen for scroll events
+    const handleScroll = () => {
+      updateScrollProgress();
+      applyTransforms();
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+
+    // Initial setup
+    updateScrollProgress();
+    applyTransforms();
+
+    // Ensure transforms are applied after a brief delay to handle any layout shifts
+    setTimeout(() => {
+      updateScrollProgress();
+      applyTransforms();
+    }, 100);
+
+    // Cleanup function
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeHero);
+  } else {
+    initializeHero();
+  }
+</script>
+
+<style>
+  .bg-charcoal {
+    background-color: #1a1a1a;
+  }
+
+  .text-muted {
+    color: #6b7280;
+  }
+
+  .dark .text-muted-dark {
+    color: #9ca3af;
+  }
+</style>
