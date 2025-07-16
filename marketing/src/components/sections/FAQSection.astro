@@ -1,0 +1,99 @@
+---
+import Heading from '@/components/BalancedHeading.astro';
+import Accordion from '@/components/Accordion.astro';
+import Icon from '@/components/ui/Icon.astro';
+import type { IconName } from '@/components/ui/icons.js';
+
+interface FAQItem {
+  id: number;
+  title: string;
+  description: string;
+  icon: IconName;
+}
+
+const questions: FAQItem[] = [
+  {
+    id: 1,
+    title: "What is QKO?",
+    description:
+      "QKO is video game management and media tool created to help gamers take back ownership of their video games and manage spending related to their hobby.",
+    icon: "messageQuestionMark"
+  },
+  {
+    id: 2,
+    title: "How does QKO work?",
+    description:
+      "QKO catalogues of all your games, physical or digital, across all platforms and services and automates the process of tracking spending and analyzing money spent regarding gaming.",
+    icon: "blocks"
+  },
+  {
+    id: 3,
+    title: "Which platforms does QKO support?",
+    description:
+      "QKO supports popular gaming platforms such as Steam, PlayStation, Xbox, Nintendo, Epic Games Store, and more.",
+    icon: "gameController"
+  },
+  {
+    id: 4,
+    title: "Can I track my gaming spending with QKO?",
+    description:
+      "Yes, QKO allows you to track all your gaming purchases and spending, helping you understand your gaming budget and make informed decisions.",
+    icon: "iconCoin"
+  },
+  {
+    id: 5,
+    title: "Does QKO provide analytics?",
+    description:
+      "QKO offers detailed analytics to help you track your gaming library growth, spending patterns, and make data-driven decisions about your gaming hobby.",
+    icon: "chartBar"
+  },
+  {
+    id: 6,
+    title: "Is QKO suitable for casual gamers?",
+    description:
+      "Yes, we are building QKO to be user-friendly and accessible, making it suitable for casual gamers and hardcore enthusiasts alike.",
+    icon: "users"
+  },
+  {
+    id: 7,
+    title: "Does QKO offer customer support?",
+    description:
+      "We are a small team but we strive to provide customer support in order to assist you with any questions or issues you may encounter.",
+    icon: "iconHeadset"
+  },
+  {
+    id: 9,
+    title: "Is there a free trial available for QKO?",
+    description:
+      "QKO is currently in early access! You can explore its features and see how it can help you manage your game library and spending.",
+    icon: "gift"
+  },
+  {
+    id: 10,
+    title: "How can I get started with QKO?",
+    description:
+      "To get started with QKO, simply sign up on our website and follow the onboarding process to set up your account.",
+    icon: "rocket"
+  },
+];
+
+// To use if we ever break the FAQ section out into a separate page
+// const title = "FAQ - Frequently Asked Questions";
+// const description = "Get answers to common questions about QKO, your gaming library management platform.";
+---
+
+<div class="max-w-3xl mx-auto py-20 px-8">
+  <div class="flex items-center gap-3 mb-8">
+    <Heading class="pt-4">Frequently asked questions</Heading>
+  </div>
+
+  <div class="grid gap-10 pt-20">
+    {questions.map((item, i) => (
+      <Accordion
+        title={item.title}
+        description={item.description}
+        icon={item.icon}
+      />
+    ))}
+  </div>
+</div>

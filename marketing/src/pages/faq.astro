@@ -1,7 +1,7 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Heading from '../components/BalancedHeading.astro';
-import Accordion from '../components/Accordion.astro';
+import Layout from '@/layouts/Layout.astro';
+import Heading from '@/components/BalancedHeading.astro';
+import Accordion from '@/components/Accordion.astro';
 
 const questions = [
   {
@@ -50,7 +50,7 @@ const questions = [
     id: 9,
     title: "Is there a free trial available for QKO?",
     description:
-      "QKO is currently in early access! You can explore its features and see how it can help you manage your game library and spending.",
+      "QKO is currently in early access. You can explore its features and see how it can help you manage your game library and spending.",
   },
   {
     id: 10,
@@ -60,19 +60,20 @@ const questions = [
   },
 ];
 
-// To use if we ever break the FAQ section out into a separate page
-// const title = "FAQ - Frequently Asked Questions";
-// const description = "Get answers to common questions about QKO, your gaming library management platform.";
+const title = "FAQ - Frequently Asked Questions";
+const description = "Get answers to common questions about QKO, your gaming library management platform.";
 ---
 
-<div class="max-w-3xl mx-auto py-20 px-8">
-  <Heading class="pt-4">Frequently asked questions</Heading>
-  <div class="grid  gap-10 pt-20">
-    {questions.map((item, i) => (
-      <Accordion
-        title={item.title}
-        description={item.description}
-      />
-    ))}
+<Layout title={title} description={description}>
+  <div class="max-w-3xl mx-auto py-20 px-8">
+    <Heading className="pt-4">Frequently asked questions</Heading>
+    <div class="grid gap-10 pt-20">
+      {questions.map((item) => (
+        <Accordion
+          title={item.title}
+          description={item.description}
+        />
+      ))}
+    </div>
   </div>
-</div>
+</Layout>

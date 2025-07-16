@@ -1,9 +1,9 @@
 ---
 // DesktopNavbar component - desktop-specific logic and layout
-import NavBarItem from './NavBarItem.astro';
-import Logo from './Logo.astro';
-import Button from './Button.astro';
-import BrandButton from '../BrandButton.astro';
+import NavBarItem from '@/components/TopNav/NavBarItem.astro';
+import Logo from '@/components/Logo.astro';
+import Button from '@/components/ui/Button.astro';
+import BrandButton from '@/components/BrandButton.astro';
 
 interface Props {
   navItems: {
@@ -18,7 +18,9 @@ const { navItems } = Astro.props;
 
 <div class="w-full flex relative justify-between px-4 py-3 rounded-md transition duration-200 bg-transparent mx-auto" id="desktop-nav">
   <div class="flex flex-row gap-2 items-center">
-    <Logo />
+    <a class="inline-flex items-center gap-2 text-white font-bold" href="/">
+      <Logo /> QKO
+    </a>
     <div class="flex items-center gap-1.5">
       {navItems.map((item) => (
         <NavBarItem href={item.link} target={item.target}>
@@ -33,7 +35,7 @@ const { navItems } = Astro.props;
       size="md"
       href="/register"
     >
-      Register
+      Register for Early Access
     </BrandButton>
   </div>
 </div>

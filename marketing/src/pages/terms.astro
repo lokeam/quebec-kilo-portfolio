@@ -1,0 +1,103 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import BalancedHeading from '@/components/BalancedHeading.astro';
+import BalancedSubheading from '@/components/BalancedSubheading.astro';
+import Button from '@/components/ui/Button.astro';
+---
+
+<Layout title="Terms of Use - QKO">
+  <main class="min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+
+      <!-- Page Title -->
+      <div class="text-center mb-16">
+        <BalancedHeading size="xl">
+          Terms of Use
+        </BalancedHeading>
+        <BalancedSubheading class="mt-6">
+          Please read these terms carefully before using our services
+        </BalancedSubheading>
+      </div>
+
+      <!-- Terms Content -->
+      <div class="space-y-12 text-left">
+
+        <!-- Acceptance of Terms -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Acceptance of Terms
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            By using our website, you acknowledge that you have read, understood, and agree to be bound by these terms, as well as our Privacy Policy.
+          </p>
+        </section>
+
+        <!-- Use of Our Website -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Use of Our Website
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            You agree to use our website for lawful purposes only. Unauthorized use, including hacking, transmitting malware, or engaging in any illegal activity, is strictly prohibited. You are responsible for maintaining the confidentiality of your account information, if applicable.
+          </p>
+        </section>
+
+        <!-- Intellectual Property -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Intellectual Property
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            All content on this site, including text, graphics, logos, and software, is the property of QKO and is protected by copyright and intellectual property laws. You may not copy, distribute, or reproduce any content without our explicit permission.
+          </p>
+        </section>
+
+        <!-- Limitation of Liability -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Limitation of Liability
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            QKO is not liable for any direct, indirect, incidental, or consequential damages resulting from your use of the website or services. We make no guarantees regarding the accuracy or reliability of the content provided.
+          </p>
+        </section>
+
+        <!-- Third-Party Links -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Third-Party Links
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            Our website may contain links to third-party websites. We are not responsible for the content, policies, or practices of these sites. Access them at your own risk.
+          </p>
+        </section>
+
+        <!-- Governing Law -->
+        <section>
+          <BalancedHeading size="md" class="text-left mb-4">
+            Governing Law
+          </BalancedHeading>
+          <p class="text-[#e5e5e5] leading-relaxed">
+            These Terms of Use are governed by and construed in accordance with the laws of New York, NY. Any disputes will be resolved under the jurisdiction of the courts in New York, NY.
+          </p>
+        </section>
+
+      </div>
+
+      <!-- Contact Section -->
+      <div class="text-center mt-16 pt-8 border-t border-gray-800">
+        <BalancedSubheading class="mb-6">
+          If you have any questions or concerns about these Terms of Use, please contact us:
+        </BalancedSubheading>
+        <Button href="/contact" variant="default">
+          Contact Us
+        </Button>
+      </div>
+
+    </div>
+  </main>
+</Layout>
+
+<style>
+  @import '../styles/global.css';
+</style>

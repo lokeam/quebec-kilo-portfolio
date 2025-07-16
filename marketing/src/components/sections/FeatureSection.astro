@@ -1,0 +1,93 @@
+---
+import GradientContainer from '@/components/ui/GradientContainer.astro';
+import Card from '@/components/ui/Card.astro';
+import CardTitle from '@/components/ui/CardTitle.astro';
+import CardDescription from '@/components/ui/CardDescription.astro';
+import CardSkeletonContainer from '@/components/ui/CardSkeletonContainer.astro';
+import BalancedHeading from '@/components/BalancedHeading.astro';
+import BalancedSubheading from '@/components/BalancedSubheading.astro';
+---
+
+<GradientContainer className="md:my-20">
+  <div class="py-20 max-w-5xl mx-auto relative z-40">
+    <!-- Feature Icon Container (commented out as per template) -->
+    <!-- <FeatureIconContainer class="flex justify-center items-center overflow-hidden">
+      <FaBolt class="h-6 w-6 text-cyan-500" />
+    </FeatureIconContainer> -->
+
+    <BalancedHeading size="2xl" className="pt-4 text-center">
+      Your library. Your investment.
+    </BalancedHeading>
+
+    <BalancedSubheading className="text-center mt-6">
+      You worked hard to purchase your games. Make that sure you know where they are all are. And how much you're spending to keep them on a digital service.
+    </BalancedSubheading>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 py-10">
+      <!-- Card 1 - Large -->
+      <Card className="lg:col-span-2">
+        <CardTitle>Keep track of our purchases across digital subscriptions and physical locations</CardTitle>
+        <CardDescription>
+          Did I purchase a digital or physical version of this title? QKO makes it easy to check.
+        </CardDescription>
+        <CardSkeletonContainer>
+          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+            <span class="text-neutral-400">Skeleton One Placeholder</span>
+          </div>
+        </CardSkeletonContainer>
+      </Card>
+
+      <!-- Card 2 -->
+      <Card>
+        <CardSkeletonContainer className="max-w-[16rem] mx-auto">
+          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+            <span class="text-neutral-400">Skeleton Two Placeholder</span>
+          </div>
+        </CardSkeletonContainer>
+        <CardTitle>Learn how much you've been spending</CardTitle>
+        <CardDescription>
+          Check analytics for monthly subscription costs, one-time purchases and trends over time.
+        </CardDescription>
+      </Card>
+
+      <!-- Card 3 -->
+      <Card>
+        <CardSkeletonContainer>
+          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+            <span class="text-neutral-400">Skeleton Three Placeholder</span>
+          </div>
+        </CardSkeletonContainer>
+        <CardTitle>Powered by IGDB</CardTitle>
+        <CardDescription>
+          QKO uses the Internet Game Database for comprehensive logging and upkeep.
+        </CardDescription>
+      </Card>
+
+      <!-- Card 4 -->
+      <Card>
+        <CardSkeletonContainer showGradient={false} className="max-w-[16rem] mx-auto">
+          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+            <span class="text-neutral-400">Skeleton Four Placeholder</span>
+          </div>
+        </CardSkeletonContainer>
+        <CardTitle>Easy Collaboration</CardTitle>
+        <CardDescription>
+          We're building integrations to Steam and other Services.
+        </CardDescription>
+      </Card>
+
+      <!-- Card 5 -->
+      <Card>
+        <CardSkeletonContainer>
+          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+            <span class="text-neutral-400">Skeleton Five Placeholder</span>
+          </div>
+        </CardSkeletonContainer>
+        <CardTitle>Not social - and that's a good thing</CardTitle>
+        <CardDescription>
+          No drama, no posturing, just your stuff: organized and easy to find.
+        </CardDescription>
+      </Card>
+    </div>
+  </div>
+</GradientContainer>

@@ -1,0 +1,19 @@
+---
+import { icons, type IconName } from '@/components/ui/icons.js';
+
+export interface Props {
+  name?: IconName;
+  size?: number;
+  class?: string;
+}
+
+const { name, size = 24, class: className = "" } = Astro.props;
+---
+
+<div class={`inline-flex items-center justify-center ${className}`} style={`width: ${size}px; height: ${size}px;`}>
+  {name && icons[name] ? (
+    <Fragment set:html={icons[name]} />
+  ) : (
+    <slot />
+  )}
+</div>

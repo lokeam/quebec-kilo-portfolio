@@ -1,6 +1,6 @@
 ---
 // src/components/Footer.astro
-import Logo from './Logo.astro';
+import Logo from '@/components/Logo.astro';
 
 const links = [
   {
@@ -24,7 +24,7 @@ const legal = [
   },
   {
     name: "Terms of Service",
-    href: "#",
+    href: "/terms",
   },
 ];
 
@@ -53,6 +53,7 @@ const socials = [
         </div>
         <div>Copyright &copy; 2025 QKO</div>
         <div class="mt-2">All rights reserved</div>
+        <div class="mt-2">Made with ♥ by Ahn Ming Loke</div>
       </div>
 
       <div class="grid grid-cols-3 gap-10 items-start mt-10 md:mt-0">

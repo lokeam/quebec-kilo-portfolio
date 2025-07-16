@@ -1,0 +1,139 @@
+---
+export interface Props {
+  type?: "text" | "email" | "password" | "number" | "tel" | "url" | "search";
+  id?: string;
+  placeholder?: string;
+  className?: string;
+  label?: string;
+  rows?: number;
+}
+
+const {
+  type = "text",
+  id,
+  placeholder = "",
+  className = "",
+  label,
+  rows
+} = Astro.props;
+---
+
+<div class="flex w-full flex-col space-y-2">
+  {label && (
+    <label
+      for={id}
+      class="text-sm font-medium text-neutral-300 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+    >
+      {label}
+    </label>
+  )}
+
+  <div
+    class="group/input rounded-lg p-[2px] transition duration-300"
+    data-input-container
+  >
+    {rows ? (
+      <textarea
+        id={id}
+        rows={rows}
+        placeholder={placeholder}
+        class={`shadow-input dark:placeholder-text-neutral-600 flex w-full rounded-md border-none bg-neutral-800 px-3 py-2 text-sm text-white transition duration-400 group-hover/input:shadow-none placeholder:text-neutral-500 focus-visible:ring-[2px] focus-visible:ring-neutral-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-[0px_0px_1px_1px_#404040] resize-none ${className}`}
+      >
+      </textarea>
+    ) : (
+      <input
+        type={type}
+        id={id}
+        placeholder={placeholder}
+        class={`shadow-input dark:placeholder-text-neutral-600 flex h-10 w-full rounded-md border-none bg-neutral-800 px-3 py-2 text-sm text-white transition duration-400 group-hover/input:shadow-none placeholder:text-neutral-500 focus-visible:ring-[2px] focus-visible:ring-neutral-600 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-[0px_0px_1px_1px_#404040] ${className}`}
+      />
+    )}
+  </div>
+</div>
+
+<script>
+  // Simple test to see if inputs are working
+  const testInputs = () => {
+    console.log('Testing inputs...');
+    const inputs = document.querySelectorAll('input, textarea');
+    console.log('Found inputs:', inputs.length);
+
+    inputs.forEach((input, index) => {
+      const inputElement = input as HTMLInputElement | HTMLTextAreaElement;
+      console.log(`Input ${index}:`, inputElement.id, inputElement.type);
+
+      // Test if input is focusable
+      inputElement.addEventListener('focus', () => {
+        console.log(`Input ${index} focused`);
+      });
+
+      inputElement.addEventListener('blur', () => {
+        console.log(`Input ${index} blurred`);
+      });
+    });
+  };
+
+  // Animated input hover effect
+  const initializeAnimatedInputs = () => {
+    console.log('Initializing animated inputs...');
+    const inputContainers = document.querySelectorAll('[data-input-container]');
+    console.log('Found input containers:', inputContainers.length);
+
+    inputContainers.forEach((container, index) => {
+      console.log(`Setting up container ${index}`);
+
+      const handleMouseMove = (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        const rect = container.getBoundingClientRect();
+        const mouseX = mouseEvent.clientX - rect.left;
+        const mouseY = mouseEvent.clientY - rect.top;
+        const radius = 100;
+
+        const gradient = `radial-gradient(${radius}px circle at ${mouseX}px ${mouseY}px, #3b82f6, transparent 80%)`;
+        (container as HTMLElement).style.background = gradient;
+      };
+
+      const handleMouseEnter = () => {
+        console.log(`Mouse entered container ${index}`);
+      };
+
+      const handleMouseLeave = () => {
+        console.log(`Mouse left container ${index}`);
+        (container as HTMLElement).style.background = 'transparent';
+      };
+
+      container.addEventListener('mousemove', handleMouseMove);
+      container.addEventListener('mouseenter', handleMouseEnter);
+      container.addEventListener('mouseleave', handleMouseLeave);
+
+      console.log(`Container ${index} setup complete`);
+    });
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      testInputs();
+      initializeAnimatedInputs();
+    });
+  } else {
+    testInputs();
+    initializeAnimatedInputs();
+  }
+
+  // Re-initialize after Astro page loads
+  document.addEventListener('astro:page-load', () => {
+    testInputs();
+    initializeAnimatedInputs();
+  });
+</script>
+
+<style>
+  .shadow-input {
+    box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.1), 0px 1px 0px 0px rgba(25,28,33,0.02), 0px 0px 0px 1px rgba(25,28,33,0.08);
+  }
+
+  .group\/input:hover .shadow-input {
+    box-shadow: none;
+  }
+</style>

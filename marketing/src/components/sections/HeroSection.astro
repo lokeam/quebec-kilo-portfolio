@@ -1,9 +1,8 @@
 ---
-import BalancedHeading from './BalancedHeading.astro';
-import BalancedSubheading from './BalancedSubheading.astro';
-import BrandButton from './BrandButton.astro';
-import BeamTracer from './BeamTracer/BeamTracer.astro';
-import MktPageHeroCard from './MktPageHeroCard.astro';
+import BalancedHeading from '@/components/BalancedHeading.astro';
+import BalancedSubheading from '@/components/BalancedSubheading.astro';
+import BrandButton from '@/components/BrandButton.astro';
+import HeroSectionCard from '@/components/HeroSectionCard.astro';
 ---
 
 <div
@@ -19,14 +18,14 @@ import MktPageHeroCard from './MktPageHeroCard.astro';
       Level up your Game Library Management
     </BalancedHeading>
 
-    <BalancedSubheading class="text-center text-lg mt-2 md:mt-6 md:text-xl text-muted dark:text-muted-dark max-w-3xl mx-auto relative z-10">
+    <BalancedSubheading class="text-center  mt-2 md:mt-6 md:text-xl text-muted dark:text-muted-dark max-w-3xl mx-auto relative z-10">
       Track all of your games across digital services, physical locations and automate spend tracking,
       QKO's All-in-One Solution
     </BalancedSubheading>
 
     <div class="flex items-center gap-4 justify-center my-10 relative z-10">
       <BrandButton class="flex space-x-2 items-center group !text-lg" href="/register">
-        <span>Register</span>
+        <span>Register for Early Access</span>
       </BrandButton>
     </div>
   </div>
@@ -37,14 +36,14 @@ import MktPageHeroCard from './MktPageHeroCard.astro';
       class="w-full relative"
       style="perspective: 1000px;"
     >
-      <MktPageHeroCard id="hero-card" style="transform: rotateX(20deg) translateY(0px) scale(1.05);" >
+      <HeroSectionCard id="hero-card" style="transform: rotateX(20deg) translateY(0px) scale(1.05);" >
         <img
           src="/dashboard.png"
           alt="hero"
           class="mx-auto rounded-md grayscale group-hover:grayscale-0 transition duration-200 object-cover object-left-top h-full md:object-left-top"
           draggable="false"
         />
-      </MktPageHeroCard>
+      </HeroSectionCard>
     </div>
   </div>
 </div>

@@ -1,11 +1,14 @@
 ---
-import { cn } from '../utils/cn.js';
-import { buildAttributes } from '../utils/attributes.js';
+import { cn } from '@/utils/cn.js';
+import { buildAttributes } from '@/utils/attributes.js';
+import Icon from '@/components/ui/Icon.astro';
+import type { IconName } from '@/components/ui/icons.js';
 
 // Astro component props interface
 export interface Props {
   title: string;
   description: string;
+  icon?: IconName;
   isOpen?: boolean;
   className?: string;
   [key: string]: any; // Allow additional HTML attributes
@@ -14,6 +17,7 @@ export interface Props {
 const {
   title,
   description,
+  icon,
   isOpen = false,
   className = "",
   ...props
@@ -28,7 +32,12 @@ const attributes = buildAttributes(props);
 
 <div class={`accordion-item bg-neutral-900 rounded-xl p-4 ${finalClassName}`} data-accordion {...props}>
   <div class="accordion-header">
-    <h3 class="text-lg font-semibold text-white">{title}</h3>
+    <div class="flex items-center gap-3">
+      {icon && (
+        <Icon name={icon} size={28} class="text-blue-400 flex-shrink-0" />
+      )}
+      <h3 class="text-lg font-semibold text-white">{title}</h3>
+    </div>
   </div>
   <div class="accordion-content">
     <div class="accordion-inner">
@@ -122,7 +131,7 @@ const attributes = buildAttributes(props);
       console.log('Accordion state:', { isOpen, isAnimating });
 
       try {
-        // Close all other accordions first - using index loop for better performance
+        // Close all other accordions first
         for (let i = 0; i < accordionItems.length; i++) {
           const otherItem = accordionItems[i];
           if (!otherItem) continue;

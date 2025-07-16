@@ -1,0 +1,108 @@
+---
+import { cn } from '@/utils/cn';
+
+export interface Props {
+  className?: string;
+}
+
+const { className = "" } = Astro.props;
+---
+
+<div
+  id="gradient-container"
+  class={cn("relative z-20", className)}
+  style="--top: rgba(97, 106, 115, .12); --bottom: transparent; --conic-size: 600px;"
+>
+  <motion-div
+    id="gradient-animation"
+    class="w-full h-[var(--conic-size)] mb-[calc(-1*var(--conic-size))] pointer-events-none select-none relative z-0 after:content-[''] after:absolute after:inset-0 after:bg-gradient-to-b after:from-transparent after:to-[var(--charcoal)] after:opacity-100"
+    style="opacity: 0.901567;"
+  />
+  <slot />
+</div>
+
+<script>
+  import { animate, inView } from "motion";
+
+  // Initialize gradient animation
+  const initializeGradientAnimation = () => {
+    const container = document.getElementById('gradient-container');
+    const gradientElement = document.getElementById('gradient-animation');
+
+    if (!container || !gradientElement) {
+      console.warn('Gradient container elements not found');
+      return;
+    }
+
+    let percentage = 0;
+
+    // Create scroll-based animation
+    const updateGradient = (scrollProgress: number) => {
+      // Transform scroll progress to percentage (similar to React template)
+      const limitedProgress = Math.min(1, Math.max(0, scrollProgress * 2)); // [0, 0.5] -> [0, 1]
+      const newPercentage = Math.min(
+        100,
+        Math.max(0, (limitedProgress - 0.1) * (100 / 0.9))
+      );
+
+      percentage = newPercentage;
+
+      // Update gradient background
+      const top = "rgba(97, 106, 115, .12)";
+      const bottom = "transparent";
+
+      const background = `conic-gradient(from 90deg at ${
+        100 - percentage
+      }% 0%, ${top}, ${bottom} 180deg) 0% 0% / 50% 100% no-repeat, conic-gradient(from 270deg at ${percentage}% 0%, ${bottom} 180deg, ${top}) 100% 0% / 50% 100% no-repeat`;
+
+      gradientElement.style.background = background;
+    };
+
+    // Set up scroll tracking
+    inView(container, (el) => {
+      const rect = el.getBoundingClientRect();
+      const containerTop = rect.top;
+      const containerHeight = rect.height;
+      const windowHeight = window.innerHeight;
+
+      const handleScroll = () => {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollDistance = scrollTop - containerTop + windowHeight;
+        const totalDistance = containerHeight + windowHeight;
+
+        const scrollProgress = Math.max(0, Math.min(1, scrollDistance / totalDistance));
+        updateGradient(scrollProgress);
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', handleScroll);
+
+      // Initial update
+      handleScroll();
+
+      // Cleanup
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
+      };
+    }, {
+      amount: 0.1
+    });
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeGradientAnimation);
+  } else {
+    initializeGradientAnimation();
+  }
+
+  // Re-initialize after Astro page loads
+  document.addEventListener('astro:page-load', initializeGradientAnimation);
+</script>
+
+<style>
+  :root {
+    --charcoal: #1a1a1a;
+  }
+</style>
