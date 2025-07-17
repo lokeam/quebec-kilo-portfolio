@@ -64,12 +64,14 @@ func (te *TemplateEngine) loadTemplates() error {
 
 // TemplateData contains data for email templates
 type TemplateData struct {
-	UserID         string
-	Email          string
-	GracePeriodEnd time.Time
-	DaysLeft       int
-	ExportURL      string
-	DeletionDate   time.Time
+	UserID                 string
+	Email                  string
+	Name                   string
+	GracePeriodEnd         time.Time
+	DaysLeft               int
+	ExportURL              string
+	DeletionDate           time.Time
+	DeletionDateFormatted  string
 }
 
 // renderTemplate renders a template with the given data
@@ -88,50 +90,82 @@ func (te *TemplateEngine) renderTemplate(templateName string, data TemplateData)
 }
 
 // RenderDeletionRequest renders the deletion request email template
-func (te *TemplateEngine) RenderDeletionRequest(userID, email string, gracePeriodEnd time.Time) (string, error) {
+func (te *TemplateEngine) RenderDeletionRequest(
+	userID,
+	email string,
+	userName string,
+	gracePeriodEnd time.Time,
+) (string, error) {
 	data := TemplateData{
 		UserID:         userID,
 		Email:          email,
+		Name:           userName,
 		GracePeriodEnd: gracePeriodEnd,
 	}
 	return te.renderTemplate("deletion_request.html", data)
 }
 
 // RenderGracePeriodReminder renders the grace period reminder email template
-func (te *TemplateEngine) RenderGracePeriodReminder(userID, email string, daysLeft int) (string, error) {
+func (te *TemplateEngine) RenderGracePeriodReminder(
+	userID,
+	email string,
+	userName string,
+	daysLeft int,
+	deletionDate time.Time,
+) (string, error) {
 	data := TemplateData{
-		UserID:   userID,
-		Email:    email,
-		DaysLeft: daysLeft,
+		UserID:                 userID,
+		Email:                  email,
+		Name:                   userName,
+		DaysLeft:               daysLeft,
+		DeletionDateFormatted:  deletionDate.Format("January 2, 2006"),
 	}
 	return te.renderTemplate("grace_period_reminder.html", data)
 }
 
 // RenderDeletionConfirmation renders the deletion confirmation email template
-func (te *TemplateEngine) RenderDeletionConfirmation(userID, email string) (string, error) {
+func (te *TemplateEngine) RenderDeletionConfirmation(
+	userID,
+	email string,
+	userName string,
+	deletionDate time.Time,
+) (string, error) {
 	data := TemplateData{
-		UserID:       userID,
-		Email:        email,
-		DeletionDate: time.Now(),
+		UserID:                 userID,
+		Email:                  email,
+		Name:                   userName,
+		DeletionDate:           deletionDate,
+		DeletionDateFormatted:  deletionDate.Format("January 2, 2006"),
 	}
 	return te.renderTemplate("deletion_confirmation.html", data)
 }
 
 // RenderDataExport renders the data export email template
-func (te *TemplateEngine) RenderDataExport(userID, email, exportURL string) (string, error) {
+func (te *TemplateEngine) RenderDataExport(
+	userID,
+	email,
+	userName string,
+	exportURL string,
+) (string, error) {
 	data := TemplateData{
 		UserID:    userID,
 		Email:     email,
+		Name:      userName,
 		ExportURL: exportURL,
 	}
 	return te.renderTemplate("data_export.html", data)
 }
 
 // RenderWelcomeBack renders the welcome back email template
-func (te *TemplateEngine) RenderWelcomeBack(userID, email string) (string, error) {
+func (te *TemplateEngine) RenderWelcomeBack(
+	userID,
+	email string,
+	userName string,
+) (string, error) {
 	data := TemplateData{
 		UserID: userID,
 		Email:  email,
+		Name:   userName,
 	}
 	return te.renderTemplate("welcome_back.html", data)
 }

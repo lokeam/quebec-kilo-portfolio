@@ -190,7 +190,7 @@ func (eq *EmailQueue) processJob(job EmailJob) {
 			err = fmt.Errorf("invalid gracePeriodEnd data")
 			break
 		}
-		err = eq.emailService.SendDeletionRequestEmail(ctx, job.UserID, job.Email, gracePeriodEnd)
+		err = eq.emailService.SendDeletionRequestEmail(ctx, job.UserID, job.Email, job.Data["userName"].(string), gracePeriodEnd)
 
 	case EmailJobTypeGracePeriodReminder:
 		daysLeft, ok := job.Data["daysLeft"].(int)
@@ -198,10 +198,27 @@ func (eq *EmailQueue) processJob(job EmailJob) {
 			err = fmt.Errorf("invalid daysLeft data")
 			break
 		}
-		err = eq.emailService.SendGracePeriodReminderEmail(ctx, job.UserID, job.Email, daysLeft)
+		deletionDate, ok := job.Data["deletionDate"].(time.Time)
+		if !ok {
+			err = fmt.Errorf("invalid deletionDate data")
+			break
+		}
+		userName, ok := job.Data["userName"].(string)
+		if !ok {
+			err = fmt.Errorf("invalid userName data")
+			break
+		}
+
+		err = eq.emailService.SendGracePeriodReminderEmail(ctx, job.UserID, job.Email, userName, daysLeft, deletionDate)
 
 	case EmailJobTypeDeletionConfirmation:
-		err = eq.emailService.SendDeletionConfirmationEmail(ctx, job.UserID, job.Email)
+		deletionDate, ok := job.Data["deletionDate"].(time.Time)
+		if !ok {
+			err = fmt.Errorf("invalid deletionDate data")
+			break
+		}
+		userName, ok := job.Data["userName"].(string)
+		err = eq.emailService.SendDeletionConfirmationEmail(ctx, job.UserID, job.Email, userName, deletionDate)
 
 	case EmailJobTypeDataExport:
 		exportURL, ok := job.Data["exportURL"].(string)
@@ -209,10 +226,20 @@ func (eq *EmailQueue) processJob(job EmailJob) {
 			err = fmt.Errorf("invalid exportURL data")
 			break
 		}
-		err = eq.emailService.SendDataExportEmail(ctx, job.UserID, job.Email, exportURL)
+		userName, ok := job.Data["userName"].(string)
+		if !ok {
+			err = fmt.Errorf("invalid userName data")
+			break
+		}
+		err = eq.emailService.SendDataExportEmail(ctx, job.UserID, job.Email, userName, exportURL)
 
 	case EmailJobTypeWelcomeBack:
-		err = eq.emailService.SendWelcomeBackEmail(ctx, job.UserID, job.Email)
+		userName, ok := job.Data["userName"].(string)
+		if !ok {
+			err = fmt.Errorf("invalid userName data")
+			break
+		}
+		err = eq.emailService.SendWelcomeBackEmail(ctx, job.UserID, job.Email, userName)
 
 	default:
 		err = fmt.Errorf("unknown email job type: %s", job.Type)

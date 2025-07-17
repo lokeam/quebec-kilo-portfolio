@@ -29,7 +29,7 @@ func NewResendEmailService(appCtx *appcontext.AppContext) (EmailService, error) 
 	}
 
 	if appCtx.Config.Email.ResendAPIKey == "" {
-		return nil, fmt.Errorf("Resend API key is required")
+		return nil, fmt.Errorf("resend API key is required")
 	}
 
 	// Create Resend client
@@ -50,7 +50,12 @@ func NewResendEmailService(appCtx *appcontext.AppContext) (EmailService, error) 
 }
 
 // SendEmail sends a generic email using Resend
-func (res *ResendEmailService) SendEmail(ctx context.Context, to, subject, htmlContent string) error {
+func (res *ResendEmailService) SendEmail(
+	ctx context.Context,
+	to,
+	subject,
+	htmlContent string,
+) error {
 	params := &resend.SendEmailRequest{
 		From:    fmt.Sprintf("%s <%s>", res.config.FromName, res.config.FromAddress),
 		To:      []string{to},
@@ -77,9 +82,20 @@ func (res *ResendEmailService) SendEmail(ctx context.Context, to, subject, htmlC
 }
 
 // SendDeletionRequestEmail sends email notification when deletion is requested
-func (res *ResendEmailService) SendDeletionRequestEmail(ctx context.Context, userID, email string, gracePeriodEnd time.Time) error {
+func (res *ResendEmailService) SendDeletionRequestEmail(
+	ctx context.Context,
+	userID,
+	email,
+	userName string,
+	gracePeriodEnd time.Time,
+) error {
 	// Render email template
-	htmlContent, err := res.templateEngine.RenderDeletionRequest(userID, email, gracePeriodEnd)
+	htmlContent, err := res.templateEngine.RenderDeletionRequest(
+		userID,
+		email,
+		userName,
+		gracePeriodEnd,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to render deletion request template: %w", err)
 	}
@@ -90,9 +106,22 @@ func (res *ResendEmailService) SendDeletionRequestEmail(ctx context.Context, use
 }
 
 // SendGracePeriodReminderEmail sends reminder email before grace period ends
-func (res *ResendEmailService) SendGracePeriodReminderEmail(ctx context.Context, userID, email string, daysLeft int) error {
+func (res *ResendEmailService) SendGracePeriodReminderEmail(
+	ctx context.Context,
+	userID,
+	email,
+	userName string,
+	daysLeft int,
+	deletionDate time.Time,
+) error {
 	// Render email template
-	htmlContent, err := res.templateEngine.RenderGracePeriodReminder(userID, email, daysLeft)
+	htmlContent, err := res.templateEngine.RenderGracePeriodReminder(
+		userID,
+		email,
+		userName,
+		daysLeft,
+		deletionDate,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to render grace period reminder template: %w", err)
 	}
@@ -103,9 +132,20 @@ func (res *ResendEmailService) SendGracePeriodReminderEmail(ctx context.Context,
 }
 
 // SendDeletionConfirmationEmail sends confirmation email after permanent deletion
-func (res *ResendEmailService) SendDeletionConfirmationEmail(ctx context.Context, userID, email string) error {
+func (res *ResendEmailService) SendDeletionConfirmationEmail(
+	ctx context.Context,
+	userID,
+	email,
+	userName string,
+	deletionDate time.Time,
+) error {
 	// Render email template
-	htmlContent, err := res.templateEngine.RenderDeletionConfirmation(userID, email)
+	htmlContent, err := res.templateEngine.RenderDeletionConfirmation(
+		userID,
+		email,
+		userName,
+		deletionDate,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to render deletion confirmation template: %w", err)
 	}
@@ -116,9 +156,20 @@ func (res *ResendEmailService) SendDeletionConfirmationEmail(ctx context.Context
 }
 
 // SendDataExportEmail sends email with data export download link
-func (res *ResendEmailService) SendDataExportEmail(ctx context.Context, userID, email, exportURL string) error {
+func (res *ResendEmailService) SendDataExportEmail(
+	ctx context.Context,
+	userID,
+	email,
+	userName,
+	exportURL string,
+) error {
 	// Render email template
-	htmlContent, err := res.templateEngine.RenderDataExport(userID, email, exportURL)
+	htmlContent, err := res.templateEngine.RenderDataExport(
+		userID,
+		email,
+		userName,
+		exportURL,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to render data export template: %w", err)
 	}
@@ -129,9 +180,18 @@ func (res *ResendEmailService) SendDataExportEmail(ctx context.Context, userID, 
 }
 
 // SendWelcomeBackEmail sends welcome back email when deletion is cancelled
-func (res *ResendEmailService) SendWelcomeBackEmail(ctx context.Context, userID, email string) error {
+func (res *ResendEmailService) SendWelcomeBackEmail(
+	ctx context.Context,
+	userID,
+	email,
+	userName string,
+) error {
 	// Render email template
-	htmlContent, err := res.templateEngine.RenderWelcomeBack(userID, email)
+	htmlContent, err := res.templateEngine.RenderWelcomeBack(
+		userID,
+		email,
+		userName,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to render welcome back template: %w", err)
 	}

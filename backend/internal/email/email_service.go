@@ -8,11 +8,11 @@ import (
 // EmailService defines the interface for email operations
 type EmailService interface {
 	// User deletion related emails
-	SendDeletionRequestEmail(ctx context.Context, userID, email string, gracePeriodEnd time.Time) error
-	SendGracePeriodReminderEmail(ctx context.Context, userID, email string, daysLeft int) error
-	SendDeletionConfirmationEmail(ctx context.Context, userID, email string) error
-	SendDataExportEmail(ctx context.Context, userID, email, exportURL string) error
-	SendWelcomeBackEmail(ctx context.Context, userID, email string) error
+	SendDeletionRequestEmail(ctx context.Context, userID, email string, userName string, gracePeriodEnd time.Time) error
+	SendGracePeriodReminderEmail(ctx context.Context, userID, email string, userName string, daysLeft int, deletionDate time.Time) error
+	SendDeletionConfirmationEmail(ctx context.Context, userID, email string, userName string, deletionDate time.Time) error
+	SendDataExportEmail(ctx context.Context, userID, email, userName string, exportURL string) error
+	SendWelcomeBackEmail(ctx context.Context, userID, email string, userName string) error
 
 	// Utility methods
 	SendEmail(ctx context.Context, to, subject, htmlContent string) error
@@ -23,6 +23,7 @@ type EmailService interface {
 type EmailData struct {
 	UserID         string
 	Email          string
+	Name           string
 	GracePeriodEnd time.Time
 	DaysLeft       int
 	ExportURL      string
