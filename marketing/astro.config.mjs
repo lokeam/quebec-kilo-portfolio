@@ -15,10 +15,12 @@ export default defineConfig({
   // Disable Vite caching and force reload
   vite: {
     resolve: {
+      // IMPORTANT: Custom alias for imports
       alias: {
         '@': path.resolve('./src'),
       },
     },
+
     // Force reload on file changes
     server: {
       hmr: {
