@@ -1,6 +1,9 @@
 # build output
 dist/
 
+# react email dev tool
+react-email-starter/
+
 # generated types
 .astro/
 
