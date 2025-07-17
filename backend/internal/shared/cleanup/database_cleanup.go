@@ -50,10 +50,19 @@ func (dcs *DatabaseCleanupService) CleanupExpiredData(ctx context.Context) error
 
 	// Clean up users who requested deletion and are past the grace period
 	if err := dcs.cleanupExpiredUsers(ctx); err != nil {
+		// Check if the error is due to context cancellation
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		dcs.appCtx.Logger.Error("Failed to cleanup expired users", map[string]any{
 			"error": err.Error(),
 		})
 		// Don't return error, continue with other cleanup tasks
+	}
+
+	// Check for context cancellation before completing
+	if ctx.Err() != nil {
+		return ctx.Err()
 	}
 
 	dcs.appCtx.Logger.Info("Database cleanup completed", map[string]any{
