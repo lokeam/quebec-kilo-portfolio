@@ -1,76 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Deletion Confirmed</title>
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #6c757d; color: white; padding: 20px; border-radius: 5px; }
-        .content { padding: 20px; }
-        .info { background-color: #e9ecef; border: 1px solid #dee2e6; padding: 15px; border-radius: 5px; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Account Deletion Confirmed</h1>
-        </div>
-
-        <div class="content">
-            <p>Hello,</p>
-
-            <p>This email confirms that your QKO account has been permanently deleted as requested.</p>
-
-            <div class="info">
-                <h3>✅ Deletion Completed</h3>
-                <p><strong>Date:</strong> {{.DeletionDate}}</p>
-                <p><strong>Account ID:</strong> {{.UserID}}</p>
-            </div>
-
-            <h3>What was deleted?</h3>
-            <ul>
-                <li>Your account profile and settings</li>
-                <li>All game collections and libraries</li>
-                <li>Physical and digital location data</li>
-                <li>Spending tracking information</li>
-                <li>Wishlist items and preferences</li>
-                <li>All associated metadata and analytics</li>
-            </ul>
-
-            <h3>Data retention policy</h3>
-            <p>In accordance with GDPR and our data retention policy:</p>
-            <ul>
-                <li><strong>Audit logs:</strong> Retained for 7 years for compliance purposes</li>
-                <li><strong>User data:</strong> Permanently deleted</li>
-                <li><strong>Analytics:</strong> Anonymized and retained for service improvement</li>
-            </ul>
-
-            <h3>Your rights under GDPR</h3>
-            <p>As per GDPR Article 17 (Right to Erasure):</p>
-            <ul>
-                <li>✅ Your personal data has been permanently deleted</li>
-                <li>✅ We have notified any third parties who may have processed your data</li>
-                <li>✅ Audit logs are maintained for legal compliance only</li>
-            </ul>
-
-            <h3>If you didn't request this deletion</h3>
-            <p>If you believe this deletion was made in error or without your consent, please contact our support team immediately. We will investigate the matter thoroughly.</p>
-
-            <h3>Starting fresh?</h3>
-            <p>If you decide to use QKO again in the future, you can create a new account at any time. Your new account will start completely fresh with no connection to your previous data.</p>
-
-            <p>Thank you for using QKO. We're sorry to see you go.</p>
-
-            <p>Best regards,<br>The QKO Team</p>
-        </div>
-
-        <div class="footer">
-            <p>This email confirms the permanent deletion of your account as requested. If you have any questions about this deletion, please contact our support team.</p>
-            <p>QKO complies with GDPR regulations and respects your privacy rights.</p>
-        </div>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html dir="ltr" lang="en">
+  <head>
+    <link rel="preload" as="image" href="/static/qko_logo.png" />
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type" />
+    <meta name="x-apple-disable-message-reformatting" />
+  </head>
+  <body
+    style="background-color:#ffffff;margin:0 auto;font-family:-apple-system, BlinkMacSystemFont, &#x27;Segoe UI&#x27;, &#x27;Roboto&#x27;, &#x27;Oxygen&#x27;, &#x27;Ubuntu&#x27;, &#x27;Cantarell&#x27;, &#x27;Fira Sans&#x27;, &#x27;Droid Sans&#x27;, &#x27;Helvetica Neue&#x27;, sans-serif">
+    <!--$-->
+    <div
+      style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0"
+      data-skip-in-text="true">
+      Your QKO account has been permanently deleted
+      <div>
+         ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿ ‌​‍‎‏﻿
+      </div>
     </div>
-</body>
+    <table
+      align="center"
+      width="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+      role="presentation"
+      style="max-width:37.5em;margin:0 auto;padding:0px 20px">
+      <tbody>
+        <tr style="width:100%">
+          <td>
+            <table
+              align="center"
+              width="100%"
+              border="0"
+              cellpadding="0"
+              cellspacing="0"
+              role="presentation"
+              style="margin-top:32px">
+              <tbody>
+                <tr>
+                  <td>
+                    <img
+                      alt="QKO"
+                      height="40"
+                      src="/static/qko_logo.png"
+                      style="display:block;outline:none;border:none;text-decoration:none"
+                      width="40" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <h1
+              style="color:#1d1c1d;text-align:center;font-size:32px;font-weight:700;margin:30px 0;padding:0;line-height:42px">
+              Your QKO account will be deleted in 30 days
+            </h1>
+            <hr
+              style="width:100%;border:none;border-top:1px solid #eaeaea;border-color:#e6ebf1;margin:20px 0" />
+            <p
+              style="font-size:16px;line-height:24px;color:#000;font-weight:400;text-align:left;margin-top:16px;margin-bottom:16px">
+              Hi
+              <!-- -->John Doe<!-- -->,
+            </p>
+            <p
+              style="font-size:16px;line-height:24px;color:#000;font-weight:400;text-align:left;margin-top:16px;margin-bottom:16px">
+              Your QKO account has been permanently deleted to protect your
+              privacy. Thank you so much for a QKO customer!
+            </p>
+            <hr
+              style="width:100%;border:none;border-top:1px solid #eaeaea;border-color:#e6ebf1;margin:20px 0" />
+            <p
+              style="font-size:16px;line-height:24px;color:#000;font-weight:400;text-align:left;margin-top:16px;margin-bottom:16px">
+              All the best,
+            </p>
+            <p
+              style="font-size:16px;line-height:24px;color:#000;font-weight:400;text-align:left;margin-top:16px;margin-bottom:16px">
+              — The QKO team
+            </p>
+            <table
+              align="center"
+              width="100%"
+              border="0"
+              cellpadding="0"
+              cellspacing="0"
+              role="presentation">
+              <tbody>
+                <tr>
+                  <td>
+                    <p
+                      style="font-size:12px;line-height:15px;color:#b7b7b7;text-align:left;margin-bottom:50px;margin-top:16px">
+                      ©2025 QKO. All rights reserved. <br /><br />
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <!--7--><!--/$-->
+  </body>
 </html>
