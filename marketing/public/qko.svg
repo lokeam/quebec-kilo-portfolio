@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="15" fill="#06b6d4" stroke="#0891b2" stroke-width="1"/>
+
+  <!-- Q letter -->
+  <path d="M10 10h6c2.2 0 4 1.8 4 4s-1.8 4-4 4h-2l4 4"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- K letter -->
+  <path d="M18 10v12M18 16l4-6M18 16l4 6"
+        stroke="white"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"/>
+
+  <!-- O letter -->
+  <circle cx="26" cy="16" r="3"
+          stroke="white"
+          stroke-width="2"
+          fill="none"/>
+</svg>

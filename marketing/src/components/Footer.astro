@@ -2,25 +2,10 @@
 // src/components/Footer.astro
 import Logo from '@/components/Logo.astro';
 
-const links = [
-  {
-    name: "Early Access Signup",
-    href: "/early-access",
-  },
-  {
-    name: "Blog",
-    href: "/blog",
-  },
-  {
-    name: "Contact",
-    href: "/contact",
-  },
-];
-
 const legal = [
   {
     name: "Privacy Policy",
-    href: "#",
+    href: "/privacy",
   },
   {
     name: "Terms of Service",
@@ -57,18 +42,6 @@ const socials = [
       </div>
 
       <div class="grid grid-cols-3 gap-10 items-start mt-10 md:mt-0">
-        <!-- Links Column -->
-        <div class="flex justify-center space-y-4 flex-col mt-4">
-          {links.map((link) => (
-            <a
-              href={link.href}
-              class="transition-colors hover:text-black text-muted dark:text-muted-dark dark:hover:text-neutral-400 text-xs sm:text-sm"
-            >
-              {link.name}
-            </a>
-          ))}
-        </div>
-
         <!-- Legal Column -->
         <div class="flex justify-center space-y-4 flex-col mt-4">
           {legal.map((link) => (
