@@ -2,6 +2,9 @@
 import { cn } from "@/utils/cn";
 import BrandButton from "@/components/BrandButton.astro";
 import ShineWrapper from "@/components/ui/ShineWrapper.astro";
+
+// Get app URL from environment variable (Astro automatically provides PUBLIC_ variables)
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
 ---
 
 <div class="bg-gray-950 w-full max-w-7xl mx-auto min-h-[30vh] md:min-h-[50dvh] flex items-center justify-center px-4 sm:px-6 lg:px-8 relative">
@@ -90,8 +93,8 @@ import ShineWrapper from "@/components/ui/ShineWrapper.astro";
   <!-- Button - Positioned absolutely to match the layout -->
   <div class="absolute bottom-2 md:bottom-10 lg:bottom-20 left-1/2 transform -translate-x-1/2 z-30">
     <ShineWrapper shineColor="white-subtle" shineDuration="normal">
-      <BrandButton class="flex space-x-2 items-center group !text-lg cursor-pointer min-w-[300px] justify-center" href="/register">
-        <span>Sign up</span>
+      <BrandButton class="flex space-x-2 items-center group !text-lg cursor-pointer md:min-w-[300px] justify-center" href={`${appUrl}/login`}>
+        <span>Sign up or Login</span>
       </BrandButton>
     </ShineWrapper>
   </div>

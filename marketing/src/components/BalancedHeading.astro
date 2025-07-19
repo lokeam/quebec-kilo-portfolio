@@ -21,7 +21,7 @@ const {
 
 // Size variants mapping
 const sizeVariants = {
-  sm: "text-xl md:text-2xl md:leading-snug",
+  sm: "text-2xl md:text-3xl md:leading-snug",
   md: "text-3xl md:text-5xl md:leading-tight",
   xl: "text-4xl md:text-4xl lg:text-8xl lg:leading-[1.3]",
   "2xl": "text-5xl md:text-7xl md:leading-[1.2]",
@@ -29,7 +29,7 @@ const sizeVariants = {
 
 // Simple, predictable className building
 const finalClassName = cn(
-  "mx-auto tracking-tight font-semibold",
+  "text-center mx-auto tracking-tight font-semibold",
   "bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 via-white to-white",
   sizeVariants[size as keyof typeof sizeVariants], // Always apply size
   "scroll-mt-20", // Add scroll margin to prevent navbar overlap

@@ -4,6 +4,9 @@ import BalancedSubheading from '@/components/BalancedSubheading.astro';
 import BrandButton from '@/components/BrandButton.astro';
 import HeroSectionCard from '@/components/HeroSectionCard.astro';
 import ShineWrapper from '@/components/ui/ShineWrapper.astro';
+
+// Get app URL from environment variable (Astro automatically provides PUBLIC_ variables)
+const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
 ---
 
 <div
@@ -14,7 +17,7 @@ import ShineWrapper from '@/components/ui/ShineWrapper.astro';
     <BalancedHeading
       as="h1"
       size="xl"
-      class="font-semibold max-w-6xl mx-auto text-center mt-6 relative z-10 py-6 leading-tight md:leading-tight lg:leading-[1.4]"
+      class="font-semibold max-w-6xl mx-auto mt-6 relative z-10 py-6 leading-tight md:leading-tight lg:leading-[1.4]"
     >
       Level up your Game Library Management
     </BalancedHeading>
@@ -26,8 +29,8 @@ import ShineWrapper from '@/components/ui/ShineWrapper.astro';
 
     <div class="flex items-center gap-4 justify-center my-10 relative z-10">
       <ShineWrapper shineColor="white-subtle" shineDuration="normal">
-        <BrandButton class="flex space-x-2 items-center group !text-lg" href="/register">
-          <span>Sign up</span>
+        <BrandButton class="flex space-x-2 items-center group !text-lg md:w-[300px]" href={`${appUrl}/login`}>
+          <span>Sign up or Login</span>
         </BrandButton>
       </ShineWrapper>
     </div>

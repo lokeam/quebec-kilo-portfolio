@@ -12,7 +12,7 @@ export default {
             200: '#ddf5c7',
             300: '#c7ed9e',
             400: '#a8e06f',
-            500: '#7CC254', // Your base green
+            500: '#7CC254', // Base green
             600: '#6bb344',
             700: '#5a9a3a',
             800: '#4a7d30',
@@ -25,7 +25,7 @@ export default {
             200: '#c3d3f1',
             300: '#9bb7e8',
             400: '#6b95d8',
-            500: '#3D6FB7', // Your base blue
+            500: '#3D6FB7', // Base blue
             600: '#365ea3',
             700: '#2f4f8a',
             800: '#284172',
@@ -38,7 +38,7 @@ export default {
             200: '#ddd3f1',
             300: '#c4b3e8',
             400: '#a38dd8',
-            500: '#674099', // Your base purple
+            500: '#674099', // Base purple
             600: '#5d3888',
             700: '#4e2f72',
             800: '#40275c',
