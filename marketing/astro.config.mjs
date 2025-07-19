@@ -1,7 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
-import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
@@ -14,13 +13,6 @@ export default defineConfig({
   },
   // Disable Vite caching and force reload
   vite: {
-    resolve: {
-      // IMPORTANT: Custom alias for imports
-      alias: {
-        '@': path.resolve('./src'),
-      },
-    },
-
     // Force reload on file changes
     server: {
       hmr: {
@@ -30,6 +22,25 @@ export default defineConfig({
     // Disable caching for immediate development feedback
     optimizeDeps: {
       force: true,
+    },
+    // Leave any development folders out from build
+    build: {
+      rollupOptions: {
+        external: (id) => {
+          // Exclude any path containing dev patterns
+          const devPatterns = [
+            /-dev\//,
+            /dev-\//,
+            /experimental\//,
+            /staging\//,
+            /test-\//,
+            /temp-\//,
+            /draft-\//,
+            /wip-\//,
+          ];
+          return devPatterns.some(pattern => pattern.test(id));
+        },
+      },
     },
   },
 });

@@ -15,13 +15,37 @@ const { title, description = "QKO - Your Gaming Library Management Platform" } =
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-		<!-- TODO: Replace with brand logo svg favicon -->
-		 <!-- TODO: IMPORTANT - Add Posthog analytics -->
-    <link rel="icon" type="image/svg+xml" href="/qko.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicon Setup -->
+    <link rel="icon" type="image/svg+xml" href="/qko_favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/qko_favicon.svg" />
+
+    <!-- Meta Tags -->
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#06b6d4" />
+
+    <!-- Prevent indexing and following - Remove when ready to launch -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+    <meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.q-ko.com/" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="/qko_favicon.svg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.q-ko.com/" />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content="/qko_favicon.svg" />
+
     <ClientRouter />
   </head>
   <body class="bg-gray-950 antialiased h-full w-full font-inter">
@@ -35,11 +59,71 @@ const { title, description = "QKO - Your Gaming Library Management Platform" } =
 </html>
 
 <script>
+  import posthog from 'posthog-js'
+
+  // Declare PostHog types
+  declare global {
+    interface Window {
+      posthog: any;
+    }
+  }
+
+  // Startup PostHog
+  if (typeof window !== 'undefined') {
+    posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_KEY, {
+      api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+      capture_pageview: true,
+      capture_pageleave: true,
+      autocapture: true,
+      disable_session_recording: false,
+      enable_recording_console_log: false,
+      respect_dnt: true,
+      loaded: function(posthog: any) {
+        // Track page views
+        posthog.capture('page_viewed', {
+          page_title: document.title,
+          page_url: window.location.href
+        });
+      }
+    });
+  }
+
   // Global utilities - available site-wide
   import { initTextBalancing } from '@/utils/text-balance.js';
 
   // Initialize text balancing globally
   document.addEventListener('DOMContentLoaded', initTextBalancing);
+
+  // Track user interactions
+  document.addEventListener('DOMContentLoaded', function() {
+    // Track form submissions (when I actually get them)
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+      form.addEventListener('submit', function() {
+        if (typeof window !== 'undefined' && window.posthog) {
+          window.posthog.capture('form_submitted', {
+            form_id: form.id || 'unknown',
+            form_action: form.action
+          });
+        }
+      });
+    });
+
+    // Track button clicks
+    const buttons = document.querySelectorAll('button, a[href]');
+    buttons.forEach(button => {
+      button.addEventListener('click', function() {
+        if (typeof window !== 'undefined' && window.posthog) {
+          const href = (button as HTMLAnchorElement).href;
+          window.posthog.capture('button_clicked', {
+            button_text: button.textContent?.trim(),
+            button_id: button.id || 'unknown',
+            button_href: href || 'none'
+          });
+        }
+      });
+    });
+  });
 </script>
 
 <style>
