@@ -1,0 +1,185 @@
+---
+import FeatureIconContainer from '@/components/ui/FeatureIconContainer.astro';
+import { physicalIcons } from '@/components/ui/icons-physical.js';
+import { digitalIcons } from '@/components/ui/icons-digital.js';
+
+// Physical icons for the top row (7 total)
+const physicalIconNames = ['house', 'apartment', 'car', 'package', 'bookshelf', 'closet', 'mediaConsole'] as const;
+
+// Digital icons for the bottom row (7 total)
+const digitalIconNames = ['appleLogo', 'epicGamesLogo', 'playstationLogo', 'steamLogo', 'xboxLogo', 'nintendoLogo', 'googlePlayPassLogo'] as const;
+---
+
+<div class="p-8 overflow-hidden h-full">
+  <div class="flex flex-col gap-4 items-center justify-center h-full relative">
+    <div class="flex gap-4 items-center justify-center flex-shrink-0">
+      <!-- Top SVG with motion animation -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="62"
+        height="105"
+        viewBox="0 0 62 105"
+        fill="none"
+        class="absolute left-1/2 -translate-x-[60px] -top-10 text-neutral-600"
+      >
+        <path
+          d="M1.00001 -69L1 57.5C1 64.1274 6.37258 69.5 13 69.5H49C55.6274 69.5 61 74.8726 61 81.5L61 105"
+          stroke="currentColor"
+          stroke-width="1.5"
+        />
+        <path
+          d="M1.00001 -69L1 57.5C1 64.1274 6.37258 69.5 13 69.5H49C55.6274 69.5 61 74.8726 61 81.5L61 105"
+          stroke="url(#gradient-1)"
+          stroke-width="1.5"
+          class="gradient-path-1"
+        />
+        <defs>
+          <linearGradient
+            id="gradient-1"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="0%"
+          >
+            <stop stop-color="#001AFF" stop-opacity="0" />
+            <stop offset="1" stop-color="#6DD4F5" />
+            <stop offset="1" stop-color="#6DD4F5" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- Bottom SVG with motion animation -->
+      <svg
+        width="128"
+        height="69"
+        viewBox="0 0 128 69"
+        fill="none"
+        class="absolute left-1/2 translate-x-4 -bottom-2 text-neutral-600"
+      >
+        <path
+          d="M1.00002 0.5L1.00001 29.5862C1 36.2136 6.37259 41.5862 13 41.5862H115C121.627 41.5862 127 46.9588 127 53.5862L127 75"
+          stroke="currentColor"
+          stroke-width="1.5"
+        />
+        <path
+          d="M1.00002 0.5L1.00001 29.5862C1 36.2136 6.37259 41.5862 13 41.5862H115C121.627 41.5862 127 46.9588 127 53.5862L127 75"
+          stroke="url(#gradient-2)"
+          stroke-width="1.5"
+          class="gradient-path-2"
+        />
+        <defs>
+          <linearGradient
+            id="gradient-2"
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="0%"
+          >
+            <stop stop-color="#001AFF" stop-opacity="0" />
+            <stop offset="1" stop-color="#6DD4F5" />
+            <stop offset="1" stop-color="#6DD4F5" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- Top row of physical icons -->
+      {physicalIconNames.map((iconName) => (
+        <FeatureIconContainer>
+          <div class="h-8 w-8 rounded-md overflow-hidden flex items-center justify-center" set:html={physicalIcons[iconName]} />
+        </FeatureIconContainer>
+      ))}
+    </div>
+
+    <div class="flex gap-4 items-center justify-center flex-shrink-0 ml-8">
+      <!-- Bottom row of digital icons -->
+      {digitalIconNames.map((iconName) => (
+        <FeatureIconContainer>
+          <div class="h-8 w-8 rounded-md overflow-hidden flex items-center justify-center" set:html={digitalIcons[iconName]} />
+        </FeatureIconContainer>
+      ))}
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize the locations skeleton component with meteor animations
+  const initializeLocationsSkeleton = () => {
+    const gradient1 = document.querySelector('#gradient-1');
+    const gradient2 = document.querySelector('#gradient-2');
+
+    if (!gradient1 || !gradient2) {
+      console.warn('Location skeleton gradient elements not found');
+      return;
+    }
+
+    // Animate the first gradient (top curve)
+    const animateGradient1 = () => {
+      const duration = Math.random() * (7 - 2) + 2;
+
+      if (gradient1 instanceof SVGLinearGradientElement) {
+        const startTime = Date.now();
+
+        const animate = () => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const progress = (elapsed % duration) / duration;
+
+          const x1 = progress * 100;
+          const y1 = progress * 90;
+          const x2 = progress * 120;
+          const y2 = progress * 120;
+
+          gradient1.setAttribute('x1', `${x1}%`);
+          gradient1.setAttribute('y1', `${y1}%`);
+          gradient1.setAttribute('x2', `${x2}%`);
+          gradient1.setAttribute('y2', `${y2}%`);
+
+          requestAnimationFrame(animate);
+        };
+
+        requestAnimationFrame(animate);
+      }
+    };
+
+    // Animate the second gradient (bottom curve)
+    const animateGradient2 = () => {
+      const duration = Math.random() * (7 - 2) + 2;
+
+      if (gradient2 instanceof SVGLinearGradientElement) {
+        const startTime = Date.now();
+
+        const animate = () => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const progress = (elapsed % duration) / duration;
+
+          const x1 = progress * 100;
+          const y1 = progress * 90;
+          const x2 = progress * 120;
+          const y2 = progress * 120;
+
+          gradient2.setAttribute('x1', `${x1}%`);
+          gradient2.setAttribute('y1', `${y1}%`);
+          gradient2.setAttribute('x2', `${x2}%`);
+          gradient2.setAttribute('y2', `${y2}%`);
+
+          requestAnimationFrame(animate);
+        };
+
+        requestAnimationFrame(animate);
+      }
+    };
+
+    // Start both gradient animations
+    animateGradient1();
+    animateGradient2();
+  };
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeLocationsSkeleton);
+  } else {
+    initializeLocationsSkeleton();
+  }
+
+  // Re-initialize after Astro page loads
+  document.addEventListener('astro:page-load', initializeLocationsSkeleton);
+</script>

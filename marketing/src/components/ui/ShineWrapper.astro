@@ -1,0 +1,180 @@
+---
+export interface Props {
+  shineColor?: 'white' | 'white-subtle' | 'gold' | 'blue' | 'purple' | 'custom';
+  shineDuration?: 'fast' | 'normal' | 'slow';
+  shineDirection?: 'left-to-right' | 'right-to-left' | 'diagonal' | 'default';
+  customShineColor?: string;
+  class?: string;
+  id?: string;
+}
+
+const {
+  shineColor = 'white-subtle',
+  shineDuration = 'normal',
+  shineDirection = 'default',
+  customShineColor,
+  class: className = '',
+  id
+} = Astro.props;
+
+// Build shine classes
+const shineClasses = [
+  'shine-effect',
+  `shine-${shineColor}`,
+  `shine-${shineDuration}`,
+  shineDirection !== 'default' ? `shine-${shineDirection}` : '',
+  className
+].filter(Boolean).join(' ');
+---
+
+<div class={shineClasses} style={customShineColor ? `--shine-color: ${customShineColor}` : ''} id={id}>
+  <slot />
+</div>
+
+<style>
+  /* Elegant shine effect - thin diagonal line */
+  .shine-effect {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-effect::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      transparent 40%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 45%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 55%,
+      transparent 60%,
+      transparent 70%
+    );
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    transition: transform var(--shine-duration, 0.8s) ease-in-out;
+    z-index: 5;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .shine-effect:hover::before {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+
+  /* Ensure button content stays above shine effect */
+  .shine-effect > * {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Predefined shine color variants */
+  .shine-white {
+    --shine-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .shine-white-subtle {
+    --shine-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .shine-gold {
+    --shine-color: rgba(255, 215, 0, 0.4);
+  }
+
+  .shine-blue {
+    --shine-color: rgba(59, 130, 246, 0.4);
+  }
+
+  .shine-purple {
+    --shine-color: rgba(147, 51, 234, 0.4);
+  }
+
+  /* Duration variants */
+  .shine-fast {
+    --shine-duration: 0.5s;
+  }
+
+  .shine-normal {
+    --shine-duration: 0.8s;
+  }
+
+  .shine-slow {
+    --shine-duration: 1.2s;
+  }
+
+  /* Direction variants */
+  .shine-left-to-right::before {
+    background: linear-gradient(
+      90deg,
+      transparent 30%,
+      transparent 40%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 45%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 55%,
+      transparent 60%,
+      transparent 70%
+    );
+    transform: translateX(-100%) translateY(-50%) rotate(0deg);
+  }
+
+  .shine-left-to-right:hover::before {
+    transform: translateX(100%) translateY(-50%) rotate(0deg);
+  }
+
+  .shine-right-to-left::before {
+    background: linear-gradient(
+      270deg,
+      transparent 30%,
+      transparent 40%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 45%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 55%,
+      transparent 60%,
+      transparent 70%
+    );
+    transform: translateX(100%) translateY(-50%) rotate(0deg);
+  }
+
+  .shine-right-to-left:hover::before {
+    transform: translateX(-100%) translateY(-50%) rotate(0deg);
+  }
+
+  .shine-diagonal::before {
+    background: linear-gradient(
+      45deg,
+      transparent 30%,
+      transparent 40%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 45%,
+      var(--shine-color, rgba(255, 255, 255, 0.3)) 55%,
+      transparent 60%,
+      transparent 70%
+    );
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+
+  .shine-diagonal:hover::before {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+
+  /* Performance optimizations */
+  .shine-effect {
+    will-change: transform;
+  }
+
+  .shine-effect::before {
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .shine-effect::before {
+      transition: none;
+    }
+
+    .shine-effect:hover::before {
+      transform: none;
+    }
+  }
+</style>

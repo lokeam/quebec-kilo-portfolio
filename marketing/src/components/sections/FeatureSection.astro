@@ -6,6 +6,10 @@ import CardDescription from '@/components/ui/CardDescription.astro';
 import CardSkeletonContainer from '@/components/ui/CardSkeletonContainer.astro';
 import BalancedHeading from '@/components/BalancedHeading.astro';
 import BalancedSubheading from '@/components/BalancedSubheading.astro';
+import FeatureCardLocationsSkeleton from '@/components/FeatureCardLocationsSkeleton.astro';
+import FeatureCardSpendTrackingSkeleton from '@/components/FeatureCardSpendTrackingSkeleton.astro';
+import FeatureCardIGDBSearchSkeleton from '@/components/FeatureCardIGDBSearchSkeleton.astro';
+import FeatureCardLibraryDetailSkeleton from '../FeatureCardLibraryDetailSkeleton.astro';
 ---
 
 <GradientContainer className="md:my-20">
@@ -15,12 +19,12 @@ import BalancedSubheading from '@/components/BalancedSubheading.astro';
       <FaBolt class="h-6 w-6 text-cyan-500" />
     </FeatureIconContainer> -->
 
-    <BalancedHeading size="2xl" className="pt-4 text-center">
-      Your library. Your investment.
+    <BalancedHeading id="features" size="2xl" className="pt-4 text-center">
+      Your Games. Your investment.
     </BalancedHeading>
 
     <BalancedSubheading className="text-center mt-6">
-      You worked hard to purchase your games. Make that sure you know where they are all are. And how much you're spending to keep them on a digital service.
+      You worked hard to purchase your collection. Make that sure you know where they are all are. And how much you're spending to keep them on a digital service.
     </BalancedSubheading>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 py-10">
@@ -31,18 +35,18 @@ import BalancedSubheading from '@/components/BalancedSubheading.astro';
           Did I purchase a digital or physical version of this title? QKO makes it easy to check.
         </CardDescription>
         <CardSkeletonContainer>
-          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
+          <!-- <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
             <span class="text-neutral-400">Skeleton One Placeholder</span>
-          </div>
+          </div> -->
+
+          <FeatureCardLocationsSkeleton />
         </CardSkeletonContainer>
       </Card>
 
       <!-- Card 2 -->
       <Card>
         <CardSkeletonContainer className="max-w-[16rem] mx-auto">
-          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
-            <span class="text-neutral-400">Skeleton Two Placeholder</span>
-          </div>
+          <FeatureCardSpendTrackingSkeleton />
         </CardSkeletonContainer>
         <CardTitle>Learn how much you've been spending</CardTitle>
         <CardDescription>
@@ -53,35 +57,18 @@ import BalancedSubheading from '@/components/BalancedSubheading.astro';
       <!-- Card 3 -->
       <Card>
         <CardSkeletonContainer>
-          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
-            <span class="text-neutral-400">Skeleton Three Placeholder</span>
-          </div>
+          <FeatureCardIGDBSearchSkeleton />
         </CardSkeletonContainer>
         <CardTitle>Powered by IGDB</CardTitle>
         <CardDescription>
-          QKO uses the Internet Game Database for comprehensive logging and upkeep.
+          QKO uses the <a href="https://www.igdb.com/" target="_blank" class="text-blue-400 hover:text-blue-300 underline">Internet Game Database</a> for comprehensive logging and upkeep.
         </CardDescription>
       </Card>
 
-      <!-- Card 4 -->
-      <Card>
-        <CardSkeletonContainer showGradient={false} className="max-w-[16rem] mx-auto">
-          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
-            <span class="text-neutral-400">Skeleton Four Placeholder</span>
-          </div>
-        </CardSkeletonContainer>
-        <CardTitle>Easy Collaboration</CardTitle>
-        <CardDescription>
-          We're building integrations to Steam and other Services.
-        </CardDescription>
-      </Card>
-
-      <!-- Card 5 -->
-      <Card>
+      <!-- Card 4 - Combined -->
+      <Card className="lg:col-span-2">
         <CardSkeletonContainer>
-          <div class="w-full h-full bg-neutral-800 rounded-lg flex items-center justify-center">
-            <span class="text-neutral-400">Skeleton Five Placeholder</span>
-          </div>
+          <FeatureCardLibraryDetailSkeleton />
         </CardSkeletonContainer>
         <CardTitle>Not social - and that's a good thing</CardTitle>
         <CardDescription>

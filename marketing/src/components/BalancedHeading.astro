@@ -8,12 +8,14 @@ export interface Props {
   as?: string;
   size?: "sm" | "md" | "xl" | "2xl";
   [key: string]: any; // Allow additional HTML attributes
+  id?: string;
 }
 
 const {
   className = "",
   as: Tag = "h2",
   size = "md",
+  id = "",
   ...props
 } = Astro.props;
 
@@ -30,6 +32,7 @@ const finalClassName = cn(
   "mx-auto tracking-tight font-semibold",
   "bg-clip-text text-transparent bg-gradient-to-b from-neutral-800 via-white to-white",
   sizeVariants[size as keyof typeof sizeVariants], // Always apply size
+  "scroll-mt-20", // Add scroll margin to prevent navbar overlap
   className // Always apply custom classes on top
 );
 
@@ -37,7 +40,7 @@ const finalClassName = cn(
 const attributes = buildAttributes(props);
 ---
 
-<Tag class={finalClassName} {attributes}>
+<Tag id={id} class={finalClassName} {attributes}>
   <span class="inline-block" data-br>
     <slot />
   </span>

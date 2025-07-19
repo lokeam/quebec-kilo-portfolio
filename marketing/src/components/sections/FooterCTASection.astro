@@ -1,8 +1,10 @@
 ---
 import { cn } from "@/utils/cn";
+import BrandButton from "@/components/BrandButton.astro";
+import ShineWrapper from "@/components/ui/ShineWrapper.astro";
 ---
 
-<div class="bg-black w-full min-h-[80vh] md:min-h-[100dvh] flex items-center justify-center px-4 sm:px-6 lg:px-8 relative">
+<div class="bg-gray-950 w-full max-w-7xl mx-auto min-h-[30vh] md:min-h-[50dvh] flex items-center justify-center px-4 sm:px-6 lg:px-8 relative">
   <!-- Left Line Gradient -->
   <svg
     class="absolute hidden lg:block left-0 h-full"
@@ -12,44 +14,29 @@ import { cn } from "@/utils/cn";
     viewBox="0 0 89 568"
     fill="none"
   >
-    <motion-path
+    <path
       d="M1 0.23938V207.654L88 285.695C88 285.695 87.5 493.945 88 567.813"
       stroke="url(#animation_gradient_left)"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ duration: 1.5, ease: "easeInOut" }}
+      class="left-line-animation"
     />
-    <motion-path
+    <path
       d="M1 0.23938V207.654L88 285.695C88 285.695 87.5 493.945 88 567.813"
       stroke="url(#paint0_linear_left)"
     />
     <defs>
-      <motion-linearGradient
+      <linearGradient
         id="animation_gradient_left"
-        initial={{
-          x1: 0,
-          y1: 0,
-          x2: 0,
-          y2: 0,
-        }}
-        animate={{
-          x1: 0,
-          y1: "120%",
-          x2: 0,
-          y2: "100%",
-        }}
-        transition={{
-          duration: 2,
-          ease: "linear",
-          repeat: Infinity,
-          repeatDelay: 2,
-        }}
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="1"
         gradientUnits="userSpaceOnUse"
+        class="left-gradient-animation"
       >
         <stop stop-color="#2EB9DF" stop-opacity="0" />
         <stop stop-color="#2EB9DF" />
         <stop offset="1" stop-color="#9E00FF" stop-opacity="0" />
-      </motion-linearGradient>
+      </linearGradient>
       <linearGradient
         id="paint0_linear_left"
         x1="1"
@@ -66,11 +53,8 @@ import { cn } from "@/utils/cn";
   </svg>
 
   <!-- Main Content -->
-  <motion-div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.8 }}
-    class="w-full text-center py-8 md:py-12 lg:py-20 pb-16 md:pb-32 lg:pb-48 relative z-10"
+  <div
+    class="w-full text-center py-8 md:py-12 lg:py-20 pb-16 md:pb-32 lg:pb-48 relative z-10 main-content-animation"
   >
     <div class="relative z-20">
       <h2
@@ -78,50 +62,39 @@ import { cn } from "@/utils/cn";
           "inline-block text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold",
           "bg-gradient-to-b from-[#3B3B3B] via-[#FFFFFF] to-[#3B3B3B]",
           "bg-clip-text text-transparent",
-          "px-4 md:px-8 tracking-[1.4]"
+          "px-4 md:px-8 leading-[2]"
         )}
       >
-        Ready to level up your gaming?
+        Ready to get started?
       </h2>
       <p class="max-w-lg text-xs sm:text-sm md:text-base text-neutral-400 text-center mx-auto my-4 md:my-6 lg:my-8 px-4">
         Your personal game library curator is waiting for you. Try QKO today and take full control of your gaming!
       </p>
+
     </div>
 
     <!-- Background Grid -->
     <div class="absolute inset-0 overflow-hidden mt-8 md:mt-16 lg:mt-36 z-0">
-      <motion-div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1 }}
-        class="absolute w-full h-full"
-        style="background: radial-gradient(circle at center, rgba(40,40,40,0.8) 0%, rgba(20,20,20,0.6) 30%, rgba(0,0,0,0.4) 70%);"
+      <div
+        class="absolute w-full h-full bg-grid-animation"
+        style="background: radial-gradient(circle at center, rgba(3 7 18 ,0.8) 0%, rgba(20,20,20,0.6) 30%, rgba(0,0,0,0.4) 70%);"
       >
-        <motion-div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.2 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          class="absolute inset-0"
+        <div
+          class="absolute inset-0 grid-overlay-animation"
           style="background-image: linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px); background-size: 120px 120px;"
         />
-      </motion-div>
+      </div>
     </div>
+  </div>
 
-    <!-- Button -->
-    <motion-div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: 0.3 }}
-      class="relative z-20"
-    >
-      <a
-        href="/dashboard"
-        class="inline-flex h-10 md:h-12 lg:h-16 w-32 md:w-40 lg:w-48 rounded-full text-xs sm:text-sm md:text-base font-medium bg-white text-black hover:bg-gray-100 transition-colors items-center justify-center"
-      >
-        Get Started Now
-      </a>
-    </motion-div>
-  </motion-div>
+  <!-- Button - Positioned absolutely to match the layout -->
+  <div class="absolute bottom-2 md:bottom-10 lg:bottom-20 left-1/2 transform -translate-x-1/2 z-30">
+    <ShineWrapper shineColor="white-subtle" shineDuration="normal">
+      <BrandButton class="flex space-x-2 items-center group !text-lg cursor-pointer min-w-[300px] justify-center" href="/register">
+        <span>Sign up</span>
+      </BrandButton>
+    </ShineWrapper>
+  </div>
 
   <!-- Right Line Gradient -->
   <svg
@@ -132,44 +105,29 @@ import { cn } from "@/utils/cn";
     viewBox="0 0 89 568"
     fill="none"
   >
-    <motion-path
+    <path
       d="M88 0.23938V207.654L1 285.695C1 285.695 1.5 493.945 1 567.813"
       stroke="url(#animation_gradient_right)"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: 1, opacity: 1 }}
-      transition={{ duration: 1.5, ease: "easeInOut" }}
+      class="right-line-animation"
     />
-    <motion-path
+    <path
       d="M88 0.23938V207.654L1 285.695C1 285.695 1.5 493.945 1 567.813"
       stroke="url(#paint0_linear_right)"
     />
     <defs>
-      <motion-linearGradient
+      <linearGradient
         id="animation_gradient_right"
-        initial={{
-          x1: 0,
-          y1: 0,
-          x2: 0,
-          y2: 0,
-        }}
-        animate={{
-          x1: 0,
-          y1: "120%",
-          x2: 0,
-          y2: "100%",
-        }}
-        transition={{
-          duration: 2,
-          ease: "linear",
-          repeat: Infinity,
-          repeatDelay: 2,
-        }}
+        x1="0"
+        y1="0"
+        x2="0"
+        y2="1"
         gradientUnits="userSpaceOnUse"
+        class="right-gradient-animation"
       >
         <stop stop-color="#2EB9DF" stop-opacity="0" />
         <stop stop-color="#2EB9DF" />
         <stop offset="1" stop-color="#9E00FF" stop-opacity="0" />
-      </motion-linearGradient>
+      </linearGradient>
       <linearGradient
         id="paint0_linear_right"
         x1="88"
@@ -189,8 +147,8 @@ import { cn } from "@/utils/cn";
 <script>
   import { animate, inView } from "motion";
 
-  // Animate elements when they come into view
-  inView("motion-div", (el) => {
+  // Animate main content when it comes into view
+  inView(".main-content-animation", (el) => {
     animate(
       el,
       { opacity: [0, 1], y: [20, 0] },
@@ -198,7 +156,8 @@ import { cn } from "@/utils/cn";
     );
   }, { amount: 0.3 });
 
-  inView("motion-path", (el) => {
+  // Animate left line when it comes into view
+  inView(".left-line-animation", (el) => {
     animate(
       el,
       { pathLength: [0, 1], opacity: [0, 1] },
@@ -206,22 +165,72 @@ import { cn } from "@/utils/cn";
     );
   }, { amount: 0.3 });
 
-  inView(".absolute.inset-0.overflow-hidden", (el) => {
-    const bgElement = el.querySelector("motion-div");
-    if (bgElement) {
-      animate(
-        bgElement,
-        { opacity: [0, 1], scale: [0.8, 1] },
-        { duration: 1 }
-      );
-    }
-  }, { amount: 0.3 });
-
-  inView(".relative.z-20:last-child", (el) => {
+  // Animate right line when it comes into view
+  inView(".right-line-animation", (el) => {
     animate(
       el,
-      { opacity: [0, 1], scale: [0.9, 1] },
-      { duration: 0.5, delay: 0.3 }
+      { pathLength: [0, 1], opacity: [0, 1] },
+      { duration: 1.5, ease: "easeInOut" }
+    );
+  }, { amount: 0.3 });
+
+  // Animate background grid when it comes into view
+  inView(".bg-grid-animation", (el) => {
+    animate(
+      el,
+      { opacity: [0, 1], scale: [0.8, 1] },
+      { duration: 1 }
+    );
+  }, { amount: 0.3 });
+
+  // Animate grid overlay when it comes into view
+  inView(".grid-overlay-animation", (el) => {
+    animate(
+      el,
+      { opacity: [0, 0.2] },
+      { duration: 1, delay: 0.5 }
+    );
+  }, { amount: 0.3 });
+
+  // Animate button when it comes into view (commented out to avoid conflict with ShineWrapper)
+  // inView(".button-animation", (el) => {
+  //   animate(
+  //     el,
+  //     { opacity: [0, 1], scale: [0.9, 1] },
+  //     { duration: 0.5, delay: 0.3 }
+  //   );
+  // }, { amount: 0.3 });
+
+  // Animate gradient animations
+  inView(".left-gradient-animation", (el) => {
+    animate(
+      el,
+      {
+        y1: ["0%", "120%"],
+        y2: ["0%", "100%"]
+      },
+      {
+        duration: 2,
+        ease: "linear",
+        repeat: Infinity,
+        repeatDelay: 2
+      }
+    );
+  }, { amount: 0.3 });
+
+  inView(".right-gradient-animation", (el) => {
+    animate(
+      el,
+      {
+        y1: ["0%", "120%"],
+        y2: ["0%", "100%"]
+      },
+      {
+        duration: 2,
+        ease: "linear",
+        repeat: Infinity,
+        repeatDelay: 2
+      }
     );
   }, { amount: 0.3 });
 </script>

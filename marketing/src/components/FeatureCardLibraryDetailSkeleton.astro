@@ -1,0 +1,58 @@
+---
+// FeatureCardLibraryDetailSkeleton.astro
+---
+
+<div class="p-8 overflow-hidden h-full relative flex items-center justify-center">
+  <!-- Library Detail Image Container -->
+  <div class="absolute inset-0 flex items-center justify-center">
+    <div class="relative w-[580px] h-80 overflow-hidden rounded-lg">
+      <!-- Background gradient for blending -->
+      <div class="absolute inset-0 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 z-10"></div>
+
+      <!-- Main image with blending -->
+      <img
+        src="/resources/msg/2024/07/17/disclose/qko_library_detail.jpg"
+        alt="QKO Library Detail Interface"
+        class="w-full h-full object-cover object-center relative z-20 scale-125"
+        style="mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);"
+      />
+
+      <!-- Additional blending overlay -->
+      <div class="absolute inset-0 bg-gradient-to-t from-neutral-900 via-transparent to-neutral-900 z-30 opacity-30"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .circle-1, .circle-2, .circle-3, .circle-4, .circle-5 {
+    animation: float 2s ease-in-out infinite;
+  }
+
+  .circle-1 { animation-delay: 0s; }
+  .circle-2 { animation-delay: 0.2s; }
+  .circle-3 { animation-delay: 0.4s; }
+  .circle-4 { animation-delay: 0.6s; }
+  .circle-5 { animation-delay: 0.8s; }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) scale(1);
+    }
+    50% {
+      transform: translateY(-4px) scale(1.1);
+    }
+  }
+
+  .animate-move {
+    animation: move 3s ease-in-out infinite;
+  }
+
+  @keyframes move {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+</style>

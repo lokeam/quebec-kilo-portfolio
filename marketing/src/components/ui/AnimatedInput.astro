@@ -6,6 +6,7 @@ export interface Props {
   className?: string;
   label?: string;
   rows?: number;
+  name?: string;
 }
 
 const {
@@ -14,7 +15,8 @@ const {
   placeholder = "",
   className = "",
   label,
-  rows
+  rows,
+  name,
 } = Astro.props;
 ---
 
@@ -34,6 +36,7 @@ const {
   >
     {rows ? (
       <textarea
+        name={name}
         id={id}
         rows={rows}
         placeholder={placeholder}
@@ -42,6 +45,7 @@ const {
       </textarea>
     ) : (
       <input
+        name={name}
         type={type}
         id={id}
         placeholder={placeholder}
