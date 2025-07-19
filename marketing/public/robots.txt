@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# Block all crawlers from indexing the entire site
+# Remove this file or modify when ready to launch
