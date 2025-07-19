@@ -52,7 +52,6 @@ const { navItems } = Astro.props;
 <script>
   import { animate } from "motion";
 
-  // Function to initialize mobile navbar functionality
   function initMobileNavbar() {
     const mobileNav = document.getElementById('mobile-nav');
     const mobileMenu = document.getElementById('mobile-menu');
@@ -79,7 +78,7 @@ const { navItems } = Astro.props;
               background: visible ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.4)",
               width: visible ? "80%" : "90%",
               y: visible ? 0 : 8,
-              borderRadius: isMenuOpen ? "24px" : "full",
+              borderRadius: isMenuOpen ? "24px" : "9999px",
               padding: "8px 16px",
             },
             {
@@ -134,7 +133,7 @@ const { navItems } = Astro.props;
         animate(
           mobileNav,
           {
-            borderRadius: isMenuOpen ? "24px" : "full",
+            borderRadius: isMenuOpen ? "24px" : "9999px",
           },
           {
             type: "spring",

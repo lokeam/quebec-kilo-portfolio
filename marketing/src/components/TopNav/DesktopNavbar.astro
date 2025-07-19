@@ -57,7 +57,6 @@ const { navItems } = Astro.props;
 <script>
   import { animate } from "motion";
 
-  // Function to initialize desktop navbar functionality
   function initDesktopNavbar() {
     const desktopNav = document.getElementById('desktop-nav');
     const navItems = document.getElementById('nav-items');
@@ -73,14 +72,18 @@ const { navItems } = Astro.props;
         visible = shouldBeVisible;
 
         if (desktopNav) {
+          // Set initial state
+          desktopNav.style.transform = 'translateY(0px)';
+
+          // Animate with explicit initial keyframes
           animate(
             desktopNav,
             {
-              backdropFilter: "blur(16px)",
+              backdropFilter: ["blur(0px)", "blur(16px)"],
               background: visible ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.4)",
               width: visible ? "38%" : "80%",
               height: visible ? "48px" : "64px",
-              y: visible ? 8 : 0,
+              transform: visible ? ['translateY(0px)', 'translateY(8px)'] : ['translateY(8px)', 'translateY(0px)'],
             },
             {
               type: "spring",
@@ -91,11 +94,11 @@ const { navItems } = Astro.props;
         }
 
         if (navItems) {
+          // Animate scale with explicit initial keyframes
           animate(
             navItems,
             {
-              scale: visible ? 0.9 : 1,
-              justifyContent: visible ? "flex-end" : "center",
+              scale: visible ? [1, 0.9] : [0.9, 1],
             },
             {
               type: "spring",
@@ -103,6 +106,13 @@ const { navItems } = Astro.props;
               damping: 30,
             }
           );
+
+          // Handle justifyContent manually (not animatable)
+          if (visible) {
+            navItems.style.justifyContent = 'flex-end';
+          } else {
+            navItems.style.justifyContent = 'center';
+          }
         }
 
         if (shineWrapper) {
@@ -111,8 +121,8 @@ const { navItems } = Astro.props;
             animate(
               shineWrapper,
               {
-                scale: 0.9,
-                opacity: 1,
+                scale: [1, 0.9],
+                opacity: [1, 1],
               },
               {
                 type: "spring",
@@ -125,8 +135,8 @@ const { navItems } = Astro.props;
             animate(
               shineWrapper,
               {
-                scale: 1,
-                opacity: 1,
+                scale: [0.9, 1],
+                opacity: [1, 1],
               },
               {
                 type: "spring",

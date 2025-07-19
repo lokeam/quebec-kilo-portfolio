@@ -10,7 +10,7 @@ const physicalIconNames = ['house', 'apartment', 'car', 'package', 'bookshelf', 
 const digitalIconNames = ['appleLogo', 'epicGamesLogo', 'playstationLogo', 'steamLogo', 'xboxLogo', 'nintendoLogo', 'googlePlayPassLogo'] as const;
 ---
 
-<div class="p-8 overflow-hidden h-full">
+<div class="p-8 overflow-hidden h-full" data-locations-skeleton>
   <div class="flex flex-col gap-4 items-center justify-center h-full relative">
     <div class="flex gap-4 items-center justify-center flex-shrink-0">
       <!-- Top SVG with motion animation -->
@@ -104,6 +104,12 @@ const digitalIconNames = ['appleLogo', 'epicGamesLogo', 'playstationLogo', 'stea
 <script>
   // Initialize the locations skeleton component with meteor animations
   const initializeLocationsSkeleton = () => {
+    // Check if this component is actually present on the page
+    const locationsSkeleton = document.querySelector('[data-locations-skeleton]');
+    if (!locationsSkeleton) {
+      return; // Component not present on this page
+    }
+
     const gradient1 = document.querySelector('#gradient-1');
     const gradient2 = document.querySelector('#gradient-2');
 

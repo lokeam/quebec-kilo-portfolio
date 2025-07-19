@@ -8,10 +8,12 @@ export interface Props {
 const { className = "" } = Astro.props;
 ---
 
+<!-- NOTE: Need data attribute for element existence check -->
 <div
   id="gradient-container"
   class={cn("relative z-20", className)}
   style="--top: rgba(97, 106, 115, .12); --bottom: transparent; --conic-size: 600px;"
+  data-gradient-container
 >
   <motion-div
     id="gradient-animation"
@@ -26,6 +28,12 @@ const { className = "" } = Astro.props;
 
   // Initialize gradient animation
   const initializeGradientAnimation = () => {
+    // Check if this component is actually present on the page
+    const gradientContainer = document.querySelector('[data-gradient-container]');
+    if (!gradientContainer) {
+      return;
+    }
+
     const container = document.getElementById('gradient-container');
     const gradientElement = document.getElementById('gradient-animation');
 

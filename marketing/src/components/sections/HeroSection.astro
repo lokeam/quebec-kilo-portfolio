@@ -109,16 +109,6 @@ import ShineWrapper from '@/components/ui/ShineWrapper.astro';
       const transformStyle = `rotateX(${rotate}deg) translateY(${translate}px) scale(${scale})`;
       card.style.transform = transformStyle;
 
-      // Debug logging
-      if (scrollYProgress > 0.01) {
-        console.log('Hero Animation:', {
-          rotate: `${rotate.toFixed(2)}deg`,
-          translate: `${translate.toFixed(2)}px`,
-          scale: scale.toFixed(3),
-          scrollYProgress: scrollYProgress.toFixed(3),
-          transform: transformStyle
-        });
-      }
     };
 
     // Listen for scroll events

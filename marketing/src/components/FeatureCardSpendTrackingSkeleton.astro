@@ -298,6 +298,13 @@
 
   // Initialize the spend tracking skeleton component
   const initializeSpendTrackingSkeleton = () => {
+    // Check if this component is actually present on the page
+    const spendTrackingSkeleton = document.querySelector('[data-spend-tracking-skeleton]');
+    if (!spendTrackingSkeleton) {
+      // Component not present on this page, so don't animate
+      return;
+    }
+
     const container = document.getElementById('spend-tracking-skeleton');
     const message = document.getElementById('message');
     const gradient = document.querySelector('#gradient-3');

@@ -94,8 +94,6 @@ const attributes = buildAttributes(props);
       return false;
     }
 
-    console.log(`Accordion initialized with ${accordionItems.length} items`);
-
     let isAnimating = false;
     const clickHandlers: Array<(event: Event) => void> = [];
 
@@ -115,8 +113,6 @@ const attributes = buildAttributes(props);
         return;
       }
 
-      console.log('Accordion clicked:', { item, target });
-
       const content = item.querySelector('.accordion-content') as HTMLElement;
       const inner = item.querySelector('.accordion-inner') as HTMLElement;
 
@@ -127,8 +123,6 @@ const attributes = buildAttributes(props);
 
       const isOpen = content.classList.contains('open');
       isAnimating = true;
-
-      console.log('Accordion state:', { isOpen, isAnimating });
 
       try {
         // Close all other accordions first

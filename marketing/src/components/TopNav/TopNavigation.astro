@@ -23,7 +23,6 @@ const navItems = [
 <script>
   import { animate } from 'motion';
 
-  // Function to initialize nav animation
   function initNavAnimation() {
 
     // Slide nav from top of screen using Motion.js
@@ -33,12 +32,12 @@ const navItems = [
       nav.style.transform = 'translateY(-80px)';
       nav.style.opacity = '0';
 
-      // Animate to final state
+      // Animate to final state with explicit initial keyframes
       animate(
         nav,
         {
-          transform: 'translateY(0px)',
-          opacity: 1
+          transform: ['translateY(-80px)', 'translateY(0px)'],
+          opacity: [0, 1]
         },
         {
           type: "spring",
