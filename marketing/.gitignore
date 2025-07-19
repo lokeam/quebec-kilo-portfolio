@@ -16,6 +16,18 @@ node_modules/.vite/
 # Backup files created by script
 astro.config.mjs.bak
 
+# Development folders and files (catch-all patterns)
+*-dev/
+*-dev.*
+dev-*/
+dev-*.*
+experimental/
+staging/
+test-*/
+temp-*/
+draft-*/
+wip-*/
+
 # logs
 npm-debug.log*
 yarn-debug.log*
