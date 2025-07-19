@@ -6,20 +6,12 @@ import MobileNavbar from '@/components/TopNav/MobileNavbar.astro';
 const navItems = [
   {
     title: "Features",
-    link: "/features",
-  },
-  {
-    title: "Blog",
-    link: "/blog",
-  },
-  {
-    title: "Contact",
-    link: "/contact",
+    link: "#features",
   },
 ];
 ---
 <!-- TODO: Add Blog section + Contact form section -->
-<nav class="max-w-7xl fixed top-4 mx-auto inset-x-0 z-50 w-[95%] lg:w-full" id="top-nav">
+<nav class="w-full fixed top-2 inset-x-0 z-50" id="top-nav">
   <div class="hidden lg:block w-full">
     <DesktopNavbar navItems={navItems} />
   </div>
@@ -31,27 +23,40 @@ const navItems = [
 <script>
   import { animate } from 'motion';
 
-  // Main nav animation - slide down from top using Motion.js
-  const nav = document.getElementById('top-nav');
-  if (nav) {
-    // Set initial state
-    nav.style.transform = 'translateY(-80px)';
-    nav.style.opacity = '0';
+  // Function to initialize nav animation
+  function initNavAnimation() {
 
-    // Animate to final state using Motion.js
-    animate(
-      nav,
-      {
-        transform: 'translateY(0px)',
-        opacity: 1
-      },
-      {
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-        duration: 0.8,
-        delay: 0.1
-      }
-    );
+    // Slide nav from top of screen using Motion.js
+    const nav = document.getElementById('top-nav');
+    if (nav) {
+      // Set initial state
+      nav.style.transform = 'translateY(-80px)';
+      nav.style.opacity = '0';
+
+      // Animate to final state
+      animate(
+        nav,
+        {
+          transform: 'translateY(0px)',
+          opacity: 1
+        },
+        {
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+          duration: 0.8,
+          delay: 0.1
+        }
+      );
+    }
   }
+
+  // Initialize on page load
+  initNavAnimation();
+
+  // Re-initialize on view transitions (Astro navigation)
+  document.addEventListener('astro:page-load', initNavAnimation);
+
+  // Also re-initialize on DOMContentLoaded for fallback
+  document.addEventListener('DOMContentLoaded', initNavAnimation);
 </script>

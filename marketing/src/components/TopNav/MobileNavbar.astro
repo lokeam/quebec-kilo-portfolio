@@ -14,108 +14,171 @@ interface Props {
 const { navItems } = Astro.props;
 ---
 
-<div class="flex justify-between bg-transparent items-center w-full rounded-md px-2.5 py-1.5 transition duration-200" id="mobile-nav">
-  <Logo />
-  <button class="text-white h-6 w-6" id="mobile-menu-btn">
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-    </svg>
-  </button>
-</div>
+<div class="flex relative flex-col lg:hidden w-full justify-between items-center max-w-[calc(100vw-2rem)] mx-auto z-50 backdrop-saturate-[1.8] border border-solid border-white/40 rounded-full" id="mobile-nav">
+  <div class="flex flex-row justify-between items-center w-full px-4 py-2">
+    <Logo />
+    <button class="text-white/90 h-6 w-6" id="mobile-menu-btn">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+  </div>
 
-<!-- Mobile menu overlay -->
-  <div class="fixed inset-0 bg-black z-50 flex flex-col items-start justify-start space-y-10 pt-5 text-xl text-zinc-600 transition duration-200 hover:text-zinc-800 hidden" id="mobile-menu">
-    <div class="flex items-center justify-between w-full px-5">
+  <!-- Mobile menu overlay -->
+  <div class="hidden rounded-3xl absolute top-16 bg-black/80 backdrop-blur-xl backdrop-saturate-[1.8] inset-x-0 z-50 flex-col items-start justify-start gap-4 w-full px-6 py-8" id="mobile-menu">
+    <div class="flex items-center justify-between w-full">
       <Logo />
-    <button class="flex items-center space-x-2" id="mobile-menu-close">
-        <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button class="flex items-center space-x-2 text-white/90" id="mobile-menu-close">
+        <svg class="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
       </button>
     </div>
-    <div class="flex flex-col items-start justify-start gap-[14px] px-8">
+    <div class="flex flex-col items-start justify-start gap-4 w-full">
       {navItems.map((navItem) => (
         <a
           href={navItem.link}
-        target={navItem.target}
-          class="relative block text-[26px] text-white hover:text-gray-300 transition-colors"
-        data-menu-item
+          target={navItem.target}
+          class="relative text-white/90 hover:text-white transition-colors"
+          data-menu-item
         >
           {navItem.title}
         </a>
       ))}
     </div>
-    <div class="flex flex-row w-full items-start gap-2.5 px-8 py-4">
-    <Button>Book a demo</Button>
-      <Button variant="simple" href="/register">
-      Register
-      </Button>
   </div>
 </div>
 
 <script>
   import { animate } from "motion";
 
-  // Mobile navbar functionality
-  const mobileNav = document.getElementById('mobile-nav');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const menuBtn = document.getElementById('mobile-menu-btn');
-  const menuCloseBtn = document.getElementById('mobile-menu-close');
-  const menuItems = document.querySelectorAll('[data-menu-item]');
+  // Function to initialize mobile navbar functionality
+  function initMobileNavbar() {
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const menuCloseBtn = document.getElementById('mobile-menu-close');
+    const menuItems = document.querySelectorAll('[data-menu-item]');
 
-  let showBackground = false;
-  let isMenuOpen = false;
+    let visible = false;
+    let isMenuOpen = false;
 
-  // Scroll-based background animation
-  const updateBackground = () => {
-    const scrollY = window.scrollY;
-    const shouldShowBackground = scrollY > 100;
+    // Scroll-based background animation
+    const updateBackground = () => {
+      const scrollY = window.scrollY;
+      const shouldBeVisible = scrollY > 100;
 
-    if (shouldShowBackground !== showBackground) {
-      showBackground = shouldShowBackground;
+      if (shouldBeVisible !== visible) {
+        visible = shouldBeVisible;
 
-      if (mobileNav) {
-      if (showBackground) {
-          mobileNav.classList.add('bg-neutral-900');
-          mobileNav.classList.add('shadow-[0px_-2px_0px_0px_var(--neutral-800),0px_2px_0px_0px_var(--neutral-800)]');
-        } else {
-          mobileNav.classList.remove('bg-neutral-900');
-          mobileNav.classList.remove('shadow-[0px_-2px_0px_0px_var(--neutral-800),0px_2px_0px_0px_var(--neutral-800)]');
+        if (mobileNav) {
+          animate(
+            mobileNav,
+            {
+              backdropFilter: "blur(16px)",
+              background: visible ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.4)",
+              width: visible ? "80%" : "90%",
+              y: visible ? 0 : 8,
+              borderRadius: isMenuOpen ? "24px" : "full",
+              padding: "8px 16px",
+            },
+            {
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+            }
+          );
         }
       }
-    }
-  };
+    };
 
-  // Mobile menu functionality
-  const toggleMenu = () => {
-    isMenuOpen = !isMenuOpen;
+    // Mobile menu functionality
+    const toggleMenu = () => {
+      isMenuOpen = !isMenuOpen;
 
-    if (mobileMenu) {
-      if (isMenuOpen) {
-        mobileMenu.classList.remove('hidden');
-        animate(mobileMenu, { opacity: 1 }, { duration: 0.2 });
-      } else {
-        animate(mobileMenu, { opacity: 0 }, { duration: 0.2 }).then(() => {
-          mobileMenu.classList.add('hidden');
-        });
+      if (mobileMenu) {
+        if (isMenuOpen) {
+          mobileMenu.classList.remove('hidden');
+          animate(
+            mobileMenu,
+            {
+              opacity: 1,
+              y: 0,
+            },
+            {
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+            }
+          );
+        } else {
+          animate(
+            mobileMenu,
+            {
+              opacity: 0,
+              y: -20,
+            },
+            {
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+            }
+          ).then(() => {
+            mobileMenu.classList.add('hidden');
+          });
+        }
       }
+
+      // Update nav border radius when menu opens/closes
+      if (mobileNav) {
+        animate(
+          mobileNav,
+          {
+            borderRadius: isMenuOpen ? "24px" : "full",
+          },
+          {
+            type: "spring",
+            stiffness: 400,
+            damping: 30,
+          }
+        );
+      }
+    };
+
+    // Remove existing event listeners to prevent duplicates
+    if (menuBtn) {
+      menuBtn.removeEventListener('click', toggleMenu);
+      menuBtn.addEventListener('click', toggleMenu);
     }
-  };
+    if (menuCloseBtn) {
+      menuCloseBtn.removeEventListener('click', toggleMenu);
+      menuCloseBtn.addEventListener('click', toggleMenu);
+    }
 
-  // Event listeners
-  if (menuBtn) menuBtn.addEventListener('click', toggleMenu);
-  if (menuCloseBtn) menuCloseBtn.addEventListener('click', toggleMenu);
+    // Close menu when clicking menu items
+    menuItems.forEach(item => {
+      item.removeEventListener('click', () => {
+        if (isMenuOpen) toggleMenu();
+      });
+      item.addEventListener('click', () => {
+        if (isMenuOpen) toggleMenu();
+      });
+    });
 
-  // Close menu when clicking menu items
-  menuItems.forEach(item => {
-    item.addEventListener('click', () => {
-      if (isMenuOpen) toggleMenu();
-  });
-  });
+    // Remove existing scroll listener to prevent duplicates
+    window.removeEventListener('scroll', updateBackground);
+    window.addEventListener('scroll', updateBackground);
 
-  // Listen for scroll events
-  window.addEventListener('scroll', updateBackground);
+    // Initial check
+    updateBackground();
+  }
 
-  // Initial check
-  updateBackground();
+  // Initialize on page load
+  initMobileNavbar();
+
+  // Re-initialize on view transitions (Astro navigation)
+  document.addEventListener('astro:page-load', initMobileNavbar);
+
+  // Also re-initialize on DOMContentLoaded for fallback
+  document.addEventListener('DOMContentLoaded', initMobileNavbar);
 </script>
