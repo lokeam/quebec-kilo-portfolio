@@ -1,0 +1,111 @@
+---
+import { cn } from '@/utils/cn.js';
+
+export interface Props {
+  text?: string;
+  className?: string;
+}
+
+const { text = "QKO", className = "" } = Astro.props;
+---
+
+<div class={cn("p-0.5 bg-transparent aspect-square flex items-center justify-center w-full h-full relative", className)}>
+  <div
+    class="group/card rounded-3xl w-full relative overflow-hidden bg-transparent flex items-center justify-center h-full"
+    id="code-vault-card"
+  >
+    <!-- Card Pattern Overlay -->
+    <div class="pointer-events-none absolute inset-0">
+      <div class="absolute inset-0 rounded-2xl [mask-image:linear-gradient(white,transparent)] group-hover/card:opacity-50"></div>
+      <div
+        class="absolute inset-0 rounded-2xl bg-gradient-to-r from-green-500 to-blue-700 opacity-0 group-hover/card:opacity-100 backdrop-blur-xl transition duration-500"
+        id="card-pattern-bg"
+      ></div>
+      <div
+        class="absolute inset-0 rounded-2xl opacity-0 mix-blend-overlay group-hover/card:opacity-100"
+        id="card-pattern-text"
+      >
+        <p class="absolute inset-x-0 text-xs h-full break-words whitespace-pre-wrap text-white font-mono font-bold transition duration-500" id="random-string">
+          <!-- Render a random string using JS -->
+        </p>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="relative z-10 flex items-center justify-center">
+      <div class="relative h-44 w-44 rounded-full flex items-center justify-center text-white font-bold text-4xl">
+        <div class="absolute w-full h-full bg-white/[0.8] dark:bg-black/[0.8] blur-sm rounded-full"></div>
+        <span class="dark:text-white text-black z-20">{text}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { animate, inView } from "motion";
+
+  // Generate random string function
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  function generateRandomString(length: number): string {
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+  }
+
+  // Setup the card when the page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    const card = document.getElementById('code-vault-card') as HTMLElement;
+    const patternBg = document.getElementById('card-pattern-bg') as HTMLElement;
+    const patternText = document.getElementById('card-pattern-text') as HTMLElement;
+    const randomStringElement = document.getElementById('random-string') as HTMLElement;
+
+    if (!card || !patternBg || !patternText || !randomStringElement) return;
+
+    let randomString = generateRandomString(1500);
+    let stringUpdateCounter = 0;
+
+    // Create starting random string
+    randomStringElement.textContent = randomString;
+
+    // Mouse move handler
+    function onMouseMove(event: MouseEvent) {
+      const rect = card.getBoundingClientRect();
+      const mouseX = event.clientX - rect.left;
+      const mouseY = event.clientY - rect.top;
+
+      // Update mask for background
+      const maskImage = `radial-gradient(250px at ${mouseX}px ${mouseY}px, white, transparent)`;
+      patternBg.style.maskImage = maskImage;
+
+      // Update mask for text
+      patternText.style.maskImage = maskImage;
+
+      // Update string less frequently (NOTE: trying every 10th mouse move)
+      stringUpdateCounter++;
+      if (stringUpdateCounter % 10 === 0) {
+        randomString = generateRandomString(1500);
+        randomStringElement.textContent = randomString;
+      }
+    }
+
+    // Add mouse move listener
+    card.addEventListener('mousemove', onMouseMove);
+
+    // Cleanup function to prevent memory leaks
+    function cleanup() {
+      card.removeEventListener('mousemove', onMouseMove);
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
+
+    // TODO: Add some subtle animations when the card comes into view
+    inView(card, () => {
+      card.style.opacity = "1";
+      card.style.transform = "scale(1)";
+    });
+  });
+</script>
