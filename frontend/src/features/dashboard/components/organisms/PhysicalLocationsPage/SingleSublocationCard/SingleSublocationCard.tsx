@@ -13,7 +13,7 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconEdit, IconTrash } from '@/shared/components/ui/icons';
 
 // Types
 import type { LocationsBFFSublocationResponse } from '@/types/domain/physical-location';

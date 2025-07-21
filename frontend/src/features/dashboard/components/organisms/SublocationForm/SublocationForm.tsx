@@ -29,7 +29,7 @@ import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsol
 import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';
 import { CabinetIcon } from '@/shared/components/ui/CustomIcons/CabinetIcon';
 import { ClosetIcon } from '@/shared/components/ui/CustomIcons/ClosetIcon';
-import { Package } from 'lucide-react';
+import { Package } from '@/shared/components/ui/icons';
 
 // Utils
 import { PhysicalLocationIcon } from '@/features/dashboard/lib/utils/getPhysicalLocationIcon';

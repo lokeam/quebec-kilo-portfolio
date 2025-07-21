@@ -1,5 +1,5 @@
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 import { memo } from 'react';
 import { normalizeDigitalLocationName } from '../constants/digital-location-logos';
 

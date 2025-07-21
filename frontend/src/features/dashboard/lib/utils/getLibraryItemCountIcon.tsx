@@ -8,7 +8,7 @@ import {
   IconBoxMultiple7,
   IconBoxMultiple8,
   IconBoxMultiple9,
-} from '@tabler/icons-react';
+} from '@/shared/components/ui/icons';
 
 interface LibraryCountIconProps {
   /** The count of the library item */

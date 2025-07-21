@@ -16,7 +16,7 @@ import {
 } from '@/shared/components/ui/popover';
 
 // Icons
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown } from '@/shared/components/ui/icons';
 
 // Utils
 import { cn } from '@/shared/components/ui/utils';

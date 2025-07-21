@@ -9,8 +9,8 @@ import {
   DialogHeader,
   DialogDescription
 } from '@/shared/components/ui/dialog';
-import { BoxIcon } from 'lucide-react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { BoxIcon } from '@/shared/components/ui/icons';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 import { useDeleteLibraryGameVersions } from '@/core/api/queries/gameLibrary.queries';
 import type { LibraryGameItemRefactoredResponse } from "@/types/domain/library-types";
 

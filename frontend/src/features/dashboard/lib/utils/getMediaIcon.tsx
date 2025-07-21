@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
-import { IconCloudDataConnection, IconDeviceGamepad2, IconPackage, IconDisc, IconCpu2, IconSparkles } from '@tabler/icons-react';
+import { IconCloudDataConnection, IconDeviceGamepad2, IconPackage, IconDisc, IconCpu2, IconSparkles } from '@/shared/components/ui/icons';
 import { normalizeDigitalLocationName } from '../constants/digital-location-logos';
 
 interface MediaIconProps {

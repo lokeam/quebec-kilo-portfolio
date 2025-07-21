@@ -1,4 +1,4 @@
-import { Package } from 'lucide-react';
+import { Package } from '@/shared/components/ui/icons';
 import { BookshelfIcon } from '@/shared/components/ui/CustomIcons/BookshelfIcon';
 import { MediaConsoleIcon } from '@/shared/components/ui/CustomIcons/MediaConsoleIcon';
 import { DrawerIcon } from '@/shared/components/ui/CustomIcons/DrawerIcon';

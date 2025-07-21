@@ -10,7 +10,7 @@ import { Button } from '@/shared/components/ui/button';
 
 // Hooks + Utils
 import { useElementBreakpoint } from '@/shared/hooks/useElementBreakpoint';
-import { visibilityReducer } from '@/features/dashboard/components/organisms/WishlistPage/WishlistItemCard/visibilityReducer';
+import { visibilityReducer } from '@/features/dashboard/lib/utils/visibilityReducer';
 //import { toast } from 'sonner';
 
 // Types
@@ -21,7 +21,7 @@ import type { GameType, PhysicalLocationResponse, DigitalLocationResponse, Libra
 import {
   IconStar,
   IconStarFilled,
-} from '@tabler/icons-react';
+} from '@/shared/components/ui/icons';
 
 // Constants
 import { LIBRARY_MEDIA_ITEM_BREAKPOINT_RULES } from '@/features/dashboard/lib/constants/dashboard.constants';

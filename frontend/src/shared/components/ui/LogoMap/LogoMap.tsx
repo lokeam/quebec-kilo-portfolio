@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { LOGO_MAP, useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import { memo, useMemo } from 'react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 
 /**
  * @file LogoMap.tsx

@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import { BoxIcon } from 'lucide-react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { BoxIcon } from '@/shared/components/ui/icons';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 import type { PhysicalLocationResponse, DigitalLocationResponse } from '@/types/domain/library-types';
 import {
   extractPhysicalLocationData,

@@ -13,8 +13,8 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { IconEdit, IconTrash } from '@tabler/icons-react';
-import { PackagePlus } from 'lucide-react';
+import { IconEdit, IconTrash } from '@/shared/components/ui/icons';
+import { PackagePlus } from '@/shared/components/ui/icons';
 
 // Types
 import type { LocationsBFFPhysicalLocationResponse, LocationsBFFSublocationResponse } from '@/types/domain/physical-location';

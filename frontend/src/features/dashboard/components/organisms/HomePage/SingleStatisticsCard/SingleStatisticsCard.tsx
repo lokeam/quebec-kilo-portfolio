@@ -41,7 +41,7 @@ const renderCardContentValue = (
       return (
         <>
           {`${secondaryValue}`}
-          <span className="mx-1 text-sm">sublocations</span>
+          <span className="mx-1 text-sm">sub</span>
           {secondaryValue &&
             <>
               <span className="mx-1 text-sm">|</span>

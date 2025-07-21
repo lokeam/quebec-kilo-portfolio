@@ -66,8 +66,8 @@ import { z } from 'zod';
 // Types
 import type { Game } from '@/types/domain/game';
 import type { AddGameFormPhysicalLocationsResponse, AddGameFormDigitalLocationsResponse } from '@/types/domain/search';
-import { BoxIcon, CheckCircle2 } from 'lucide-react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { BoxIcon, CheckCircle2 } from '@/shared/components/ui/icons';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 
 // AddGameToLibraryFormSchema
 export const AddGameToLibraryFormSchema = z.object({

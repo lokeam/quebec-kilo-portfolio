@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 import { useDomainMaps } from '@/features/dashboard/lib/hooks/useDomainMaps';
 import type { GamePlatformLocation } from '@/types/domain/library-types';
 

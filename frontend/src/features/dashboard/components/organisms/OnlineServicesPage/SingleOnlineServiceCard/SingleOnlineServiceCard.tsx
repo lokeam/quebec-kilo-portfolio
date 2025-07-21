@@ -17,7 +17,7 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { IconCalendarDollar, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconCalendarDollar, IconEdit, IconTrash } from '@/shared/components/ui/icons';
 
 // Utils
 import {

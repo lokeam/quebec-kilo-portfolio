@@ -1,8 +1,3 @@
-import * as React from 'react'
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-} from '@/shared/components/ui/sidebar'
 import QkoLogo from '@/shared/components/ui/LogoMap/brand/qko_logo'
 
 type QKOLoaderProps = {

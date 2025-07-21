@@ -1,5 +1,5 @@
-import { Home, Building2, Warehouse, Building } from 'lucide-react';
-import { IconCar } from '@tabler/icons-react';
+import { Home, Building2, Warehouse, Building } from '@/shared/components/ui/icons';
+import { IconCar } from '@/shared/components/ui/icons';
 import type { PhysicalLocationType } from '@/types/domain/location-types';
 import type { LocationIconBgColor } from '@/types/domain/location-types';
 import { LOCATION_ICON_COLORS, DEFAULT_COLORS } from '../constants/location-icon-colors';

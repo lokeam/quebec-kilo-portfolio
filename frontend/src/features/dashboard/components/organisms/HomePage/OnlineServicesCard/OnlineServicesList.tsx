@@ -8,7 +8,7 @@ import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLo
 import type { ServiceListProps } from './onlineServicesCard.types';
 
 // Icons
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 import { formatServicePrice } from '@/features/dashboard/lib/utils/online-service-status';
 
 export function ServiceList({ digitalLocations }: ServiceListProps) {
