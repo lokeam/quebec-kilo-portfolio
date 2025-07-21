@@ -65,6 +65,12 @@ export const TOAST_ERROR_MESSAGES = {
       PERMISSION: 'You don\'t have permission to add games',
       EXISTS: 'Game already exists in your library',
       SERVER: 'Server error occurred while adding game',
+    },
+    REMOVE_FROM_LIBRARY: {
+      DEFAULT: 'Failed to add game to library',
+      PERMISSION: 'You don\'t have permission to add games',
+      EXISTS: 'Game already exists in your library',
+      SERVER: 'Server error occurred while adding game',
     }
   },
   SPEND_TRACKING: {

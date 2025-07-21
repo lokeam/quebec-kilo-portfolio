@@ -1,6 +1,6 @@
 import type { UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 import type { AxiosError } from 'axios';
-import type { ApiError, ApiResponse } from './api.types';
+import type { ApiError, ApiResponse } from '@/types/api/response';
 
 /**
  * Enhanced Query Options for TanStack Query

@@ -6,7 +6,7 @@ export const DEFAULT_FORM_VALUES: FormValues = {
   url: "",
   billingCycle: "",
   costPerCycle: 0,
-  nextPaymentDate: new Date(),
+  anchorDate: new Date(),
   paymentMethod: "",
   isSubscriptionService: false
 };

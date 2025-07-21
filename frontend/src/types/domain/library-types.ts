@@ -220,3 +220,16 @@ export interface LibraryItemsBFFRefactoredResponse {
   libraryItems: LibraryGameItemRefactoredResponse[];
   recentlyAdded: LibraryGameItemRefactoredResponse[];
 }
+
+/**
+ * Request type for batch deletion of library game versions
+ */
+export interface BatchDeleteLibraryGameRequest {
+  gameId: number;
+  versions: Array<{
+    type: 'physical' | 'digital';
+    locationId: string;
+    platformId: number;
+  }>;
+  deleteAll?: boolean;
+}

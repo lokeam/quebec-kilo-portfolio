@@ -10,6 +10,10 @@ import type { GameItem } from './game-item';
  * Core type representing a digital media storage location
  */
 export interface DigitalLocation {
+  // debug
+  description?: string;
+  type?: string;
+
   id: string;
   name: string;
   items: GameItem[];
