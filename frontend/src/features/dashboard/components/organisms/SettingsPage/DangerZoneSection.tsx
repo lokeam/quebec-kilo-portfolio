@@ -30,7 +30,7 @@ export function DangerZoneSection() {
   const [confirmText, setConfirmText] = useState<string>('');
   const [isDeleteEnabled, setIsDeleteEnabled] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsDeleteEnabled(confirmText.toLowerCase() === "delete my account")
@@ -38,7 +38,7 @@ export function DangerZoneSection() {
 
   const handleDelete = () => {
     console.log("Account delete action triggered.")
-    // setIsLoading(true)
+    setIsLoading(true)
     // TODO: Implement actual account deletion logic
   }
 

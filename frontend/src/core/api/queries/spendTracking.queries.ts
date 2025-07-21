@@ -215,7 +215,7 @@ export const useDeleteSpendItems = () => {
         duration: TOAST_DURATIONS.EXTENDED,
       });
     },
-    onError: (error, idsToDelete, context) => {
+    onError: (error, _, context) => {
       // Rollback optimistic update on error
       if (context?.previousData) {
         queryClient.setQueryData(spendTrackingKeys.lists(), context.previousData);

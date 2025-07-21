@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react';
+import { Bell } from '@/shared/components/ui/icons';
 
 import { Button } from "@/shared/components/ui/button"
 

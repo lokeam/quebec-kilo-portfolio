@@ -3,7 +3,6 @@
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
 import { PageGrid } from '@/shared/components/layout/page-grid';
-import { Button } from '@/shared/components/ui/button';
 
 // Components
 import { ItemsByPlatformCard } from '@/features/dashboard/components/organisms/HomePage/ItemsByPlatformCard/ItemsByPlatformCard';
@@ -22,12 +21,12 @@ import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries
 import { HomePageSkeleton } from './HomePageSkeleton';
 
 // Sentry tracking
-import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
+// import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
 
 
 export function HomePageContent() {
   const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
-  const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
+  // const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
 
   // Show intro toast for adding games to library
   useShowConditionalIntroToasts(1);
@@ -42,40 +41,9 @@ export function HomePageContent() {
   return (
     <PageMain>
       <PageHeadline>
-        <h1 className='text-2xl font-bold tracking-tight'>Home Page Dashboard</h1>
+        <h1 className='text-2xl font-bold tracking-tight'>Dashboard</h1>
                 <div className='flex items-center space-x-2'>
-            <Button>Download Dashboard Summary</Button>
-                        <Button
-              variant="destructive"
-              onClick={() => {
-                const startTime = performance.now();
-
-                // Track the test action
-                trackAction('test_sentry_tunnel', {
-                  purpose: 'testing_sentry_implementation',
-                  timestamp: new Date().toISOString()
-                });
-
-                // Track user interaction with performance
-                const duration = performance.now() - startTime;
-                trackUserInteraction('test_button_click', duration, {
-                  buttonType: 'test',
-                  purpose: 'sentry_testing'
-                });
-
-                // Throw test error
-                const testError = new Error("Sentry Test Error - Testing Phase 4 implementation");
-                trackError(testError, {
-                  testType: 'manual_test',
-                  userInitiated: true,
-                  phase: 'phase_4'
-                });
-
-                throw testError;
-              }}
-            >
-              Test Sentry Phase 4
-            </Button>
+            {/* <Button>Download Dashboard Summary</Button> */}
           </div>
       </PageHeadline>
 

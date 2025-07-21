@@ -1,5 +1,4 @@
 import { useFormContext } from 'react-hook-form';
-import { User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,

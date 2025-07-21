@@ -9,7 +9,7 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // types
 // import type { ApiResponse } from '@/types/api/api.types';
-import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemResponse } from '@/types/domain/library-types';
+import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemResponse, BatchDeleteLibraryGameRequest } from '@/types/domain/library-types';
 
 
 const LIBRARY_ENDPOINT = '/v1/library';
@@ -43,16 +43,7 @@ type LibraryOperationResponse = {
   message: string;
 };
 
-// New interface for batch deletion
-interface BatchDeleteLibraryGameRequest {
-  gameId: number;
-  versions: Array<{
-    type: 'physical' | 'digital';
-    locationId: string;
-    platformId: number;
-  }>;
-  deleteAll?: boolean;
-}
+
 
 // REFACTORED RESPONSE - REMOVE UNUSED types WHEN COMPLETE
 interface LibraryBFFRefactoredResponseWrapper {

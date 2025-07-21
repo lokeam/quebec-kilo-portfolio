@@ -1,4 +1,4 @@
-import { JsonValue, snakeToCamelCase } from './caseConverter';
+import { type JsonValue, snakeToCamelCase } from './caseConverter';
 
 /**
  * Transform API response data from snake_case to camelCase

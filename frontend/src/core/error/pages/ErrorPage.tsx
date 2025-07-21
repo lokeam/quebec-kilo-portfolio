@@ -1,4 +1,3 @@
-import React from 'react';
 import { ErrorPage } from '@/core/error/components/ErrorPage';
 
 export default function ErrorPageComponent() {

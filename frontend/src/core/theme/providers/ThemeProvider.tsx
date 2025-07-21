@@ -14,13 +14,10 @@ export const ThemeProvider = ({
   const actions = useThemeStore((state) => state.actions);
   const currentMode = useThemeStore((state) => state.mode);
 
-  console.log('🎨 ThemeProvider rendering with mode:', currentMode);
-  console.log('🔍 localStorage in ThemeProvider:', localStorage.getItem('qko-theme-storage'));
-
   // Apply theme to DOM when mode changes (including on initialization)
   useEffect(() => {
-    console.log('🎨 Applying theme to DOM:', currentMode);
     actions.updateDOM(currentMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMode]); // actions is stable from Zustand, no need to include it
 
   // Handle system preference initialization

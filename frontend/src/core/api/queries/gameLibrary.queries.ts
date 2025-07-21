@@ -189,7 +189,7 @@ export const useDeleteLibraryGameVersions = () => {
 
   return useMutation({
     mutationFn: deleteLibraryGameVersions,
-    onSuccess: (data, variables) => {
+    onSuccess: (_, variables) => {
       // Invalidate the library list to refresh the data
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
 
