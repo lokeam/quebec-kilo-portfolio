@@ -1,5 +1,4 @@
 import {
-  IconHelp,
   IconLayoutDashboard,
   // IconPackages,
   IconSettings,
@@ -7,7 +6,7 @@ import {
   // IconShoppingCartHeart,
   IconBook,
 } from '@tabler/icons-react'
-import { Bell, Building2, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
+import { Building2, LibraryBig, Gamepad2, Clapperboard, CircleDollarSign } from 'lucide-react'
 import { type SidebarData } from '@/features/navigation/organisms/SideNav/sideNav.types'
 
 export const sidebarData: SidebarData = {
@@ -65,7 +64,6 @@ export const sidebarData: SidebarData = {
         {
           title: 'Spend Tracking',
           url: '/spend-tracking',
-          badge: '5',
           icon: CircleDollarSign,
         },
         // {
@@ -93,11 +91,6 @@ export const sidebarData: SidebarData = {
           title: 'Settings',
           icon: IconSettings,
           url: '/settings',
-        },
-        {
-          title: 'FAQs',
-          url: '/support',
-          icon: IconHelp,
         },
       ],
     },

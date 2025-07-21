@@ -6,7 +6,7 @@ import type { NavGroup as INavGroup, NavLink, NavCollapsible } from '../sideNav.
 import { SidebarProvider } from '@/shared/components/ui/sidebar';
 import * as sidebarModule from '@/shared/components/ui/sidebar';
 import { MemoryRouter } from 'react-router-dom';
-import { Home, Settings, Users } from 'lucide-react';
+import { Home, Settings } from '@/shared/components/ui/icons';
 
 // Mock the sidebar context
 const mockSidebarContext = {
@@ -37,7 +37,6 @@ const mockNavGroup: INavGroup = {
         {
           title: 'Users',
           url: '/settings/users',
-          icon: Users,
           badge: 'New',
         } as NavLink,
         {

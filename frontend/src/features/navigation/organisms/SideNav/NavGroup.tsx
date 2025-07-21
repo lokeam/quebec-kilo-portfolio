@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from '@/shared/components/ui/icons'
+import { usePreloadNavigation } from '@/shared/hooks/usePreloadNavigation';
 import {
   Collapsible,
   CollapsibleContent,
@@ -33,6 +34,7 @@ export function NavGroup({ title, items }: NavGroup) {
   const { state } = useSidebar();
   const location = useLocation();
   const href = location.pathname + location.search;
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
@@ -73,6 +75,13 @@ const SidebarMenuLink = ({
   href: string;
 }) => {
   const { setOpenMobile } = useSidebar();
+  const { preloadOnHover } = usePreloadNavigation();
+
+  // Extract route name for preloading
+  const routeName = typeof item.url === 'string'
+    ? item.url.split('/')[1] || item.url.replace('/', '')
+    : '';
+
   return (
     <SidebarMenuItem>
       {/* Sidebar Menu Button */}
@@ -80,6 +89,7 @@ const SidebarMenuLink = ({
         asChild
         isActive={checkIsActive(href, item)}
         tooltip={item.title}
+        onMouseEnter={() => preloadOnHover(routeName)}
       >
         {/* Sidebar Link */}
         <Link to={item.url} onClick={() => setOpenMobile(false)}>
