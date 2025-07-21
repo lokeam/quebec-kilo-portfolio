@@ -1,7 +1,14 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as Sentry from '@sentry/react';
 import { saveAuth0Token } from '@/core/api/utils/auth.utils';
+import { BetaAccessErrorPage } from './BetaAccessErrorPage';
+
+// Type for Auth0 error
+interface Auth0Error extends Error {
+  error?: string;
+  error_description?: string;
+}
 
 /**
  * AuthInitializer is a crucial component that bridges Auth0 authentication
@@ -43,7 +50,8 @@ import { saveAuth0Token } from '@/core/api/utils/auth.utils';
  * @param props.children - Child components that need access to authenticated API calls
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { getAccessTokenSilently, user, isAuthenticated, isLoading } = useAuth0();
+  const { getAccessTokenSilently, user, isAuthenticated, isLoading, error } = useAuth0();
+  const [showBetaError, setShowBetaError] = useState(false);
 
   useEffect(() => {
     // Save Auth0's getAccessTokenSilently fn so that we may use tokens anywhere.
@@ -51,6 +59,53 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
     // Fn wrapper used to pass different options later if needed.
     saveAuth0Token(() => getAccessTokenSilently());
   }, [getAccessTokenSilently]);
+
+  // Handle Auth0 errors, especially access denied errors
+  useEffect(() => {
+    if (error) {
+      console.error('Auth0 error:', error);
+
+      const auth0Error = error as Auth0Error;
+
+      // Handle specific error types
+      if (auth0Error.error === 'unauthorized' || auth0Error.error_description?.includes('Access denied')) {
+        // This is likely a beta access denial
+        setShowBetaError(true);
+
+        Sentry.captureException(error, {
+          tags: {
+            error_type: 'beta_access_denied',
+            component: 'AuthInitializer'
+          },
+          extra: {
+            error_code: auth0Error.error,
+            error_description: auth0Error.error_description,
+            user_email: user?.email
+          }
+        });
+
+        console.warn('User denied beta access:', {
+          email: user?.email,
+          error: auth0Error.error_description
+        });
+      } else {
+        // Other Auth0 errors
+        Sentry.captureException(error, {
+          tags: {
+            error_type: 'auth0_general',
+            component: 'AuthInitializer'
+          },
+          extra: {
+            error_code: auth0Error.error,
+            error_description: auth0Error.error_description
+          }
+        });
+      }
+    } else {
+      // Clear error state when no error
+      setShowBetaError(false);
+    }
+  }, [error, user]);
 
   // Ensure theme consistency during Auth0 callback processing
   useEffect(() => {
@@ -123,12 +178,19 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
         name: user.name,
         email_verified: user.email_verified,
         sub: user.sub,
+        beta_access: user.app_metadata?.betaAccess || false,
+        beta_access_granted_at: user.app_metadata?.betaAccessGrantedAt
       });
     } else {
       // Clear user context when not authenticated
       Sentry.setUser(null);
     }
   }, [isAuthenticated, user]);
+
+  // Show beta access error page if access was denied
+  if (showBetaError) {
+    return <BetaAccessErrorPage />;
+  }
 
   return <>{children}</>;
 }

@@ -21,7 +21,7 @@ import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
 import { useCreateUserProfile } from '@/core/api/queries/user.queries';
 
 // Constants
-import { NAVIGATION_ROUTES, STAGGER_CHILD_VARIANTS } from '@/features/dashboard/lib/types/onboarding/constants';
+import { NAVIGATION_ROUTES, STAGGER_CHILD_VARIANTS } from '@/types/domain/onboarding';
 
 import { BrandLogo } from '@/features/navigation/organisms/SideNav/BrandLogo';
 
