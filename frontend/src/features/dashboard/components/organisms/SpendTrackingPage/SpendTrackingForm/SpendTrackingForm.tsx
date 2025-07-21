@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 // React Hook Form + Zod
 import { useForm, FormProvider as HookFormProvider } from 'react-hook-form';
@@ -145,22 +145,22 @@ export function SpendTrackingForm({
   const isDigitalCategory = selectedCategory === 5; // Digital Game
 
   // Debug form state changes
-  useEffect(() => {
-    console.log('[DEBUG] SpendTrackingForm: Form state changed');
-    console.log('[DEBUG] SpendTrackingForm: Current errors:', errors);
-    console.log('[DEBUG] SpendTrackingForm: Form is valid:', form.formState.isValid);
-    console.log('[DEBUG] SpendTrackingForm: Form values:', form.getValues());
-  }, [errors, form.formState.isValid, form]);
+  // useEffect(() => {
+  //   console.log('[DEBUG] SpendTrackingForm: Form state changed');
+  //   console.log('[DEBUG] SpendTrackingForm: Current errors:', errors);
+  //   console.log('[DEBUG] SpendTrackingForm: Form is valid:', form.formState.isValid);
+  //   console.log('[DEBUG] SpendTrackingForm: Form values:', form.getValues());
+  // }, [errors, form.formState.isValid, form]);
 
   const onSubmit = useCallback((data: FormValues) => {
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Form data received:', data);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Current form errors:', form.formState.errors);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Form is valid:', form.formState.isValid);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Form is dirty:', form.formState.isDirty);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: All form values:', form.getValues());
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Amount field value:', form.getValues('amount'));
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Purchase date field value:', form.getValues('purchase_date'));
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Payment method field value:', form.getValues('payment_method'));
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form data received:', data);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Current form errors:', form.formState.errors);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form is valid:', form.formState.isValid);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form is dirty:', form.formState.isDirty);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: All form values:', form.getValues());
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Amount field value:', form.getValues('amount'));
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Purchase date field value:', form.getValues('purchase_date'));
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Payment method field value:', form.getValues('payment_method'));
 
     const payload: CreateOneTimePurchaseRequest = {
       title: data.title,
@@ -173,9 +173,9 @@ export function SpendTrackingForm({
       is_digital: isDigitalCategory || !!data.digital_location_id,
     };
 
-    console.log('[DEBUG] SpendTrackingForm onSubmit: Payload being sent to service:', payload);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: isDigitalCategory:', isDigitalCategory);
-    console.log('[DEBUG] SpendTrackingForm onSubmit: digital_location_id:', data.digital_location_id);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: Payload being sent to service:', payload);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: isDigitalCategory:', isDigitalCategory);
+    // console.log('[DEBUG] SpendTrackingForm onSubmit: digital_location_id:', data.digital_location_id);
 
     if (isEditing && spendTrackingData) {
       // Update existing item
@@ -208,7 +208,7 @@ export function SpendTrackingForm({
         }
       });
     }
-  }, [createMutation, updateMutation, isEditing, spendTrackingData, isDigitalCategory, onSuccess, onClose, form]);
+  }, [createMutation, updateMutation, isEditing, spendTrackingData, isDigitalCategory, onSuccess, onClose]);
 
   // Debug when form is submitted but validation fails
   const handleSubmitWithDebug = useCallback((data: FormValues) => {

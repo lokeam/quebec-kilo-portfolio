@@ -43,13 +43,6 @@ var DigitalServicesCatalog = []types.DigitalServiceItem{
 		URL:                   "https://store.epicgames.com/en-US/",
 	},
 	{
-		ID:                    "fanatical",
-		Name:                  "Fanatical",
-		Logo:                  "fanatical",
-		IsSubscriptionService: false,
-		URL:                   "https://www.fanatical.com/en/",
-	},
-	{
 		ID:                    "gog",
 		Name:                  "GOG",
 		Logo:                  "gog",
@@ -62,20 +55,6 @@ var DigitalServicesCatalog = []types.DigitalServiceItem{
 		Logo:                  "google",
 		IsSubscriptionService: true,
 		URL:                   "https://play.google.com/store/pass/getstarted/",
-	},
-	{
-		ID:                    "greenmangaming",
-		Name:                  "Green Man Gaming",
-		Logo:                  "greenmangaming",
-		IsSubscriptionService: false,
-		URL:                   "https://www.greenmangaming.com/",
-	},
-	{
-		ID:                    "humblebundle",
-		Name:                  "Humble Bundle",
-		Logo:                  "humblebundle",
-		IsSubscriptionService: false,
-		URL:                   "https://www.humblebundle.com/",
 	},
 	{
 		ID:                    "itchio",

@@ -1,4 +1,3 @@
-// backend/internal/types/physical_response_types.go
 package types
 
 import "time"
@@ -93,19 +92,19 @@ type LocationsBFFSublocationResponse struct {
 
 // DeletedGameDetails represents a game that was deleted along with a sublocation
 type DeletedGameDetails struct {
-    UserGameID int    `json:"user_game_id"`
-    GameID     int64  `json:"game_id"`
-    GameName   string `json:"game_name"`
+    UserGameID   int    `json:"user_game_id"`
+    GameID       int64  `json:"game_id"`
+    GameName     string `json:"game_name"`
     PlatformName string `json:"platform_name"`
 }
 
 // DeleteSublocationResponse represents the response from a sublocation deletion operation
 type DeleteSublocationResponse struct {
-    Success bool `json:"success"`
-    DeletedCount int `json:"deleted_count"`
-    SublocationIDs []string `json:"sublocation_ids"`
-    DeletedGames []DeletedGameDetails `json:"deleted_games"`
-    Error string `json:"error,omitempty"`
+    Success         bool                    `json:"success"`
+    DeletedCount    int                     `json:"deleted_count"`
+    SublocationIDs  []string                `json:"sublocation_ids"`
+    DeletedGames    []DeletedGameDetails    `json:"deleted_games"`
+    Error           string                  `json:"error,omitempty"`
 }
 
 // ---------- Digital Locations ----------

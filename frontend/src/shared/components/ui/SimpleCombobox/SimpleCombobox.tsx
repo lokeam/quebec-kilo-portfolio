@@ -84,7 +84,12 @@ export function SimpleCombobox<T extends SelectableItem>({
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
-          <div className="max-h-[300px] overflow-y-auto">
+          <div
+            className="max-h-[300px] overflow-y-auto"
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
+          >
             {displayedItems.length === 0 ? (
               <CommandEmpty>{emptyMessage}</CommandEmpty>
             ) : (
