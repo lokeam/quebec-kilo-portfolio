@@ -1,6 +1,6 @@
 
 import { useNetworkStatus } from '@/core/network-status/hooks/useNetworkStatus';
-import { IconCloudOff } from '@tabler/icons-react';
+import { IconCloudOff } from '@/shared/components/ui/icons';
 
 
 export const OfflineBanner = () => {

@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { Button } from '@/shared/components/ui/button';
-import { Settings } from 'lucide-react';
+import { Settings } from '@/shared/components/ui/icons';
 import { LibraryGameDeletionDialog } from '@/features/dashboard/components/organisms/LibraryPage/LibraryGameDeletionDialog/LibraryGameDeletionDialog';
 import type { LibraryGameItemRefactoredResponse } from '@/types/domain/library-types';
 

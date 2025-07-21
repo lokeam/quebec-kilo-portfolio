@@ -5,7 +5,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
 
 // Icons
-import { SearchIcon } from 'lucide-react';
+import { SearchIcon } from '@/shared/components/ui/icons';
 
 interface SearchSectionProps {
   onSearch: (term: string) => void;

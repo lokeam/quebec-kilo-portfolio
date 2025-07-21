@@ -4,7 +4,7 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 import { Bar, BarChart, CartesianGrid, LabelList, XAxis } from 'recharts';
 
 // Icons
-import { ArrowUpRight, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, TrendingUp } from '@/shared/components/ui/icons';
 
 // Types
 import type { SingleMonthlyExpenditureBFFResponse } from '@/types/domain/spend-tracking';

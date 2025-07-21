@@ -1,5 +1,5 @@
 import { useState, type ImgHTMLAttributes, type ReactNode } from 'react';
-import { Image } from 'lucide-react';
+import { Image } from '@/shared/components/ui/icons';
 
 interface ImageWithFallbackProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   fallback?: ReactNode;

@@ -1,5 +1,5 @@
 // Icons
-import { ArrowUpRight, TrendingDown } from 'lucide-react';
+import { ArrowUpRight, TrendingDown } from '@/shared/components/ui/icons';
 
 // Shadcn UI Components / Charts
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';

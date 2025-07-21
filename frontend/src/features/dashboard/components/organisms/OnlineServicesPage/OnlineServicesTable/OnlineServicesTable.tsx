@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 // ShadCN Components
 import { Button } from '@/shared/components/ui/button'
@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/components/ui/table"
-import { Checkbox } from "@/shared/components/ui/checkbox"
+// import { Checkbox } from "@/shared/components/ui/checkbox"
 
 // Custom Components
 import { OnlineServicesTableRow } from '@/features/dashboard/components/organisms/OnlineServicesPage/OnlineServicesTable/OnlineServicesTableRow'
@@ -26,7 +26,7 @@ import {
 import { useDeleteDigitalLocation } from '@/core/api/queries/digitalLocation.queries'
 
 // Icons
-import { IconTrash } from '@tabler/icons-react'
+import { IconTrash } from '@/shared/components/ui/icons'
 
 // Types
 import type { DigitalLocation } from '@/types/domain/digital-location'
@@ -43,13 +43,13 @@ export function OnlineServicesTable({ services, onEdit }: OnlineServicesTablePro
 
 
   // Handle select all checkbox
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedRows(services.map(service => service.id));
-    } else {
-      setSelectedRows([]);
-    }
-  }
+  // const handleSelectAll = (checked: boolean) => {
+  //   if (checked) {
+  //     setSelectedRows(services.map(service => service.id));
+  //   } else {
+  //     setSelectedRows([]);
+  //   }
+  // }
 
   // Handle individual row selection
   const handleRowSelection = (id: string, checked: boolean) => {
@@ -75,7 +75,7 @@ export function OnlineServicesTable({ services, onEdit }: OnlineServicesTablePro
   };
 
   // Calculate if all rows are selected
-  const allSelected = services.length > 0 && selectedRows.length === services.length;
+  // const allSelected = services.length > 0 && selectedRows.length === services.length;
 
   return (
     <div className="w-full">

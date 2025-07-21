@@ -5,7 +5,7 @@ import { toast as sonnerToast } from 'sonner';
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 
 // icons
-import { AlertTriangle, Ban, CheckCircle, Info } from 'lucide-react';
+import { AlertTriangle, Ban, CheckCircle, Info } from '@/shared/components/ui/icons';
 
 // type
 import type { ToastConfig, ToastVariant } from '@/types/toast';

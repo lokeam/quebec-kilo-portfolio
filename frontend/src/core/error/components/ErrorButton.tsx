@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
-import { RefreshCcw, House, ArrowLeft } from 'lucide-react';
+import { RefreshCcw, House, ArrowLeft } from '@/shared/components/ui/icons';
 import type { ErrorButtonProps } from '../types/error.types';
 import { ERROR_ROUTES } from '../constants/error.constants';
 

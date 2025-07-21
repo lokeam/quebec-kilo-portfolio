@@ -21,7 +21,7 @@ import {
 } from '@/shared/components/ui/select';
 
 // Icons
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send } from '@/shared/components/ui/icons';
 
 // Custom hooks - Sentry feedback service
 import { submitFeedback, type FeedbackData } from '@/core/monitoring/sentry-feedback-service';

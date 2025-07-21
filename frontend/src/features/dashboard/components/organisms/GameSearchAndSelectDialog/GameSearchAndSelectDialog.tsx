@@ -15,7 +15,7 @@ import { useDebounce } from '@/shared/hooks/useDebounce';
 import { useGameSearch, useGetAddGameFormStorageLocationsBFF } from '@/core/api/queries/gameSearch.queries';
 
 // Icons
-import { SearchIcon } from 'lucide-react';
+import { SearchIcon } from '@/shared/components/ui/icons';
 
 export function GameSearchAndSelectDialog() {
   const [isOpen, setIsOpen] = useState<boolean>(false);

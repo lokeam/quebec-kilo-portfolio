@@ -1,5 +1,5 @@
 import { useFormContext } from 'react-hook-form';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, Sun } from '@/shared/components/ui/icons';
 import { Button } from '@/shared/components/ui/button';
 import {
   Card,

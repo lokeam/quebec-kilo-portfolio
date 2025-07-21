@@ -17,8 +17,8 @@ import { cn } from '@/shared/components/ui/utils';
 import { useDrawerPosition } from '@/features/dashboard/lib/hooks/useDrawerPosition';
 
 // Icons
-import { Building2, CircleDollarSign } from 'lucide-react';
-import { IconCloudDataConnection } from '@tabler/icons-react';
+import { Building2, CircleDollarSign } from '@/shared/components/ui/icons';
+import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 
 /**
  * DrawerContainer Component

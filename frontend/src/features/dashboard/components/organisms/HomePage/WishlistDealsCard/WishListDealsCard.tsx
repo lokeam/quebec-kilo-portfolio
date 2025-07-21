@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/shared/components/ui/card'
-import { Star, MoreHorizontal } from 'lucide-react'
-import { IconShoppingCartDollar } from '@tabler/icons-react'
+import { Star, MoreHorizontal } from '@/shared/components/ui/icons'
+import { IconShoppingCartDollar } from '@/shared/components/ui/icons'
 import { Button } from '@/shared/components/ui/button'
 
 type WishListDealsCardProps = {

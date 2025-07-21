@@ -3,8 +3,8 @@ import {
   ChevronsUpDown,
   LogOut,
   // Sparkles,
-} from 'lucide-react'
-import { IconSettings } from '@tabler/icons-react'
+} from '@/shared/components/ui/icons'
+import { IconSettings } from '@/shared/components/ui/icons'
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar'
 import {
   DropdownMenu,

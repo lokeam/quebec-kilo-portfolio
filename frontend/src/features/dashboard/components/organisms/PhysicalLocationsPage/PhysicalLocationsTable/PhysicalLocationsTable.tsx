@@ -54,10 +54,10 @@ export const PhysicalLocationsTable = memo(({
     });
   };
 
-  const handleDeleteSelectedRows = () => {
-    if (selectedRows.size === 0) return;
-    setDeleteDialogOpen(true);
-  };
+  // const handleDeleteSelectedRows = () => {
+  //   if (selectedRows.size === 0) return;
+  //   setDeleteDialogOpen(true);
+  // };
 
   const handleConfirmDelete = () => {
     // TODO: Implement delete functionality

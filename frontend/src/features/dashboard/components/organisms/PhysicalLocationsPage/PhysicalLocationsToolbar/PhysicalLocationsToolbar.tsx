@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
-import { LayoutGrid, LayoutList, Sheet } from 'lucide-react';
+import { LayoutGrid, LayoutList, Sheet } from '@/shared/components/ui/icons';
 import { Input } from '@/shared/components/ui/input';
 
 // Components

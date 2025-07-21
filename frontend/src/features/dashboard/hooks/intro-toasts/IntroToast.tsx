@@ -1,6 +1,6 @@
 import React from 'react';
 import { toast as sonnerToast } from 'sonner';
-import { X, Info } from 'lucide-react';
+import { X, Info } from '@/shared/components/ui/icons';
 
 interface IntroToastProps {
   id: string | number;

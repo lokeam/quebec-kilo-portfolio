@@ -9,7 +9,7 @@ import {
 } from '@/shared/components/ui/context-menu';
 
 // Icons
-import { Trash2 } from 'lucide-react';
+import { Trash2 } from '@/shared/components/ui/icons';
 
 interface LibraryItemContextMenuProps {
   children: ReactNode;

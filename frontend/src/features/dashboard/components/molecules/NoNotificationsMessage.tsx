@@ -1,5 +1,5 @@
 // Icons
-import { IconMailOff } from '@tabler/icons-react';
+import { IconMailOff } from '@/shared/components/ui/icons';
 
 export const NoNotificationsMessage = () => (
   <div className="flex flex-col items-center justify-center h-full text-center p-4">

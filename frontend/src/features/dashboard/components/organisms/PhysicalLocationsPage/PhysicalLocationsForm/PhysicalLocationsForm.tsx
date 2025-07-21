@@ -27,8 +27,8 @@ import {
 import { Dialog, DialogContent, DialogFooter, DialogTitle, DialogHeader, DialogDescription } from '@/shared/components/ui/dialog';
 
 // Icons
-import { IconCar } from '@tabler/icons-react';
-import { House, Building, Building2, Warehouse } from 'lucide-react';
+import { IconCar } from '@/shared/components/ui/icons';
+import { House, Building, Building2, Warehouse } from '@/shared/components/ui/icons';
 
 export const PhysicalLocationFormSchema = z.object({
   locationName: z.string().min(3, 'Location name must be at least 3 characters'),

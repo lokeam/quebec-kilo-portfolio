@@ -7,7 +7,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/shared/components/ui/icons';
 
 interface FilterOption {
   key: string;

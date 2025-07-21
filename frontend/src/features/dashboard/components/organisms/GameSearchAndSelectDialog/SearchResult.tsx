@@ -17,8 +17,8 @@ import type { Game } from '@/types/domain/game';
 // import { useAddToLibrary, useAddToWishlist } from '@/core/api/queries/useLibraryMutations';
 
 // Icons
-import { LibraryBig } from 'lucide-react';
-import { IconHeart } from '@tabler/icons-react';
+import { LibraryBig } from '@/shared/components/ui/icons';
+import { IconHeart } from '@/shared/components/ui/icons';
 
 // Hooks
 //import { toast } from 'sonner';
