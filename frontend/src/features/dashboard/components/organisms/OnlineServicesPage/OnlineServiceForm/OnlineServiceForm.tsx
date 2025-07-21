@@ -34,19 +34,17 @@ import { FormContainer } from '@/features/dashboard/components/templates/FormCon
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { useCreateDigitalLocation, useUpdateDigitalLocation } from '@/core/api/queries/digitalLocation.queries';
+import { PAYMENT_METHODS } from '@/shared/constants/payment';
 
 // Zod
 import { z } from "zod";
 
 // Icons
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from '@/shared/components/ui/icons';
 
 // Utils
 import { format } from 'date-fns';
 import { cn } from '@/shared/components/ui/utils';
-
-// Constants
-import { PAYMENT_METHODS } from '@/shared/constants/payment';
 
 // Types
 import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
@@ -60,7 +58,7 @@ const DEFAULT_FORM_VALUES: FormValues = {
   url: "",
   billingCycle: "",
   costPerCycle: 0,
-  nextPaymentDate: new Date(),
+  anchorDate: new Date(),
   paymentMethod: "",
   isSubscriptionService: false
 };
@@ -113,6 +111,7 @@ export function OnlineServiceForm({
   isEditMode = false,
   serviceId,
 }: OnlineServiceFormProps) {
+  const paymentMethods = Object.values(PAYMENT_METHODS);
   const createMutation = useCreateDigitalLocation();
   const updateMutation = useUpdateDigitalLocation();
   const isLoading = isEditMode ? updateMutation.isPending : createMutation.isPending;
@@ -205,7 +204,7 @@ export function OnlineServiceForm({
                   field.onChange(method.id.toLowerCase());
                   form.trigger('paymentMethod');
                 }}
-                items={Object.values(PAYMENT_METHODS)}
+                items={paymentMethods}
                 placeholder="Select a Payment Method"
                 emptyMessage="No payment methods found."
                 initialValue={field.value}

@@ -15,8 +15,8 @@ import {
 } from '@/shared/components/ui/dialog';
 
 // Icons
-import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
-import { IconEdit, IconTrash } from '@tabler/icons-react';
+import { PaymentIcon } from '@/shared/components/ui/PaymentIcon';
+import { IconEdit, IconTrash } from '@/shared/components/ui/icons';
 
 // Types
 import type { DigitalLocation } from '@/types/domain/digital-location';
@@ -31,7 +31,7 @@ import { cn } from '@/shared/components/ui/utils';
 import { showToast } from '@/shared/components/ui/TanstackMutationToast/showToast';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 
-type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
+type PaymentMethodType = "alipay" | "amex" | "diners" | "discover" | "elo" | "generic" | "hiper" | "hipercard" | "jcb" | "maestro" | "mastercard" | "mir" | "paypal" | "unionpay" | "visa";
 
 interface OnlineServicesTableRowProps {
   service: DigitalLocation;
@@ -116,7 +116,6 @@ function OnlineServicesTableRowComponent({
             </div>
             <div className="flex flex-col">
               <span className="font-medium">{service.name}</span>
-              <span className="text-sm text-muted-foreground">{service.locationType}</span>
             </div>
           </div>
         </TableCell>

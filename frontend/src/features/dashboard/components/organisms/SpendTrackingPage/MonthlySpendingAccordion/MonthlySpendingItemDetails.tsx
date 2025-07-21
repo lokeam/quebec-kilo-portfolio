@@ -30,10 +30,10 @@ import { MediaCategory } from '@/types/domain/spend-tracking';
 import { TransactionType } from '@/types/domain/spend-tracking';
 
 // Icons
-import { PaymentIcon } from 'react-svg-credit-card-payment-icons/dist';
+import { PaymentIcon } from '@/shared/components/ui/PaymentIcon';
 import { DigitalLocationIcon } from '@/features/dashboard/lib/utils/getDigitalLocationIcon';
 import { MediaIcon } from '@/features/dashboard/lib/utils/getMediaIcon';
-import { IconTrash } from '@tabler/icons-react';
+import { IconTrash } from '@/shared/components/ui/icons';
 
 /**
  * Props for the MonthlySpendingItemDetails component
@@ -45,7 +45,7 @@ interface MonthlySpendingItemDetailsProps {
   onDelete?: () => void;
 }
 
-type PaymentMethodType = "Alipay" | "Amex" | "Code" | "CodeFront" | "Diners" | "Discover" | "Elo" | "Generic" | "Hiper" | "Hipercard" | "Jcb" | "Maestro" | "Mastercard" | "Mir" | "Paypal" | "Unionpay" | "Visa";
+type PaymentMethodType = "alipay" | "amex" | "diners" | "discover" | "elo" | "generic" | "hiper" | "hipercard" | "jcb" | "maestro" | "mastercard" | "mir" | "paypal" | "unionpay" | "visa";
 
 /**
  * Displays detailed information about a spending item in a drawer

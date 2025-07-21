@@ -15,7 +15,7 @@ import type { CreateOneTimePurchaseRequest } from '@/types/domain/spend-tracking
 
 // Shadcn UI Components
 import { Button } from "@/shared/components/ui/button"
-import { Calendar } from '@/shared/components/ui/calendar';
+import { LazyCalendar } from '@/shared/components/ui/LazyCalendar';
 import { Input } from "@/shared/components/ui/input"
 import {
   FormControl,
@@ -43,18 +43,17 @@ import { cn } from '@/shared/components/ui/utils';
 import { format } from 'date-fns';
 
 // Icons
-import { IconCloudDataConnection, IconDeviceGamepad2, IconPackage, IconDisc, IconCpu2, IconSparkles } from '@tabler/icons-react';
-import { CalendarIcon } from 'lucide-react';
+import { Cpu, Gamepad2, Package, Disc, Sparkles, Cloud, CalendarIcon } from '@/shared/components/ui/icons';
 
-// Constants
+// Hooks
 import { PAYMENT_METHODS } from '@/shared/constants/payment';
 
 // Custom Components
-import { ResponsiveCombobox } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
+import { SimpleCombobox } from '@/shared/components/ui/SimpleCombobox/SimpleCombobox';
 //import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
 
 // Types
-import type { SelectableItem } from '@/shared/components/ui/ResponsiveCombobox/ResponsiveCombobox';
+import type { SelectableItem } from '@/shared/components/ui/SimpleCombobox/SimpleCombobox';
 
 export const SpendTrackingFormSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -90,12 +89,12 @@ interface SpendTrackingFormProps {
 
 // Spending category options with IDs matching the database
 const SPENDING_CATEGORIES = [
-  { id: 1, name: 'Hardware', icon: IconCpu2 },
-  { id: 2, name: 'DLC', icon: IconDeviceGamepad2 },
-  { id: 3, name: 'In-Game Purchase', icon: IconSparkles },
-  { id: 4, name: 'Physical Game', icon: IconDisc },
-  { id: 5, name: 'Digital Game', icon: IconCloudDataConnection },
-  { id: 6, name: 'Misc', icon: IconPackage },
+  { id: 1, name: 'Hardware', icon: Cpu },
+  { id: 2, name: 'DLC', icon: Gamepad2 },
+  { id: 3, name: 'In-Game Purchase', icon: Sparkles },
+  { id: 4, name: 'Physical Game', icon: Disc },
+  { id: 5, name: 'Digital Game', icon: Cloud },
+  { id: 6, name: 'Misc', icon: Package },
 ];
 
 export function SpendTrackingForm({
@@ -113,6 +112,7 @@ export function SpendTrackingForm({
   onClose,
   onSuccess,
 }: SpendTrackingFormProps) {
+  const paymentMethods = Object.values(PAYMENT_METHODS);
 
   // Create form default values based on whether we're editing or creating
   const formDefaultValues = isEditing && spendTrackingData ? {
@@ -330,12 +330,12 @@ export function SpendTrackingForm({
               <FormDescription>
                 How did you pay for this purchase?
               </FormDescription>
-              <ResponsiveCombobox
+              <SimpleCombobox
                 onSelect={(method: SelectableItem) => {
                   field.onChange(method.id.toLowerCase());
                   form.trigger('payment_method');
                 }}
-                items={Object.values(PAYMENT_METHODS)}
+                items={paymentMethods}
                 placeholder="Select a Payment Method"
                 emptyMessage="No payment methods found."
                 initialValue={field.value}
@@ -409,7 +409,7 @@ export function SpendTrackingForm({
                   </FormControl>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
+                  <LazyCalendar
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
