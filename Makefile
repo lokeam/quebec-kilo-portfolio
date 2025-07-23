@@ -7,9 +7,6 @@
 #   - Frontend (React application)
 #   - Redis
 #   - Postgres
-#   - Mailhog
-#   - Prometheus (Metrics collection)
-#   - Grafana (Metrics visualization)
 #   - Sentry (Backend Error tracking)
 #
 # Best practices used:
@@ -60,7 +57,7 @@
 #
 # ---------------------------------------------------------------------------
 
-.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis logs-mailhog logs-prometheus logs-grafana troubleshoot-postgres troubleshoot-redis troubleshoot-prometheus troubleshoot-grafana monitoring monitoring-down verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down seed-data-complete debug-migration
+.PHONY: init-env check-docker check-env-files dev test prod down clean health health-detail logs logs-postgres logs-redis troubleshoot-postgres troubleshoot-redis verify-sentry run-with-sentry test-sentry dev-with-sentry help backup restore list-backups check-db migrate migrate-down recreate nuclear spend-tracking-db-seed spend-tracking-db-seed-down seed-data-complete debug-migration
 
 # Define allowed environments and set current environment
 ENVS := development test production
@@ -187,7 +184,6 @@ reset:
 #   • Backend API (Golang application)
 #   • Redis
 #   • Postgres
-#   • Mailhog
 #
 # The frontend service is purposefully excluded when using this target.
 #
@@ -195,7 +191,7 @@ reset:
 # ---------------------------------------------------------------------------
 up:
 	@echo "Rebuilding and starting backend services (excluding frontend)..."
-	docker compose --env-file .env up --build -d traefik api redis postgres mailhog
+	docker compose --env-file .env up --build -d traefik api redis postgres
 
 # ---------------------------------------------------------------------------
 # Restart: Fully reset the environment + bring up the backend services
@@ -263,7 +259,7 @@ check-env-files:
 dev: CURRENT_ENV=development
 dev: check-docker check-env-files
 	@echo "$(BLUE)Starting development environment...$(RESET)"
-	docker compose --env-file .env.dev up --build -d
+	docker compose --env-file .env up --build -d
 	@sleep 5
 	@$(MAKE) health
 
@@ -292,63 +288,20 @@ prod: check-docker check-env-files
 dev-backend: CURRENT_ENV=development
 dev-backend: check-docker check-env-files
 	@echo "$(BLUE)Starting development environment without frontend...$(RESET)"
-	docker compose --env-file .env.dev build --no-cache api
-	docker compose --env-file .env.dev up --build -d traefik api postgres redis mailhog
+	docker compose --env-file .env build --no-cache api
+	docker compose --env-file .env up --build -d traefik api postgres redis
 	@sleep 5
 	@$(MAKE) health
 
 # Shut down the development environment
 down:
-	docker compose --env-file .env.dev down -v
+	docker compose --env-file .env down -v
+
+
 
 # ---------------------------------------------------------------------------
-# Full-Stack: Start all services including monitoring
-#
-# This target starts all services including the monitoring stack.
-#
-# Usage: make full-stack
+# Monitoring services have been removed from docker-compose.yml
 # ---------------------------------------------------------------------------
-full-stack: CURRENT_ENV=development
-full-stack: check-docker check-env-files
-	@echo "$(BLUE)Starting all services including monitoring...$(RESET)"
-	docker compose --env-file .env.dev up --build -d
-	@sleep 5
-	@$(MAKE) health
-	@echo "$(GREEN)All services started$(RESET)"
-	@echo "API: http://api.localhost"
-	@echo "Frontend: http://frontend.localhost"
-	@echo "Mailhog: http://mailhog.localhost"
-	@echo "Prometheus: http://localhost:9090"
-	@echo "Grafana: http://grafana.localhost (admin/admin)"
-
-# ---------------------------------------------------------------------------
-# Monitoring: Start Prometheus and Grafana services
-#
-# This target starts the monitoring stack, including:
-#   • Prometheus (metrics collection)
-#   • Grafana (metrics visualization)
-#
-# Usage: make monitoring
-# ---------------------------------------------------------------------------
-monitoring:
-	@echo "$(BLUE)Starting monitoring services (Prometheus and Grafana)...$(RESET)"
-	docker compose --env-file .env up -d prometheus grafana
-	@echo "$(GREEN)Monitoring services started$(RESET)"
-	@echo "Prometheus UI: http://localhost:9090"
-	@echo "Grafana UI: http://grafana.localhost (admin/admin)"
-
-# ---------------------------------------------------------------------------
-# Monitoring-Down: Stop Prometheus and Grafana services
-#
-# This target stops only the monitoring stack without affecting other services.
-#
-# Usage: make monitoring-down
-# ---------------------------------------------------------------------------
-monitoring-down:
-	@echo "$(BLUE)Stopping monitoring services...$(RESET)"
-	docker compose stop prometheus grafana
-	docker compose rm -f prometheus grafana
-	@echo "$(GREEN)Monitoring services stopped$(RESET)"
 
 # -----------------------------------------
 # Health Checks and Logs
@@ -382,15 +335,6 @@ logs-postgres:
 
 logs-redis:
 	docker compose logs redis
-
-logs-mailhog:
-	docker compose logs mailhog
-
-logs-prometheus:
-	docker compose logs prometheus
-
-logs-grafana:
-	docker compose logs grafana
 
 # -----------------------------------------
 # Sentry Integration
@@ -473,22 +417,6 @@ troubleshoot-redis:
 	@echo "\n=== Redis Ping Test ==="
 	docker compose exec redis redis-cli ping
 
-troubleshoot-prometheus:
-	@echo "=== Prometheus Status ==="
-	docker compose ps prometheus
-	@echo "\n=== Prometheus Logs ==="
-	docker compose logs --tail=50 prometheus
-	@echo "\n=== Prometheus Targets ==="
-	@curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {name: .labels.job, health: .health, lastError: .lastError}'
-
-troubleshoot-grafana:
-	@echo "=== Grafana Status ==="
-	docker compose ps grafana
-	@echo "\n=== Grafana Logs ==="
-	docker compose logs --tail=50 grafana
-	@echo "\n=== Grafana Health ==="
-	@curl -s http://localhost:3000/api/health
-
 # -----------------------------------------
 # Help
 # -----------------------------------------
@@ -501,12 +429,8 @@ help:
 	@echo " make prod               - Start production environment (containerized)"
 	@echo " make restart-all        - Fully reset environment and start all services (backend & frontend)"
 	@echo " make dev-backend        - Start development environment excluding the frontend (for backend development only)"
-	@echo " make full-stack         - Start all services including monitoring stack"
 	@echo " make down               - Shut down environment and remove volumes"
 	@echo " make clean              - Remove all containers, volumes, and Docker artifacts"
-	@echo "\n$(BLUE)Monitoring:$(RESET)"
-	@echo " make monitoring         - Start Prometheus and Grafana services"
-	@echo " make monitoring-down    - Stop Prometheus and Grafana services"
 	@echo "\n$(BLUE)Health Checks:$(RESET)"
 	@echo " make health             - Quick health status"
 	@echo " make health-detail      - Detailed health status"
@@ -514,15 +438,10 @@ help:
 	@echo " make logs               - View all logs"
 	@echo " make logs-postgres      - View Postgres logs"
 	@echo " make logs-redis         - View Redis logs"
-	@echo " make logs-mailhog       - View Mailhog logs"
-	@echo " make logs-prometheus    - View Prometheus logs"
-	@echo " make logs-grafana       - View Grafana logs"
 	@echo "\n$(BLUE)Troubleshooting:$(RESET)"
 	@echo " make troubleshoot-frontend - Troubleshoot Frontend"
 	@echo " make troubleshoot-postgres - Troubleshoot Postgres"
 	@echo " make troubleshoot-redis    - Troubleshoot Redis"
-	@echo " make troubleshoot-prometheus  - Troubleshoot Prometheus"
-	@echo " make troubleshoot-grafana     - Troubleshoot Grafana"
 	@echo "\n$(BLUE)Sentry:$(RESET)"
 	@echo " make verify-sentry      - Verify Sentry configuration"
 	@echo " make run-with-sentry    - Run the API locally with Sentry enabled"
@@ -634,7 +553,7 @@ nuclear:
 	@echo "$(BLUE)Removing all unused data...$(RESET)"
 	docker system prune -af --volumes
 	@echo "$(GREEN)Starting backend fresh...$(RESET)"
-	docker compose --env-file .env.dev up -d traefik api postgres redis mailhog
+	docker compose --env-file .env.dev up -d traefik api postgres redis
 	@echo "$(GREEN)Nuclear cleanup complete. Backend services should be fresh and clean.$(RESET)"
 
 # ---------------------------------------------------------------------------
