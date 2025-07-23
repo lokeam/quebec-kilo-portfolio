@@ -122,22 +122,23 @@ func (sta *SpendTrackingDbAdapter) transformThreeYearTotalsToBFFResponse(
     combinedTotal := make([]types.SingleYearlyTotalBFFResponseFINAL, 0, 3)
 
     for year := currentYear - 2; year <= currentYear; year++ {
-        subscriptionAmount := threeYearTotals[year]
+        totalAmount := threeYearTotals[year]
 
+        // For now, we're using total amounts for all categories
+        // In the future, we could separate subscription vs one-time amounts
         subscriptionTotal = append(subscriptionTotal, types.SingleYearlyTotalBFFResponseFINAL{
             Year:   year,
-            Amount: subscriptionAmount,
+            Amount: totalAmount,
         })
 
-        // For now, one-time total is 0 (we can enhance this later)
         oneTimeTotal = append(oneTimeTotal, types.SingleYearlyTotalBFFResponseFINAL{
             Year:   year,
-            Amount: 0.0,
+            Amount: totalAmount,
         })
 
         combinedTotal = append(combinedTotal, types.SingleYearlyTotalBFFResponseFINAL{
             Year:   year,
-            Amount: subscriptionAmount,
+            Amount: totalAmount,
         })
     }
 
@@ -473,7 +474,6 @@ func (sta *SpendTrackingDbAdapter) CreateOneTimePurchase(
 	if err != nil {
 			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer tx.Rollback()
 
 	// Execute INSERT query
 	var newPurchase models.SpendTrackingOneTimePurchaseDB
@@ -493,12 +493,13 @@ func (sta *SpendTrackingDbAdapter) CreateOneTimePurchase(
 	)
 
 	if err != nil {
-			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to create one-time purchase: %w", err)
+		tx.Rollback()
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to create one-time purchase: %w", err)
 	}
 
 	// Commit transaction
 	if err := tx.Commit(); err != nil {
-			return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to commit transaction: %w", err)
+		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	sta.logger.Debug("CreateOneTimePurchase success", map[string]any{
@@ -523,7 +524,6 @@ func (sta *SpendTrackingDbAdapter) UpdateOneTimePurchase(
 	if err != nil {
 		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer tx.Rollback()
 
 	// Execute UPDATE query
 	var updatedPurchase models.SpendTrackingOneTimePurchaseDB
@@ -544,6 +544,7 @@ func (sta *SpendTrackingDbAdapter) UpdateOneTimePurchase(
 	)
 
 	if err != nil {
+		tx.Rollback()
 		return models.SpendTrackingOneTimePurchaseDB{}, fmt.Errorf("failed to update one-time purchase: %w", err)
 	}
 

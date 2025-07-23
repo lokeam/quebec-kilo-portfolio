@@ -22,7 +22,6 @@ const (
 			LEFT JOIN digital_location_subscriptions dls ON dl.id = dls.digital_location_id
 			WHERE dl.user_id = $1
 			AND dl.is_subscription = true
-			AND dl.is_active = true
 		ORDER BY dls.next_payment_date ASC
 	`
 

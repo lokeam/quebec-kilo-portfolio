@@ -54,6 +54,21 @@ export function SpendTrackingPageContent() {
   if (error) {
     console.error('🔍 DEBUG: SpendTrackingPage -  error', error);
   }
+
+  if (!bffResponse) {
+    return (
+      <PageMain>
+        <PageHeadline>
+          <div className='flex items-center'>
+            <h1 className='text-2xl font-bold tracking-tight'>Spend Tracking</h1>
+          </div>
+        </PageHeadline>
+        <div className="text-muted-foreground text-center py-8">
+          Unable to load spend tracking data
+        </div>
+      </PageMain>
+    );
+  }
   /* RENDER LOGIC */
 
   return (
@@ -81,12 +96,12 @@ export function SpendTrackingPageContent() {
       </PageHeadline>
 
       <PageGrid>
-        <TotalMonthlySpendingCard totalMonthlySpending={bffResponse!.totalMonthlySpending} />
-        <TotalAnnualSpendingCard totalAnnualSpending={bffResponse!.totalAnnualSpending} />
+        <TotalMonthlySpendingCard totalMonthlySpending={bffResponse.totalMonthlySpending} />
+        <TotalAnnualSpendingCard totalAnnualSpending={bffResponse.totalAnnualSpending} />
         <MonthlySpendingAccordion
-          thisMonth={bffResponse!.currentTotalThisMonth}
-          future={bffResponse!.recurringNextMonth}
-          oneTimeTotal={bffResponse!.yearlyTotals?.oneTimeTotal}
+          thisMonth={bffResponse.currentTotalThisMonth}
+          future={bffResponse.recurringNextMonth}
+          oneTimeTotal={bffResponse.yearlyTotals?.oneTimeTotal || []}
         />
       </PageGrid>
     </PageMain>

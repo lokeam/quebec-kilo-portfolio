@@ -25,10 +25,18 @@ export const spendTrackingAdapter = {
   transformSpendTrackingResponse: (response: SpendTrackingBFFResponse): SpendTrackingBFFResponse => {
     return {
       ...response,
-      currentTotalThisMonth: response.currentTotalThisMonth.map(item => ({
+      currentTotalThisMonth: response.currentTotalThisMonth?.map(item => ({
         ...item,
         mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
-      })),
+      })) || null,
+      oneTimeThisMonth: response.oneTimeThisMonth?.map(item => ({
+        ...item,
+        mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
+      })) || null,
+      recurringNextMonth: response.recurringNextMonth?.map(item => ({
+        ...item,
+        mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
+      })) || null,
       totalMonthlySpending: {
         ...response.totalMonthlySpending,
         percentageChange: Math.round(response.totalMonthlySpending.percentageChange * 10) / 10

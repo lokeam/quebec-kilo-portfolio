@@ -103,11 +103,11 @@ func (stc *SpendTrackingCalculator) CalculateAnnualSpendingForecast(
 	currentYear := targetYear.Year()
   currentMonth := int(time.Now().Month())
 
+	// Fill historical months from aggregates table
 	for _, agg := range monthlyAggregates {
-		if agg.Year == currentYear && int(agg.Month) <= currentMonth {
+		if agg.Year == currentYear && int(agg.Month) < currentMonth {
 				monthIndex := int(agg.Month) - 1 // Convert to 0-based index
 				if monthIndex >= 0 && monthIndex < 12 {
-						// Use dynamic calculation for current and future months
 						if agg.TotalAmount > 0 {
 								monthlyExpenditures[monthIndex].Expenditure = agg.TotalAmount
 						}
@@ -115,13 +115,14 @@ func (stc *SpendTrackingCalculator) CalculateAnnualSpendingForecast(
 		}
 	}
 
-	for monthIndex := currentMonth; monthIndex < 12; monthIndex++ {
+	// Calculate current month and future months dynamically
+	for monthIndex := currentMonth - 1; monthIndex < 12; monthIndex++ {
 		targetMonth := time.Date(currentYear, time.Month(monthIndex+1), 1, 0, 0, 0, 0, time.UTC)
 
-		// Calculate dynamic monthly spending for future months
+		// Calculate dynamic monthly spending for current and future months
 		monthlySpending, err := stc.CalculateMonthlyMinimumSpending(userID, targetMonth)
 		if err != nil {
-				stc.logger.Error("Failed to calculate dynamic spending for future month", map[string]any{
+				stc.logger.Error("Failed to calculate dynamic spending for month", map[string]any{
 						"error":      err,
 						"userID":    userID,
 						"targetMonth": targetMonth,

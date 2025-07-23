@@ -1,4 +1,3 @@
-
 // ShadCN UI Components
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 import { PageMain } from '@/shared/components/layout/page-main';
@@ -13,6 +12,8 @@ import { MonthlySpendingCard } from '@/features/dashboard/components/organisms/H
 
 // Hooks
 import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
+import { useEnableIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useEnableIntroToasts';
+import { useAuth0 } from '@auth0/auth0-react';
 
 // API Layer hooks
 import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries';
@@ -26,11 +27,71 @@ import { HomePageSkeleton } from './HomePageSkeleton';
 
 export function HomePageContent() {
   const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
+  const { wantsIntroToasts } = useEnableIntroToasts();
+  const { user, getIdTokenClaims } = useAuth0();
   // const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
 
   // Show intro toast for adding games to library
   useShowConditionalIntroToasts(1);
 
+  // Debug function to check Auth0 claims
+  const debugAuth0Claims = async () => {
+    try {
+      const claims = await getIdTokenClaims();
+      console.log('🔍 Debug Auth0 Claims:', claims);
+      console.log('🔍 User app_metadata:', user?.app_metadata);
+      console.log('🔍 Current wantsIntroToasts value:', wantsIntroToasts);
+    } catch (error) {
+      console.error('Failed to get claims:', error);
+    }
+  };
+
+  // Debug function to clear localStorage for testing
+  const clearToastState = () => {
+    localStorage.removeItem('shownIntroToasts');
+    console.log('🧹 Cleared shownIntroToasts from localStorage');
+    // Reload the page to trigger the toast again
+    window.location.reload();
+  };
+
+  // Debug function to test optimistic intro toasts
+  const testOptimisticIntroToasts = () => {
+    console.log('🔍 Current optimistic states:', {
+      onboardingComplete: window.__ONBOARDING_OPTIMISTIC_COMPLETE__,
+      wantsIntroToasts: window.__WANTS_INTRO_TOASTS__
+    });
+
+    // Test setting optimistic state
+    window.__WANTS_INTRO_TOASTS__ = true;
+    localStorage.setItem('__WANTS_INTRO_TOASTS__', 'true');
+    console.log('✅ Set optimistic wantsIntroToasts to true');
+
+    // Reload to test
+    window.location.reload();
+  };
+
+  // Debug function to reset optimistic state
+  const resetOptimisticState = () => {
+    delete window.__ONBOARDING_OPTIMISTIC_COMPLETE__;
+    delete window.__WANTS_INTRO_TOASTS__;
+    localStorage.removeItem('__ONBOARDING_OPTIMISTIC_COMPLETE__');
+    localStorage.removeItem('__WANTS_INTRO_TOASTS__');
+    console.log('🧹 Reset optimistic state');
+    window.location.reload();
+  };
+
+  // Debug function to show current state and clear everything
+  const debugCurrentState = () => {
+    console.log('🔍 Current Debug State:', {
+      optimisticOnboardingComplete: window.__ONBOARDING_OPTIMISTIC_COMPLETE__,
+      optimisticWantsIntroToasts: window.__WANTS_INTRO_TOASTS__,
+      localStorageOnboardingComplete: localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__'),
+      localStorageWantsIntroToasts: localStorage.getItem('__WANTS_INTRO_TOASTS__'),
+      localStorageShownToasts: localStorage.getItem('shownIntroToasts'),
+      userAppMetadata: user?.app_metadata,
+      wantsIntroToasts: wantsIntroToasts
+    });
+  };
 
   if (isLoading) {
     return <HomePageSkeleton />;
@@ -42,9 +103,44 @@ export function HomePageContent() {
     <PageMain>
       <PageHeadline>
         <h1 className='text-2xl font-bold tracking-tight'>Dashboard</h1>
-                <div className='flex items-center space-x-2'>
-            {/* <Button>Download Dashboard Summary</Button> */}
-          </div>
+        <div className='flex items-center space-x-2'>
+          {/* Debug button - remove this after testing */}
+          <button
+            onClick={debugAuth0Claims}
+            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Debug Auth0 Claims
+          </button>
+          {/* Debug button to clear toast state */}
+          <button
+            onClick={clearToastState}
+            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Clear Toast State
+          </button>
+          {/* Debug button to test optimistic intro toasts */}
+          <button
+            onClick={testOptimisticIntroToasts}
+            className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Test Optimistic Toasts
+          </button>
+          {/* Debug button to reset optimistic state */}
+          <button
+            onClick={resetOptimisticState}
+            className="px-3 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            Reset Optimistic State
+          </button>
+          {/* Debug button to show current state */}
+          <button
+            onClick={debugCurrentState}
+            className="px-3 py-1 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
+          >
+            Debug Current State
+          </button>
+          {/* <Button>Download Dashboard Summary</Button> */}
+        </div>
       </PageHeadline>
 
       <PageGrid>
@@ -95,6 +191,7 @@ export function HomePageContent() {
           mediaTypeDomains={dashboardData!.mediaTypeDomains}
           monthlyExpenditures={dashboardData!.monthlyExpenditures}
         />
+
       </PageGrid>
     </PageMain>
   );

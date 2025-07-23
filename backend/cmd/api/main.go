@@ -40,7 +40,7 @@ func main() {
 	case "dev":
 		loggerEnvironment = logger.EnvDev
 	default:
-		loggerEnvironment = logger.EnvDev // Default to development
+		loggerEnvironment = logger.EnvDev // Default to "dev"
 	}
 
 	// 3. Initialize logging (Zap + slog)

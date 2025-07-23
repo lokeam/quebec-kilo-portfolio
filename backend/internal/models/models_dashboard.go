@@ -10,7 +10,7 @@ type DashboardGameStatsDB struct {
 	Icon            string      `db:"icon"`
 	Value           float64     `db:"value"`
 	SecondaryValue  float64     `db:"secondary_value"`
-	LastUpdated     time.Time   `db:"last_updated"`
+	LastUpdated     *time.Time  `db:"last_updated"`
 }
 
 // DashboardDigitalLocationDB represents a digital storage location from the DB

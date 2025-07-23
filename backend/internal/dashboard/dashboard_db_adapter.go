@@ -80,7 +80,7 @@ const (
            ), 2), 0) AS value, MAX(dls.updated_at) AS last_updated
       FROM digital_location_subscriptions dls
       JOIN digital_locations dl ON dls.digital_location_id = dl.id
-      WHERE dl.user_id = $1 AND dl.is_subscription = true AND dl.is_active = true
+      WHERE dl.user_id = $1 AND dl.is_subscription = true
   `
 
   // Get digital storage locations count and last updated
@@ -183,12 +183,19 @@ const (
 func (dda *DashboardDbAdapter) transformGameStatsDBToResponse(
   db models.DashboardGameStatsDB,
 ) types.DashboardStatBFFResponse {
+  var lastUpdatedUnix int64
+  if db.LastUpdated != nil {
+    lastUpdatedUnix = db.LastUpdated.Unix()
+  } else {
+    lastUpdatedUnix = 0
+  }
+
   return types.DashboardStatBFFResponse{
     Title: db.Title,
     Icon: db.Icon,
     Value: db.Value,
     SecondaryValue: db.SecondaryValue,
-    LastUpdated: db.LastUpdated.Unix(),
+    LastUpdated: lastUpdatedUnix,
   }
 }
 
@@ -307,6 +314,111 @@ func (dda *DashboardDbAdapter) calculateSubscriptionCostsForMonths(
 }
 
 
+// Calculate monthly expenditures dynamically from actual purchase data
+func (dda *DashboardDbAdapter) calculateMonthlyExpendituresDynamically(
+  userID string,
+) []models.DashboardMonthlyExpenditureDB {
+  dda.logger.Debug("calculateMonthlyExpendituresDynamically called", map[string]any{
+    "userID": userID,
+  })
+
+  // Get the last 12 months
+  currentMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)
+  monthlyExpenditures := make([]models.DashboardMonthlyExpenditureDB, 0, 12)
+
+  for i := 11; i >= 0; i-- {
+    targetMonth := currentMonth.AddDate(0, -i, 0)
+
+    // Calculate monthly spending for this month using the spend tracking calculator
+    monthlySpending, err := dda.spendTrackingCalculator.CalculateMonthlyMinimumSpending(userID, targetMonth)
+    if err != nil {
+      dda.logger.Error("Failed to calculate monthly spending", map[string]any{
+        "error": err,
+        "userID": userID,
+        "targetMonth": targetMonth,
+      })
+      monthlySpending = 0.0
+    }
+
+    // Get one-time purchases for this month to calculate category breakdown
+    var oneTimePurchases []models.SpendTrackingOneTimePurchaseDB
+    err = dda.db.SelectContext(
+      context.Background(),
+      &oneTimePurchases,
+      `SELECT otp.*, sc.media_type as media_type
+      FROM one_time_purchases otp
+      LEFT JOIN spending_categories sc ON otp.spending_category_id = sc.id
+      WHERE otp.user_id = $1
+      AND EXTRACT(YEAR FROM purchase_date) = EXTRACT(YEAR FROM $2::timestamp)
+      AND EXTRACT(MONTH FROM purchase_date) = EXTRACT(MONTH FROM $2::timestamp)
+      ORDER BY purchase_date DESC`,
+      userID,
+      targetMonth,
+    )
+    if err != nil {
+      dda.logger.Error("Failed to get one-time purchases for month", map[string]any{
+        "error": err,
+        "userID": userID,
+        "targetMonth": targetMonth,
+      })
+    }
+
+    // Calculate category breakdown
+    hardware := 0.0
+    dlc := 0.0
+    inGamePurchase := 0.0
+    oneTimePurchase := 0.0
+
+    for _, purchase := range oneTimePurchases {
+      if purchase.PurchaseDate.Year() == targetMonth.Year() &&
+         purchase.PurchaseDate.Month() == targetMonth.Month() {
+        oneTimePurchase += purchase.Amount
+
+        // Categorize by media type
+        switch purchase.MediaType {
+        case "hardware":
+          hardware += purchase.Amount
+        case "dlc":
+          dlc += purchase.Amount
+        case "in_game_purchase":
+          inGamePurchase += purchase.Amount
+        }
+      }
+    }
+
+    // Format date for response
+    dateStr := targetMonth.Format("2006-01-02")
+
+    monthlyExpenditure := models.DashboardMonthlyExpenditureDB{
+      Date:            dateStr,
+      OneTimePurchase: oneTimePurchase,
+      Hardware:        hardware,
+      Dlc:             dlc,
+      InGamePurchase:  inGamePurchase,
+    }
+
+    monthlyExpenditures = append(monthlyExpenditures, monthlyExpenditure)
+
+    dda.logger.Debug("Calculated monthly expenditure", map[string]any{
+      "userID": userID,
+      "targetMonth": targetMonth,
+      "monthlySpending": monthlySpending,
+      "oneTimePurchase": oneTimePurchase,
+      "hardware": hardware,
+      "dlc": dlc,
+      "inGamePurchase": inGamePurchase,
+    })
+  }
+
+  dda.logger.Debug("calculateMonthlyExpendituresDynamically completed", map[string]any{
+    "userID": userID,
+    "monthlyExpendituresCount": len(monthlyExpenditures),
+  })
+
+  return monthlyExpenditures
+}
+
+
 func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
   ctx context.Context,
   userID string,
@@ -413,12 +525,8 @@ func (dda *DashboardDbAdapter) GetDashboardBFFResponse(
     return types.DashboardBFFResponse{}, fmt.Errorf("error fetching new items this month: %w", err)
   }
 
-  // 6. Monthly Expenditures
-  var monthlyExpendituresDB []models.DashboardMonthlyExpenditureDB
-  if err := tx.SelectContext(ctx, &monthlyExpendituresDB, getMonthlyExpendituresQuery, userID); err != nil {
-    dda.logger.Error("Error fetching monthly expenditures", map[string]any{"error": err})
-    return types.DashboardBFFResponse{}, fmt.Errorf("error fetching monthly expenditures: %w", err)
-  }
+  // 6. Monthly Expenditures - Calculate dynamically instead of reading from aggregates table
+  monthlyExpendituresDB := dda.calculateMonthlyExpendituresDynamically(userID)
 
   // Calculate the current month's total subscription cost using the business logic
   currentMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.UTC)

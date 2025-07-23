@@ -333,3 +333,12 @@ CREATE TRIGGER update_stored_items
 AFTER INSERT OR DELETE ON physical_game_locations
 FOR EACH ROW
 EXECUTE FUNCTION update_stored_items_count();
+
+-- Seed spending categories (required for spend tracking functionality)
+INSERT INTO spending_categories (name, media_type) VALUES
+    ('hardware', 'hardware'),
+    ('dlc', 'dlc'),
+    ('in_game_purchase', 'in_game_purchase'),
+    ('physical_game', 'physical_game'),
+    ('digital_game', 'digital_game'),
+    ('misc', 'misc');

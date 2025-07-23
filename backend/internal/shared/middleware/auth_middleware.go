@@ -82,10 +82,10 @@ func extractUserIDMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("extractUserIDMiddleware: Processing request for %s", r.URL.Path)
 
-		// Get validated token from context
+		// Get JWT token from the request
 		if token := r.Context().Value(jwtmiddleware.ContextKey{}); token != nil {
 			if claims, ok := token.(*validator.ValidatedClaims); ok {
-				// Extract user ID from claims
+				// Extract user ID from JWT token
 				userID := claims.RegisteredClaims.Subject
 				log.Printf("Extracted userID from JWT: %s", userID)
 
