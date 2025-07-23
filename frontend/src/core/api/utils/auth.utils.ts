@@ -90,23 +90,9 @@ export function getAuth0Logout() {
  * @returns Promise<string> A valid Auth0 access token
  */
 export async function getAuth0Token() {
-  if (!getTokenFn) throw new Error('Auth not initialized');
-  try {
-    return await getTokenFn();
-  } catch (error: unknown) {
-    // If the error message indicates the refresh token is missing,
-    // log out the user and redirect to the login page.
-    if (
-      error &&
-      typeof error === 'object' &&
-      'message' in error &&
-      typeof (error as { message: unknown }).message === 'string' &&
-      ((error as { message: string }).message.toLowerCase().includes('missing refresh token'))
-    ) {
-      const logout = getAuth0Logout();
-      logout({ returnTo: window.location.origin + '/login' });
-      throw new Error('User logged out due to missing refresh token');
-    }
-    throw error;
+  if (!getTokenFn) {
+    throw new Error('Auth not initialized');
   }
+
+  return await getTokenFn();
 }

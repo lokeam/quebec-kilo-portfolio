@@ -28,11 +28,16 @@ export function useGetDigitalServicesCatalog() {
     queryKey: digitalServicesCatalogKeys.list(),
     queryFn: async () => {
       try {
+        console.log('[DEBUG] useGetDigitalServicesCatalog: Starting API call');
         const services = await getServicesCatalog();
+        console.log('[DEBUG] useGetDigitalServicesCatalog: API call successful, got', services.length, 'services');
+        console.log('[DEBUG] useGetDigitalServicesCatalog: Services data:', services);
         return services;
       } catch (error) {
+        console.error('[DEBUG] useGetDigitalServicesCatalog: API call failed:', error);
         logger.error('Failed to fetch digital services catalog', { error });
         // Return fallback data in case of error
+        console.log('[DEBUG] useGetDigitalServicesCatalog: Returning fallback services');
         return FALLBACK_SERVICES;
       }
     },

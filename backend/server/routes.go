@@ -111,6 +111,20 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		})
 	}
 
+	// Create user service for middleware and routes
+	appContext.Logger.Debug("Creating user service for middleware", nil)
+	userService, err := users.NewUserService(appContext)
+	if err != nil {
+		appContext.Logger.Error("Failed to create user service for middleware", map[string]any{
+			"error": err,
+			"error_type": fmt.Sprintf("%T", err),
+		})
+		// Continue without user service - middleware will handle gracefully
+		userService = nil
+	} else {
+		appContext.Logger.Info("User service created successfully for middleware", nil)
+	}
+
 	// Initialize Routes
 	mux.Route("/api/v1", func(r chi.Router) {
 		// Health
@@ -119,6 +133,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 		// Protect routes with Auth0
 		r.Group(func(r chi.Router) {
 			r.Use(customMiddleware.EnsureValidToken())
+			r.Use(customMiddleware.RequireUserExists(userService))
 
 			// Search
 			r.Route("/search", func(r chi.Router) {
@@ -209,18 +224,6 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 					"path": "/api/v1/users",
 				})
 
-				// Create user service for profile management
-				appContext.Logger.Debug("Attempting to create user service", nil)
-				userService, err := users.NewUserService(appContext)
-				if err != nil {
-					appContext.Logger.Error("Failed to create user service", map[string]any{
-						"error": err,
-						"error_type": fmt.Sprintf("%T", err),
-					})
-				} else {
-					appContext.Logger.Info("User service created successfully", nil)
-				}
-
 				// Create user deletion service for account deletion
 				appContext.Logger.Debug("Attempting to create user deletion service", nil)
 				userDeletionService, err := users.NewUserDeletionService(appContext)
@@ -282,7 +285,7 @@ func (s *Server) SetupRoutes(appContext *appcontext.AppContext, services interfa
 				promhttp.Handler().ServeHTTP(w, r)
 		}))
 	} else {
-		// In development, allow open access
+		// In "dev", allow open access
 		mux.Handle("/metrics", promhttp.Handler())
 	}
 	appContext.Logger.Info("Metrics endpoint registered", map[string]any{

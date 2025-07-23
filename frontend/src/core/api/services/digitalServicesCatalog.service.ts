@@ -8,8 +8,8 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 import type { DigitalServiceItem } from '@/types/domain/digital-location';
 
+// The axios transformResponse returns the data field directly
 interface CatalogResponse {
-  success: boolean;
   catalog: DigitalServiceItem[];
 }
 
@@ -57,9 +57,16 @@ export const getServicesCatalog = (): Promise<DigitalServiceItem[]> =>
     axiosInstance
       .get<CatalogResponse>(CATALOG_ENDPOINT)
       .then(response => {
-        if (!response.data.catalog) {
+        console.log('[DEBUG] getServicesCatalog: Raw response:', response.data);
+
+        // The axios transformResponse returns the data field directly
+        // So response.data is actually the { catalog: [...] } object
+        if (!response.data || !response.data.catalog) {
+          console.error('[DEBUG] getServicesCatalog: No catalog data in response:', response.data);
           return [];
         }
+
+        console.log('[DEBUG] getServicesCatalog: Successfully extracted catalog data:', response.data.catalog);
         return response.data.catalog;
       })
   );

@@ -99,3 +99,16 @@ type SpendTrackingService interface {
 type DashboardService interface {
 	GetDashboardBFFResponse(ctx context.Context, userID string) (types.DashboardBFFResponse, error)
 }
+
+type UserService interface {
+	// Existing methods
+	GetSingleUser(ctx context.Context, userID string) (models.User, error)
+	CreateUser(ctx context.Context, req types.CreateUserRequest) (models.User, error)
+	UpdateUserProfile(ctx context.Context, userID string, req types.UpdateUserProfileRequest) (models.User, error)
+	HasCompleteProfile(ctx context.Context, userID string) (bool, error)
+	UpdateAppMetadata(ctx context.Context, userID string, metadata map[string]any) error
+
+	// New methods for middleware
+	CreateUserFromID(ctx context.Context, userID string) error
+	UserExists(ctx context.Context, userID string) (bool, error)
+}

@@ -380,3 +380,63 @@ func (s *UserService) UpdateAppMetadata(
 
 	return nil
 }
+
+
+// CreateUserFromID creates a user with just the Auth0 user ID (for middleware)
+func (s *UserService) CreateUserFromID(ctx context.Context, userID string) error {
+	s.appCtx.Logger.Debug("CreateUserFromID called", map[string]any{"userID": userID})
+
+	// Check if user already exists
+	exists, err := s.dbAdapter.CheckUserExists(ctx, userID)
+	if err != nil {
+			s.appCtx.Logger.Error("Failed to check user existence", map[string]any{
+					"userID": userID,
+					"error":  err,
+			})
+			return fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	if exists {
+			s.appCtx.Logger.Debug("User already exists", map[string]any{"userID": userID})
+			return nil
+	}
+
+	// Create minimal user record
+	user := models.User{
+			UserID: userID,
+			Email:  fmt.Sprintf("%s@placeholder.com", userID), // Placeholder email
+	}
+
+	_, err = s.dbAdapter.CreateUser(ctx, user)
+	if err != nil {
+			s.appCtx.Logger.Error("Failed to create minimal user", map[string]any{
+					"userID": userID,
+					"error":  err,
+			})
+			return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	s.appCtx.Logger.Debug("CreateUserFromID success", map[string]any{"userID": userID})
+	return nil
+}
+
+// UserExists checks if a user exists in the database
+func (s *UserService) UserExists(ctx context.Context, userID string) (bool, error) {
+	s.appCtx.Logger.Debug("UserExists called", map[string]any{"userID": userID})
+
+	exists, err := s.dbAdapter.CheckUserExists(ctx, userID)
+	if err != nil {
+			s.appCtx.Logger.Error("Failed to check user existence", map[string]any{
+					"userID": userID,
+					"error":  err,
+			})
+			return false, fmt.Errorf("failed to check user existence: %w", err)
+	}
+
+	s.appCtx.Logger.Debug("UserExists result", map[string]any{
+			"userID": userID,
+			"exists": exists,
+	})
+
+	return exists, nil
+}
