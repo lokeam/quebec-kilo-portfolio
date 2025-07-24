@@ -56,6 +56,7 @@ export default function OnboardingToastSetup() {
     setOptimisticOnboardingComplete();
     setOptimisticIntroToasts(true);
     setWantsSetup(true);
+
     navigate(NAVIGATION_ROUTES.ONBOARDING_COMPLETE);
 
     // Then update backend asynchronously (fire and forget)
@@ -79,6 +80,7 @@ export default function OnboardingToastSetup() {
     setOptimisticOnboardingComplete();
     setOptimisticIntroToasts(false);
     setWantsSetup(false);
+
     navigate(NAVIGATION_ROUTES.ONBOARDING_COMPLETE);
 
     // Then update backend asynchronously (fire and forget)

@@ -1,6 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
-import { useOnboardingStatus } from '@/core/auth/hooks/useOnboardingStatus';
+import { useAuthStatus } from '@/core/auth/hooks/useAuthStatus';
 import { getOnboardingDebugState, logDebugInfo } from '@/core/utils/debug/onboardingDebug';
 import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
 
@@ -9,19 +8,18 @@ interface OnboardingProtectedRouteProps {
 }
 
 export default function OnboardingProtectedRoute({ children }: OnboardingProtectedRouteProps) {
-  const { isAuthenticated, isLoading: authLoading } = useAuthContext(); // Only get auth data
-  const { hasCompletedOnboarding, isLoading: onboardingLoading } = useOnboardingStatus(); // Safe, no API calls
+  const { isLoading, isAuthenticated, hasCompletedOnboarding } = useAuthStatus();
   const debugState = getOnboardingDebugState();
 
   console.log(
     'OnboardingProtectedRoute:',
     'isAuthenticated =', isAuthenticated,
-    'authLoading =', authLoading,
+    'isLoading =', isLoading,
     'hasCompletedOnboarding =', hasCompletedOnboarding
   );
 
-  // Show loading while Auth0 is loading
-  if (authLoading || onboardingLoading) {
+  // Show loading while auth status is being determined
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <LoadingPage />
@@ -52,7 +50,7 @@ export default function OnboardingProtectedRoute({ children }: OnboardingProtect
     return <>{children}</>;
   }
 
-  // Check if user has completed onboarding (based on Auth0 user data, no API calls)
+  // Check if user has completed onboarding
   if (!hasCompletedOnboarding) {
     logDebugInfo('OnboardingProtectedRoute', 'User has not completed onboarding - allowing access');
     return <>{children}</>;

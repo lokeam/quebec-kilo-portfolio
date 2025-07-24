@@ -13,14 +13,14 @@ declare global {
 /**
  * Hook for onboarding status operations
  *
- * This hook determines onboarding status using Auth0 app metadata.
- * It first tries to get data from custom claims in the ID token,
- * then falls back to the user.app_metadata object.
- * No API calls are made - it uses Auth0's built-in user data.
+ * This hook determines onboarding status using Auth0 app metadata and custom claims.
+ * It first tries to get data from custom claims in the ID token (for user name, etc.),
+ * then falls back to the user.app_metadata object for basic onboarding status.
+ * Custom claims are necessary for complete onboarding data.
  *
  * @example
  * ```typescript
- * // ✅ GOOD: No API calls, uses Auth0 app metadata
+ * // ✅ GOOD: Gets custom claims for complete onboarding data
  * function OnboardingProtectedRoute() {
  *   const { hasCompletedOnboarding } = useOnboardingStatus();
  *   // ...
@@ -28,7 +28,6 @@ declare global {
  * ```
  */
 export const useOnboardingStatus = () => {
-  //console.log('🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 useOnboardingStatus called');
   const { user, getIdTokenClaims } = useAuth0(); // Get Auth0 user object and token claims
   const debugState = getOnboardingDebugState();
   const [onboardingStatus, setOnboardingStatus] = useState<{
@@ -52,7 +51,7 @@ export const useOnboardingStatus = () => {
       if (!user) return;
 
       try {
-        // First, try to get from ID token claims (custom claims)
+        // First, try to get from ID token claims (custom claims) - NECESSARY for user name
         const claims = await getIdTokenClaims();
         const namespace = 'https://qko.app/claims';
 
@@ -130,7 +129,7 @@ export const useOnboardingStatus = () => {
   return {
     hasCompletedOnboarding: finalOnboardingStatus,
     hasCompletedNameStep: finalNameStepStatus,
-    isLoading: user ? onboardingStatus === null : false, // Only loading if we have a user but haven't determined status yet
+    isLoading: user ? onboardingStatus === null : false, // Loading if we have a user but haven't determined status yet
     profile: null, // No profile data since no API calls
   };
 };

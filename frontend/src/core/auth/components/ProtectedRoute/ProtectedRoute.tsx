@@ -1,5 +1,4 @@
-import { useAuthContext } from '@/core/auth/context-provider/AuthContext';
-import { useOnboardingStatus } from '@/core/auth/hooks/useOnboardingStatus';
+import { useAuthStatus } from '@/core/auth/hooks/useAuthStatus';
 import { Navigate } from 'react-router-dom';
 import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
 import { getOnboardingDebugState, logDebugInfo } from '@/core/utils/debug/onboardingDebug';
@@ -9,17 +8,11 @@ interface ProtectedRouteProps {
 };
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const {
-    isAuthenticated,
-    isLoading,
-  } = useAuthContext();
-
-  const { hasCompletedOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
-
+  const { isLoading, isAuthenticated, needsOnboarding } = useAuthStatus();
   const debugState = getOnboardingDebugState();
 
-  // Show loading while Auth0 is initializing OR while onboarding status is being determined
-  if (isLoading || onboardingLoading) {
+  // Show loading while auth status is being determined
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <LoadingPage />
@@ -38,22 +31,8 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     return children;
   }
 
-  // CRITICAL FIX: Only proceed if we have a definitive onboarding status
-  // This prevents the brief flash where hasCompletedOnboarding is false but we haven't determined it yet
-  if (hasCompletedOnboarding === undefined) {
-    // Still determining onboarding status, show loading
-    return (
-      <div className="min-h-screen bg-background">
-        <LoadingPage />
-      </div>
-    );
-  }
-
-  // Check if user needs to complete onboarding
-  // This applies to:
-  // 1. New users who haven't completed onboarding yet
-  // 2. Existing users who somehow don't have firstName/lastName
-  if (!hasCompletedOnboarding) {
+  // Redirect if needs onboarding
+  if (needsOnboarding) {
     logDebugInfo('ProtectedRoute', 'User needs onboarding - redirecting to onboarding');
     return (
       <>
