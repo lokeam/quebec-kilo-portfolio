@@ -141,7 +141,7 @@ export function PhysicalLocationForm({
 
   return (
     <HookFormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 mb-4">
         {/* Location Name */}
         <FormField
           control={control}

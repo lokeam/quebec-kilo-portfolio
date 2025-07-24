@@ -66,7 +66,7 @@ import { z } from 'zod';
 // Types
 import type { Game } from '@/types/domain/game';
 import type { AddGameFormPhysicalLocationsResponse, AddGameFormDigitalLocationsResponse } from '@/types/domain/search';
-import { BoxIcon, CheckCircle2 } from '@/shared/components/ui/icons';
+import { BoxIcon, CheckCircle2, SquareDashed } from '@/shared/components/ui/icons';
 import { IconCloudDataConnection } from '@/shared/components/ui/icons';
 
 // AddGameToLibraryFormSchema
@@ -238,8 +238,19 @@ export function AddGameToLibraryForm({
   return (
     <ErrorBoundary FallbackComponent={FormErrorFallback}>
       <FormContainer form={form} onSubmit={onSubmit}>
-        {/* Storage Type Selection - Only show if both types are available */}
-        {formType === 'both' && (
+        {/* Show message when no locations are available */}
+        {physicalLocations.length === 0 && digitalLocations.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <SquareDashed className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Where do you keep your games IRL?</h3>
+            <p className="text-muted-foreground">
+              Create at least one <span className="font-bold text-primary">online service</span> or <span className="font-bold text-primary">physical location</span> before adding games to your library
+            </p>
+          </div>
+        )}
+
+        {/* Storage Type Selection - Only show if both types are available and locations exist */}
+        {formType === 'both' && !(physicalLocations.length === 0 && digitalLocations.length === 0) && (
           <FormField
             control={form.control}
             name="storageType"
@@ -289,8 +300,8 @@ export function AddGameToLibraryForm({
           />
         )}
 
-        {/* Location Selection */}
-        {(formType === 'both' ? selectedStorageType : formType) && (
+        {/* Location Selection - Only show if locations exist */}
+        {!(physicalLocations.length === 0 && digitalLocations.length === 0) && (formType === 'both' ? selectedStorageType : formType) && (
           <>
             <FormField
               control={form.control}
@@ -427,20 +438,22 @@ export function AddGameToLibraryForm({
           </>
         )}
 
-        {/* Submit Button */}
-        <div className="mt-6">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={!form.formState.isValid || (formType === 'both' ? !selectedStorageType : false) || isFormSubmitting || createMutation.isPending}
-          >
-            {isFormSubmitting || createMutation.isPending
-              ? 'Adding to Library...'
-              : selectedLocationsCount > 0
-                ? `Add to Library (${selectedLocationsCount} location${selectedLocationsCount === 1 ? '' : 's'})`
-                : 'Add to Library'}
-          </Button>
-        </div>
+        {/* Submit Button - Only show if locations are available */}
+        {!(physicalLocations.length === 0 && digitalLocations.length === 0) && (
+          <div className="mt-6">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!form.formState.isValid || (formType === 'both' ? !selectedStorageType : false) || isFormSubmitting || createMutation.isPending}
+            >
+              {isFormSubmitting || createMutation.isPending
+                ? 'Adding to Library...'
+                : selectedLocationsCount > 0
+                  ? `Add to Library (${selectedLocationsCount} location${selectedLocationsCount === 1 ? '' : 's'})`
+                  : 'Add to Library'}
+            </Button>
+          </div>
+        )}
       </FormContainer>
     </ErrorBoundary>
   );

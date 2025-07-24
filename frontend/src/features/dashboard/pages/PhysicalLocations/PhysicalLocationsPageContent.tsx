@@ -318,7 +318,7 @@ export function PhysicalLocationsPageContent() {
     if (isSelectingParentLocation) {
       return (
         <div
-          className="space-y-6"
+          className="space-y-6 mb-4"
           role="region"
           aria-label="Parent location selection"
         >

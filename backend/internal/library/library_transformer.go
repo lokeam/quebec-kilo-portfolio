@@ -2,6 +2,7 @@ package library
 
 import (
 	"fmt"
+	"html"
 	"time"
 
 	"github.com/lokeam/qko-beta/internal/models"
@@ -140,11 +141,11 @@ func (la *LibraryDbAdapter) TransformPhysicalLocations(
 			}
 
 			result = append(result, types.LibraryBFFSinglePhysicalLocationResponse{
-					ParentLocationName:    loc.ParentLocationName,
+					ParentLocationName:    html.UnescapeString(loc.ParentLocationName),
 					ParentLocationId:      loc.ParentLocationID,
 					ParentLocationType:    loc.ParentLocationType,
 					ParentLocationBgColor: loc.ParentLocationBgColor,
-					SublocationName:       loc.SublocationName,
+					SublocationName:       html.UnescapeString(loc.SublocationName),
 					SublocationId:         loc.SublocationID,
 					SublocationType:       loc.SublocationType,
 					GamePlatformVersions:  platformVersions,
@@ -184,7 +185,7 @@ func (la *LibraryDbAdapter) TransformDigitalLocations(
 			}
 
 			result = append(result, types.LibraryBFFSingleDigitalLocationResponse{
-					DigitalLocationName:  loc.DigitalLocationName,
+					DigitalLocationName:  html.UnescapeString(loc.DigitalLocationName),
 					DigitalLocationId:    loc.DigitalLocationID,
 					GamePlatformVersions: platformVersions,
 			})

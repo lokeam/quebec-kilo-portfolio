@@ -174,12 +174,12 @@ export function SearchResult({
                 </Button>
               )}
             {/* Add to Wishlist Button */}
-              {showWishlistButton && (
+              {/* {showWishlistButton && (
                 <Button variant="outline" onClick={handleAddToWishlist}>
                   <IconHeart className="w-5 h-5" />
                   <span className="hidden md:block text-sm font-medium text-white whitespace-nowrap">Add to wishlist</span>
                 </Button>
-              )}
+              )} */}
             </div>
           )
         }

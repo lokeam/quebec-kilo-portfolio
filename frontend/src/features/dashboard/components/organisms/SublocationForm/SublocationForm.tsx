@@ -142,7 +142,7 @@ export function SublocationForm({
     <HookFormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Parent Location Info */}
-        <div className="flex items-center gap-4 p-4 bg-slate-100 rounded-lg">
+        <div className="flex items-center gap-4 p-4 border-2 border-[#7CC254] rounded-lg">
           <PhysicalLocationIcon
             type={parentLocation.physicalLocationType}
             bgColor={(parentLocation.bgColor as LocationIconBgColor) || 'red'}

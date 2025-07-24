@@ -108,4 +108,5 @@ export {
   X,                       // Used in 1 file
   Info,                    // Used in 1 file
   Sheet,                   // Used in 1 file
+  SquareDashed,            // Used in 1 file
 } from 'lucide-react';

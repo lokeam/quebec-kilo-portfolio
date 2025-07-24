@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 
 // Shadcn UI Components
-import { Switch } from "@/shared/components/ui/switch"
+
 import { Button } from "@/shared/components/ui/button";
 import {
   FormControl,
@@ -128,7 +128,7 @@ export function OnlineServiceForm({
     const paymentMethod = data.paymentMethod.toLowerCase();
     const servicePayload = {
       name: data.name,
-      isActive: data.isSubscriptionService ? data.isActive : true,
+      isActive: true, // Always treat as active since switch is commented out
       url: data.url,
       isSubscription: data.isSubscriptionService,
       payment_method: paymentMethod,
@@ -218,7 +218,7 @@ export function OnlineServiceForm({
         {isSubscriptionService && (
           <>
             {/* Active Status */}
-            <FormField
+            {/* <FormField
               control={form.control}
               name="isActive"
               render={({ field }) => (
@@ -237,7 +237,7 @@ export function OnlineServiceForm({
                   </FormControl>
                 </FormItem>
               )}
-            />
+            /> */}
 
             {/* Billing Cycle */}
             <FormField

@@ -144,23 +144,7 @@ export function SpendTrackingForm({
   const selectedCategory = watch('spending_category_id');
   const isDigitalCategory = selectedCategory === 5; // Digital Game
 
-  // Debug form state changes
-  // useEffect(() => {
-  //   console.log('[DEBUG] SpendTrackingForm: Form state changed');
-  //   console.log('[DEBUG] SpendTrackingForm: Current errors:', errors);
-  //   console.log('[DEBUG] SpendTrackingForm: Form is valid:', form.formState.isValid);
-  //   console.log('[DEBUG] SpendTrackingForm: Form values:', form.getValues());
-  // }, [errors, form.formState.isValid, form]);
-
   const onSubmit = useCallback((data: FormValues) => {
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form data received:', data);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Current form errors:', form.formState.errors);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form is valid:', form.formState.isValid);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Form is dirty:', form.formState.isDirty);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: All form values:', form.getValues());
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Amount field value:', form.getValues('amount'));
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Purchase date field value:', form.getValues('purchase_date'));
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Payment method field value:', form.getValues('payment_method'));
 
     const payload: CreateOneTimePurchaseRequest = {
       title: data.title,
@@ -172,10 +156,6 @@ export function SpendTrackingForm({
       is_wishlisted: false,
       is_digital: isDigitalCategory || !!data.digital_location_id,
     };
-
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: Payload being sent to service:', payload);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: isDigitalCategory:', isDigitalCategory);
-    // console.log('[DEBUG] SpendTrackingForm onSubmit: digital_location_id:', data.digital_location_id);
 
     if (isEditing && spendTrackingData) {
       // Update existing item
@@ -210,23 +190,11 @@ export function SpendTrackingForm({
     }
   }, [createMutation, updateMutation, isEditing, spendTrackingData, isDigitalCategory, onSuccess, onClose]);
 
-  // Debug when form is submitted but validation fails
-  const handleSubmitWithDebug = useCallback((data: FormValues) => {
-    console.log('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Called with data:', data);
-    console.log('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Form errors at submit:', form.formState.errors);
 
-    if (!form.formState.isValid) {
-      console.error('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Form is not valid!');
-      console.error('[DEBUG] SpendTrackingForm handleSubmitWithDebug: Validation errors:', form.formState.errors);
-      return;
-    }
-
-    onSubmit(data);
-  }, [form, onSubmit]);
 
   return (
     <HookFormProvider {...form}>
-      <form onSubmit={handleSubmit(handleSubmitWithDebug)} className="space-y-8">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         {/* Title */}
         <FormField
           control={control}
@@ -287,8 +255,8 @@ export function SpendTrackingForm({
           )}
         />
 
-        {/* Digital Location (only show for digital categories) */}
-        {isDigitalCategory && (
+        {/* Digital Location (only show for digital categories AND when digital locations exist) */}
+        {isDigitalCategory && digitalLocations.length > 0 && (
           <FormField
             control={control}
             name="digital_location_id"
@@ -429,7 +397,7 @@ export function SpendTrackingForm({
         <div className="flex justify-between w-full mt-6">
           <Button
             type="submit"
-            className={isEditing && onDelete ? "flex-1" : "w-full"}
+            className={`mb-4 ${isEditing && onDelete ? "flex-1" : "w-full"}`}
             disabled={isEditing ? (updateMutation.isPending || !form.formState.isDirty) : createMutation.isPending}
           >
             {isEditing
