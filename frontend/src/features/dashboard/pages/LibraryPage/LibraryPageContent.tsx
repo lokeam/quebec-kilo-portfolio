@@ -64,12 +64,12 @@ export function LibraryPageContent() {
     const matchesPlatform = platformFilters.length === 0 ||
       [
         // Check physical locations
-        ...game.physicalLocations.flatMap(location =>
-          location.gamePlatformVersions.map(platform => platform.platformName)
+        ...(game.physicalLocations || []).flatMap(location =>
+          (location.gamePlatformVersions || []).map(platform => platform.platformName)
         ),
         // Check digital locations
-        ...game.digitalLocations.flatMap(location =>
-          location.gamePlatformVersions.map(platform => platform.platformName)
+        ...(game.digitalLocations || []).flatMap(location =>
+          (location.gamePlatformVersions || []).map(platform => platform.platformName)
         )
       ].some(platformName => platformFilters.includes(platformName));
 
@@ -77,12 +77,12 @@ export function LibraryPageContent() {
     const matchesLocation = locationFilters.length === 0 ||
       [
         // Check physical locations
-        ...game.physicalLocations.flatMap(location => [
+        ...(game.physicalLocations || []).flatMap(location => [
           location.sublocationName || '',
           location.parentLocationName || ''
         ]),
         // Check digital locations
-        ...game.digitalLocations.map(location => location.digitalLocationName || '')
+        ...(game.digitalLocations || []).map(location => location.digitalLocationName || '')
       ].some(locationName => locationFilters.includes(locationName));
 
     return matchesSearch && matchesPlatform && matchesLocation;

@@ -30,9 +30,11 @@ export function useGetDigitalServicesCatalog() {
       try {
         console.log('[DEBUG] useGetDigitalServicesCatalog: Starting API call');
         const services = await getServicesCatalog();
-        console.log('[DEBUG] useGetDigitalServicesCatalog: API call successful, got', services.length, 'services');
+        console.log('[DEBUG] useGetDigitalServicesCatalog: API call successful, got', services?.length || 0, 'services');
         console.log('[DEBUG] useGetDigitalServicesCatalog: Services data:', services);
-        return services;
+
+        // Ensure we always return an array
+        return services || [];
       } catch (error) {
         console.error('[DEBUG] useGetDigitalServicesCatalog: API call failed:', error);
         logger.error('Failed to fetch digital services catalog', { error });

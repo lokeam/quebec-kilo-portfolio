@@ -29,9 +29,13 @@ export const adaptBFFResponseItemToDigitalLocation = (
  * Transforms BFF response to DigitalLocation array
  */
 export const adaptBFFResponseToDigitalLocations = (
-  response: { digitalLocations: DigitalLocationBFFResponseItem[] | null }
+  response: { digitalLocations: DigitalLocationBFFResponseItem[] | null } | null
 ): DigitalLocation[] => {
   // Defensive check: ensure we always have an array, even if backend returns null
+  if (!response) {
+    return [];
+  }
+
   const digitalLocations = response.digitalLocations || [];
   return digitalLocations.map(adaptBFFResponseItemToDigitalLocation);
 };

@@ -21,12 +21,12 @@ export function useLibraryFilters(libraryItems: LibraryGameItemRefactoredRespons
     const uniquePlatforms = Array.from(new Set(
       libraryItems.flatMap(item => [
         // Extract platforms from physical locations
-        ...item.physicalLocations.flatMap(location =>
-          location.gamePlatformVersions.map(platform => platform.platformName)
+        ...(item.physicalLocations || []).flatMap(location =>
+          (location.gamePlatformVersions || []).map(platform => platform.platformName)
         ),
         // Extract platforms from digital locations
-        ...item.digitalLocations.flatMap(location =>
-          location.gamePlatformVersions.map(platform => platform.platformName)
+        ...(item.digitalLocations || []).flatMap(location =>
+          (location.gamePlatformVersions || []).map(platform => platform.platformName)
         )
       ])
     ))
@@ -41,7 +41,7 @@ export function useLibraryFilters(libraryItems: LibraryGameItemRefactoredRespons
 
     libraryItems.forEach(item => {
       // Add physical locations
-      item.physicalLocations.forEach(location => {
+      (item.physicalLocations || []).forEach(location => {
         // Add sublocation name if it exists
         if (location.sublocationName) {
           locationSet.add(location.sublocationName);
@@ -53,7 +53,7 @@ export function useLibraryFilters(libraryItems: LibraryGameItemRefactoredRespons
       });
 
       // Add digital locations
-      item.digitalLocations.forEach(location => {
+      (item.digitalLocations || []).forEach(location => {
         if (location.digitalLocationName) {
           locationSet.add(location.digitalLocationName);
         }

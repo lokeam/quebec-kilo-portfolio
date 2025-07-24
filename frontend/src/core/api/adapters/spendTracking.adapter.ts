@@ -28,18 +28,18 @@ export const spendTrackingAdapter = {
       currentTotalThisMonth: response.currentTotalThisMonth?.map(item => ({
         ...item,
         mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
-      })) || null,
+      })) || [],
       oneTimeThisMonth: response.oneTimeThisMonth?.map(item => ({
         ...item,
         mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
-      })) || null,
+      })) || [],
       recurringNextMonth: response.recurringNextMonth?.map(item => ({
         ...item,
         mediaType: camelCaseMediaType(item.mediaType) as MediaCategory
-      })) || null,
+      })) || [],
       totalMonthlySpending: {
         ...response.totalMonthlySpending,
-        percentageChange: Math.round(response.totalMonthlySpending.percentageChange * 10) / 10
+        percentageChange: Math.round((response.totalMonthlySpending?.percentageChange || 0) * 10) / 10
       }
     };
   }

@@ -18,10 +18,18 @@ export function useFilteredServices(services: DigitalLocationBFFResponseItem[]) 
   console.log('[DEBUG] useFilteredServices: Services:', services);
 
   return useMemo(() => {
+    if (!services || !Array.isArray(services)) {
+      return [];
+    }
+
     return services.filter((service) => {
+      // Ensure service has required properties
+      if (!service || typeof service !== 'object') {
+        return false;
+      }
+
       // Search filter - match against both label and name fields
       const matchesSearch = !searchQuery ||
-        service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (service.name && service.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
       // Billing cycle filter

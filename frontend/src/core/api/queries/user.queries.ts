@@ -60,8 +60,12 @@ export const useGetUserProfile = () => {
   return useAPIQuery<UserProfile>({
     queryKey: userKeys.profile(),
     queryFn: async () => {
-
       const profile = await getUserProfile();
+
+      if (!profile) {
+        throw new Error('No user profile received from server');
+      }
+
       return profile;
     },
     staleTime: 30000, // 30 seconds - profile doesn't change frequently

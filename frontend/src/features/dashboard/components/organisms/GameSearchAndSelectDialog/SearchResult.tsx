@@ -147,7 +147,7 @@ export function SearchResult({
               {game.platforms.map((platform, index) => (
                 <span key={platform.id}>
                   {platform.name}
-                  {index < game.platforms!.length - 1 && (
+                  {index < (game.platforms?.length || 0) - 1 && (
                     <span className="mx-1">/</span>
                   )}
                 </span>

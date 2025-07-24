@@ -90,6 +90,12 @@ export function useGameSearch(criteria: SearchCriteria) {
       try {
         // Get raw API response
         const response = await searchGames(criteria);
+
+        if (!response || !response.games) {
+          logger.error('Invalid search response received', { response });
+          throw new Error('Invalid search response received');
+        }
+
         logger.debug('🔍 Search succeeded - useGameSearch raw response:', {
           resultCount: response.games.length,
           total: response.total

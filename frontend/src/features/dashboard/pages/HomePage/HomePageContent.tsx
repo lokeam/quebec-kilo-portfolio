@@ -93,8 +93,41 @@ export function HomePageContent() {
     });
   };
 
+  // Debug function to test "No toasts" scenario
+  const testNoToasts = () => {
+    // Clear any existing optimistic state
+    delete window.__ONBOARDING_OPTIMISTIC_COMPLETE__;
+    delete window.__WANTS_INTRO_TOASTS__;
+    localStorage.removeItem('__ONBOARDING_OPTIMISTIC_COMPLETE__');
+    localStorage.removeItem('__WANTS_INTRO_TOASTS__');
+    localStorage.removeItem('shownIntroToasts');
+
+    // Set optimistic state to "no toasts"
+    window.__ONBOARDING_OPTIMISTIC_COMPLETE__ = true;
+    window.__WANTS_INTRO_TOASTS__ = false;
+    localStorage.setItem('__ONBOARDING_OPTIMISTIC_COMPLETE__', 'true');
+    localStorage.setItem('__WANTS_INTRO_TOASTS__', 'false');
+
+    console.log('✅ Set optimistic state to "no toasts"');
+    window.location.reload();
+  };
+
   if (isLoading) {
     return <HomePageSkeleton />;
+  }
+
+  // Add null check for dashboardData
+  if (!dashboardData) {
+    return (
+      <PageMain>
+        <PageHeadline>
+          <h1 className='text-2xl font-bold tracking-tight'>Dashboard</h1>
+        </PageHeadline>
+        <div className="text-muted-foreground text-center py-8">
+          Unable to load dashboard data
+        </div>
+      </PageMain>
+    );
   }
 
   console.log('dashboard bff response', dashboardData);
@@ -139,6 +172,13 @@ export function HomePageContent() {
           >
             Debug Current State
           </button>
+          {/* Debug button to test "No toasts" scenario */}
+          <button
+            onClick={testNoToasts}
+            className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            Test No Toasts
+          </button>
           {/* <Button>Download Dashboard Summary</Button> */}
         </div>
       </PageHeadline>
@@ -147,37 +187,36 @@ export function HomePageContent() {
 
         {/* Statistics Cards */}
         {/* NOTE:
-          We're already explictly data existence and loading state.
-          React Query guarantees that the data grabbed from the API exists when loading is false.
-          The non-null assertion employed below is the standard pattern recommended by the React Query docs.
+          We're now properly checking for data existence before using it.
+          This prevents crashes when data is null or undefined.
         */}
         <SingleStatisticsCard
-          stats={dashboardData!.gameStats}
+          stats={dashboardData.gameStats}
         />
         <SingleStatisticsCard
-          stats={dashboardData!.subscriptionStats}
+          stats={dashboardData.subscriptionStats}
         />
         <SingleStatisticsCard
-          stats={dashboardData!.digitalLocationStats}
+          stats={dashboardData.digitalLocationStats}
         />
         <SingleStatisticsCard
-          stats={dashboardData!.physicalLocationStats}
+          stats={dashboardData.physicalLocationStats}
         />
 
         {/* Larger Cards */}
         <OnlineServicesCard
-          subscriptionTotal={dashboardData!.subscriptionTotal}
-          digitalLocations={dashboardData!.digitalLocations}
+          subscriptionTotal={dashboardData.subscriptionTotal}
+          digitalLocations={dashboardData.digitalLocations}
         />
 
         <StorageLocationsTabCard
-          digitalLocations={dashboardData!.digitalLocations}
-          sublocations={dashboardData!.sublocations}
+          digitalLocations={dashboardData.digitalLocations}
+          sublocations={dashboardData.sublocations}
         />
 
         <ItemsByPlatformCard
-          platformList={dashboardData!.platformList}
-          newItemsThisMonth={dashboardData!.newItemsThisMonth}
+          platformList={dashboardData.platformList}
+          newItemsThisMonth={dashboardData.newItemsThisMonth}
         />
 
         {/* <WishListDealsCard
@@ -188,8 +227,8 @@ export function HomePageContent() {
         /> */}
 
         <MonthlySpendingCard
-          mediaTypeDomains={dashboardData!.mediaTypeDomains}
-          monthlyExpenditures={dashboardData!.monthlyExpenditures}
+          mediaTypeDomains={dashboardData.mediaTypeDomains}
+          monthlyExpenditures={dashboardData.monthlyExpenditures}
         />
 
       </PageGrid>

@@ -43,9 +43,16 @@ const adaptLibraryBFFResponse = (response: LibraryItemsBFFResponse | undefined) 
 
 // REFACTORED RESPONSE - updated adapters
 const adaptLibraryBFFRefactoredResponse = (response: LibraryItemsBFFRefactoredResponse | undefined) => {
+  if (!response) {
+    return {
+      libraryItems: [],
+      recentlyAdded: []
+    };
+  }
+
   return {
-    libraryItems: response?.libraryItems?.filter(isValidLibraryItemRefactored) ?? [],
-    recentlyAdded: response?.recentlyAdded?.filter(isValidLibraryItemRefactored) ?? []
+    libraryItems: response.libraryItems?.filter(isValidLibraryItemRefactored) ?? [],
+    recentlyAdded: response.recentlyAdded?.filter(isValidLibraryItemRefactored) ?? []
   };
 };
 
