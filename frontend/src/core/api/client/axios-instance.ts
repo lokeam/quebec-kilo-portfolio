@@ -64,23 +64,37 @@ const axiosInstance = axios.create({
   transformResponse: [
     (raw: string) => {
       try {
-        const parsed = JSON.parse(raw) as { success: boolean; error?: string; data: unknown };
-        if (!isPlainObject(parsed) || typeof parsed.success !== 'boolean') {
-          throw new Error('Invalid API response structure');
-        }
-        if (!parsed.success) {
-          throw new Error(parsed.error ?? 'API returned unsuccessful status');
-        }
-        if (!isPlainObject(parsed.data)) {
-          throw new Error('Missing API data field');
-        }
-        const camelCasedData = toCamelCase(parsed.data);
-        console.log("🐫 camelCasedData data", camelCasedData);
+        console.log('🔍 TransformResponse - Raw response:', raw);
 
-        return camelCasedData;
+        const parsed = JSON.parse(raw) as { success: boolean; error?: string; data: unknown };
+
+        // Only transform successful responses
+        if (!isPlainObject(parsed)) {
+          console.log('🔍 TransformResponse - Not a plain object, returning raw');
+          // If it's not a plain object, return as-is (could be an error response)
+          return raw;
+        }
+
+        console.log('🔍 TransformResponse - Parsed response:', parsed);
+
+        // Check if this is a successful response with the expected structure
+        if (typeof parsed.success === 'boolean' && parsed.success === true) {
+          if (!isPlainObject(parsed.data)) {
+            throw new Error('Missing API data field');
+          }
+          const camelCasedData = toCamelCase(parsed.data);
+          console.log("🐫 camelCasedData data", camelCasedData);
+          return camelCasedData;
+        }
+
+        // For unsuccessful responses or unexpected structures, return as-is
+        // This allows error responses to be handled by the response interceptor
+        console.log('🔍 TransformResponse - Unsuccessful response, returning raw');
+        return raw;
       } catch (err) {
         logger.error('❌ Response parsing error', { error: err, raw });
-        throw err;
+        // Return raw response on parsing error to allow error handling
+        return raw;
       }
     }
   ]
@@ -154,12 +168,37 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
+    // Try to extract error message from response
+    let errorMessage = error.message;
+    if (error.response?.data) {
+      try {
+        const errorData = typeof error.response.data === 'string'
+          ? JSON.parse(error.response.data)
+          : error.response.data;
+
+        // Extract error message from various possible formats
+        if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } catch (parseError) {
+        // If we can't parse the error response, use the original message
+        logger.debug('Could not parse error response', { error: parseError, data: error.response.data });
+      }
+    }
+
+    // Update the error message
+    error.message = errorMessage;
+
     // Sentry track error: Log the API error to Sentry's monitoring service
     logApiError(error, {
       url: originalRequest?.url,
       method: originalRequest?.method,
       status: error.response?.status,
-      errorMessage: error.message,
+      errorMessage: errorMessage,
       responseData: error.response?.data,
     });
 

@@ -112,13 +112,13 @@ export const useOnboardingStatus = () => {
 
   // Apply debug overrides and optimistic state
   const finalOnboardingStatus = debugState.forceCompletedOnboarding ? true :
-    debugState.forceIncompleteOnboarding ? false :
-    window.__ONBOARDING_OPTIMISTIC_COMPLETE__ || localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__') === 'true' ? true :
-    onboardingStatus?.hasCompletedOnboarding ?? false;
+  debugState.forceIncompleteOnboarding ? false :
+  window.__ONBOARDING_OPTIMISTIC_COMPLETE__ || localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__') === 'true' ? true :
+  onboardingStatus?.hasCompletedOnboarding ?? false;
 
   const finalNameStepStatus = debugState.forceCompletedOnboarding ? true :
-    debugState.forceIncompleteOnboarding ? false :
-    onboardingStatus?.hasCompletedNameStep ?? false;
+  debugState.forceIncompleteOnboarding ? false :
+  onboardingStatus?.hasCompletedNameStep ?? false;
 
   console.log('🔍 Onboarding Status:', {
     hasCompletedOnboarding: finalOnboardingStatus,

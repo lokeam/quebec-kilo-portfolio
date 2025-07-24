@@ -18,7 +18,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   const debugState = getOnboardingDebugState();
 
-  // Show loading while Auth0 is initializing
+  // Show loading while Auth0 is initializing OR while onboarding status is being determined
   if (isLoading || onboardingLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -38,13 +38,29 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
     return children;
   }
 
+  // CRITICAL FIX: Only proceed if we have a definitive onboarding status
+  // This prevents the brief flash where hasCompletedOnboarding is false but we haven't determined it yet
+  if (hasCompletedOnboarding === undefined) {
+    // Still determining onboarding status, show loading
+    return (
+      <div className="min-h-screen bg-background">
+        <LoadingPage />
+      </div>
+    );
+  }
+
   // Check if user needs to complete onboarding
   // This applies to:
   // 1. New users who haven't completed onboarding yet
   // 2. Existing users who somehow don't have firstName/lastName
   if (!hasCompletedOnboarding) {
     logDebugInfo('ProtectedRoute', 'User needs onboarding - redirecting to onboarding');
-    return <Navigate to="/onboarding/welcome" replace />;
+    return (
+      <>
+        <LoadingPage />
+        <Navigate to="/onboarding/welcome" replace />
+      </>
+    );
   }
 
   // User is authenticated and has completed onboarding, show the protected content

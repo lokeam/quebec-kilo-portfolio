@@ -60,5 +60,10 @@ export default function OnboardingProtectedRoute({ children }: OnboardingProtect
 
   // User has completed onboarding - redirect to home
   logDebugInfo('OnboardingProtectedRoute', 'User has completed onboarding - redirecting to home');
-  return <Navigate to="/" replace />;
+  return (
+    <>
+      <LoadingPage />
+      <Navigate to="/" replace />
+    </>
+  );
 }

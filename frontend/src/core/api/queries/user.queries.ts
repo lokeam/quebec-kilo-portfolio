@@ -84,6 +84,27 @@ export const useCreateUserProfile = () => {
       queryClient.invalidateQueries({ queryKey: userKeys.profile() });
       queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
+    onError: (error: Error) => {
+      console.error('Failed to create user profile:', error);
+
+      // Show user-friendly error message
+      let errorMessage = 'Failed to create user profile. Please try again.';
+
+      if (error?.message) {
+        if (error.message.includes('failed to check user existence')) {
+          errorMessage = 'Unable to verify user account. Please try again or contact support.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Server error occurred. Please try again in a few moments.';
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+          errorMessage = 'Authentication error. Please log in again.';
+        } else if (error.message.includes('409')) {
+          errorMessage = 'User profile already exists.';
+        }
+      }
+
+      // You can add toast notification here if you have a toast system
+      console.error('User profile creation error:', errorMessage);
+    },
   });
 };
 
