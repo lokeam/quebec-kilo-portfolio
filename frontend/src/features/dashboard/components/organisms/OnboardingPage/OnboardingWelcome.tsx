@@ -33,7 +33,7 @@ export function OnboardingWelcome() {
           variants={STAGGER_CHILD_VARIANTS}
         >
           Welcome to{" "}
-          <span className="font-bold tracking-tighter">QKO</span>
+          <span className="font-bold tracking-tighter">QKO</span> (<span className="text-2xl text-primary">Beta</span>)
         </motion.h1>
         <motion.p
           className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
@@ -52,6 +52,24 @@ export function OnboardingWelcome() {
           variants={STAGGER_CHILD_VARIANTS}
         >
           Track recurring online service fees and one-time purchases.
+        </motion.p>
+        <motion.p
+          className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
+          variants={STAGGER_CHILD_VARIANTS}
+        >
+          This app is still in <span className="font-bold text-primary">early access</span> release!
+        </motion.p>
+        <motion.p
+          className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
+          variants={STAGGER_CHILD_VARIANTS}
+        >
+          Please report any bugs or issues you find!
+        </motion.p>
+        <motion.p
+          className="max-w-md text-accent-foreground/80 transition-colors sm:text-lg"
+          variants={STAGGER_CHILD_VARIANTS}
+        >
+          Thank you for your help!
         </motion.p>
         <motion.div
           variants={STAGGER_CHILD_VARIANTS}

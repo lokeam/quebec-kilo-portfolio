@@ -2,6 +2,14 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
 import { getOnboardingDebugState } from '@/core/utils/debug/onboardingDebug';
 
+// Extend Window interface for optimistic state
+declare global {
+  interface Window {
+    __ONBOARDING_OPTIMISTIC_COMPLETE__?: boolean;
+    __WANTS_INTRO_TOASTS__?: boolean;
+  }
+}
+
 /**
  * Hook for onboarding status operations
  *
@@ -102,9 +110,10 @@ export const useOnboardingStatus = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Apply debug overrides
+  // Apply debug overrides and optimistic state
   const finalOnboardingStatus = debugState.forceCompletedOnboarding ? true :
     debugState.forceIncompleteOnboarding ? false :
+    window.__ONBOARDING_OPTIMISTIC_COMPLETE__ || localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__') === 'true' ? true :
     onboardingStatus?.hasCompletedOnboarding ?? false;
 
   const finalNameStepStatus = debugState.forceCompletedOnboarding ? true :
