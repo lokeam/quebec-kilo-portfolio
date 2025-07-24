@@ -39,23 +39,24 @@ func HandleUpdateSubscription(
 	ctx context.Context,
 	dbAdapter interfaces.DigitalDbAdapter,
 	existingLocation models.DigitalLocation,
-	location types.DigitalLocationRequest,
+	location models.DigitalLocation,
 ) error {
 	locationID := location.ID
 
-	if location.IsSubscription && existingLocation.Subscription != nil {
-		// Update existing subscription
-		subscription := *existingLocation.Subscription
+	if location.IsSubscription && location.Subscription != nil {
+		// Update existing subscription with new data
+		subscription := *location.Subscription
 		subscription.LocationID = locationID
 		subscription.UpdatedAt = time.Now()
 
 		if err := dbAdapter.UpdateSubscription(ctx, subscription); err != nil {
 			return fmt.Errorf("failed to update subscription: %w", err)
 		}
-	} else if location.IsSubscription && existingLocation.Subscription == nil {
-		// Create new subscription for existing location
-		// Note: This would need to be handled by the transformer in the future
-		// For now, we'll skip this case as it requires transformation logic
+	} else if location.IsSubscription && existingLocation.Subscription != nil && location.Subscription == nil {
+		// Remove subscription if service type changed to non-subscription
+		if err := dbAdapter.DeleteSubscription(ctx, locationID); err != nil {
+			return fmt.Errorf("failed to remove subscription: %w", err)
+		}
 	} else if !location.IsSubscription && existingLocation.Subscription != nil {
 		// Remove subscription if service type changed
 		if err := dbAdapter.DeleteSubscription(ctx, locationID); err != nil {

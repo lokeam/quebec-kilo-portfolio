@@ -278,25 +278,33 @@ func (a *DigitalDbAdapter) CreateDigitalLocation(
 
 		// If subscription data exists, save it
 		if location.Subscription != nil {
-			subscriptionQuery := `
-				INSERT INTO digital_location_subscriptions
-					(digital_location_id, billing_cycle, cost_per_cycle, next_payment_date, payment_method, created_at, updated_at)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)
-				RETURNING id
-			`
+			a.logger.Debug("Saving subscription data", map[string]any{
+				"locationID": location.ID,
+				"subscription": location.Subscription,
+			})
 
 			var subID int64
+			var digitalLocationID string
+			var billingCycle string
+			var costPerCycle float64
+			var anchorDate time.Time
+			var lastPaymentDate *time.Time
+			var nextPaymentDate *time.Time
+			var paymentMethod string
+			var createdAt time.Time
+			var updatedAt time.Time
+
 			err = tx.QueryRowxContext(
 				ctx,
-				subscriptionQuery,
+				CreateSubscriptionWithAnchorDateQuery,
 				location.ID,
 				location.Subscription.BillingCycle,
 				location.Subscription.CostPerCycle,
-				location.Subscription.NextPaymentDate,
+				location.Subscription.AnchorDate,
 				location.Subscription.PaymentMethod,
 				now,
 				now,
-			).Scan(&subID)
+			).Scan(&subID, &digitalLocationID, &billingCycle, &costPerCycle, &anchorDate, &lastPaymentDate, &nextPaymentDate, &paymentMethod, &createdAt, &updatedAt)
 
 			if err != nil {
 				return fmt.Errorf("error adding subscription: %w", err)
@@ -305,6 +313,14 @@ func (a *DigitalDbAdapter) CreateDigitalLocation(
 			location.Subscription.ID = subID
 			location.Subscription.CreatedAt = now
 			location.Subscription.UpdatedAt = now
+
+			a.logger.Debug("Subscription saved successfully", map[string]any{
+				"subID": subID,
+			})
+		} else {
+			a.logger.Debug("No subscription data to save", map[string]any{
+				"locationID": location.ID,
+			})
 		}
 
 		return nil

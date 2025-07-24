@@ -15,6 +15,7 @@ import (
 type GameLibraryService struct {
 	dbAdapter interfaces.LibraryDbAdapter
 	cacheWrapper interfaces.LibraryCacheWrapper
+	dashboardCacheWrapper interfaces.DashboardCacheWrapper
 	validator interfaces.LibraryValidator
 	logger interfaces.Logger
 }
@@ -42,6 +43,7 @@ func NewGameLibraryService(
 	appContext *appcontext.AppContext,
 	dbAdapter interfaces.LibraryDbAdapter,
 	cacheWrapper interfaces.LibraryCacheWrapper,
+	dashboardCacheWrapper interfaces.DashboardCacheWrapper,
 ) (*GameLibraryService, error) {
 	if dbAdapter == nil {
 		return nil, fmt.Errorf("dbAdapter is required")
@@ -49,10 +51,14 @@ func NewGameLibraryService(
 	if cacheWrapper == nil {
 		return nil, fmt.Errorf("cacheWrapper is required")
 	}
+	if dashboardCacheWrapper == nil {
+		return nil, fmt.Errorf("dashboardCacheWrapper is required")
+	}
 
 	return &GameLibraryService{
 		dbAdapter: dbAdapter,
 		cacheWrapper: cacheWrapper,
+		dashboardCacheWrapper: dashboardCacheWrapper,
 		validator: NewLibraryValidator(),
 		logger: appContext.Logger,
 	}, nil
@@ -79,9 +85,17 @@ func (ls *GameLibraryService) CreateLibraryGame(ctx context.Context, userID stri
 		return err
 	}
 
-	// Invalidate cache
+	// Invalidate library cache
 	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := ls.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		ls.logger.Error("Failed to invalidate dashboard cache after adding game", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
 	}
 
 	return nil
@@ -106,12 +120,20 @@ func (ls *GameLibraryService) DeleteLibraryGame(
 		return err
 	}
 
-	// Invalidate cache
+	// Invalidate library cache
 	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		ls.logger.Error("Failed to invalidate user cache", map[string]any{"error": err})
 	}
 	if err := ls.cacheWrapper.InvalidateGameCache(ctx, userID, gameID); err != nil {
 		ls.logger.Error("Failed to invalidate game cache", map[string]any{"error": err})
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := ls.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		ls.logger.Error("Failed to invalidate dashboard cache after deleting game", map[string]any{
+			"error": err,
+			"userID": userID,
+		})
 	}
 
 	return nil
@@ -231,7 +253,7 @@ func (ls *GameLibraryService) UpdateLibraryGame(ctx context.Context, userID stri
 		return fmt.Errorf("error updating game in library: %w", err)
 	}
 
-	// Invalidate cache
+	// Invalidate library cache
 	if err := ls.cacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
 		ls.logger.Error("Failed to invalidate user cache", map[string]any{
 			"error": err,
@@ -243,6 +265,14 @@ func (ls *GameLibraryService) UpdateLibraryGame(ctx context.Context, userID stri
 			"error": err,
 			"userID": userID,
 			"gameID": game.GameID,
+		})
+	}
+
+	// Invalidate dashboard cache to refresh statistics
+	if err := ls.dashboardCacheWrapper.InvalidateUserCache(ctx, userID); err != nil {
+		ls.logger.Error("Failed to invalidate dashboard cache after updating game", map[string]any{
+			"error": err,
+			"userID": userID,
 		})
 	}
 

@@ -5,7 +5,7 @@ type DigitalLocationRequest struct {
 	Name           string                               `json:"name"`
 	IsActive       bool                                 `json:"isActive"`
 	URL            string                               `json:"url"`
-	IsSubscription bool                                 `json:"isSubscription"`
+	IsSubscription bool                                 `json:"is_subscription"` // IMPORTANT: MUST BE SNAKE CASE. DO NOT CHANGE.
 	PaymentMethod  string                               `json:"payment_method"`
 	Subscription   *DigitalLocationRequestSubscription  `json:"subscription,omitempty"` // pointer use for optional field
 }

@@ -197,6 +197,9 @@ func (gds *GameDigitalService) CreateDigitalLocation(ctx context.Context, userID
 	gds.logger.Debug("Creating digital location", map[string]any{
 			"userID": userID,
 			"request": locationRequest,
+			"requestIsSubscription": locationRequest.IsSubscription,
+			"requestIsActive": locationRequest.IsActive,
+			"requestHasSubscription": locationRequest.Subscription != nil,
 	})
 
 	// Transform request to database model
@@ -204,6 +207,13 @@ func (gds *GameDigitalService) CreateDigitalLocation(ctx context.Context, userID
    if err != nil {
        return models.DigitalLocation{}, fmt.Errorf("transformation failed: %w", err)
    }
+
+   gds.logger.Debug("Transformed digital location", map[string]any{
+       "digitalLocation": digitalLocation,
+       "hasSubscription": digitalLocation.Subscription != nil,
+       "isSubscription": digitalLocation.IsSubscription,
+       "isActive": digitalLocation.IsActive,
+   })
 
 	// Validate the transformed fields
 	validatedLocation, err := gds.validator.ValidateDigitalLocation(digitalLocation)
@@ -216,15 +226,6 @@ func (gds *GameDigitalService) CreateDigitalLocation(ctx context.Context, userID
 	if err != nil {
 			gds.logger.Error("Failed to add digital location to DB", map[string]any{"error": err})
 			return models.DigitalLocation{}, err
-	}
-
-	// Handle subscription creation
-	if err := HandleCreateSubscription(ctx, gds.dbAdapter, createdLocation, locationRequest); err != nil {
-			gds.logger.Error("Failed to handle subscription creation", map[string]any{
-					"error": err,
-					"locationID": createdLocation.ID,
-			})
-			// Continue without subscription, just log the error
 	}
 
 	// Invalidate the cache for this user
@@ -310,7 +311,7 @@ func (gds *GameDigitalService) UpdateDigitalLocation(
 	}
 
 	// Handle subscription updates using the new function
-	if err := HandleUpdateSubscription(ctx, gds.dbAdapter, existingLocation, location); err != nil {
+	if err := HandleUpdateSubscription(ctx, gds.dbAdapter, existingLocation, transformedLocation); err != nil {
 		gds.logger.Error("Failed to handle subscription update", map[string]any{
 				"error": err,
 				"locationID": location.ID,

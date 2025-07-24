@@ -80,11 +80,18 @@ func NewServices(appCtx *appcontext.AppContext) (*Services, error) {
 		return nil, fmt.Errorf("initializing library db adapter: %w", err)
 	}
 
+	// Create dashboard cache adapter for library service
+	libraryDashboardCacheAdapter, err := dashboard.NewDashboardCacheAdapter(cacheWrapper)
+	if err != nil {
+		return nil, fmt.Errorf("initializing dashboard cache adapter: %w", err)
+	}
+
 	// Initialize library service with dependencies
 	libraryService, err := library.NewGameLibraryService(
 		appCtx,
 		libraryDbAdapter,
 		libraryCacheAdapter,
+		libraryDashboardCacheAdapter,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("initializing library service: %w", err)

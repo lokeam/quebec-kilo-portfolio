@@ -118,7 +118,7 @@ func (da *DigitalDbAdapter) UpdateSubscription(
 		UpdateSubscriptionQuery,
 		subscription.BillingCycle,
 		subscription.CostPerCycle,
-		subscription.NextPaymentDate,
+		subscription.AnchorDate,
 		subscription.PaymentMethod,
 		subscription.UpdatedAt,
 		subscription.LocationID,
