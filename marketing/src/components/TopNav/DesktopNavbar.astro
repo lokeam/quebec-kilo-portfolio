@@ -2,7 +2,6 @@
 // DesktopNavbar component - desktop-specific logic and layout
 import NavBarItem from '@/components/TopNav/NavBarItem.astro';
 import Logo from '@/components/Logo.astro';
-import Button from '@/components/ui/Button.astro';
 import BrandButton from '@/components/BrandButton.astro';
 import ShineWrapper from '@/components/ui/ShineWrapper.astro';
 
@@ -15,7 +14,7 @@ interface Props {
 }
 
 const { navItems } = Astro.props;
-const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
+const appUrl = import.meta.env.FRONTEND_APP_URL || 'http://localhost:3000';
 ---
 
 <div class="hidden lg:flex flex-row self-center items-center justify-between py-2 mx-auto px-6 rounded-full relative z-[60] backdrop-saturate-[1.8]" id="desktop-nav">
@@ -46,7 +45,7 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
       <BrandButton
         variant="primary"
         size="md"
-        href={`${appUrl}/login`}
+        href={`${appUrl}/signup`}
         class="hidden md:block rounded-full text-white border-0"
       >
         Sign up
@@ -57,6 +56,10 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
 
 <script>
   import { animate } from "motion";
+
+  // Debug environment variables
+  console.log('appUrl:', '${appUrl}');
+  console.log('FRONTEND_APP_URL env:', '${import.meta.env.FRONTEND_APP_URL}');
 
   function initDesktopNavbar() {
     const desktopNav = document.getElementById('desktop-nav');

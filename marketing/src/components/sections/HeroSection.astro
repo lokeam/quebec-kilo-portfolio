@@ -6,7 +6,7 @@ import HeroSectionCard from '@/components/HeroSectionCard.astro';
 import ShineWrapper from '@/components/ui/ShineWrapper.astro';
 
 // Get app URL from environment variable (Astro automatically provides PUBLIC_ variables)
-const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
+const appUrl = import.meta.env.FRONTEND_APP_URL || 'http://localhost:3000';
 ---
 
 <div
@@ -29,7 +29,10 @@ const appUrl = import.meta.env.PUBLIC_APP_URL || 'http://localhost:3000';
 
     <div class="flex items-center gap-4 justify-center my-10 relative z-10">
       <ShineWrapper shineColor="white-subtle" shineDuration="normal">
-        <BrandButton class="flex space-x-2 items-center group !text-lg md:w-[300px]" href={`${appUrl}/login`}>
+        <BrandButton
+          class="flex space-x-2 items-center group !text-lg md:w-[300px]"
+          href={`${appUrl}/signup`}
+        >
           <span>Sign up or Login</span>
         </BrandButton>
       </ShineWrapper>
