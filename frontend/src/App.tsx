@@ -6,9 +6,6 @@ import ProtectedRoute from '@/core/auth/components/ProtectedRoute/ProtectedRoute
 // Preloading hooks
 import { usePreloadNavigation } from '@/shared/hooks/usePreloadNavigation';
 
-// Performance monitoring
-import { PerformanceMonitor } from '@/shared/components/ui/PerformanceMonitor/PerformanceMonitor';
-
 // Pages
 import HomePage from '@/features/dashboard/pages/HomePage/HomePage';
 import { LoadingPage } from '@/shared/components/ui/loading/LoadingPage';
@@ -206,13 +203,6 @@ function App() {
 
                   </Routes>
                 </Suspense>
-
-                {/* Debug Panel - Development Only */}
-                {/* <OnboardingDebugPanel /> */}
-                {/* <ClaimsDebugger /> */}
-
-                {/* Performance Monitor - Development Only */}
-                <PerformanceMonitor />
               </NetworkStatusProvider>
             </TooltipProvider>
           </ThemeProvider>
