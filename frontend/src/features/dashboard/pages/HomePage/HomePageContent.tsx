@@ -20,15 +20,26 @@ import { useGetDashboardBFFResponse } from '@/core/api/queries/dashboard.queries
 import { HomePageSkeleton } from './HomePageSkeleton';
 
 // Sentry tracking
-// import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
+import { useSentryTracking } from '@/shared/hooks/useSentryTracking';
+import { useEffect } from 'react';
 
 
 export function HomePageContent() {
-  const { data: dashboardData, isLoading } = useGetDashboardBFFResponse();
-  // const { trackAction, trackError, trackUserInteraction } = useSentryTracking();
+  const { data: dashboardData, isLoading, error } = useGetDashboardBFFResponse();
+  const { trackError } = useSentryTracking();
 
   // Show intro toast for adding games to library
   useShowConditionalIntroToasts(1);
+
+  // Track errors
+  useEffect(() => {
+    if (error) {
+      trackError(error as Error, {
+        component: 'HomePageContent',
+        action: 'load_dashboard_data',
+      });
+    }
+  }, [error, trackError]);
 
   if (isLoading) {
     return <HomePageSkeleton />;

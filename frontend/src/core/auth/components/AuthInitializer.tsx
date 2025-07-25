@@ -1,8 +1,8 @@
 import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import * as Sentry from '@sentry/react';
 import { saveAuth0Token } from '@/core/api/utils/auth.utils';
-import { BetaAccessErrorPage } from './BetaAccessErrorPage';
+// import { BetaAccessErrorPage } from './BetaAccessErrorPage';
 
 // Type for Auth0 error
 interface Auth0Error extends Error {
@@ -51,7 +51,7 @@ interface Auth0Error extends Error {
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const { getAccessTokenSilently, user, isAuthenticated, isLoading, error } = useAuth0();
-  const [showBetaError, setShowBetaError] = useState(false);
+  // const [showBetaError, setShowBetaError] = useState(false);
 
   useEffect(() => {
     // Save Auth0's getAccessTokenSilently fn so that we may use tokens anywhere.
@@ -70,7 +70,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
       // Handle specific error types
       if (auth0Error.error === 'unauthorized' || auth0Error.error_description?.includes('Access denied')) {
         // This is likely a beta access denial
-        setShowBetaError(true);
+        //setShowBetaError(true);
 
         Sentry.captureException(error, {
           tags: {
@@ -103,7 +103,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
       }
     } else {
       // Clear error state when no error
-      setShowBetaError(false);
+      // setShowBetaError(false);
     }
   }, [error, user]);
 
@@ -188,9 +188,9 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, user]);
 
   // Show beta access error page if access was denied
-  if (showBetaError) {
-    return <BetaAccessErrorPage />;
-  }
+  // if (showBetaError) {
+  //   return <BetaAccessErrorPage />;
+  // }
 
   return <>{children}</>;
 }
