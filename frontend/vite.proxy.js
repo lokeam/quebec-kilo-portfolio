@@ -12,7 +12,7 @@ export function createApiMiddleware() {
     // Only handle API requests
     if (req.url && req.url.startsWith('/v1/')) {
       try {
-        console.log(`[API Proxy] Forwarding request: ${req.method} ${req.url}`);
+        // console.log(`[API Proxy] Forwarding request: ${req.method} ${req.url}`);
 
         // Forward the request to the API server
         const apiResponse = await axios({
@@ -28,7 +28,7 @@ export function createApiMiddleware() {
           timeout: 30000 // 30 seconds
         });
 
-        console.log(`[API Proxy] Response received: ${apiResponse.status}`);
+        // console.log(`[API Proxy] Response received: ${apiResponse.status}`);
 
         // Return the API response
         res.setHeader('Content-Type', 'application/json');

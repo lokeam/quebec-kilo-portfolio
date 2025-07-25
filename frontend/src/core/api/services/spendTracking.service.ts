@@ -59,15 +59,15 @@ interface SpendTrackingBFFResponseWrapper {
  */
 export const getSpendTrackingPageBFFResponse = (): Promise<SpendTrackingBFFResponse> =>
   apiRequest('getSpendTrackingPageBFFResponse', async () => {
-    console.log('[DEBUG] getSpendTrackingPageBFFResponse: Making API request');
+    // console.log('[DEBUG] getSpendTrackingPageBFFResponse: Making API request');
     const response = await axiosInstance.get<SpendTrackingBFFResponseWrapper>(SPEND_TRACKING_BFF_ENDPOINT);
-    console.log('[DEBUG] getSpendTrackingPageBFFResponse: Raw API response:', response.data);
+    // console.log('[DEBUG] getSpendTrackingPageBFFResponse: Raw API response:', response.data);
 
     if (!response.data.spendTracking) {
       console.error('[DEBUG] getSpendTrackingPageBFFResponse: No spend tracking data in response:', response.data);
     }
 
-    console.log('[DEBUG] getSpendTrackingPageBFFResponse: Successfully extracted spend tracking data:', response.data.spendTracking);
+    // console.log('[DEBUG] getSpendTrackingPageBFFResponse: Successfully extracted spend tracking data:', response.data.spendTracking);
     return response.data.spendTracking;
   });
 
@@ -92,17 +92,17 @@ export const getSpendTrackingItemById = (id: string): Promise<SpendingItemBFFRes
  */
 export const createOneTimePurchase = (input: CreateOneTimePurchaseRequest): Promise<SpendingItemBFFResponse> =>
   apiRequest('createSpendTrackingItem', async () => {
-    console.log('[DEBUG] createSpendTrackingItem: Making API request');
-    console.log('[DEBUG] createSpendTrackingItem: Request payload:', input);
+    // console.log('[DEBUG] createSpendTrackingItem: Making API request');
+    // console.log('[DEBUG] createSpendTrackingItem: Request payload:', input);
 
     const response = await axiosInstance.post<SpendTrackingItemResponseWrapper>(SPEND_TRACKING_ENDPOINT, input);
-    console.log('[DEBUG] createSpendTrackingItem: Raw API response:', response.data);
+    // console.log('[DEBUG] createSpendTrackingItem: Raw API response:', response.data);
 
     if (!response.data.spendTracking) {
       console.error('[DEBUG] createSpendTrackingItem: No spend tracking data in response:', response.data);
     }
 
-    console.log('[DEBUG] createSpendTrackingItem: Successfully extracted spend tracking data:', response.data.spendTracking.item);
+    // console.log('[DEBUG] createSpendTrackingItem: Successfully extracted spend tracking data:', response.data.spendTracking.item);
     return response.data.spendTracking.item;
   });
 

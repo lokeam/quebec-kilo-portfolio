@@ -7,7 +7,7 @@ import { PageGrid } from '@/shared/components/layout/page-grid';
 import { SettingsForm } from '@/features/dashboard/pages/SettingsPage/SettingsForm';
 
 export function SettingsPageContent() {
-  console.log(`SettingsPageContent`);
+  // console.log(`SettingsPageContent`);
 
   return (
     <PageMain>

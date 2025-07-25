@@ -70,16 +70,16 @@ const SUBLOCATION_CRUD_ENDPOINT = '/v1/locations/sublocations';
  */
 export const getPhysicalLocationsBFFResponse = (): Promise<LocationsBFFResponse> =>
   apiRequest('getPhysicalLocationsBFFResponse', async () => {
-    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Making API request');
+    // console.log('[DEBUG] getPhysicalLocationsBFFResponse: Making API request');
     const response = await axiosInstance.get<{ physical: LocationsBFFResponse }>(PHYSICAL_LOCATION_BFF_ENDPOINT);
-    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Raw API response:', response.data);
+    // console.log('[DEBUG] getPhysicalLocationsBFFResponse: Raw API response:', response.data);
 
     if (!response.data.physical) {
       console.error('[DEBUG] getPhysicalLocationsBFFResponse: No physical data in response:', response.data);
       throw new Error('No physical data in response');
     }
 
-    console.log('[DEBUG] getPhysicalLocationsBFFResponse: Successfully extracted physical data:', response.data.physical);
+    // console.log('[DEBUG] getPhysicalLocationsBFFResponse: Successfully extracted physical data:', response.data.physical);
     return response.data.physical;
   });
 
@@ -191,14 +191,14 @@ export const updateSublocation = (id: string, input: Partial<CreateSublocationRe
  */
 export const deleteSublocation = (ids: string | string[]): Promise<DeleteSublocationResponse['sublocation']> => {
   const idParam = Array.isArray(ids) ? ids.join(',') : ids;
-  console.log('Making delete request for sublocation(s):', idParam);
+  // console.log('Making delete request for sublocation(s):', idParam);
 
   return apiRequest(`deleteSublocation(${idParam})`, () => {
-    console.log('Executing delete request to:', `${SUBLOCATION_CRUD_ENDPOINT}?ids=${idParam}`);
+    // console.log('Executing delete request to:', `${SUBLOCATION_CRUD_ENDPOINT}?ids=${idParam}`);
     return axiosInstance
       .delete<DeleteSublocationResponse>(`${SUBLOCATION_CRUD_ENDPOINT}?ids=${idParam}`)
       .then((response) => {
-        console.log('Delete request successful');
+        // console.log('Delete request successful');
         return response.data.sublocation;
       })
       .catch((error) => {

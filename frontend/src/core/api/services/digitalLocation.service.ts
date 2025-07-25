@@ -47,16 +47,16 @@ const DIGITAL_LOCATION_BFF_ENDPOINT = '/v1/locations/digital/bff';
  */
 export const getDigitalLocationsBFFResponse = (): Promise<DigitalLocationBFFResponse> =>
   apiRequest('getPhysicalLocationsBFFResponse', async () => {
-    console.log('[DEBUG] getDigitalLocationsBFFResponse: Making API request');
+    //  ('[DEBUG] getDigitalLocationsBFFResponse: Making API request');
     const response = await axiosInstance.get<{ digital: DigitalLocationBFFResponse }>(DIGITAL_LOCATION_BFF_ENDPOINT);
-    console.log('[DEBUG] getDigitalLocationsBFFResponse: Raw API response:', response.data);
+    // console.log('[DEBUG] getDigitalLocationsBFFResponse: Raw API response:', response.data);
 
     if (!response.data.digital) {
-      console.error('[DEBUG] getDigitalLocationsBFFResponse: No digital data in response:', response.data);
+      // console.error('[DEBUG] getDigitalLocationsBFFResponse: No digital data in response:', response.data);
       throw new Error('No digital data in response');
     }
 
-    console.log('[DEBUG] getDigitalLocationsBFFResponse: Successfully extracted digital data:', response.data.digital);
+    // console.log('[DEBUG] getDigitalLocationsBFFResponse: Successfully extracted digital data:', response.data.digital);
     return response.data.digital;
   })
 
@@ -107,14 +107,14 @@ export const updateDigitalLocation = (id: string, input: Partial<CreateDigitalLo
  */
 export const deleteDigitalLocation = (ids: string | string[]): Promise<DeleteDigitalLocationResponse['digital']> => {
   const idParam = Array.isArray(ids) ? ids.join(',') : ids;
-  console.log('Making delete request for location(s):', idParam);
+  // console.log('Making delete request for location(s):', idParam);
 
   return apiRequest(`deleteLocation(${idParam})`, () => {
-    console.log('Executing delete request to:', `${DIGITAL_LOCATION_ENDPOINT}?ids=${idParam}`);
+    // console.log('Executing delete request to:', `${DIGITAL_LOCATION_ENDPOINT}?ids=${idParam}`);
     return axiosInstance
       .delete<DeleteDigitalLocationResponse>(`${DIGITAL_LOCATION_ENDPOINT}?ids=${idParam}`)
       .then((response) => {
-        console.log('Delete request successful');
+        // console.log('Delete request successful');
         return response.data.digital;
       })
       .catch((error) => {

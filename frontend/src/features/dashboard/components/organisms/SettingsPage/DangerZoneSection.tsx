@@ -37,7 +37,7 @@ export function DangerZoneSection() {
   }, [confirmText]);
 
   const handleDelete = () => {
-    console.log("Account delete action triggered.")
+    // console.log("Account delete action triggered.")
     setIsLoading(true)
     // TODO: Implement actual account deletion logic
   }

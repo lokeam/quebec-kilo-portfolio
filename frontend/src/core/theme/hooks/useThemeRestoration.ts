@@ -3,11 +3,11 @@
  * This must run BEFORE any component that uses the theme store renders
  */
 export function restoreThemeDataSync() {
-  console.log('🔍 Checking for theme backup...');
+  // console.log('🔍 Checking for theme backup...');
 
   // Check for backup data and restore it synchronously
   const backupData = sessionStorage.getItem('qko-theme-backup');
-  console.log('🔍 Backup data found:', !!backupData);
+  // console.log('🔍 Backup data found:', !!backupData);
 
   if (backupData) {
     localStorage.setItem('qko-theme-storage', backupData);

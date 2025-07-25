@@ -13,7 +13,7 @@ import { formatServicePrice } from '@/features/dashboard/lib/utils/online-servic
 
 export function ServiceList({ digitalLocations }: ServiceListProps) {
 
-  console.log('OnlineServicesList digitalLocations - ', digitalLocations);
+  // console.log('OnlineServicesList digitalLocations - ', digitalLocations);
 
   return (
     <div className="space-y-6">

@@ -38,7 +38,7 @@ export function SettingsForm() {
   })
 
   function onSubmit(data: FormValues) {
-    console.log("Submitting form data:", data);
+    // console.log("Submitting form data:", data);
 
     // Apply theme changes based on form data
     if (data.theme === 'system') {

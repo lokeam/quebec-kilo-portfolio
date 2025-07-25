@@ -18,7 +18,7 @@ import type { Game } from '@/types/domain/game';
 
 // Icons
 import { LibraryBig } from '@/shared/components/ui/icons';
-import { IconHeart } from '@/shared/components/ui/icons';
+// import { IconHeart } from '@/shared/components/ui/icons';
 
 // Hooks
 //import { toast } from 'sonner';
@@ -61,15 +61,15 @@ export function SearchResult({
   // const addToWishList = useAddToWishlist();
 
   // Debug the game object and firstReleaseDate
-  console.log('--------------------------------');
-  console.log('SearchResult onAddToLibrary: ', onAddToLibrary);
-  console.log('--------------------------------');
-  console.log('Game object:', game);
-  console.log('First release date:', game.firstReleaseDate);
-  console.log('Formatted date:', game.firstReleaseDate ? formatReleaseDate(game.firstReleaseDate) : 'No date');
+  // console.log('--------------------------------');
+  // console.log('SearchResult onAddToLibrary: ', onAddToLibrary);
+  // console.log('--------------------------------');
+  // console.log('Game object:', game);
+  // console.log('First release date:', game.firstReleaseDate);
+  // console.log('Formatted date:', game.firstReleaseDate ? formatReleaseDate(game.firstReleaseDate) : 'No date');
 
   const handleAddToLibrary = () => {
-    console.log('Adding to library fired for selected game:', game);
+    // console.log('Adding to library fired for selected game:', game);
 
     if (onAddToLibrary) {
       onAddToLibrary(game);
@@ -86,21 +86,21 @@ export function SearchResult({
     // });
   };
 
-  const handleAddToWishlist = () => {
-    console.log('Adding to wishlist', game);
+  // const handleAddToWishlist = () => {
+  //   console.log('Adding to wishlist', game);
 
-    if (onAction) onAction();
+  //   if (onAction) onAction();
 
     // toast(`${game.name} successfully added to wishlist`, {
     //   description: 'You can now access it in your wishlist',
     //   className: 'bg-green-500 text-white',
     //   duration: 2500,
     // });
-  };
+  // };
 
   const showLibraryButton = !game.isInLibrary;
   // Mods are free, so we don't need to show the wishlist button
-  const showWishlistButton = !game.isInWishlist && game.gameType?.normalizedText !== 'mod';
+  // const showWishlistButton = !game.isInWishlist && game.gameType?.normalizedText !== 'mod';
 
   return (
     <Card className="relative flex items-center transition-all duration-200 bg-[#2A2A2A] hover:bg-[#E5E5E5] group overflow-hidden opacity-0 data-[loaded=true]:opacity-100" data-loaded={imageLoaded}>

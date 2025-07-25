@@ -166,7 +166,7 @@ export function SpendTrackingForm({
         },
         {
           onSuccess: () => {
-            console.log('[DEBUG] SpendTrackingForm onSubmit: Update mutation succeeded');
+            // console.log('[DEBUG] SpendTrackingForm onSubmit: Update mutation succeeded');
             if (onClose) onClose();
             if (onSuccess) onSuccess(data);
           },
@@ -179,7 +179,7 @@ export function SpendTrackingForm({
       // Create new item
       createMutation.mutate(payload, {
         onSuccess: () => {
-          console.log('[DEBUG] SpendTrackingForm onSubmit: Create mutation succeeded');
+          // console.log('[DEBUG] SpendTrackingForm onSubmit: Create mutation succeeded');
           if (onClose) onClose();
           if (onSuccess) onSuccess(data);
         },

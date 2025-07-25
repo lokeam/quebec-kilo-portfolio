@@ -2,7 +2,7 @@ import { type FallbackProps } from 'react-error-boundary';
 import { ErrorPage } from '@/core/error/components/ErrorPage';
 
 export function HomePageErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  console.log('HomePageErrorFallback - error:', error);
+  console.error('HomePageErrorFallback - error:', error);
   return (
     <ErrorPage
       variant="500"

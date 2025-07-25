@@ -104,7 +104,7 @@ export function OnlineServicesPageContent() {
   useShowConditionalIntroToasts(4, !hasDigitalLocations);
 
   //const storageData = {digitalLocations: []};
-  console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);
+  // console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);
 
   // Get filtered services using the unified hook
   const services = storageData || [];
@@ -113,8 +113,9 @@ export function OnlineServicesPageContent() {
   // Get filter options from BFF data
   const filterOptions = useOnlineServicesFilters(services);
 
-  const handleAddService = useCallback((data: FormValues) => {
-    console.log('Add service:', data);
+  // data: FormValues
+  const handleAddService = useCallback(() => {
+    // console.log('Add service:', data);
     setAddServiceOpen(false);
   }, []);
 
@@ -133,8 +134,9 @@ export function OnlineServicesPageContent() {
     setServiceBeingEdited(null);
   }, []);
 
-  const handleEditSubmit = useCallback((data: FormValues) => {
-    console.log('Edit service:', data);
+  // data: FormValues
+  const handleEditSubmit = useCallback(() => {
+    //console.log('Edit service:', data);
     setEditServiceOpen(false);
     setServiceBeingEdited(null);
   }, []);

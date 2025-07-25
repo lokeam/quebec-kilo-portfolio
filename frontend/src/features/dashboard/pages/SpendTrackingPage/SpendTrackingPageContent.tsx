@@ -30,7 +30,7 @@ export function SpendTrackingPageContent() {
     error
   } = useGetSpendTrackingPageBFFResponse();
 
-  console.log('🔍 DEBUG: SpendTrackingPage -  bffResponse', bffResponse);
+  // console.log('🔍 DEBUG: SpendTrackingPage -  bffResponse', bffResponse);
 
   // Show intro toast for adding one time purchases
   useShowConditionalIntroToasts(5);

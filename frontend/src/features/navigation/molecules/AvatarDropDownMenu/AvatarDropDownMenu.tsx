@@ -18,10 +18,10 @@ import { useAuth } from '@/core/auth/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 export function AvatarDropDownMenu() {
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  console.log('AvatarDropDownMenu Debug:', { user, isAuthenticated, isLoading });
+  // console.log('AvatarDropDownMenu Debug:', { user, isAuthenticated, isLoading });
 
   const handleSettingsClick = () => {
     navigate('/settings');

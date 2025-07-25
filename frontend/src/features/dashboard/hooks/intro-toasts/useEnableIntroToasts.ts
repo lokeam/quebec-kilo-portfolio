@@ -22,7 +22,7 @@ export const useEnableIntroToasts = () => {
   useEffect(() => {
     // Check for optimistic state first (set during onboarding)
     if (window.__WANTS_INTRO_TOASTS__ !== undefined) {
-      console.log('✅ Using optimistic wantsIntroToasts value:', window.__WANTS_INTRO_TOASTS__);
+      // console.log('✅ Using optimistic wantsIntroToasts value:', window.__WANTS_INTRO_TOASTS__);
       setWantsIntroToasts(window.__WANTS_INTRO_TOASTS__);
       return;
     }
@@ -31,15 +31,15 @@ export const useEnableIntroToasts = () => {
     const localStorageWantsIntroToasts = localStorage.getItem('__WANTS_INTRO_TOASTS__');
     if (localStorageWantsIntroToasts !== null) {
       const wantsToasts = localStorageWantsIntroToasts === 'true';
-      console.log('✅ Using localStorage optimistic wantsIntroToasts value:', wantsToasts);
+      // console.log('✅ Using localStorage optimistic wantsIntroToasts value:', wantsToasts);
       setWantsIntroToasts(wantsToasts);
       return;
     }
 
     // Only fallback to app_metadata if no optimistic state exists
-    console.log('🔄 Falling back to app_metadata for wantsIntroToasts');
+    // console.log('🔄 Falling back to app_metadata for wantsIntroToasts');
     const fallbackValue = user?.app_metadata?.wantsIntroToasts === true;
-    console.log('🔄 Fallback value from app_metadata:', fallbackValue);
+    // console.log('🔄 Fallback value from app_metadata:', fallbackValue);
     setWantsIntroToasts(fallbackValue);
   }, [user]);
 
@@ -51,14 +51,14 @@ export const useEnableIntroToasts = () => {
     localStorage.setItem('__WANTS_INTRO_TOASTS__', wantsToasts.toString());
     setWantsIntroToasts(wantsToasts);
 
-    console.log('📤 Updating wantsIntroToasts preference:', wantsToasts);
+    // console.log('📤 Updating wantsIntroToasts preference:', wantsToasts);
 
     try {
       await axiosInstance.patch('/v1/users/metadata', {
         wantsIntroToasts: wantsToasts
       });
 
-      console.log('✅ Successfully updated wantsIntroToasts in backend');
+      // console.log('✅ Successfully updated wantsIntroToasts in backend');
     } catch (error) {
       console.error('❌ Failed to update intro toasts preference:', error);
       // Keep the optimistic state even if backend fails

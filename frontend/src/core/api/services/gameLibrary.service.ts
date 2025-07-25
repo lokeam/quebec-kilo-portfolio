@@ -8,7 +8,6 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 
 // types
-// import type { ApiResponse } from '@/types/api/api.types';
 import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemResponse, BatchDeleteLibraryGameRequest } from '@/types/domain/library-types';
 
 
@@ -88,7 +87,7 @@ export const getLibraryPageBFFResponse = (): Promise<LibraryBFFRefactoredRespons
       console.error('[DEBUG] getLibraryPageBFFResponse: No library data in response:', response.data);
     }
 
-    console.log('[DEBUG] getLibraryPageBFFResponse: Successfully extracted library data:', response.data.library);
+    // console.log('[DEBUG] getLibraryPageBFFResponse: Successfully extracted library data:', response.data.library);
     return response.data.library;
   });
 

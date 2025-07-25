@@ -62,7 +62,7 @@ export const useGetPhysicalLocationsBFFResponse = () => {
       try {
         //console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Starting query function');
         const response = await getPhysicalLocationsBFFResponse();
-        console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Raw response:', response);
+        // console.log('[DEBUG] useGetPhysicalLocationsBFFResponse: Raw response:', response);
 
         if (!response) {
           //console.error('[DEBUG] useGetPhysicalLocationsBFFResponse: Response is null or undefined');

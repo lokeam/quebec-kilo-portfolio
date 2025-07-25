@@ -35,7 +35,7 @@ export function ProfileSection() {
         lastName: values.lastName || '',
       });
 
-      console.log('✅ User profile updated successfully');
+      // console.log('✅ User profile updated successfully');
       // You could show a success toast here
     } catch (error) {
       console.error('❌ Failed to update user profile:', error);

@@ -50,7 +50,7 @@ export const MemoizedMonthlySpendingAccordionItem = memo(function MonthlySpendin
   );
 
   const handleClick = () => {
-    console.log(`Clicked on ${item.title} payment`);
+    // console.log(`Clicked on ${item.title} payment`);
     onClick?.();
   };
 

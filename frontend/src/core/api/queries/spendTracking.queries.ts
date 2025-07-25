@@ -94,12 +94,12 @@ export const useCreateSpendItem = () => {
 
   return useMutation({
     mutationFn: (data: CreateOneTimePurchaseRequest) => createOneTimePurchase(data), // ← CHANGE THIS LINE
-    onSuccess: (data) => {
-      console.log(' DEBUG: useCreateSpendItem onSuccess:', {
-        data,
-        queryKey: spendTrackingKeys.lists(),
-        currentCache: queryClient.getQueryData(spendTrackingKeys.lists())
-      });
+    onSuccess: () => {
+      //console.log(' DEBUG: useCreateSpendItem onSuccess:', {
+      //   data,
+      //   queryKey: spendTrackingKeys.lists(),
+      //   currentCache: queryClient.getQueryData(spendTrackingKeys.lists())
+      // });
 
       // Force refetch to get fresh data from server
       queryClient.invalidateQueries({ queryKey: spendTrackingKeys.lists() });
@@ -114,9 +114,9 @@ export const useCreateSpendItem = () => {
         duration: TOAST_DURATIONS.EXTENDED,
       });
     },
-    onMutate: async (newItem) => {
+    onMutate: async () => {
       // Cancel any outgoing refetches
-      console.log('[DEBUG] useCreateSpendItem onMutate: New item:', newItem);
+      //console.log('[DEBUG] useCreateSpendItem onMutate: New item:', newItem);
       await queryClient.cancelQueries({ queryKey: spendTrackingKeys.lists() });
 
       // Snapshot the previous value
@@ -126,7 +126,7 @@ export const useCreateSpendItem = () => {
       return { previousItems };
     },
     onError: (error) => {
-      console.log('❔🔎 useCreateSpendItem query onError, error - ', error);
+      console.error('❔🔎 useCreateSpendItem query onError, error - ', error);
       showToast({
         message: TOAST_ERROR_MESSAGES.SPEND_TRACKING.ADD_ITEM.DEFAULT,
         variant: 'error',
@@ -156,7 +156,7 @@ export const useUpdateSpendItem = () => {
       });
     },
     onError: (error) => {
-      console.log('❔🔎 useUpdateSpendItem query onError, error - ', error);
+      console.error('❔🔎 useUpdateSpendItem query onError, error - ', error);
       showToast({
         message: TOAST_ERROR_MESSAGES.SPEND_TRACKING.UPDATE_ITEM.DEFAULT,
         variant: 'error',

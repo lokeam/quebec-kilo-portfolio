@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
 // Components
 import { FormContainer } from '@/features/dashboard/components/templates/FormContainer';
@@ -147,23 +147,23 @@ export function AddGameToLibraryForm({
   const selectedLocationsCount = Object.values(selectedLocations).filter(Boolean).length;
 
   // Add debug logging for form state
-  console.log('Form state:', {
-    selectedStorageType,
-    selectedLocations,
-    selectedLocationsCount,
-    formState: form.formState,
-    isValid: form.formState.isValid,
-    errors: form.formState.errors,
-  });
+  // console.log('Form state:', {
+  //   selectedStorageType,
+  //   selectedLocations,
+  //   selectedLocationsCount,
+  //   formState: form.formState,
+  //   isValid: form.formState.isValid,
+  //   errors: form.formState.errors,
+  // });
 
   // Add effect to log when storage type changes
-  useEffect(() => {
-    console.log('Storage type changed:', {
-      selectedStorageType,
-      physicalLocations,
-      digitalLocations,
-    });
-  }, [selectedStorageType, physicalLocations, digitalLocations]);
+  // useEffect(() => {
+  //   console.log('Storage type changed:', {
+  //     selectedStorageType,
+  //     physicalLocations,
+  //     digitalLocations,
+  //   });
+  // }, [selectedStorageType, physicalLocations, digitalLocations]);
 
   const createMutation = useCreateLibraryGame();
 
@@ -173,25 +173,25 @@ export function AddGameToLibraryForm({
       const { gameLocations } = data;
 
       // Log the form data before transformation
-      console.log('🔍 DEBUG: Form submission - Raw form data:', {
-        data,
-        gameLocations,
-        physicalLocations,
-        digitalLocations,
-      });
+      // console.log('🔍 DEBUG: Form submission - Raw form data:', {
+      //   data,
+      //   gameLocations,
+      //   physicalLocations,
+      //   digitalLocations,
+      // });
 
       // Transform data to an efficient payload
       const gamesByPlatformAndLocation = Object.entries(gameLocations).flatMap(([locationId, platforms]) => {
         const isDigital = digitalLocations.some(loc => loc.digitalLocationId === locationId);
 
         // Log each location transformation
-        console.log('🔍 DEBUG: Transforming location:', {
-          locationId,
-          platforms,
-          isDigital,
-          physicalLocation: physicalLocations.find(loc => loc.sublocationId === locationId),
-          digitalLocation: digitalLocations.find(loc => loc.digitalLocationId === locationId),
-        });
+        // console.log('🔍 DEBUG: Transforming location:', {
+        //   locationId,
+        //   platforms,
+        //   isDigital,
+        //   physicalLocation: physicalLocations.find(loc => loc.sublocationId === locationId),
+        //   digitalLocation: digitalLocations.find(loc => loc.digitalLocationId === locationId),
+        // });
 
         return platforms.map((platform): AddToLibraryFormLocationEntry => ({
           platformName: platform.name,
@@ -204,9 +204,9 @@ export function AddGameToLibraryForm({
       });
 
       // Log the transformed data
-      console.log('🔍 DEBUG: Form submission - Transformed data:', {
-        gamesByPlatformAndLocation,
-      });
+      // console.log('🔍 DEBUG: Form submission - Transformed data:', {
+      //   gamesByPlatformAndLocation,
+      // });
 
       const payload: AddToLibraryFormPayload = {
         gameId: selectedGame.id,
@@ -223,7 +223,7 @@ export function AddGameToLibraryForm({
       };
 
       // Log the final payload
-      console.log('🔍 DEBUG: Form submission - Final payload:', payload);
+      // console.log('🔍 DEBUG: Form submission - Final payload:', payload);
 
       await createMutation.mutateAsync(payload);
       if (onClose) onClose();
@@ -259,7 +259,7 @@ export function AddGameToLibraryForm({
                 <FormLabel>Where will you store this game?</FormLabel>
                 <RadioGroup.Root
                   onValueChange={(value) => {
-                    console.log('Storage type changed to:', value);
+                    // console.log('Storage type changed to:', value);
                     field.onChange(value);
                   }}
                   value={field.value}

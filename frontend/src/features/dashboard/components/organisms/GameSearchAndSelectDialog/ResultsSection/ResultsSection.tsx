@@ -32,7 +32,7 @@ export function ResultsSection({
   const handleAddGameToLibrary = (game: Game) => setSelectedGameWithDrawerOpen(game);
   const handleCloseDrawer = () => setSelectedGameWithDrawerOpen(null);
 
-  console.log('�� DEBUG: handleCloseDrawer called');
+  // console.log('DEBUG: handleCloseDrawer called');
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -53,8 +53,8 @@ export function ResultsSection({
 
   if (!results) return null;
 
-  console.log('ResultsSection, physicalLocations', physicalLocations);
-  console.log('ResultsSection, digitalLocations', digitalLocations);
+  // console.log('ResultsSection, physicalLocations', physicalLocations);
+  // console.log('ResultsSection, digitalLocations', digitalLocations);
 
   return (
     <div className="space-y-4">
@@ -70,12 +70,12 @@ export function ResultsSection({
       <DrawerContainer
         open={!!selectedGameWithDrawerOpen}
         onOpenChange={open => {
-          console.log('Drawer onOpenChanged called with: ', open);
-          console.log('🔍 DEBUG: Drawer onOpenChange:', {
-            open,
-            selectedGameWithDrawerOpen,
-            hasOnClose: !!handleCloseDrawer
-          });
+          // console.log('Drawer onOpenChanged called with: ', open);
+          // console.log('🔍 DEBUG: Drawer onOpenChange:', {
+          //   open,
+          //   selectedGameWithDrawerOpen,
+          //   hasOnClose: !!handleCloseDrawer
+          // });
           if (!open) handleCloseDrawer();
         }}
         title=""

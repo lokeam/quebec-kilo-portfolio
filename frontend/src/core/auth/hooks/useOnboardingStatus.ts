@@ -1,6 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
-import { getOnboardingDebugState } from '@/core/utils/debug/onboardingDebug';
 
 // Extend Window interface for optimistic state
 declare global {
@@ -29,7 +28,6 @@ declare global {
  */
 export const useOnboardingStatus = () => {
   const { user, getIdTokenClaims } = useAuth0(); // Get Auth0 user object and token claims
-  const debugState = getOnboardingDebugState();
   const [onboardingStatus, setOnboardingStatus] = useState<{
     hasCompletedOnboarding: boolean;
     hasCompletedNameStep: boolean;
@@ -110,14 +108,11 @@ export const useOnboardingStatus = () => {
   }, [user]);
 
   // Apply debug overrides and optimistic state
-  const finalOnboardingStatus = debugState.forceCompletedOnboarding ? true :
-  debugState.forceIncompleteOnboarding ? false :
-  window.__ONBOARDING_OPTIMISTIC_COMPLETE__ || localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__') === 'true' ? true :
+  const finalOnboardingStatus = window.__ONBOARDING_OPTIMISTIC_COMPLETE__ ||
+  localStorage.getItem('__ONBOARDING_OPTIMISTIC_COMPLETE__') === 'true' ? true :
   onboardingStatus?.hasCompletedOnboarding ?? false;
 
-  const finalNameStepStatus = debugState.forceCompletedOnboarding ? true :
-  debugState.forceIncompleteOnboarding ? false :
-  onboardingStatus?.hasCompletedNameStep ?? false;
+  const finalNameStepStatus = onboardingStatus?.hasCompletedNameStep ?? false;
 
   console.log('🔍 Onboarding Status:', {
     hasCompletedOnboarding: finalOnboardingStatus,

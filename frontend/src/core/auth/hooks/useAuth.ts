@@ -1,40 +1,6 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useCallback, useEffect } from 'react';
 import type { User } from '@auth0/auth0-react';
-import { getOnboardingDebugState, logDebugInfo } from '@/core/utils/debug/onboardingDebug';
-
-const detectNewUserSignup = (user: User): boolean => {
-  if (!user) return false;
-
-  // If created_at field in response is missing, its an existing user
-  if (!user.created_at) {
-    console.log('🔍 User signup detection: Existing user (no created_at field)');
-    return false;
-  }
-
-  // Check if created_at and updated_at are the same (within 1 minute)
-  const createdAt = new Date(user.created_at);
-  const updatedAt = new Date(user.updated_at || '');
-
-  // Check if dates are valid
-  if (isNaN(createdAt.getTime()) || isNaN(updatedAt.getTime())) {
-    console.log('🔍 User signup detection: Invalid date fields');
-    return false;
-  }
-
-  const timeDiff = Math.abs(updatedAt.getTime() - createdAt.getTime());
-
-  // If they're within 1 minute of each other, it's a new user signup
-  const isNewUserSignup = timeDiff < 60000;
-
-  console.log('🔍 User signup detection:', {
-    createdAt,
-    updatedAt,
-    timeDiff,
-    isNewUserSignup,
-  });
-  return isNewUserSignup;
-}
 
 /**
  * Interface for the return value of useAuth hook
@@ -48,9 +14,6 @@ export interface UseAuthReturn {
 
   /** The authenticated user's information, undefined if not authenticated */
   user: User | undefined;
-
-  /** Whether the user is a new user signup */
-  isNewUserSignup: boolean;
 
   /** Function to initiate the login process */
   login: () => Promise<void>;
@@ -104,23 +67,7 @@ export const useAuth = (): UseAuthReturn => {
     getAccessTokenSilently,
   } = useAuth0();
 
-  console.log('-- useAuth rendered --');
-
-  // Get debug state
-  const debugState = getOnboardingDebugState();
-
-  // Check if this is a new user (with debug override)
-  const isNewUserSignup = debugState.forceNewUser || (user ? detectNewUserSignup(user) : false);
-
-  // Debug authentication state changes
-  logDebugInfo('Auth State', {
-    isAuthenticated,
-    isLoading: authLoading,
-    hasUser: !!user,
-    userEmail: user?.email,
-    isNewUserSignup,
-    debugMode: debugState.bypassOnboarding || debugState.forceNewUser || debugState.forceIncompleteOnboarding || debugState.forceCompletedOnboarding,
-  });
+  // console.log('-- useAuth rendered --');
 
   // Listen for authentication state changes to backup theme data on automatic logout
   useEffect(() => {
@@ -141,7 +88,7 @@ export const useAuth = (): UseAuthReturn => {
    * User will be redirected back to the application after login
    */
   const login = useCallback(async () => {
-    console.log('🔑 Initiating login...');
+    // console.log('🔑 Initiating login...');
     await loginWithRedirect();
   }, [loginWithRedirect]);
 
@@ -150,7 +97,7 @@ export const useAuth = (): UseAuthReturn => {
    * Preserves theme preferences before Auth0 clears localStorage
    */
   const logout = useCallback(async () => {
-    console.log('🚪 Initiating logout...');
+    // console.log('🚪 Initiating logout...');
 
     await auth0Logout({
       logoutParams: {
@@ -168,7 +115,7 @@ export const useAuth = (): UseAuthReturn => {
   const getAccessToken = useCallback(async () => {
     try {
       const token = await getAccessTokenSilently();
-      console.log('✅ Token retrieved successfully');
+      // console.log('✅ Token retrieved successfully');
       return token;
     } catch (error) {
       console.error('❌ Failed to get access token:', error);
@@ -180,7 +127,6 @@ export const useAuth = (): UseAuthReturn => {
     isAuthenticated,
     isLoading: authLoading,
     user,
-    isNewUserSignup,
     login,
     logout,
     getAccessToken,

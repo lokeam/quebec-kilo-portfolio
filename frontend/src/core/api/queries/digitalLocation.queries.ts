@@ -61,7 +61,7 @@ export const useGetDigitalLocationsBFFResponse = () => {
     queryFn: async () => {
       try {
         const response = await getDigitalLocationsBFFResponse();
-        console.log('[DEBUG] useGetDigitalLocationsBFFResponse: Raw response:', response);
+        // console.log('[DEBUG] useGetDigitalLocationsBFFResponse: Raw response:', response);
 
         if (!response) {
           throw new Error('No data received from server');
@@ -208,12 +208,13 @@ export const useDeleteDigitalLocation = () => {
 
   return useMutation<DeleteDigitalLocationResponse['digital'], Error, string | string[]>({
     mutationFn: (ids: string | string[]) => deleteDigitalLocation(ids),
-    onSuccess: (response) => {
+    // response
+    onSuccess: () => {
       // Log the deletion results
-      console.log('Successfully deleted locations:', {
-        count: response.deleted_count,
-        ids: response.location_ids
-      });
+      // console.log('Successfully deleted locations:', {
+      //   count: response.deleted_count,
+      //   ids: response.location_ids
+      // });
 
       queryClient.invalidateQueries({ queryKey: digitalLocationKeys.lists() });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });

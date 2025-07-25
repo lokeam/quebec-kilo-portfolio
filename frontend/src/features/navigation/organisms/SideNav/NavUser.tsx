@@ -26,10 +26,10 @@ import {
 import { useAuthContext } from '@/core/auth/context-provider/AuthContext'
 
 export function NavUser() {
-  const { user, logout, isAuthenticated, isLoading } = useAuthContext();
+  const { user, logout } = useAuthContext();
   const { isMobile } = useSidebar();
 
-  console.log('NavUser Debug:', { user, isAuthenticated, isLoading });
+  //console.log('NavUser Debug:', { user, isAuthenticated, isLoading });
 
   if (!user) {
     return <></>

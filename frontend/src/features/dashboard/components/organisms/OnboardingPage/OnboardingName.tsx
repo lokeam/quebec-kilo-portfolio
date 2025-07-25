@@ -44,7 +44,7 @@ export default function OnboardingName() {
   // Simple check: if user already has complete profile in Auth0 metadata, redirect
   useEffect(() => {
     if (user?.app_metadata?.hasCompletedOnboarding) {
-      console.log('🚫 User already has complete onboarding, redirecting to intro');
+      // console.log('🚫 User already has complete onboarding, redirecting to intro');
       navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO, { replace: true });
     }
   }, [user, navigate]);
@@ -58,7 +58,7 @@ export default function OnboardingName() {
   });
 
   const onSubmit = async (data: FormValues) => {
-    console.log('📝 Form submitted:', data);
+    // console.log('📝 Form submitted:', data);
 
     try {
       // Backend handles everything - new user, existing user, updates
@@ -69,7 +69,7 @@ export default function OnboardingName() {
         lastName: data.lastName,
       });
 
-      console.log('✅ User profile created/updated successfully');
+      // console.log('✅ User profile created/updated successfully');
 
       // Navigate to next onboarding step
       navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO);

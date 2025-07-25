@@ -50,7 +50,7 @@ export default function OnboardingToastSetup() {
   };
 
   const handleStartOnboardFlow = async () => {
-    console.log('🚀 Starting onboarding flow with intro toasts enabled');
+    // console.log('🚀 Starting onboarding flow with intro toasts enabled');
 
     // OPTIMISTIC UPDATE: Mark onboarding as complete and set intro toasts preference
     setOptimisticOnboardingComplete();
@@ -61,7 +61,7 @@ export default function OnboardingToastSetup() {
 
     // Then update backend asynchronously (fire and forget)
     if (user) {
-      console.log('📤 Sending wantsIntroToasts: true to backend');
+      // console.log('📤 Sending wantsIntroToasts: true to backend');
       updateUserMetadataMutation.mutateAsync({
         wantsIntroToasts: true
       }).then(() => {
@@ -74,7 +74,7 @@ export default function OnboardingToastSetup() {
   }
 
   const handleSkipOnboardFlow = async () => {
-    console.log('🚀 Starting onboarding flow with intro toasts disabled');
+    // console.log('🚀 Starting onboarding flow with intro toasts disabled');
 
     // OPTIMISTIC UPDATE: Mark onboarding as complete and set intro toasts preference
     setOptimisticOnboardingComplete();
@@ -85,11 +85,11 @@ export default function OnboardingToastSetup() {
 
     // Then update backend asynchronously (fire and forget)
     if (user) {
-      console.log('📤 Sending wantsIntroToasts: false to backend');
+      // console.log('📤 Sending wantsIntroToasts: false to backend');
       updateUserMetadataMutation.mutateAsync({
         wantsIntroToasts: false
       }).then(() => {
-        console.log('✅ Successfully updated user metadata with wantsIntroToasts: false');
+        // console.log('✅ Successfully updated user metadata with wantsIntroToasts: false');
       }).catch(error => {
         console.error('❌ Failed to update user metadata (background):', error);
         // User is already on dashboard, just log the error

@@ -34,7 +34,7 @@ export const usePreloadNavigation = () => {
       }
 
       setPreloadedRoutes(prev => new Set([...prev, route]));
-      console.log(`📦 Preloaded route: ${route}`);
+      // console.log(`📦 Preloaded route: ${route}`);
     } catch (error) {
       console.error(`Failed to preload route ${route}:`, error);
     }

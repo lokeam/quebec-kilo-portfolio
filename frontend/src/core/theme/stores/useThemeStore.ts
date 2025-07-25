@@ -31,8 +31,8 @@ export const useThemeStore = create<ThemeState>()(
       actions: {
 
         changeTheme: (mode: ThemeMode) => {
-          console.log('🎨 Theme changing to:', mode);
-          console.log('🔍 Current localStorage before change:', localStorage.getItem('qko-theme-storage'));
+          // console.log('🎨 Theme changing to:', mode);
+          // console.log('🔍 Current localStorage before change:', localStorage.getItem('qko-theme-storage'));
 
           if (mode === 'system') {
             set({
@@ -55,9 +55,9 @@ export const useThemeStore = create<ThemeState>()(
           }
 
           // Check if data was saved after a short delay
-          setTimeout(() => {
-            console.log('🔍 localStorage after theme change:', localStorage.getItem('qko-theme-storage'));
-          }, 100);
+          // setTimeout(() => {
+          //   console.log('🔍 localStorage after theme change:', localStorage.getItem('qko-theme-storage'));
+          // }, 100);
         },
 
         changeUIMode: (uiMode: UIMode) => {

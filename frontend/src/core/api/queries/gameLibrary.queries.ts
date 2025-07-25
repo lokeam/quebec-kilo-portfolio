@@ -105,12 +105,13 @@ export const useCreateLibraryGame = () => {
       const apiRequest = adaptAddToLibraryFromToRequest(data);
       return createLibraryGame(apiRequest);
     },
-    onSuccess: (data) => {
-      console.log('🔍 DEBUG: useCreateLibraryGame onSuccess:', {
-        data,
-        queryKey: gameLibraryKeys.lists(),
-        currentCache: queryClient.getQueryData(gameLibraryKeys.lists())
-      });
+    // data
+    onSuccess: () => {
+      // console.log('🔍 DEBUG: useCreateLibraryGame onSuccess:', {
+      //   data,
+      //   queryKey: gameLibraryKeys.lists(),
+      //   currentCache: queryClient.getQueryData(gameLibraryKeys.lists())
+      // });
       queryClient.invalidateQueries({ queryKey: gameLibraryKeys.lists() });
 
       showToast({
@@ -136,7 +137,7 @@ export const useCreateLibraryGame = () => {
     },
 
     onError: (error) => {
-      console.log('❔🔎 useCreateLibraryGame query onError, error - ', error);
+      console.error('❔🔎 useCreateLibraryGame query onError, error - ', error);
       showToast({
         message: TOAST_ERROR_MESSAGES.GAME.ADD_TO_LIBRARY.DEFAULT,
         variant: 'error',

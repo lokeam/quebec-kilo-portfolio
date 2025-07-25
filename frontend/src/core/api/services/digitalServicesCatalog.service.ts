@@ -57,7 +57,7 @@ export const getServicesCatalog = (): Promise<DigitalServiceItem[]> =>
     axiosInstance
       .get<CatalogResponse>(CATALOG_ENDPOINT)
       .then(response => {
-        console.log('[DEBUG] getServicesCatalog: Raw response:', response.data);
+        // console.log('[DEBUG] getServicesCatalog: Raw response:', response.data);
 
         // The axios transformResponse returns the data field directly
         // So response.data is actually the { catalog: [...] } object
@@ -66,7 +66,7 @@ export const getServicesCatalog = (): Promise<DigitalServiceItem[]> =>
           return [];
         }
 
-        console.log('[DEBUG] getServicesCatalog: Successfully extracted catalog data:', response.data.catalog);
+        // console.log('[DEBUG] getServicesCatalog: Successfully extracted catalog data:', response.data.catalog);
         return response.data.catalog;
       })
   );

@@ -4,7 +4,7 @@ import { PageMain } from '@/shared/components/layout/page-main';
 import { PageHeadline } from '@/shared/components/layout/page-headline';
 
 export function PhysicalLocationsPageErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
-  console.log('PhysicalLocationsPageErrorFallback error: ', error);
+  console.error('PhysicalLocationsPageErrorFallback error: ', error);
   return (
     <PageMain>
       <PageHeadline>
