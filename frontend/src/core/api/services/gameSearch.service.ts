@@ -7,12 +7,16 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+
+// Types
 import type { SearchResponse } from '@/types/api/search';
 import type { SearchCriteria, AddGameFormStorageLocationsResponse, AddGameFormDigitalLocationsResponse, AddGameFormPhysicalLocationsResponse } from '@/types/domain/search';
 
 // Constants
-const SEARCH_ENDPOINT = '/v1/search';
-const SEARCH_BFF_ENDPOINT = '/v1/search/bff';
+import { API_BASE_PATH } from '@/core/api/config';
+
+const SEARCH_ENDPOINT = `${API_BASE_PATH}/search`;
+const SEARCH_BFF_ENDPOINT = `${API_BASE_PATH}/search/bff`;
 
 // Response wrapper for BFF endpoint
 interface AddGameFormBFFResponseWrapper {

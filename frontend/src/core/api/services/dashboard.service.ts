@@ -6,7 +6,12 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+
+// Utils
 import { logger } from '@/core/utils/logger/logger';
+
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
 
 // Types
 export type MediaTypeDomain = "games" | "movies" | "oneTimePurchase" | "hardware" | "dlc" | "inGamePurchase" | "subscription";
@@ -94,7 +99,7 @@ interface DashboardResponseWrapper {
 }
 
 // Endpoints
-const DASHBOARD_BFF_ENDPOINT = '/v1/dashboard/bff';
+const DASHBOARD_BFF_ENDPOINT = `${API_BASE_PATH}/dashboard/bff`;
 
 /**
  * Fetches all dashboard data for the current user.

@@ -6,8 +6,15 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+
+// Types
 import type { PhysicalLocation, CreatePhysicalLocationRequest, LocationsBFFResponse } from '@/types/domain/physical-location';
 import type { Sublocation, CreateSublocationRequest } from '@/types/domain/sublocation';
+
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
+
+// Utils
 import { logger } from '@/core/utils/logger/logger';
 
 // Response wrappers for physical locations
@@ -59,9 +66,9 @@ export interface DeleteSublocationResponse {
     sublocation_ids: string[];
   };
 }
-const PHYSICAL_LOCATION_BFF_ENDPOINT = '/v1/locations/physical/bff';
-const PHYSICAL_LOCATION_CRUD_ENDPOINT = '/v1/locations/physical';
-const SUBLOCATION_CRUD_ENDPOINT = '/v1/locations/sublocations';
+const PHYSICAL_LOCATION_BFF_ENDPOINT = `${API_BASE_PATH}/locations/physical/bff`;
+const PHYSICAL_LOCATION_CRUD_ENDPOINT = `${API_BASE_PATH}/locations/physical`;
+const SUBLOCATION_CRUD_ENDPOINT = `${API_BASE_PATH}/locations/sublocations`;
 
 // Physical Location Operations
 

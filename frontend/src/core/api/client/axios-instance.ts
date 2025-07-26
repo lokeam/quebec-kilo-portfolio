@@ -5,6 +5,7 @@ import { toCamelCase, toSnakeCase } from '@/core/api/utils/serialization';
 import { getAuth0Token } from '@/core/api/utils/auth.utils';
 import { logApiError, logAuthError, logApiBreadcrumb } from '@/core/monitoring/sentry-api-monitor';
 import { HTTP_STATUS, HTTP_HEADERS, HTTP_STATUS_RANGES } from '@/core/api/constants/http-constants';
+import { BASE_API_URL } from '@/core/api/config';
 
 // Helper to check for plain objects within the response
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -28,8 +29,12 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
  * USAGE:
  * - Import and use: axiosInstance.get('/api/users')
  * - All errors are automatically logged to monitoring
+ *
+ * NOTE:
+ * - BASE_API_URL is set in frontend/src/core/api/config.ts
+ *   This environment-based URL prevents proxy issues when running the frontend locally or in production
  */
-const BASE_API_URL = '/api';
+
 const BASE_API_URL_TIMEOUT = 30_000;
 
 const axiosInstance = axios.create({

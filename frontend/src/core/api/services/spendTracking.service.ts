@@ -7,6 +7,9 @@
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
+
 // Types
 import type {
   CreateOneTimePurchaseRequest,
@@ -15,8 +18,8 @@ import type {
   SpendTrackingDeleteResponse,
 } from '@/types/domain/spend-tracking';
 
-const SPEND_TRACKING_ENDPOINT = '/v1/spend-tracking';
-const SPEND_TRACKING_BFF_ENDPOINT = '/v1/spend-tracking/bff';
+const SPEND_TRACKING_ENDPOINT = `${API_BASE_PATH}/spend-tracking`;
+const SPEND_TRACKING_BFF_ENDPOINT = `${API_BASE_PATH}/spend-tracking/bff`;
 
 interface SpendTrackingDeleteResponseWrapper {
   success: boolean;

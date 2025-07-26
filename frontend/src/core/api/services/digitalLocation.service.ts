@@ -6,11 +6,17 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+
+// Types
 import type {
   DigitalLocation,
   CreateDigitalLocationRequest,
   DigitalLocationBFFResponse,
 } from '@/types/domain/digital-location';
+
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
+
 
 interface DigitalLocationResponseWrapper {
   success: boolean;
@@ -38,8 +44,8 @@ export interface DeleteDigitalLocationResponse {
   };
 }
 
-const DIGITAL_LOCATION_ENDPOINT = '/v1/locations/digital';
-const DIGITAL_LOCATION_BFF_ENDPOINT = '/v1/locations/digital/bff';
+const DIGITAL_LOCATION_ENDPOINT = `${API_BASE_PATH}/locations/digital`;
+const DIGITAL_LOCATION_BFF_ENDPOINT = `${API_BASE_PATH}/locations/digital/bff`;
 
 
 /**

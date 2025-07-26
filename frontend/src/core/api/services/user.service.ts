@@ -6,6 +6,8 @@
 
 import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
+
+// Types
 import type {
   RequestUserDeletionResponse,
   UserDeletionStatus,
@@ -14,6 +16,9 @@ import type {
   UpdateUserProfileRequest,
   UserProfileResponseWrapper,
 } from '@/types/domain/user';
+
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
 
 
 // Response wrapper for user deletion request
@@ -47,7 +52,7 @@ const USER_DELETION_ENDPOINT = '/v1/users/deletion';
 export const getUserProfile = (): Promise<UserProfile> =>
   apiRequest('getUserProfile', () =>
     axiosInstance
-      .get<UserProfileResponseWrapper>('/v1/users/profile')
+      .get<UserProfileResponseWrapper>(`${API_BASE_PATH}/users/profile`)
       .then(response => response.data.data)
   );
 
@@ -57,7 +62,7 @@ export const getUserProfile = (): Promise<UserProfile> =>
 export const createUserProfile = (data: CreateUserProfileRequest): Promise<UserProfile> =>
   apiRequest('createUserProfile', () =>
     axiosInstance
-      .post<UserProfileResponseWrapper>('/v1/users', data)
+      .post<UserProfileResponseWrapper>(`${API_BASE_PATH}/users`, data)
       .then(response => response.data.data)
   );
 
@@ -67,7 +72,7 @@ export const createUserProfile = (data: CreateUserProfileRequest): Promise<UserP
 export const updateUserProfile = (data: UpdateUserProfileRequest): Promise<UserProfile> =>
   apiRequest('updateUserProfile', () =>
     axiosInstance
-      .put<UserProfileResponseWrapper>('/v1/users/profile', data)
+      .put<UserProfileResponseWrapper>(`${API_BASE_PATH}/users/profile`, data)
       .then(response => response.data.data)
   );
 
@@ -78,7 +83,7 @@ export const updateUserProfile = (data: UpdateUserProfileRequest): Promise<UserP
 export const requestUserDeletion = (reason: string): Promise<RequestUserDeletionResponse> =>
   apiRequest('requestUserDeletion', () =>
     axiosInstance
-      .post<UserDeletionResponseWrapper>(`${USER_DELETION_ENDPOINT}/request`, { reason })
+      .post<UserDeletionResponseWrapper>(`${API_BASE_PATH}${USER_DELETION_ENDPOINT}/request`, { reason })
       .then(response => response.data.data)
   );
 
@@ -88,7 +93,7 @@ export const requestUserDeletion = (reason: string): Promise<RequestUserDeletion
 export const cancelUserDeletion = (): Promise<{ message: string }> =>
   apiRequest('cancelUserDeletion', () =>
     axiosInstance
-      .post<UserDeletionResponseWrapper>(`${USER_DELETION_ENDPOINT}/cancel`)
+      .post<UserDeletionResponseWrapper>(`${API_BASE_PATH}${USER_DELETION_ENDPOINT}/cancel`)
       .then(response => response.data.data as { message: string })
   );
 
@@ -98,7 +103,7 @@ export const cancelUserDeletion = (): Promise<{ message: string }> =>
 export const getUserDeletionStatus = (): Promise<UserDeletionStatus> =>
   apiRequest('getUserDeletionStatus', () =>
     axiosInstance
-      .get<UserDeletionStatusResponseWrapper>(`${USER_DELETION_ENDPOINT}/status`)
+      .get<UserDeletionStatusResponseWrapper>(`${API_BASE_PATH}${USER_DELETION_ENDPOINT}/status`)
       .then(response => response.data.data)
   );
 
@@ -108,6 +113,6 @@ export const getUserDeletionStatus = (): Promise<UserDeletionStatus> =>
 export const updateUserMetadata = (metadata: Record<string, unknown>): Promise<void> =>
   apiRequest('updateUserMetadata', () =>
     axiosInstance
-      .patch('/v1/users/metadata', metadata)
-      .then(response => response.data)
+      .patch(`${API_BASE_PATH}/users/metadata`, metadata)
+      .then(() => {}) // Return void - no data needed
   );

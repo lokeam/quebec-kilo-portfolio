@@ -10,9 +10,12 @@ import { apiRequest } from '@/core/api/utils/apiRequest';
 // types
 import type { CreateLibraryGameRequest, LibraryGameItemRefactoredResponse, LibraryGameItemResponse, BatchDeleteLibraryGameRequest } from '@/types/domain/library-types';
 
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
 
-const LIBRARY_ENDPOINT = '/v1/library';
-const LIBRARY_BFF_ENDPOINT = '/v1/library/bff';
+
+const LIBRARY_ENDPOINT = `${API_BASE_PATH}/library`;
+const LIBRARY_BFF_ENDPOINT = `${API_BASE_PATH}/library/bff`;
 
 interface LibraryOperationResponseWrapper {
   success: boolean;

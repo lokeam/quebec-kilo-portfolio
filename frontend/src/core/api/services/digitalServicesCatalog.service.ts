@@ -8,6 +8,9 @@ import { axiosInstance } from '@/core/api/client/axios-instance';
 import { apiRequest } from '@/core/api/utils/apiRequest';
 import type { DigitalServiceItem } from '@/types/domain/digital-location';
 
+// Constants
+import { API_BASE_PATH } from '@/core/api/config';
+
 // The axios transformResponse returns the data field directly
 interface CatalogResponse {
   catalog: DigitalServiceItem[];
@@ -37,7 +40,7 @@ export const FALLBACK_SERVICES: DigitalServiceItem[] = [
   { id: 'xboxgamepass', name: 'Xbox Game Pass', logo: 'xbox', isSubscriptionService: true, url: 'https://www.xbox.com/en-US/xbox-game-pass' }
 ];
 
-const CATALOG_ENDPOINT = '/v1/locations/digital/services/catalog';
+const CATALOG_ENDPOINT = `${API_BASE_PATH}/locations/digital/services/catalog`;
 
 /**
  * Fetches the digital services catalog

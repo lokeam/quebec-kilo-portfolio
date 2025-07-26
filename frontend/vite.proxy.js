@@ -7,17 +7,22 @@ import axios from 'axios';
  *
  * @returns {import('connect').NextHandleFunction} Connect middleware function
  */
+
+const API_VERSION = '/api/v1/';
+
 export function createApiMiddleware() {
   return async function apiMiddleware(req, res, next) {
     // Only handle API requests
-    if (req.url && req.url.startsWith('/v1/')) {
+    // UPDATE: we now need to check for /api/v1/ instead of /v1/
+    if (req.url && req.url.startsWith(API_VERSION)) {
       try {
         // console.log(`[API Proxy] Forwarding request: ${req.method} ${req.url}`);
 
         // Forward the request to the API server
+        // NOTE: API_BASE_PATH in the req.url is set in frontend/src/core/api/config.ts
         const apiResponse = await axios({
           method: req.method,
-          url: `http://api.localhost/api${req.url}`,
+          url: `http://api.localhost${req.url}`,
           headers: {
             ...(req.headers && req.headers.authorization && { 'Authorization': req.headers.authorization }),
             'Accept': 'application/json',
