@@ -46,7 +46,7 @@ export function SpendTrackingPageContent() {
 
 
 
-  /* RENDER LOGIC */
+  /* Loading and Error States */
   if (isLoading) {
     return <SpendTrackingPageSkeleton />;
   }
@@ -69,8 +69,8 @@ export function SpendTrackingPageContent() {
       </PageMain>
     );
   }
-  /* RENDER LOGIC */
 
+  /* RENDER LOGIC */
   return (
     <PageMain>
       <PageHeadline>

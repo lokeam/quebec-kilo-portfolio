@@ -100,7 +100,8 @@ export function LibraryPageContent() {
     return services.filter(filterGame);
   }, [services, filterGame, searchQuery, platformFilters.length, locationFilters.length]);
 
-  // Handle loading state
+
+  /* Loading and Error States */
   if (isLoading) {
     return <LibraryPageSkeleton />;
   }

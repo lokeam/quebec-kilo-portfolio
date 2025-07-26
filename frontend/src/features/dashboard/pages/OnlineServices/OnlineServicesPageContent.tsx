@@ -17,7 +17,6 @@ import { OnlineServicesPageSkeleton } from '@/features/dashboard/pages/OnlineSer
 
 // API Hooks and Utilities
 import { useShowConditionalIntroToasts } from '@/features/dashboard/hooks/intro-toasts/useShowConditionalIntroToasts';
-//import { useStorageAnalytics } from '@/core/api/queries/analyticsData.queries';
 
 
 import {
@@ -103,7 +102,6 @@ export function OnlineServicesPageContent() {
   const hasDigitalLocations = Boolean(storageData && storageData.length > 0);
   useShowConditionalIntroToasts(4, !hasDigitalLocations);
 
-  //const storageData = {digitalLocations: []};
   // console.log('[DEBUG] digitalLocationsBFFResponse:', storageData);
 
   // Get filtered services using the unified hook
@@ -159,6 +157,8 @@ export function OnlineServicesPageContent() {
     }
   });
 
+
+  /* Loading and Error States */
   if (isLoading) {
     return <OnlineServicesPageSkeleton />
   }
