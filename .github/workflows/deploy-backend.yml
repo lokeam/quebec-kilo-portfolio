@@ -1,0 +1,41 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Grab your code
+      - name: Download code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # 2) Copy backend/ to your VPS
+      - name: Send backend to VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+          rsync -avz --delete --exclude ".git" \
+            -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+            backend/ ${VPS_USER}@${VPS_HOST}:/opt/tarnished/backend/
+
+      # 3) SSH in and rebuild
+      - name: Rebuild & restart on VPS
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i key.pem -o StrictHostKeyChecking=no \
+            ${VPS_USER}@${VPS_HOST} \
+            "cd /opt/tarnished && docker compose -f docker-compose.production.yml up -d --build"
