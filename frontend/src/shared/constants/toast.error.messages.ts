@@ -103,6 +103,11 @@ export const TOAST_ERROR_MESSAGES = {
       DEFAULT: 'Failed to cancel account deletion',
       PERMISSION: 'You don\'t have permission to cancel account deletion',
       SERVER: 'Server error occurred while cancelling deletion',
+    },
+    UPDATE_METADATA: {
+      DEFAULT: 'Failed to update user metadata',
+      PERMISSION: 'You don\'t have permission to update user metadata',
+      SERVER: 'Server error occurred while updating user metadata',
     }
   }
 } as const;

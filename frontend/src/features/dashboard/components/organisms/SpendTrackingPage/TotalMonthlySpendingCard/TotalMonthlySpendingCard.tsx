@@ -1,9 +1,12 @@
 // Icons
-import { ArrowUpRight, TrendingDown } from '@/shared/components/ui/icons';
+import { TrendingDown } from '@/shared/components/ui/icons';
 
 // Shadcn UI Components / Charts
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
+
+// Utils
+import { formatCurrency, type CurrencyAmount } from "@/features/dashboard/lib/utils/formatCurrency";
 
 // Types
 import type { SpendingCategoryBFFResponse } from '@/types/domain/spend-tracking';
@@ -34,21 +37,14 @@ export function TotalMonthlySpendingCard({
     spendingCategories
   } = totalMonthlySpending;
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(value);
-  };
-
   return (
     <Card className="col-span-full lg:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-xl font-bold text-foreground">Net this month</CardTitle>
-        <button className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
+        {/* <button className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
           DOWNLOAD REPORT
           <ArrowUpRight className="ml-1 h-3 w-3" />
-        </button>
+        </button> */}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -99,7 +95,7 @@ export function TotalMonthlySpendingCard({
                 <div className="flex flex-col">
                   <span className="text-sm">{GRAPH_CATEGORY_DISPLAY_NAMES[item.name] ?? item.name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {formatCurrency(item.value)}
+                    {formatCurrency(item.value as CurrencyAmount)}
                   </span>
                 </div>
               </div>

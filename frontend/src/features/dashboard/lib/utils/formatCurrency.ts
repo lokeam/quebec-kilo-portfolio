@@ -57,9 +57,10 @@ const getFormatter = (currency: string, locale: string): Intl.NumberFormat => {
  * @returns Formatted currency string (e.g., "$52.80")
  */
 export const formatUSD = (amount: CurrencyAmount): string => {
-  if (amount == null) return '$0.00';
-  if (amount <  0) return '$0.00';
-  if (!Number.isFinite(amount)) return '$0.00';
+  if (amount == null) return '0';
+  if (amount <  0) return '0';
+  if (!Number.isFinite(amount)) return '0';
+  if (amount === 0) return '0';
 
   try {
     // Fallback formatting if for some reason Int.NumberFormat fails
@@ -84,9 +85,10 @@ export const formatCurrency = (
   currency: string = 'USD',
   locale: string = 'en-US'
 ): string => {
-  if (amount == null) return formatUSD(0);
-  if (amount < 0) return formatUSD(0);
-  if (!Number.isFinite(amount)) return formatUSD(0);
+  if (amount == null) return '0';
+  if (amount < 0) return '0';
+  if (!Number.isFinite(amount)) return '0';
+  if (amount === 0) return '0';
 
   try {
     const formatter = getFormatter(currency, locale);

@@ -2,8 +2,8 @@
 import type { ToastVariant } from "@/types/toast";
 
 export const TOAST_DURATIONS = {
-  STANDARD: 500000,
-  EXTENDED: 800000,
+  STANDARD: 60000, // 60 seconds
+  EXTENDED: 90000, // 90 seconds
 } as const;
 
 export const TOAST_CLASSNAMES = {

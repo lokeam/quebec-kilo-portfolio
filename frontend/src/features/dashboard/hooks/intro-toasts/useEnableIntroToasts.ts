@@ -1,6 +1,9 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { useEffect, useState } from 'react';
-import { axiosInstance } from '@/core/api/client/axios-instance';
+
+// Queries
+import { useUpdateUserMetadata } from '@/core/api/queries/user.queries';
+
 
 // Extend Window interface for optimistic state
 declare global {
@@ -18,6 +21,7 @@ declare global {
 export const useEnableIntroToasts = () => {
   const { user } = useAuth0();
   const [wantsIntroToasts, setWantsIntroToasts] = useState<boolean | null>(null);
+  const updateUserMetadataMutation = useUpdateUserMetadata();
 
   useEffect(() => {
     // Check for optimistic state first (set during onboarding)
@@ -54,7 +58,7 @@ export const useEnableIntroToasts = () => {
     // console.log('📤 Updating wantsIntroToasts preference:', wantsToasts);
 
     try {
-      await axiosInstance.patch('/v1/users/metadata', {
+      await updateUserMetadataMutation.mutateAsync({
         wantsIntroToasts: wantsToasts
       });
 
