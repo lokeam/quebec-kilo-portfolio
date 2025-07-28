@@ -26,11 +26,8 @@ func (dcs *DatabaseCleanupService) Close() error {
 
 // NewDatabaseCleanupService creates a new database cleanup service
 func NewDatabaseCleanupService(appCtx *appcontext.AppContext) (*DatabaseCleanupService, error) {
-	// Create sqlx connection
-	db, err := sqlx.Connect("pgx", appCtx.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database connection: %w", err)
-	}
+	// Use shared DB pool
+	db := appCtx.DB
 
 	return &DatabaseCleanupService{
 		appCtx: appCtx,

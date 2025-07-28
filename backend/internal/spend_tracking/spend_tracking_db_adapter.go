@@ -13,14 +13,12 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
-	"github.com/lokeam/qko-beta/internal/postgres"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 
 type SpendTrackingDbAdapter struct {
 	calculator  *SpendTrackingCalculator
-	client      *postgres.PostgresClient
 	db          *sqlx.DB
 	logger      interfaces.Logger
 }
@@ -31,27 +29,11 @@ func NewSpendTrackingDbAdapter(
 	// Log that we're creating the SpendTrackingDbAdapter
 	appContext.Logger.Debug("Creating LibraryDbAdapter", map[string]any{"appContext": appContext})
 
-	// Create sql db from px pool
-	client, err := postgres.NewPostgresClient(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sql connection for spend tracking db adapter: %w", err)
-	}
-
-	// Create sqlx db from px pool
-	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
-	}
-
-	// Register custom types? Not sure if needed
-	db.MapperFunc(strings.ToLower)
-	db.SetMaxOpenConns(10)        // Reduced from 25
-	db.SetMaxIdleConns(5)         // Reduced from 25
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Use shared DB pool
+	db := appContext.DB
 
 	// Create the adapter first
 	adapter := &SpendTrackingDbAdapter{
-		client:  client,
 		db:      db,
 		logger:  appContext.Logger,
 	}

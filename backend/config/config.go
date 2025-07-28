@@ -162,9 +162,9 @@ func Load() (*Config, error) {
 		Database:           getEnvOrDefault("POSTGRES_DB", ""),
 		SSLMode:            getEnvOrDefault("POSTGRES_SSLMODE", "disable"),
 		ConnectionString:   os.Getenv("DATABASE_URL"),
-		MaxConnections:     getEnvIntOrDefault("DATABASE_MAX_CONNECTIONS", 10),
-		MaxIdleTime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_IDLE_TIME", 15)) * time.Second,
-		MaxLifetime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_LIFETIME", 15)) * time.Minute,
+		MaxConnections:     getEnvIntOrDefault("DATABASE_MAX_CONNECTIONS", 500),
+		MaxIdleTime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_IDLE_TIME", 60)) * time.Second,
+		MaxLifetime:        time.Duration(getEnvIntOrDefault("DATABASE_MAX_LIFETIME", 30)) * time.Minute,
 	}
 
 	// Validate required PostgresSQL Settings

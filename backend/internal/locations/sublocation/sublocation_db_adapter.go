@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -63,7 +62,6 @@ const (
 )
 
 type SublocationDbAdapter struct {
-	client  *postgres.PostgresClient
 	db      *sqlx.DB
 	logger  interfaces.Logger
 }
@@ -71,26 +69,10 @@ type SublocationDbAdapter struct {
 func NewSublocationDbAdapter(appContext *appcontext.AppContext) (*SublocationDbAdapter, error) {
 	appContext.Logger.Debug("Creating SublocationDbAdapter", map[string]any{"appContext": appContext})
 
-	// Create a PostgresClient
-	client, err := postgres.NewPostgresClient(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Postgres client %w", err)
-	}
-
-	// Create sqlx from px pool
-	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
-	}
-
-	// Register custom types for PostgreSQL array so sqlx can handle string array types
-	db.MapperFunc(strings.ToLower)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Use shared DB pool
+	db := appContext.DB
 
 	return &SublocationDbAdapter{
-		client: client,
 		db:     db,
 		logger: appContext.Logger,
 	}, nil

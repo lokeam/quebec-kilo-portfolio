@@ -3,21 +3,18 @@ package dashboard
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
-	"github.com/lokeam/qko-beta/internal/postgres"
 	"github.com/lokeam/qko-beta/internal/spend_tracking"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 // Adapter struct for Dashboard BFF
 type DashboardDbAdapter struct {
-  client                     *postgres.PostgresClient
   db                         *sqlx.DB
   logger                     interfaces.Logger
   spendTrackingCalculator    *spend_tracking.SpendTrackingCalculator
@@ -25,18 +22,9 @@ type DashboardDbAdapter struct {
 
 // Constructor for DashboardDbAdapter
 func NewDashboardDbAdapter(appContext *appcontext.AppContext) (*DashboardDbAdapter, error) {
-  client, err := postgres.NewPostgresClient(appContext)
-  if err != nil {
-      return nil, fmt.Errorf("failed to create sql connection for dashboard db adapter: %w", err)
-  }
-  db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-  if err != nil {
-      return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
-  }
-  db.MapperFunc(strings.ToLower)
-  db.SetMaxOpenConns(25)
-  db.SetMaxIdleConns(25)
-  db.SetConnMaxLifetime(5 * time.Minute)
+
+  // Use shared DB pool
+  db := appContext.DB
 
   spendTrackingDBAdapter, err := spend_tracking.NewSpendTrackingDbAdapter(appContext)
   if err != nil {
@@ -49,7 +37,6 @@ func NewDashboardDbAdapter(appContext *appcontext.AppContext) (*DashboardDbAdapt
   }
 
   return &DashboardDbAdapter{
-      client: client,
       db:     db,
       logger: appContext.Logger,
       spendTrackingCalculator: spendTrackingCalculator,

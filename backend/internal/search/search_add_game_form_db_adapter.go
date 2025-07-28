@@ -5,18 +5,14 @@ import (
 	"database/sql"
 	"fmt"
 	"html"
-	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
-	"github.com/lokeam/qko-beta/internal/postgres"
 	"github.com/lokeam/qko-beta/internal/types"
 )
 
 type SearchAddGameFormDbAdapter struct {
-	client   *postgres.PostgresClient
 	db       *sqlx.DB
 	logger   interfaces.Logger
 }
@@ -52,27 +48,10 @@ const (
 func NewSearchAddGameFormDBAdapter(appContext *appcontext.AppContext) (*SearchAddGameFormDbAdapter, error) {
 	appContext.Logger.Debug("Creating SearchAddGameFormDbAdapter", map[string]any{"appContext": appContext})
 
-	// Create a PostgresClient
-	client, err := postgres.NewPostgresClient(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Postgres client in search db adapter: %w", err)
-	}
-
-
-	// Create sql from px pool
-	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sqlx connection in search db adapter: %w", err)
-	}
-
-	// Register custom types for PostgreSQL arrays so sqlx can handle string array types
-	db.MapperFunc(strings.ToLower)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Use shared DB pool
+	db := appContext.DB
 
 	return &SearchAddGameFormDbAdapter{
-		client: client,
 		db:     db,
 		logger: appContext.Logger,
 	}, nil

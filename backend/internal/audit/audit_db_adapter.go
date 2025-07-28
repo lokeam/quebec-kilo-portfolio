@@ -61,11 +61,8 @@ func NewAuditDbAdapter(appCtx *appcontext.AppContext) (interfaces.AuditDbAdapter
 		return nil, fmt.Errorf("app context cannot be nil")
 	}
 
-	// Create sqlx connection
-	db, err := sqlx.Connect("pgx", appCtx.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database connection: %w", err)
-	}
+	// Use shared DB pool
+	db := appCtx.DB
 
 	return &AuditDbAdapter{
 		appCtx: appCtx,

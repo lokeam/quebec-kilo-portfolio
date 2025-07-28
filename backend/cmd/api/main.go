@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/cmd/resourceinitializer"
 	"github.com/lokeam/qko-beta/config"
 	"github.com/lokeam/qko-beta/internal/appcontext"
@@ -92,6 +94,19 @@ func main() {
 
 	// 6. Build global app context to be passed into server
 	appCtx := appcontext.NewAppContext(cfg, log, resources.MemCache, resources.RedisClient)
+
+	// Initialize shared DB pool
+	db, err := sqlx.Connect("pgx", appCtx.Config.Postgres.ConnectionString)
+	if err != nil {
+		log.Error("Failed to connect to Postgres", map[string]any{"error": err})
+		os.Exit(1)
+	}
+	db.SetMaxOpenConns(appCtx.Config.Postgres.MaxConnections)
+	db.SetMaxIdleConns(appCtx.Config.Postgres.MaxConnections)
+	db.SetConnMaxIdleTime(appCtx.Config.Postgres.MaxIdleTime)
+	db.SetConnMaxLifetime(appCtx.Config.Postgres.MaxLifetime)
+	appCtx.DB = db
+	defer db.Close()
 
 	// 7. Create HTTP server
 	srv := server.NewServer(cfg, log, appCtx)

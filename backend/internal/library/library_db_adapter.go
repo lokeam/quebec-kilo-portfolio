@@ -17,7 +17,6 @@ import (
 )
 
 type LibraryDbAdapter struct {
-	client   *postgres.PostgresClient
 	db       *sqlx.DB
 	logger   interfaces.Logger
 	scanner  interfaces.GameScanner
@@ -26,26 +25,10 @@ type LibraryDbAdapter struct {
 func NewLibraryDbAdapter(appContext *appcontext.AppContext) (*LibraryDbAdapter, error) {
 	appContext.Logger.Debug("Creating LibraryDbAdapter", map[string]any{"appContext": appContext})
 
-	// Create a PostgresClient
-	client, err := postgres.NewPostgresClient(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Postgres client %w", err)
-	}
-
-	// Create sqlx db from px pool
-	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-	if err != nil {
-			return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
-	}
-
-	// Register custom types for PostgreSQL arrays so that sqlx can handle string array types
-	db.MapperFunc(strings.ToLower)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// Use shared DB pool
+	db := appContext.DB
 
 	return &LibraryDbAdapter{
-		client: client,
 		db:     db,
 		logger: appContext.Logger,
 		scanner: &postgres.GameScanner{},

@@ -10,12 +10,10 @@ import (
 	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/interfaces"
 	"github.com/lokeam/qko-beta/internal/models"
-	"github.com/lokeam/qko-beta/internal/postgres"
 )
 
 
 type UserDbAdapter struct {
-	client *postgres.PostgresClient
 	db     *sqlx.DB
 	logger interfaces.Logger
 }
@@ -23,18 +21,12 @@ type UserDbAdapter struct {
 func NewUserDbAdapter(appContext *appcontext.AppContext) (*UserDbAdapter, error) {
 	appContext.Logger.Debug("Creating UserDbAdapter", map[string]any{"appContext": appContext})
 
-	client, err := postgres.NewPostgresClient(appContext)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create postgres client: %w", err)
-	}
-
-	db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
-	}
+		db, err := sqlx.Connect("pgx", appContext.Config.Postgres.ConnectionString)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create sqlx connection: %w", err)
+		}
 
 	return &UserDbAdapter{
-		client: client,
 		db:     db,
 		logger: appContext.Logger,
 	}, nil

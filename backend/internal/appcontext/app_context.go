@@ -1,6 +1,7 @@
 package appcontext
 
 import (
+	"github.com/jmoiron/sqlx"
 	"github.com/lokeam/qko-beta/config"
 	memcache "github.com/lokeam/qko-beta/internal/infrastructure/cache/memorycache"
 	cache "github.com/lokeam/qko-beta/internal/infrastructure/cache/rueidis"
@@ -13,6 +14,7 @@ type AppContext struct {
 	Logger                 interfaces.Logger
 	MemCache               *memcache.MemoryCache
 	RedisClient            *cache.RueidisClient
+	DB                     *sqlx.DB
 	TwitchTokenRetriever   interfaces.TokenRetriever
 }
 
@@ -32,10 +34,11 @@ func NewAppContext(
 	)
 
 	return &AppContext{
-		Config: config,
-		Logger: logger,
-		MemCache: memCache,
-		RedisClient: redisClient,
-		TwitchTokenRetriever: twitchTokenRetriever,
+		Config:                config,
+		Logger:                logger,
+		MemCache:              memCache,
+		RedisClient:           redisClient,
+		DB:                    nil, // set later
+		TwitchTokenRetriever:  twitchTokenRetriever,
 	}
 }
