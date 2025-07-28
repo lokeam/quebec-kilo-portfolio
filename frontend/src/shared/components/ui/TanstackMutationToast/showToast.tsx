@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { toast as sonnerToast } from 'sonner';
 
+// components
+import { OperationToast } from './OperationToast';
+
 // constants
 import { TOAST_DURATIONS } from '@/shared/constants/toast.config';
 
@@ -26,8 +29,13 @@ const TOAST_ICONS: Record<ToastVariant, ReactNode> = {
 
 export function showToast({ message, variant = 'success', duration = TOAST_DURATIONS.STANDARD
 }: TanstackMutationToastProps) {
-  sonnerToast[variant](message, {
+  return sonnerToast.custom((t) => (
+    <OperationToast
+      id={t}
+      message={message}
+      icon={TOAST_ICONS[variant]}
+    />
+  ), {
     duration,
-    icon: TOAST_ICONS[variant],
-  })
+  });
 }

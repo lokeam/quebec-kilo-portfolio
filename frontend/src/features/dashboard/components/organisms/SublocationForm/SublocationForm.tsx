@@ -153,28 +153,6 @@ export function SublocationForm({
           </div>
         </div>
 
-        {/* Location Name */}
-        <FormField
-          control={control}
-          name="locationName"
-          render={({ field, fieldState: { error } }) => (
-            <FormItem>
-              <FormLabel>Sublocation Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Example: Study bookcase"
-                  {...field}
-                  aria-invalid={!!error}
-                />
-              </FormControl>
-              <FormDescription>
-                What shall we call this area?
-              </FormDescription>
-              {error && <FormMessage>{error.message}</FormMessage>}
-            </FormItem>
-          )}
-        />
-
         {/* Location Type */}
         <FormField
           control={control}
@@ -232,6 +210,28 @@ export function SublocationForm({
               </Select>
               <FormDescription>
                 What kind of furniture or storage unit is this?
+              </FormDescription>
+              {error && <FormMessage>{error.message}</FormMessage>}
+            </FormItem>
+          )}
+        />
+
+        {/* Location Name */}
+        <FormField
+          control={control}
+          name="locationName"
+          render={({ field, fieldState: { error } }) => (
+            <FormItem>
+              <FormLabel>Sublocation Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Example: Study bookcase"
+                  {...field}
+                  aria-invalid={!!error}
+                />
+              </FormControl>
+              <FormDescription>
+                What shall we call this area?
               </FormDescription>
               {error && <FormMessage>{error.message}</FormMessage>}
             </FormItem>

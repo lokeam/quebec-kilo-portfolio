@@ -142,28 +142,6 @@ export function PhysicalLocationForm({
   return (
     <HookFormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 mb-4">
-        {/* Location Name */}
-        <FormField
-          control={control}
-          name="locationName"
-          render={({ field, fieldState: { error } }) => (
-            <FormItem>
-              <FormLabel>Location Name</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Enter a location name"
-                  {...field}
-                  aria-invalid={!!error}
-                />
-              </FormControl>
-              <FormDescription>
-                This is the name of the location where the media is stored.
-              </FormDescription>
-              {error && <FormMessage>{error.message}</FormMessage>}
-            </FormItem>
-          )}
-        />
-
         {/* Location Type */}
         <FormField
           control={control}
@@ -257,6 +235,28 @@ export function PhysicalLocationForm({
           )}
         />
 
+        {/* Location Name */}
+        <FormField
+          control={control}
+          name="locationName"
+          render={({ field, fieldState: { error } }) => (
+            <FormItem>
+              <FormLabel>Location Name</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Enter a location name"
+                  {...field}
+                  aria-invalid={!!error}
+                />
+              </FormControl>
+              <FormDescription>
+                This is the name of the location where the media is stored.
+              </FormDescription>
+              {error && <FormMessage>{error.message}</FormMessage>}
+            </FormItem>
+          )}
+        />
+
         {/* Coordinates */}
         <FormField
           control={control}
@@ -285,7 +285,7 @@ export function PhysicalLocationForm({
                 </FormControl>
               )}
               <FormDescription>
-                Optional: Add map coordinates for this location.
+                Optional: Add Google Map coordinates for this location.
               </FormDescription>
               {error && <FormMessage>{error.message}</FormMessage>}
             </FormItem>

@@ -77,8 +77,9 @@ export function GameSearchAndSelectDialog() {
       hideHeader={true}
       trigger={
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="sm">
             <SearchIcon />
+            Add Games to Your Library
           </Button>
         </DialogTrigger>
       }
