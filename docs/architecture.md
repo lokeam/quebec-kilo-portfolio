@@ -1,6 +1,6 @@
 ## Overview
 
-Q-KO (pronounced "queue koh") is a "collector's companion" media management and billing tool designed for gamers. It tracks and manages metadata and associated expenses for physical and digital media collections.
+QKO (pronounced "queue koh") is a "collector's companion" media management and billing tool designed for gamers. It tracks and manages metadata and associated expenses for physical and digital media collections.
 
 ## Table of Contents
 
@@ -70,7 +70,6 @@ backend/
 │   ├── routes.go           # Route configuration
 │   └── tests/              # HTTP endpoint tests
 └── internal/               # Private application code
-    ├── books/              # Books domain module
     ├── core/               # Core business logic
     │   ├── models/         # Domain models
     │   ├── services/       # Business services
@@ -90,7 +89,7 @@ backend/
 
 ### Database Architecture (PostgreSQL)
 
-Q-KO uses PostgreSQL as its primary data store, chosen for its:
+QKO uses PostgreSQL as its primary data store, chosen for its:
 
 1. **Data Integrity**
    - ACID compliance for transaction reliability
@@ -371,16 +370,15 @@ This architecture supports Q-KO's requirements for scalability, maintainability,
 
 ### Authentication & Authorization (Auth0)
 
-1. **Identity & Access Management** (Not yet implemented)
+1. **Identity & Access Management**
    - Frontend authentication via Auth0 SPA SDK
    - Backend validation via Auth0 JWT middleware
    - OAuth 2.0 and OpenID Connect compliance
    - Social login integration
 
 2. **Security Features**
-   - MFA support
+   - MFA support (Not yet implemented)
    - Secure session management with refresh tokens (frontend)
-   - Role-based access control (backend)
    - Token validation and scope checking (backend)
 
 ### Application Security (Internal)
@@ -392,10 +390,10 @@ This architecture supports Q-KO's requirements for scalability, maintainability,
    - Secure headers management via chi middleware
 
 2. **Data Security**
-   - SQL injection prevention through prepared statements (Not yet implemented)
-   - Audit logging of authentication events               (Not yet implemented)
-   - Sensitive data encryption                            (Not yet implemented)
+   - SQL injection prevention through prepared statements
+   - Audit logging of authentication events
    - Error handling security
+
 
 ### API Security (External)
 
