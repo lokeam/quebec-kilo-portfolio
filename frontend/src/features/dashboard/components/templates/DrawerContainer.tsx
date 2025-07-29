@@ -94,7 +94,7 @@ interface DrawerContainerProps {
   onTriggerClick?: () => void;
   modal?: boolean;
   dismissible?: boolean;
-  overlay?: boolean;
+  // Removed overlay prop since it was unused
 }
 
 /**
@@ -162,7 +162,6 @@ export function DrawerContainer({
   onTriggerClick,
   modal = true,
   dismissible = true,
-  overlay = true,
   ...rest /* <-- This collects any additional props to pass to DrawerContent */
 }: DrawerContainerProps) {
   const { positionStyles, currentPosition } = useDrawerPosition({
@@ -221,7 +220,7 @@ export function DrawerContainer({
 
       {/* Use DrawerContent directly, passing through additional props */}
       <DrawerContent
-        className={cn(positionStyles, className)}
+        className={cn(positionStyles, className, 'flex flex-col max-h-[calc(100vh-6rem)] overflow-hidden')}
         data-testid="drawer-content"
         aria-describedby="drawer-description"
         {...rest}
@@ -230,7 +229,7 @@ export function DrawerContainer({
           <MemoizedDrawerHeaderContent title={title} description={description} />
         </DrawerHeader>
 
-        <div className="px-4" data-testid="drawer-body">{children}</div>
+        <div className="px-4 flex-1 overflow-auto" data-sidebar="content" data-testid="drawer-body">{children}</div>
 
         <MemoizedDrawerFooter />
       </DrawerContent>

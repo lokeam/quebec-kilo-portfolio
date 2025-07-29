@@ -35,14 +35,14 @@ export const useOnboardingStatus = () => {
   } | null>(null);
 
   // Debug: Log Auth0 user object to see what's available
-  console.log('🔍 Auth0 User Object:', {
-    email: user?.email,
-    name: user?.name,
-    firstName: user?.firstName,
-    lastName: user?.lastName,
-    user_metadata: user?.user_metadata,
-    app_metadata: user?.app_metadata,
-  });
+  // console.log('🔍 Auth0 User Object:', {
+  //   email: user?.email,
+  //   name: user?.name,
+  //   firstName: user?.firstName,
+  //   lastName: user?.lastName,
+  //   user_metadata: user?.user_metadata,
+  //   app_metadata: user?.app_metadata,
+  // });
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -53,17 +53,17 @@ export const useOnboardingStatus = () => {
         const claims = await getIdTokenClaims();
         const namespace = 'https://qko.app/claims';
 
-        console.log('🔍 ID Token Claims (full object):', claims);
-        console.log('🔍 Looking for claims under namespace:', namespace);
+        // console.log('🔍 ID Token Claims (full object):', claims);
+        // console.log('🔍 Looking for claims under namespace:', namespace);
 
         // Check if custom claims exist
         if (claims && claims[`${namespace}/hasCompletedOnboarding`] !== undefined) {
-          console.log('✅ Found onboarding status in ID token claims!');
-          console.log('📋 Custom claims found:', {
-            hasCompletedOnboarding: claims[`${namespace}/hasCompletedOnboarding`],
-            wantsIntroToasts: claims[`${namespace}/wants_intro_toasts`],
-            allClaimsWithNamespace: Object.keys(claims).filter(key => key.startsWith(namespace))
-          });
+          // console.log('✅ Found onboarding status in ID token claims!');
+          // console.log('📋 Custom claims found:', {
+          //   hasCompletedOnboarding: claims[`${namespace}/hasCompletedOnboarding`],
+          //   wantsIntroToasts: claims[`${namespace}/wants_intro_toasts`],
+          //   allClaimsWithNamespace: Object.keys(claims).filter(key => key.startsWith(namespace))
+          // });
           const newStatus: {
             hasCompletedOnboarding: boolean;
             hasCompletedNameStep: boolean;
@@ -79,15 +79,15 @@ export const useOnboardingStatus = () => {
           });
           return;
         } else {
-          console.log('❌ No custom claims found under namespace:', namespace);
-          console.log('🔍 Available claim keys:', Object.keys(claims || {}));
+          // console.log('❌ No custom claims found under namespace:', namespace);
+          //console.log('🔍 Available claim keys:', Object.keys(claims || {}));
         }
       } catch (error) {
-        console.warn('Failed to get ID token claims:', error);
+        console.error('Failed to get ID token claims:', error);
       }
 
       // Fallback to app_metadata from user object
-      console.log('🔄 Falling back to app_metadata from user object');
+      // console.log('🔄 Falling back to app_metadata from user object');
       const fallbackStatus: {
         hasCompletedOnboarding: boolean;
         hasCompletedNameStep: boolean;
@@ -114,12 +114,12 @@ export const useOnboardingStatus = () => {
 
   const finalNameStepStatus = onboardingStatus?.hasCompletedNameStep ?? false;
 
-  console.log('🔍 Onboarding Status:', {
-    hasCompletedOnboarding: finalOnboardingStatus,
-    hasCompletedNameStep: finalNameStepStatus,
-    source: onboardingStatus?.source,
-    appMetadataHasCompletedOnboarding: user?.app_metadata?.hasCompletedOnboarding,
-  });
+  // console.log('🔍 Onboarding Status:', {
+  //   hasCompletedOnboarding: finalOnboardingStatus,
+  //   hasCompletedNameStep: finalNameStepStatus,
+  //   source: onboardingStatus?.source,
+  //   appMetadataHasCompletedOnboarding: user?.app_metadata?.hasCompletedOnboarding,
+  // });
 
   return {
     hasCompletedOnboarding: finalOnboardingStatus,

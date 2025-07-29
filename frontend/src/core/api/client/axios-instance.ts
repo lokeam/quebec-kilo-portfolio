@@ -53,7 +53,7 @@ const axiosInstance = axios.create({
         headers![HTTP_HEADERS.CONTENT_TYPE] = HTTP_HEADERS.APPLICATION_JSON;
         try {
           const snakeCasedData = toSnakeCase(data);
-          console.log("🐍 snakeCasedData data", snakeCasedData)
+          // console.log("🐍 snakeCasedData data", snakeCasedData)
           return JSON.stringify(snakeCasedData);
         } catch (err) {
           logger.error('❌ Request serialization error', { error: err, data });
@@ -69,18 +69,18 @@ const axiosInstance = axios.create({
   transformResponse: [
     (raw: string) => {
       try {
-        console.log('🔍 TransformResponse - Raw response:', raw);
+        // console.log('🔍 TransformResponse - Raw response:', raw);
 
         const parsed = JSON.parse(raw) as { success: boolean; error?: string; data: unknown };
 
         // Only transform successful responses
         if (!isPlainObject(parsed)) {
-          console.log('🔍 TransformResponse - Not a plain object, returning raw');
+          // console.log('🔍 TransformResponse - Not a plain object, returning raw');
           // If it's not a plain object, return as-is (could be an error response)
           return raw;
         }
 
-        console.log('🔍 TransformResponse - Parsed response:', parsed);
+        // console.log('🔍 TransformResponse - Parsed response:', parsed);
 
         // Check if this is a successful response with the expected structure
         if (typeof parsed.success === 'boolean' && parsed.success === true) {
@@ -88,13 +88,13 @@ const axiosInstance = axios.create({
             throw new Error('Missing API data field');
           }
           const camelCasedData = toCamelCase(parsed.data);
-          console.log("🐫 camelCasedData data", camelCasedData);
+          // console.log("🐫 camelCasedData data", camelCasedData);
           return camelCasedData;
         }
 
         // For unsuccessful responses or unexpected structures, return as-is
         // This allows error responses to be handled by the response interceptor
-        console.log('🔍 TransformResponse - Unsuccessful response, returning raw');
+        // console.log('🔍 TransformResponse - Unsuccessful response, returning raw');
         return raw;
       } catch (err) {
         logger.error('❌ Response parsing error', { error: err, raw });

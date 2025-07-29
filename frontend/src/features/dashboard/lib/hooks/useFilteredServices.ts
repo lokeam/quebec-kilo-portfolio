@@ -15,7 +15,7 @@ export function useFilteredServices(services: DigitalLocationBFFResponseItem[]) 
   const billingCycleFilters = useOnlineServicesBillingFilters();
   const paymentMethodFilters = useOnlineServicesPaymentFilters();
 
-  console.log('[DEBUG] useFilteredServices: Services:', services);
+  // console.log('[DEBUG] useFilteredServices: Services:', services);
 
   return useMemo(() => {
     if (!services || !Array.isArray(services)) {

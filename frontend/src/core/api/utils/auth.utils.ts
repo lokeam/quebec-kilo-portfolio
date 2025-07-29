@@ -93,6 +93,22 @@ export async function getAuth0Token() {
   if (!getTokenFn) {
     throw new Error('Auth not initialized');
   }
-
-  return await getTokenFn();
+  try {
+    return await getTokenFn();
+  } catch (error: unknown) {
+    // Cast the error to an Auth0ClientError-like object
+    const err = error as { error?: string; error_description?: string; message?: string };
+    // If there's no refresh token or login is required, log the user out
+    const logout = getAuth0Logout();
+    const errorMsg = err.error_description ?? err.message ?? '';
+    if (
+      err.error === 'login_required' ||
+      err.error === 'invalid_grant' ||
+      errorMsg.includes('Missing Refresh Token')
+    ) {
+      // No refresh token: redirect to login
+      logout({ returnTo: window.location.origin });
+    }
+    throw error;
+  }
 }
