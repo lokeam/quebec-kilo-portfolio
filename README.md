@@ -9,7 +9,7 @@
 **QKO** is an end‑to‑end inventory and media management platform:
 
 
-* Track physical & digital collections (games, books, media)
+* Track everything about your physical & digital video game collection
 * Attach rich metadata (creators, genres, purchase history)
 * Automate expense reporting for subscriptions
 * Access via web, mobile‑optimized UI, and REST API
