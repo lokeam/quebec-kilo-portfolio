@@ -34,7 +34,11 @@ export function formatDate(timestamp: number | undefined): { dayStr: string; mon
   }
 
   try {
-    const date = new Date(timestamp);
+    // Guard to ensure that we're using milliseconds
+    const milliseconds = timestamp < 100_000_000_000
+    ? timestamp * 1_000   // if the number is small to be seconds convert to milliseconds
+    : timestamp;          // else leave it as is
+    const date = new Date(milliseconds);
     if (isNaN(date.getTime())) {
       return { dayStr: '--', monthStr: '---' };
     }

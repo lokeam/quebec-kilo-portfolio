@@ -57,6 +57,16 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
     setSelectedItem(null);
   };
 
+  // Helper to pick correct date field
+  const getSortDate = (item: SpendItem): number => {
+    return item.spendTransactionType === 'subscription'
+    ? item.nextBillingDate ?? 0
+    : item.purchaseDate ?? 0;
+  }
+
+  const sortedThisMonth = [...thisMonth].sort((a, b) => getSortDate(a) - getSortDate(b));
+  const sortedFuture = [...future].sort((a, b) => getSortDate(a) - getSortDate(b));
+
   return (
     <>
       <Accordion type="multiple" defaultValue={["this-month"]} className="col-span-full flex flex-col h-full space-y-4">
@@ -66,7 +76,7 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
           </AccordionTrigger>
           <AccordionContent className="pt-4">
             <div className="space-y-1">
-              {thisMonth.map((item, index) => (
+              {sortedThisMonth.map((item, index) => (
                 <MemoizedMonthlySpendingAccordionItem
                   key={index}
                   item={item}
@@ -85,7 +95,7 @@ export function MonthlySpendingAccordion({ thisMonth, future, oneTimeTotal }: Mo
           </AccordionTrigger>
           <AccordionContent className="pt-4">
             <div className="space-y-1">
-              {future.map((item, index) => (
+              {sortedFuture.map((item, index) => (
                 <MemoizedMonthlySpendingAccordionItem
                   key={index}
                   item={item}
