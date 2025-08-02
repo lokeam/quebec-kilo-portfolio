@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
+import { OnboardingProgressBar } from '@/features/dashboard/components/organisms/OnboardingPage/OnboardingProgressBar';
 
 /**
  * OnboardingLayout
@@ -11,6 +12,9 @@ import { OfflineBanner } from '@/core/network-status/components/OfflineBanner';
 export default function OnboardingLayout() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Progress Bar */}
+      <OnboardingProgressBar />
+
       {/* Network Status Provider - Offline Banner */}
       <OfflineBanner />
 
