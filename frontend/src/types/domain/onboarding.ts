@@ -21,7 +21,7 @@ export type OnboardingStorageType = typeof OnboardingStorageType[keyof typeof On
 export const NAVIGATION_ROUTES = {
   ONBOARDING_WELCOME: '/onboarding/welcome',
   ONBOARDING_NAME: '/onboarding/name',
-  ONBOARDING_INTRO: '/onboarding/intro',
+  ONBOARDING_MESSAGES: '/onboarding/messages',
   ONBOARDING_COMPLETE: '/',
 } as const;
 

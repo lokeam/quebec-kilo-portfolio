@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 // Constants
-import { ONBOARDING_PROGRESS } from '@/types/domain/onboarding';
+import { NAVIGATION_ROUTES, ONBOARDING_PROGRESS } from '@/types/domain/onboarding';
 
 export function OnboardingProgressBar() {
   const location = useLocation();
@@ -13,11 +13,11 @@ export function OnboardingProgressBar() {
   // Determine current progress based on route
   const getCurrentProgress = () => {
     switch (location.pathname) {
-      case '/onboarding/welcome':
+      case NAVIGATION_ROUTES.ONBOARDING_WELCOME:
         return ONBOARDING_PROGRESS.STEPS.WELCOME;
-      case '/onboarding/name':
+      case NAVIGATION_ROUTES.ONBOARDING_NAME:
         return ONBOARDING_PROGRESS.STEPS.NAME;
-      case '/onboarding/intro':
+      case NAVIGATION_ROUTES.ONBOARDING_MESSAGES:
         return ONBOARDING_PROGRESS.STEPS.TOAST_SETUP;
       default:
         return 0;
@@ -26,13 +26,13 @@ export function OnboardingProgressBar() {
 
   const currentProgress = getCurrentProgress();
 
-  // Handle animation timing based on current page
+  // NOTE: Need to handle animation timing based on current page
   useEffect(() => {
     setShouldAnimate(false);
 
     const timer = setTimeout(() => {
       setShouldAnimate(true);
-    }, location.pathname === '/onboarding/welcome' ? ONBOARDING_PROGRESS.WELCOME_ANIMATION_DELAY * 1000 : 100);
+    }, location.pathname === NAVIGATION_ROUTES.ONBOARDING_WELCOME ? ONBOARDING_PROGRESS.WELCOME_ANIMATION_DELAY * 1000 : 100);
 
     return () => clearTimeout(timer);
   }, [location.pathname]);

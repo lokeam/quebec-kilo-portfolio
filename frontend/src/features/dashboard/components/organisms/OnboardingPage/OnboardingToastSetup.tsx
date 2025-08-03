@@ -124,7 +124,7 @@ export default function OnboardingToastSetup() {
                   className="w-full max-w-md"
                   onClick={handleStartOnboardFlow}
                 >
-                  Yes, please!
+                  Yes, I'll take the help!
                 </Button>
                 <Button
                   variant="outline"

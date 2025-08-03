@@ -45,7 +45,7 @@ export default function OnboardingName() {
   useEffect(() => {
     if (user?.app_metadata?.hasCompletedOnboarding) {
       // console.log('🚫 User already has complete onboarding, redirecting to intro');
-      navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO, { replace: true });
+      navigate(NAVIGATION_ROUTES.ONBOARDING_MESSAGES, { replace: true });
     }
   }, [user, navigate]);
 
@@ -72,7 +72,7 @@ export default function OnboardingName() {
       // console.log('✅ User profile created/updated successfully');
 
       // Navigate to next onboarding step
-      navigate(NAVIGATION_ROUTES.ONBOARDING_INTRO);
+      navigate(NAVIGATION_ROUTES.ONBOARDING_MESSAGES);
     } catch (error) {
       console.error('❌ Failed to create user profile:', error);
       // Handle error (show toast, etc.)

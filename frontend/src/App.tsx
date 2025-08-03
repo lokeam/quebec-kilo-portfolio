@@ -185,7 +185,7 @@ function App() {
                     } >
                       <Route path="welcome" element={<OnboardingPage />} />
                       <Route path="name" element={<OnboardingName />} />
-                      <Route path="intro" element={<OnboardingToastSetup />} />
+                      <Route path="messages" element={<OnboardingToastSetup />} />
                     </Route>
                     {/* Marked For Deletion Protected Routes */}
                     <Route path="/account-recovery" element={
