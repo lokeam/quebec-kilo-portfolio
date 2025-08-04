@@ -2,6 +2,7 @@ package sublocation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/lokeam/qko-beta/internal/interfaces"
@@ -73,6 +74,11 @@ func (sca *SublocationCacheAdapter) SetSingleCachedSublocation(
 	userID string,
 	sublocation models.Sublocation,
 ) error {
+	// Validate that the sublocation belongs to the user
+	if sublocation.UserID != userID {
+		return errors.New("sublocation does not belong to user")
+	}
+
 	cacheKey := fmt.Sprintf("sublocation:%s:sublocation:%s", userID, sublocation.ID)
 	return sca.cacheWrapper.SetCachedResults(ctx, cacheKey, sublocation)
 }

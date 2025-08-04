@@ -506,6 +506,7 @@ func TestSublocationCacheAdapter(t *testing.T) {
 		mockCache := new(MockCacheWrapper)
 		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id:location:test-location-id").Return(nil)
 		mockCache.On("DeleteCacheKey", mock.Anything, "physical:test-user-id").Return(nil)
+		mockCache.On("DeleteCacheKey", mock.Anything, "physical:bff:test-user-id").Return(nil)
 
 		adapter := createAdapter(mockCache)
 

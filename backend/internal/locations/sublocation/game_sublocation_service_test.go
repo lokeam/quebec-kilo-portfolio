@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lokeam/qko-beta/internal/appcontext"
 	"github.com/lokeam/qko-beta/internal/models"
 	"github.com/lokeam/qko-beta/internal/testutils"
 	"github.com/lokeam/qko-beta/internal/testutils/mocks"
@@ -70,17 +69,27 @@ type MockSublocationDbAdapter struct {
 }
 
 func newMockGameSublocationServiceWithDefaults(logger *testutils.TestLogger) (*GameSublocationService, error) {
+	// Create mock dependencies
+	mockDbAdapter := &mockDbAdapter{}
+	mockCacheWrapper := mocks.DefaultSublocationCacheWrapper()
+	mockValidator := mocks.DefaultSublocationValidator()
+	mockSanitizer := &mocks.MockSanitizer{
+		SanitizeFunc: func(s string) (string, error) {
+			return s, nil // Default implementation just returns the input
+		},
+	}
+	mockPhysicalService := &mocks.MockPhysicalService{}
 	mockConfig := mocks.NewMockConfig()
 
-	// Use nil for cache clients since they're not used in these tests
-	appCtx := appcontext.NewAppContext(mockConfig, logger, nil, nil)
-
-	// Create a stub physical service
-	physicalService := &mocks.MockPhysicalService{}
-
-	service, err := NewGameSublocationService(appCtx, physicalService)
-	if err != nil {
-		return nil, err
+	// Create the service with mocks
+	service := &GameSublocationService{
+		dbAdapter:       mockDbAdapter,
+		cacheWrapper:    mockCacheWrapper,
+		validator:       mockValidator,
+		sanitizer:       mockSanitizer,
+		physicalService: mockPhysicalService,
+		logger:          logger,
+		config:          mockConfig,
 	}
 
 	return service, nil
@@ -177,7 +186,7 @@ func TestGameSublocationService(t *testing.T) {
 	testSublocation := models.Sublocation{
 		ID:                 testSublocationID,
 		UserID:            testUserID,
-		PhysicalLocationID: "physical-location-1",
+		PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000", // Use valid UUID
 		Name:              "Test Sublocation",
 		LocationType:      "shelf",
 		StoredItems:       50,
@@ -224,7 +233,7 @@ func TestGameSublocationService(t *testing.T) {
 		service.cacheWrapper = mockCache
 
 		// Override DB adapter to return test data
-		mockDb := mocks.DefaultSublocationDbAdapter()
+		mockDb := &mockDbAdapter{}
 		mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
 			return testSublocation, nil
 		}
@@ -246,7 +255,7 @@ func TestGameSublocationService(t *testing.T) {
 
 		// Track if CreateSublocation func was called
 		dbAddCalled := false
-		mockDB := mocks.DefaultSublocationDbAdapter()
+		mockDB := &mockDbAdapter{}
 		mockDB.AddSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
 			dbAddCalled = true
 			return sublocation, nil
@@ -266,7 +275,7 @@ func TestGameSublocationService(t *testing.T) {
 		req := types.CreateSublocationRequest{
 			Name: "Test Sublocation",
 			LocationType: "shelf",
-			PhysicalLocationID: "physical-location-1",
+			PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000", // Use valid UUID
 		}
 		createdSublocation, err := service.CreateSublocation(ctx, testUserID, req)
 
@@ -292,7 +301,7 @@ func TestGameSublocationService(t *testing.T) {
 
 		// Track if database is called
 		dbCalled := false
-		mockDb := mocks.DefaultSublocationDbAdapter()
+		mockDb := &mockDbAdapter{}
 		mockDb.AddSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
 			dbCalled = true
 			return sublocation, nil
@@ -303,7 +312,7 @@ func TestGameSublocationService(t *testing.T) {
 		req := types.CreateSublocationRequest{
 			Name: "Test Sublocation",
 			LocationType: "shelf",
-			PhysicalLocationID: "physical-location-1",
+			PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000", // Use valid UUID
 		}
 		createdSublocation, err := service.CreateSublocation(ctx, testUserID, req)
 
@@ -321,7 +330,10 @@ func TestGameSublocationService(t *testing.T) {
 
 		// Track if UpdateSublocation was called
 		dbUpdateCalled := false
-		mockDb := mocks.DefaultSublocationDbAdapter()
+		mockDb := &mockDbAdapter{}
+		mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+			return testSublocation, nil
+		}
 		mockDb.UpdateSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) error {
 			dbUpdateCalled = true
 			return nil
@@ -363,9 +375,12 @@ func TestGameSublocationService(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Setup mock to return a sublocation for GetSingleSublocation call
-		mockDb := mocks.DefaultSublocationDbAdapter()
+		mockDb := &mockDbAdapter{}
 		mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
 			return testSublocation, nil
+		}
+		mockDb.GetUserSublocationsFunc = func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+			return []models.Sublocation{testSublocation}, nil
 		}
 
 		// Track if DeleteSublocation was called via DeleteSublocationFunc
@@ -458,6 +473,13 @@ func TestGameSublocationService(t *testing.T) {
 		}
 		service.dbAdapter = mock
 
+		// Set up cache to return error so service falls back to database
+		mockCache := mocks.DefaultSublocationCacheWrapper()
+		mockCache.GetCachedSublocationsFunc = func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+			return nil, errors.New("cache error")
+		}
+		service.cacheWrapper = mockCache
+
 		// WHEN
 		_, err = service.GetSublocations(ctx, testUserID)
 
@@ -476,11 +498,28 @@ func TestCreateSublocation(t *testing.T) {
 	service, err := newMockGameSublocationServiceWithDefaults(testLogger)
 	assert.NoError(t, err)
 
+	// Set up mock database adapter
+	mockDb := &mockDbAdapter{}
+	mockDb.AddSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) (models.Sublocation, error) {
+		return sublocation, nil
+	}
+	service.dbAdapter = mockDb
+
+	// Set up mock cache wrapper
+	mockCache := mocks.DefaultSublocationCacheWrapper()
+	mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
+		return nil
+	}
+	mockCache.InvalidateLocationCacheFunc = func(ctx context.Context, userID, locationID string) error {
+		return nil
+	}
+	service.cacheWrapper = mockCache
+
 	// WHEN
 	req := types.CreateSublocationRequest{
 		Name: "Test Sublocation",
 		LocationType: "shelf",
-		PhysicalLocationID: "physical-location-1",
+		PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000", // Use valid UUID
 	}
 	sublocation, err := service.CreateSublocation(ctx, testUserID, req)
 
@@ -500,6 +539,32 @@ func TestUpdateSublocation(t *testing.T) {
 	testLogger := testutils.NewTestLogger()
 	service, err := newMockGameSublocationServiceWithDefaults(testLogger)
 	assert.NoError(t, err)
+
+	// Set up mock database adapter
+	mockDb := &mockDbAdapter{}
+	mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+		return models.Sublocation{
+			ID:                 testSublocationID,
+			UserID:            testUserID,
+			PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000",
+			Name:              "Test Sublocation",
+			LocationType:      "shelf",
+		}, nil
+	}
+	mockDb.UpdateSublocationFunc = func(ctx context.Context, userID string, sublocation models.Sublocation) error {
+		return nil
+	}
+	service.dbAdapter = mockDb
+
+	// Set up mock cache wrapper
+	mockCache := mocks.DefaultSublocationCacheWrapper()
+	mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
+		return nil
+	}
+	mockCache.InvalidateSublocationCacheFunc = func(ctx context.Context, userID, sublocationID string) error {
+		return nil
+	}
+	service.cacheWrapper = mockCache
 
 	// WHEN
 	req := types.UpdateSublocationRequest{
@@ -522,6 +587,50 @@ func TestDeleteSublocation(t *testing.T) {
 	service, err := newMockGameSublocationServiceWithDefaults(testLogger)
 	assert.NoError(t, err)
 
+	// Set up mock database adapter
+	mockDb := &mockDbAdapter{}
+	mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+		return models.Sublocation{
+			ID:                 testSublocationID,
+			UserID:            testUserID,
+			PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000",
+			Name:              "Test Sublocation",
+			LocationType:      "shelf",
+		}, nil
+	}
+	mockDb.GetUserSublocationsFunc = func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+		return []models.Sublocation{
+			{
+				ID:                 testSublocationID,
+				UserID:            testUserID,
+				PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000",
+				Name:              "Test Sublocation",
+				LocationType:      "shelf",
+			},
+		}, nil
+	}
+	mockDb.DeleteSublocationFunc = func(ctx context.Context, userID string, sublocationIDs []string) (types.DeleteSublocationResponse, error) {
+		return types.DeleteSublocationResponse{
+			Success: true,
+			DeletedCount: len(sublocationIDs),
+			SublocationIDs: sublocationIDs,
+		}, nil
+	}
+	service.dbAdapter = mockDb
+
+	// Set up mock cache wrapper
+	mockCache := mocks.DefaultSublocationCacheWrapper()
+	mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
+		return nil
+	}
+	mockCache.InvalidateSublocationCacheFunc = func(ctx context.Context, userID, sublocationID string) error {
+		return nil
+	}
+	mockCache.InvalidateLocationCacheFunc = func(ctx context.Context, userID, locationID string) error {
+		return nil
+	}
+	service.cacheWrapper = mockCache
+
 	// WHEN
 	response, err := service.DeleteSublocation(ctx, testUserID, []string{testSublocationID})
 
@@ -543,7 +652,27 @@ func TestDeleteSublocationWithOrphanedGames(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Set up mock to return orphaned games
-	mockDb := mocks.DefaultSublocationDbAdapter()
+	mockDb := &mockDbAdapter{}
+	mockDb.GetSublocationFunc = func(ctx context.Context, userID, sublocationID string) (models.Sublocation, error) {
+		return models.Sublocation{
+			ID:                 testSublocationID,
+			UserID:            testUserID,
+			PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000",
+			Name:              "Test Sublocation",
+			LocationType:      "shelf",
+		}, nil
+	}
+	mockDb.GetUserSublocationsFunc = func(ctx context.Context, userID string) ([]models.Sublocation, error) {
+		return []models.Sublocation{
+			{
+				ID:                 testSublocationID,
+				UserID:            testUserID,
+				PhysicalLocationID: "550e8400-e29b-41d4-a716-446655440000",
+				Name:              "Test Sublocation",
+				LocationType:      "shelf",
+			},
+		}, nil
+	}
 	mockDb.DeleteSublocationFunc = func(ctx context.Context, userID string, sublocationIDs []string) (types.DeleteSublocationResponse, error) {
 		return types.DeleteSublocationResponse{
 			Success: true,
@@ -560,6 +689,19 @@ func TestDeleteSublocationWithOrphanedGames(t *testing.T) {
 		}, nil
 	}
 	service.dbAdapter = mockDb
+
+	// Set up mock cache wrapper
+	mockCache := mocks.DefaultSublocationCacheWrapper()
+	mockCache.InvalidateUserCacheFunc = func(ctx context.Context, userID string) error {
+		return nil
+	}
+	mockCache.InvalidateSublocationCacheFunc = func(ctx context.Context, userID, sublocationID string) error {
+		return nil
+	}
+	mockCache.InvalidateLocationCacheFunc = func(ctx context.Context, userID, locationID string) error {
+		return nil
+	}
+	service.cacheWrapper = mockCache
 
 	// WHEN
 	response, err := service.DeleteSublocation(ctx, testUserID, []string{testSublocationID})

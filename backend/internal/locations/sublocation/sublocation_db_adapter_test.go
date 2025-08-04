@@ -11,7 +11,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/lokeam/qko-beta/internal/appcontext_test"
 	"github.com/lokeam/qko-beta/internal/models"
-	"github.com/lokeam/qko-beta/internal/postgres"
 )
 
 /*
@@ -59,12 +58,8 @@ func TestSublocationDbAdapter(t *testing.T) {
 		// Create a sqlx wrapper around mock data
 		sqlxDB := sqlx.NewDb(mockDB, "sqlmock")
 
-		// Create a mock PostgresClient
-		mockClient := &postgres.PostgresClient{}
-
 		// Create the adapter with the mock DB
 		adapter := &SublocationDbAdapter{
-			client: mockClient,
 			db:     sqlxDB,
 			logger: baseAppCtx.Logger,
 		}
