@@ -97,7 +97,7 @@ func TestPhysicalValidator(t *testing.T) {
 			t.Fatalf("expected sanitized name to be empty, but got %s", sanitizedName)
 		}
 
-		expectedError := "name cannot be empty"
+		expectedError := "validation failed for name: name is required"
 		if !strings.Contains(testErr.Error(), expectedError) {
 			t.Errorf("expected error to contain %q, but got %q", expectedError, testErr.Error())
 		}
@@ -237,6 +237,7 @@ func TestPhysicalValidator(t *testing.T) {
 			Label:          strings.Repeat("a", MaxLabelLength+1), // Label too long
 			LocationType:   "Invalid", // Invalid type
 			MapCoordinates: models.PhysicalMapCoordinates{Coords: "invalid-format"}, // Invalid coordinates
+			BgColor:        "invalid-color", // Invalid background color
 		}
 
 		validatedLocation, testErr := testValidator.ValidatePhysicalLocation(testLocation)
@@ -248,10 +249,11 @@ func TestPhysicalValidator(t *testing.T) {
 		// Check that the error contains all expected validation messages
 		errorStr := testErr.Error()
 		expectedErrors := []string{
-			"name cannot be empty",
-			fmt.Sprintf("label must be less than %d characters", MaxLabelLength),
-			"location type must be one of",
-			"map coordinates must be in format latitude,longitude",
+			"validation failed for name: name is required",
+			fmt.Sprintf("validation failed for label: label must be less than %d characters", MaxLabelLength),
+			"validation failed for locationType: location type must be one of",
+			"validation failed for map_coordinates: coordinates must be in the format 'latitude, longitude' with valid numbers",
+			"validation failed for bgColor: background color must be one of",
 		}
 
 		for _, expectedError := range expectedErrors {
@@ -277,8 +279,9 @@ func TestPhysicalValidator(t *testing.T) {
 		testLocation := models.PhysicalLocation{
 			Name:           "My Home",
 			Label:          "Primary",
-			LocationType:   "Home",
+			LocationType:   "house", // Use valid location type
 			MapCoordinates: models.PhysicalMapCoordinates{Coords: "40.7128,-74.0060"},
+			BgColor:        "blue", // Use valid background color
 		}
 
 		validatedLocation, testErr := testValidator.ValidatePhysicalLocation(testLocation)
@@ -291,7 +294,8 @@ func TestPhysicalValidator(t *testing.T) {
 		if validatedLocation.Name != testLocation.Name ||
 			 validatedLocation.Label != testLocation.Label ||
 			 validatedLocation.LocationType != testLocation.LocationType ||
-			 validatedLocation.MapCoordinates != testLocation.MapCoordinates {
+			 validatedLocation.MapCoordinates.Coords != testLocation.MapCoordinates.Coords ||
+			 validatedLocation.BgColor != testLocation.BgColor {
 			t.Errorf("expected validated location to match input, but got %+v", validatedLocation)
 		}
 	})

@@ -256,12 +256,7 @@ func TestGamePhysicalService(t *testing.T) {
 		mockDb.On("CreatePhysicalLocation", ctx, "user1", location).
 			Return(location, nil)
 
-		// After adding, it fetches all locations to update cache
-		allLocations := []models.PhysicalLocation{location}
-		mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-			Return(allLocations, nil)
-		mockCache.On("SetCachedPhysicalLocations", ctx, "user1", allLocations).
-			Return(nil)
+		// Invalidate the user cache after creating a location
 		mockCache.On("InvalidateUserCache", ctx, "user1").
 			Return(nil)
 
@@ -306,15 +301,9 @@ func TestGamePhysicalService(t *testing.T) {
 
 		mockDb.On("UpdatePhysicalLocation", ctx, userID, updatedLocation).
 			Return(updatedLocation, nil)
-		mockCache.On("SetSingleCachedPhysicalLocation", ctx, userID, updatedLocation).
-			Return(nil)
-		mockCache.On("InvalidateLocationCache", ctx, userID, locationID).
-			Return(nil)
 		mockCache.On("InvalidateUserCache", ctx, userID).
 			Return(nil)
-		mockDb.On("GetAllPhysicalLocations", ctx, userID).
-			Return([]models.PhysicalLocation{updatedLocation}, nil)
-		mockCache.On("SetCachedPhysicalLocations", ctx, userID, []models.PhysicalLocation{updatedLocation}).
+		mockCache.On("InvalidateLocationCache", ctx, userID, locationID).
 			Return(nil)
 
 		result, err := service.UpdatePhysicalLocation(ctx, userID, updatedLocation)
@@ -336,11 +325,9 @@ func TestGamePhysicalService(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
 				Return(int64(1), nil)
-			mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-				Return([]models.PhysicalLocation{}, nil)
-			mockCache.On("InvalidateUserCache", ctx, "user1").
-				Return(nil)
 			mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
+				Return(nil)
+			mockCache.On("InvalidateUserCache", ctx, "user1").
 				Return(nil)
 
 			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
@@ -356,12 +343,10 @@ func TestGamePhysicalService(t *testing.T) {
 		t.Run("cache invalidation failure", func(t *testing.T) {
 			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
 				Return(int64(1), nil)
-			mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-				Return([]models.PhysicalLocation{}, nil)
-			mockCache.On("InvalidateUserCache", ctx, "user1").
-				Return(fmt.Errorf("cache error"))
 			mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
 				Return(nil)
+			mockCache.On("InvalidateUserCache", ctx, "user1").
+				Return(fmt.Errorf("cache error"))
 
 			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
 			if err != nil {
@@ -375,16 +360,41 @@ func TestGamePhysicalService(t *testing.T) {
 		// Test database error
 		t.Run("database error", func(t *testing.T) {
 			dbErr := fmt.Errorf("database error")
-			mockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
+
+			// NOTE: Create fresh mocks for this test
+			freshMockDb := new(mocks.MockPhysicalDbAdapter)
+			freshMockCache := new(mocks.MockPhysicalCacheWrapper)
+
+			// Create a new service with a mock validator that returns what the test expects
+			mockValidator := &mocks.MockPhysicalValidator{
+				ValidateRemovePhysicalLocationFunc: func(userID string, locationIDs []string) ([]string, error) {
+					return locationIDs, nil
+				},
+			}
+
+			// Create a new service with the mock validator
+			serviceWithValidator := &GamePhysicalService{
+				dbAdapter:    freshMockDb,
+				cacheWrapper: freshMockCache,
+				logger:       testutils.NewTestLogger(),
+				validator:    mockValidator,
+				sanitizer:    &mocks.MockSanitizer{},
+			}
+
+			// Then call DeletePhysicalLocation. This should fail.
+			freshMockDb.On("DeletePhysicalLocation", ctx, "user1", []string{"loc1"}).
 				Return(int64(0), dbErr)
 
-			deletedCount, err := service.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
+			deletedCount, err := serviceWithValidator.DeletePhysicalLocation(ctx, "user1", []string{"loc1"})
 			if err == nil {
 				t.Errorf("DeletePhysicalLocation() should fail on DB error")
 			}
 			if deletedCount != 0 {
 				t.Errorf("DeletePhysicalLocation() deletedCount = %v, want %v", deletedCount, 0)
 			}
+
+			freshMockDb.AssertExpectations(t)
+			freshMockCache.AssertExpectations(t)
 		})
 	})
 }
@@ -454,17 +464,16 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					},
 				}
 
-				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
-					Return(updatedLocation, nil)
-				mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", updatedLocation).
-					Return(nil)
-				mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
-					Return(nil)
+				// Service first calls InvalidateUserCache
 				mockCache.On("InvalidateUserCache", ctx, "user1").
 					Return(nil)
-				mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-					Return([]models.PhysicalLocation{updatedLocation}, nil)
-				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", []models.PhysicalLocation{updatedLocation}).
+
+				// Then calls UpdatePhysicalLocation
+				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
+					Return(updatedLocation, nil)
+
+				// Finally calls InvalidateLocationCache on success
+				mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
 					Return(nil)
 			},
 			expectedError: nil,
@@ -495,11 +504,17 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 				},
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
+				// First call InvalidateUserCache
+				mockCache.On("InvalidateUserCache", ctx, "user2").
+					Return(nil)
+
+				// Then call UpdatePhysicalLocation. This should fail
 				mockDb.On("UpdatePhysicalLocation", ctx, "user2", mock.Anything).
 					Return(models.PhysicalLocation{}, fmt.Errorf("unauthorized"))
-				mockCache.On("InvalidateUserCache", ctx, "user2").Return(nil)
+
+				// InvalidateLocationCache is NOT called when database fails
 			},
-			expectedError:     ErrUnauthorizedLocation,
+			expectedError:     fmt.Errorf("failed to update physical location: unauthorized"),
 			expectedLocation: models.PhysicalLocation{},
 		},
 		{
@@ -518,8 +533,16 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 			},
 			mockSetup: func(mockDb *mocks.MockPhysicalDbAdapter, mockCache *mocks.MockPhysicalCacheWrapper) {
 				dbErr := fmt.Errorf("database error")
+
+				// Service calls InvalidateUserCache first
+				mockCache.On("InvalidateUserCache", ctx, "user1").
+					Return(nil)
+
+				// Test then calls UpdatePhysicalLocation. This should fail.
 				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
 					Return(models.PhysicalLocation{}, dbErr)
+
+				// InvalidateLocationCache is NOT called when database fails
 			},
 			expectedError:     fmt.Errorf("failed to update physical location: database error"),
 			expectedLocation: models.PhysicalLocation{},
@@ -551,23 +574,18 @@ func TestUpdatePhysicalLocation(t *testing.T) {
 					},
 				}
 
-				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
-					Return(updatedLocation, nil)
-
 				// Simulate cache errors - these should not block the update
 				cacheErr := fmt.Errorf("cache error")
-				mockCache.On("SetSingleCachedPhysicalLocation", ctx, "user1", updatedLocation).
-					Return(cacheErr)
 				mockCache.On("InvalidateUserCache", ctx, "user1").
 					Return(cacheErr)
 
-				updatedLocations := []models.PhysicalLocation{updatedLocation}
-				mockDb.On("GetAllPhysicalLocations", ctx, "user1").
-					Return(updatedLocations, nil)
-				mockCache.On("SetCachedPhysicalLocations", ctx, "user1", updatedLocations).
+				mockDb.On("UpdatePhysicalLocation", ctx, "user1", mock.Anything).
+					Return(updatedLocation, nil)
+
+				mockCache.On("InvalidateLocationCache", ctx, "user1", "loc1").
 					Return(cacheErr)
 			},
-			expectedError: nil, // Should still succeed despite cache errors
+			expectedError: nil, // This should still succeed despite cache errors
 			expectedLocation: models.PhysicalLocation{
 				ID:             "loc1",
 				UserID:         "user1",
